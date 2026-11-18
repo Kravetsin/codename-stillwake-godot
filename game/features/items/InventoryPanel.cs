@@ -276,6 +276,7 @@ public partial class InventoryPanel : CanvasLayer
         _shown.Visible = false;
         _root.AddChild(_body = Body(size));
         _body.Visible = false;
+        ShowLooks();
         // Last: a sort's light crosses over the slots.
         _root.AddChild(_sweep = new SortSweep());
         _root.AddChild(_burst = new TrashBurst());
@@ -315,7 +316,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey, _appearance) = (null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey, _appearance, _doll) = (null, null, null, null, null, null, null, null, null);
         _chargerLines.Clear();
     }
 
@@ -348,6 +349,7 @@ public partial class InventoryPanel : CanvasLayer
         _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
         _cooling.Read(CanisterIn?.Invoke() ?? 0);
         Refresh();
+        Refreshed?.Invoke();
     }
 
     private void Send(Command command)
@@ -366,40 +368,45 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058), in rows by where it
-    /// is worn (<see cref="Equipment.Rows"/>): the head with the helmet's mount, the body with the back and the cape, the
-    /// belt's three; each kind under its name, no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so
-    /// the hands have no slot.
+    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058), as a doll (gear-tabs, pick B):
+    /// this player's hero standing in the middle (<see cref="Doll"/>), each slot by the part it dresses (<see cref="Equipment.SpotOf"/>,
+    /// <see cref="DollLayout"/>), a leader line to it, no captions: an empty slot's tip names its kind. Over the metal, the Gear
+    /// and Appearance tabs (<see cref="GearTabs"/>). The screwdriver is a hotbar item (0107), so the hands have no slot.
     /// </summary>
     private WristScreen Body(int size)
     {
-        var column = _gear = Style.Gap(new VBoxContainer(), 2);
-        foreach (var kinds in Equipment.Rows)
+        var layout = _dollLayout = DollLayout.Of(size);
+        var mouseless = Control.MouseFilterEnum.Ignore;
+        _stage = new Control { CustomMinimumSize = new Vector2(layout.Width, layout.Height), MouseFilter = mouseless };
+        _gearSpots = new Control { Size = _stage.CustomMinimumSize, MouseFilter = mouseless };
+        _gearSpots.AddChild(_gearLeads = new DollLeads(layout, DollLayout.Gear, amber: false));
+        foreach (var place in Equipment.All())
         {
-            var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-            foreach (var kind in kinds) row.AddChild(Kind(kind));
-            column.AddChild(row);
+            var box = Box(place);
+            var (x, y) = layout.SlotAt(Equipment.SpotOf(place));
+            (box.Position, box.Size) = (new Vector2(x, y), box.CustomMinimumSize);
+            _gearSpots.AddChild(box);
         }
+        _stage.AddChild(_gearSpots);
+        PutDoll();
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
-        body.AddChild(_bodyShows = new VBoxContainer());
-        _bodyShows.AddChild(column);
-        // The appearance key on the metal's left edge, as the bag's sort key is on its right (hero-skins).
-        var key = _looksKey = new LooksButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), () =>
+        body.AddChild(_bodyShows = new MarginContainer { MouseFilter = mouseless });
+        _bodyShows.AddChild(_stage);
+        // The tabs stand on the metal's top edge, the open one reaching into it.
+        _tabs = new GearTabs(size, looks =>
         {
             _ui.Click();
-            _looks = !_looks;
+            _looks = looks;
             ShowLooks();
         })
         { Visible = Appearance != null };
-        _tipSpots.Add(key, () => new Tip(T(_looks ? "items.gear" : "items.looks")));
-        body.Mount(key, _ => new Vector2(-WristLook.SideKeyOut - WristLook.SideKeyWidth, WristLook.SideKeyDown));
-        ShowLooks();
+        body.Mount(_tabs, _ => new Vector2(6, -(WristPieces.Body.Window.Top - WristPieces.Pad) * WristPiece.Scale + 1 - _tabs.CustomMinimumSize.Y));
         return body;
     }
 
     /// <summary>
-    /// Makes the equipment's screen show the skins in its place (hero-skins), another feature's (crew's <c>AppearanceView</c>), built
-    /// at the slot size given and again with it; set by <c>Main</c>. None: no appearance key.
+    /// Makes the equipment's screen show the skins in its gear's place (hero-skins, gear-tabs), another feature's (crew's
+    /// <c>AppearanceView</c>), built at the slot size given and again with it; set by <c>Main</c>. None: no tabs.
     /// </summary>
     public Func<int, Control>? Appearance
     {
@@ -407,46 +414,56 @@ public partial class InventoryPanel : CanvasLayer
         set
         {
             _appearanceOf = value;
-            _looksKey.Visible = value != null;
+            _tabs.Visible = value != null;
+            ShowLooks();
         }
     }
 
-    private Func<int, Control>? _appearanceOf;
-    private LooksButton _looksKey = null!;
+    /// <summary>The doll the equipment is laid round (gear-tabs): crew's <c>HeroDoll</c>, built at the slot size given; set by <c>Main</c>.</summary>
+    public Func<int, Control>? Doll
+    {
+        get => _dollOf;
+        set
+        {
+            _dollOf = value;
+            PutDoll();
+        }
+    }
 
-    private VBoxContainer _gear = null!, _bodyShows = null!;
-    private Control? _appearance;
-    /// <summary>Whether the equipment's screen shows the skins, kept while the panel is built again.</summary>
+    /// <summary>After every read of the slots, on the timer and at once after this peer's own move: what the doll's dress is read on.</summary>
+    public event Action? Refreshed;
+
+    private Func<int, Control>? _appearanceOf, _dollOf;
+    private GearTabs _tabs = null!;
+    private Control _stage = null!, _gearSpots = null!;
+    private DollLeads _gearLeads = null!;
+    private DollLayout _dollLayout = null!;
+    private MarginContainer _bodyShows = null!;
+    private Control? _appearance, _doll;
+    /// <summary>Whether the Appearance tab is chosen, kept while the panel is built again.</summary>
     private bool _looks;
+
+    /// <summary>The Appearance tab's screen: warm amber glass, and its light and lamp.</summary>
+    private static readonly Color LooksScreen = new("1d140b"), LooksGlow = new("e9a84c");
+
+    /// <summary>The doll under both tabs' slots, once the panel is built and <see cref="Doll"/> is set.</summary>
+    private void PutDoll()
+    {
+        if (_doll != null || Doll == null || !IsInstanceValid(_stage)) return;
+        _stage.AddChild(_doll = Doll(_ui.Slot));
+        _stage.MoveChild(_doll, 0);
+        _doll.Size = _doll.CustomMinimumSize;
+    }
 
     private void ShowLooks()
     {
         if (_looks && _appearance == null && Appearance != null) _bodyShows.AddChild(_appearance = Appearance(_ui.Slot));
-        _gear.Visible = !_looks || _appearance == null;
-        if (_appearance == null) return;
-        _appearance.Visible = _looks;
-        // As wide as the equipment, so the screen keeps its size and a strip has room.
-        _appearance.CustomMinimumSize = new Vector2(_gear.GetCombinedMinimumSize().X, 0);
+        bool looks = _looks && _appearance != null;
+        _gearSpots.Visible = !looks;
+        if (_appearance != null) _appearance.Visible = looks;
+        _tabs.Show(looks);
+        _body.Tint(looks ? LooksScreen : null, looks ? LooksGlow : null);
     }
-
-    /// <summary>One kind's slots in a row under its name.</summary>
-    private VBoxContainer Kind(string kind)
-    {
-        var column = Style.Gap(new VBoxContainer(), 2);
-        column.AddChild(Caption(kind));
-        var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-        foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
-        column.AddChild(row);
-        return column;
-    }
-
-    private static Label Caption(string kind) => new()
-    {
-        Text = T($"equip.{kind}"),
-        LabelSettings = Style.Text(Style.Mono, 9, Style.Slate500),
-        HorizontalAlignment = HorizontalAlignment.Center,
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-    };
 
     private SlotBox Box(Place place, string? key = null)
     {
@@ -557,6 +574,8 @@ public partial class InventoryPanel : CanvasLayer
             var name = T("logistics.kept", ("item", T($"item.{kept}")));
             return Supplied?.Invoke(id, kept) == false ? new Tip(name, new TipLine(T("logistics.noneInReach"), Tone.Bad)) : new Tip(name);
         }
+        // No captions by the doll: an empty equipment slot's tip names what it wears (gear-tabs).
+        if (Equipment.KindOf(box.Place) is { } worn) return new Tip(T($"equip.{worn}"));
         return box.GhostMark switch
         {
             SlotMark.Docks => new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)),
@@ -649,13 +668,26 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
+        // The screen ends past the last belt slot open: one more opened widens it.
+        int belts = Equipment.Of(Content.Charge.Belt).Count(p => _items!.SlotOpen(_client!.Id, p));
+        var stage = new Vector2(_dollLayout.WidthFor(belts), _dollLayout.Height);
+        if (_stage.CustomMinimumSize != stage) _stage.CustomMinimumSize = _gearSpots.Size = stage;
         // The trash's frame shows with its slot: in creative mode only (trash-slot).
         _trash.Visible = _trashBox.Visible;
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
         foreach (var socket in _sockets)
             socket.Show(FittedTo(socket.Machine).Contains(socket.Module), carried == socket.Module && GoesIn(carried, socket.Machine), _socketHovered == socket);
+        foreach (var place in Equipment.All()) _gearLeads.Fill(Equipment.SpotOf(place), reading.At(place) != null);
+        // The belt's row has the one line, lit while any of it is worn.
+        _gearLeads.Fill(DollSpot.Belt1, Equipment.Of(Content.Charge.Belt).Any(p => reading.At(p) != null));
         if (_unfitting is { } unfitting && !GodotObject.IsInstanceValid(unfitting)) _unfitting = null;
         _held.Visible = held != null || _unfitting != null;
+        // A stack lifted from any slot turns the Appearance tab back to the gear (gear-tabs).
+        if (Equipment.LooksShown(_looks, _held.Visible) != _looks)
+        {
+            _looks = false;
+            ShowLooks();
+        }
         if (held is { } h)
         {
             var stack = reading.At(h.Place)!;

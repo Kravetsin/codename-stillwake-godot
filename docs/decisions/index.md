@@ -405,6 +405,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [bell-no-skirt](2026-11-18-bell-no-skirt.md) | The heavy bell sits as the helmet skins do, its shoulder piece gone | accepted |  |
 | [board-islands](2026-11-18-board-islands.md) | The board is fixed district islands on a grid | accepted |  |
 | [body-temperature](2026-11-18-body-temperature.md) | The hero's body temperature | accepted |  |
+| [gear-doll](2026-11-18-gear-doll.md) | The equipment is a doll under two tabs | accepted |  |
 | [hud-dials](2026-11-18-hud-dials.md) | The vitals as a row of dials over a long air bar | accepted |  |
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
 | [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |

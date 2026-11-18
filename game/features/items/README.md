@@ -23,7 +23,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `PickUpFlights.cs` | icons and sparks flying home (0075) |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
 | `StashButton.cs` | the stash key under it, the fan glyph |
-| `LooksButton.cs` | the appearance key left of the equipment, a hanger |
+| `GearTabs.cs` | the equipment's two tabs |
 | `FavouriteStar.cs` | the kept mark, in a slot and by the pointer |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) |
 | `TrashBurst.cs` | it, drawn |
@@ -61,9 +61,9 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, in creative the trash under it
   (trash-slot), the open machine under them, equipment at the right edge; every slot `Ui.Slot` wide, rebuilt when
   the setting changes. Tints by `Slots.TintOf`: tools amber, worn items green.
-- **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
-  dim. Its left key (`LooksButton`) turns the screen to **Appearance** (hero-skins), crew's tab, which `Main` sets as
-  `Appearance`; unset, no key.
+- **Equipment** (0047, 0058, gear-doll): crew's hero (`Doll`), slots by what they dress (`DollLayout`), lined to
+  them, no captions; the screen ends past the last open belt. A carried stack lights slots that would wear it, dims the
+  rest, and turns the tabs (`GearTabs`) from **Appearance** back to the gear.
 - **Look** (0074): hotbar, bag, equipment in the wrist's metal, content fading in; a machine's window a hologram in
   its station's tone, beamed from it (`MachineHolo`, machine-holograms).
 - **One machine frame** (0058): name, and for a powered one a bolt with its power (`IPowerQueries.Draw`, modules in),
