@@ -62,7 +62,9 @@ A tool in `tools/anime-art/socket/` (node), committed, in three steps.
 3. **Pick page.** Each candidate that passes is shown on the hero in the game's own frames: a dress-sheet run with the
    candidates laid in, looking up, ahead and down, walking. A mismatched seam shows here.
 
-Once picked, the tool writes `hero_<id>_shell.png`, the card and, only for a tinted glass, `hero_<id>_visor.png`.
+Once picked, the tool writes `hero_<id>_shell.png`, the card, and `hero_<id>_visor.png`: the engine's glass, tinted if asked,
+open where the dome stands in front of it. The game draws the glass over the dome, so a snout painted over the glass's edge
+would hide behind it otherwise.
 
 ## In the game
 - `Figure.PictureOf`: a socket helmet's seal is `helmet_collar`, its collar is none, and its visor is `visor` unless it has

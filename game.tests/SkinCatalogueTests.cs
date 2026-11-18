@@ -19,10 +19,25 @@ public class SkinCatalogueTests
     [Fact]
     public void EveryHelmetPictureHasItsLampAndScannerMounts()
     {
-        foreach (var helmet in HelmetPictures)
+        foreach (var helmet in HelmetPictures.Where(h => !BodyFit.IsSocket(h)))
         {
             Assert.True(LampMounts.On.ContainsKey(helmet), $"{helmet} has no lamp mount");
             Assert.True(ScannerInk.On.ContainsKey(helmet), $"{helmet} has no scanner row");
+        }
+    }
+
+    [Fact]
+    public void ASocketHelmetIsItsDomeAloneOnTheBasicOnesMountsAndSeal()
+    {
+        // helmet-socket: the rim, seal, glass, lamp and scanner are the basic helmet's; it turns whole, only the seal bending.
+        foreach (var helmet in BodyFit.Sockets)
+        {
+            Assert.Contains(helmet, HelmetPictures);
+            Assert.True(Png.Has($"hero_{helmet}_shell"), $"hero_{helmet}_shell");
+            Assert.True(Png.Has($"items/{helmet}") || Png.Has($"skins/{helmet}"), $"{helmet}'s card");
+            Assert.False(Png.Has($"hero_{helmet}_seal") || Png.Has($"hero_{helmet}_collar"), $"{helmet} has a seal or collar of its own");
+            Assert.False(LampMounts.On.ContainsKey(helmet) || ScannerInk.On.ContainsKey(helmet), $"{helmet} has a mount row of its own");
+            Assert.Equal((HelmetTurn.Ring, true), (BodyFit.Of(helmet).Turn, BodyFit.Of(helmet).Sealed));
         }
     }
 

@@ -19,12 +19,11 @@ const HELMETS = {
   heavyHelmet: { name: 'hero_heavyHelmet_scanner', top: (x) => HelmetsKit.top.heavyHelmet(x), on: [6.2, -4.1] },
 };
 
-// The helmet skins (hero-skins) and the raw painted helmets (gear-roles) wear the basic helmet's crest, raised onto each painted
-// dome; no picture of their own.
+// The helmet skins (hero-skins) wear the basic helmet's crest, raised onto each painted dome; no picture of their own. The socket
+// helmets (helmet-socket) wear the basic helmet's, where it is, by ScannerInk.Of.
 const SKINS = {
   brassHelmet: -2.4, beakHelmet: -2.8, roninHelmet: -2.2, knightHelmet: -2.2, reliquaryHelmet: -2.4,
   skullHelmet: -2.6, ramHelmet: -2.4, bathysphereHelmet: -2.9, paradeHelmet: -2.4,
-  heatedHelmet: -1.9, heatHelmet: -1.9, dustHelmet: -1.9, hideHelmet: -1.9, boilerHelmet: -1.9,
 };
 
 const n2 = (v) => +v.toFixed(2);

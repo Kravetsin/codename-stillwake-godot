@@ -106,13 +106,6 @@ public static class BodyFit
         ["ramHelmet"] = Shell,
         ["bathysphereHelmet"] = Shell,
         ["paradeHelmet"] = Shell,
-        // The raw painted helmets (gear-roles): laid in the basic ball's box on its rubber collar, nodding as it does, the best fit
-        // in play; their own painted neck ring cut off. The dust wrap's filter hangs below the seal, so it turns whole as the skins do.
-        ["dustHelmet"] = Shell,
-        ["hideHelmet"] = Ball,
-        ["boilerHelmet"] = Ball,
-        [Stillwake.Content.Helmet.Heated] = Ball,
-        [Stillwake.Content.Helmet.HeatProof] = Ball,
         // The bell turns whole on its rubber gasket as the skins do on theirs, with no shoulder piece: it met no suit well.
         [Stillwake.Content.Helmet.Heavy] = Shell,
         ["catcherHood"] = Hood,
@@ -130,7 +123,19 @@ public static class BodyFit
     /// <see cref="Whole"/> for none or any other.
     /// </summary>
     public static HelmetFit Of(string? helmet) =>
-        helmet == null || !Fits.TryGetValue(helmet, out var fit) ? Whole : Trial is { } turn ? As(helmet, fit, turn) : fit;
+        helmet == null || FitOf(helmet) is not { } fit ? Whole : Trial is { } turn ? As(helmet, fit, turn) : fit;
+
+    private static HelmetFit? FitOf(string helmet) => Fits.TryGetValue(helmet, out var fit) ? fit : IsSocket(helmet) ? Shell : null;
+
+    /// <summary>
+    /// The socket helmets (helmet-socket): only a painted dome of their own, on the basic helmet's rim, rubber seal and glass,
+    /// turning whole on that seal so nothing painted ever bends. Every new helmet is one.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Sockets =
+        [Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, "dustHelmet", "hideHelmet", "boilerHelmet"];
+
+    /// <summary>Whether <paramref name="helmet"/> is one of the <see cref="Sockets"/>.</summary>
+    public static bool IsSocket(string? helmet) => helmet != null && Sockets.Contains(helmet);
 
     /// <summary>Every helmet turning this way instead of its own, to compare them in game (the dev key, <c>HelmetTurnKey</c>); none in play.</summary>
     public static HelmetTurn? Trial { get; set; }
@@ -145,7 +150,7 @@ public static class BodyFit
     };
 
     /// <summary>The helmets fitted, by name.</summary>
-    public static IEnumerable<string> Fitted => Fits.Keys;
+    public static IEnumerable<string> Fitted => Fits.Keys.Concat(Sockets);
 
     /// <summary>
     /// The rows of an arm's picture, from its box's top (its shoulder joint at 2.5), over which its top fades in from nothing:

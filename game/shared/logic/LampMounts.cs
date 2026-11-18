@@ -12,9 +12,6 @@ public static class LampMounts
     {
         [Stillwake.Content.Helmet.Basic] = (8, -2),
         [Stillwake.Content.Helmet.Heavy] = (6, -4.8),
-        // The raw painted helmets (gear-roles), laid in the basic ball's box: on its brow too.
-        [Stillwake.Content.Helmet.Heated] = (8, -2),
-        [Stillwake.Content.Helmet.HeatProof] = (8, -2),
         // The helmet skins: on the brow of each painted dome, over its face opening as on the basic one.
         ["brassHelmet"] = (8, -2.4),
         ["beakHelmet"] = (8, -2.8),
@@ -25,9 +22,6 @@ public static class LampMounts
         ["ramHelmet"] = (8, -2.2),
         ["bathysphereHelmet"] = (8, -2.9),
         ["paradeHelmet"] = (8, -2.2),
-        ["dustHelmet"] = (8, -2),
-        ["hideHelmet"] = (8, -2),
-        ["boilerHelmet"] = (8, -2),
     };
 
     /// <summary>Where it sits on <paramref name="helmet"/>'s picture; the basic helmet's for none or one without a row.</summary>
