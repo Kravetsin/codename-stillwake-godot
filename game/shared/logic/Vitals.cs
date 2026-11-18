@@ -27,11 +27,20 @@ public static class Vitals
     /// <summary>One dial's centre to the next's.</summary>
     public const float DialPitch = Dial + CircleGap;
 
-    /// <summary>How many dials stand in the row: charge, temperature, three meals and the purge spot, in that order.</summary>
+    /// <summary>
+    /// The most dials the row shows: charge, temperature, a dial for each meal eaten (none for an empty slot), then the purge spot or
+    /// hunger (<see cref="LastDial"/>), all a <see cref="DialPitch"/> apart; three meals make six.
+    /// </summary>
     public const int Dials = 6;
 
-    /// <summary>The dials' places in the row.</summary>
-    public const int ChargeDial = 0, TemperatureDial = 1, FirstMealDial = 2, PurgeDial = 5;
+    /// <summary>The fixed dials' places in the row, and the first meal's.</summary>
+    public const int ChargeDial = 0, TemperatureDial = 1, FirstMealDial = 2;
+
+    /// <summary>Where the purge spot or hunger stands with <paramref name="meals"/> meals shown before it: right after them.</summary>
+    public static int LastDial(int meals) => FirstMealDial + Math.Clamp(meals, 0, Dials - FirstMealDial - 1);
+
+    /// <summary>How many dials the row shows with <paramref name="meals"/> meals: 3 with none, 6 with three.</summary>
+    public static int DialsShown(int meals) => LastDial(meals) + 1;
 
     /// <summary>The block's top, where the dials' circles start a little below; the highest anything is drawn.</summary>
     public const float Top = 0;
@@ -48,15 +57,15 @@ public static class Vitals
     /// <summary>Where the signs' column centres across: the first dial's, and the oxygen sign's under it.</summary>
     public const float SignX = Dial / 2;
 
-    /// <summary>The right edge of the row of dials.</summary>
+    /// <summary>The right edge of the row of dials at its widest, three meals eaten: what <see cref="Covers"/> keeps.</summary>
     public const float RowRight = SignX + (Dials - 1) * DialPitch + Dial / 2;
 
     /// <summary>Where the air's pieces start; a piece's height; the gap between two pieces.</summary>
     public const float RowLeft = 44, PieceHeight = 10, Gap = 4;
 
     /// <summary>
-    /// Where the page's air of 60 units in three parts ended, at the normal interface 9 px short of the keys: what sets a unit of
-    /// air's length.
+    /// Where the pick page's air of 60 units in three parts ended (9 px short of the keys at the slot of 48 it was drawn for): what
+    /// sets a unit of air's length, and where the bar may end until the keys are first laid.
     /// </summary>
     public const float AirReach = 410;
 
@@ -69,7 +78,7 @@ public static class Vitals
     /// <summary>animate-pulse: down to half and back every two seconds, what a low row and a short sign breathe by.</summary>
     public static float Pulse(double clock) => 0.75f + 0.25f * (float)Math.Cos(clock * Math.PI);
 
-    /// <summary>How large the block is drawn at a slot of <paramref name="slot"/> px: 1.2 at normal, 1.5 at large.</summary>
+    /// <summary>How large the block is drawn at a slot of <paramref name="slot"/> px: 1.1 at normal, 1.5 at large.</summary>
     public static float ScaleOf(int slot) => slot / (float)Slots.Base;
 
     /// <summary>The block's origin on a screen <paramref name="screenHeight"/> tall: its unit (0, 0), in screen pixels.</summary>

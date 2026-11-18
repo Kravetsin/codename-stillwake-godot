@@ -28,9 +28,9 @@ public class SlotsTests
     }
 
     [Fact]
-    public void ASlotIs48PxNormallyAnd60LargeTheHudGrowingFromItsBaseOf40()
+    public void ASlotIs44PxNormallyAnd60LargeTheHudGrowingFromItsBaseOf40()
     {
-        Assert.Equal((48, 40), (Slots.SizeOf(SlotScale.Normal), Slots.IconOf(SlotScale.Normal)));
+        Assert.Equal((44, 36), (Slots.SizeOf(SlotScale.Normal), Slots.IconOf(SlotScale.Normal)));
         Assert.Equal((60, 52), (Slots.SizeOf(SlotScale.Large), Slots.IconOf(SlotScale.Large)));
         Assert.All(Enum.GetValues<SlotScale>(), scale => Assert.True(Slots.SizeOf(scale) > Slots.Base));
     }
@@ -68,7 +68,7 @@ public class SlotsTests
     public void TheSlotsSizeFollowsTheSettingAtOnce()
     {
         var ui = new Ui();
-        Assert.Equal(48, ui.Slot);
+        Assert.Equal(44, ui.Slot);
         ui.SlotScale.Set(SlotScale.Large);
         Assert.Equal(60, ui.Slot);
     }
@@ -76,10 +76,10 @@ public class SlotsTests
     [Fact]
     public void AToolsIconFillsItsSlotAndAnyOtherSitsInTheInset()
     {
-        Assert.Equal((0, 48), Slots.IconBox(Spec.Shots.Railgun.Item, Slots.SizeOf(SlotScale.Normal)));
+        Assert.Equal((0, 44), Slots.IconBox(Spec.Shots.Railgun.Item, Slots.SizeOf(SlotScale.Normal)));
         // The screwdriver is held as a picture, though its card is not a tool's.
         Assert.Equal((0, 60), Slots.IconBox(Spec.Screwdrivers.Basic.Item, Slots.SizeOf(SlotScale.Large)));
-        Assert.Equal((Slots.Inset, 40), Slots.IconBox("scrap", Slots.SizeOf(SlotScale.Normal)));
+        Assert.Equal((Slots.Inset, 36), Slots.IconBox("scrap", Slots.SizeOf(SlotScale.Normal)));
         Assert.Equal((Slots.Inset, 52), Slots.IconBox(Spec.Shots.Nail.Id, Slots.SizeOf(SlotScale.Large)));
     }
 }

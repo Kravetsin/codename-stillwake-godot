@@ -5,7 +5,7 @@ namespace Stillwake.Game.Shared;
 /// <summary>How large every item slot is drawn: a setting of this machine's player (Esc → Settings).</summary>
 public enum SlotScale
 {
-    /// <summary>48 px: the default, readable on a Full HD screen.</summary>
+    /// <summary>44 px: the default, readable on a Full HD screen.</summary>
     Normal,
     /// <summary>60 px, for a larger screen.</summary>
     Large,
@@ -53,11 +53,11 @@ public static class Slots
     public const int ScreenPadding = 4;
 
     /// <summary>A slot's side in pixels.</summary>
-    public static int SizeOf(SlotScale scale) => scale == SlotScale.Large ? 60 : 48;
+    public static int SizeOf(SlotScale scale) => scale == SlotScale.Large ? 60 : 44;
 
     /// <summary>
     /// The slot the HUD's own sizes are written for: the vitals, the edge keys, the markers and the hints grow by a slot's side
-    /// over it, 1.2 normal and 1.5 large.
+    /// over it, 1.1 normal and 1.5 large.
     /// </summary>
     public const int Base = 40;
 

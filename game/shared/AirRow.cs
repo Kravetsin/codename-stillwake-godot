@@ -157,6 +157,8 @@ public partial class AirRow : Control
             _length = Mathf.Lerp(_lengthFrom, _lengthTo, Mathf.SmoothStep(0, 1, (float)_resize));
         }
         else _length = _lengthTo;
+        // Its own box as far as its bar reaches, the sign's circle and all: what it draws and lights, and nothing past it.
+        Size = new Vector2(X(_length) + StripCuts.Margin, Vitals.Foot);
         int count = Count;
         for (int k = 0; k < _spots.Count; k++)
         {

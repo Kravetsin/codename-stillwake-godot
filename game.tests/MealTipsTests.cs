@@ -59,6 +59,15 @@ public class MealTipsTests
         Assert.Equal(shown, MealTips.Clock(seconds * World.TicksPerSecond));
 
     [Fact]
+    public void AfterTheMealsThePurgeShowsWhileThereIsOneElseHungerLitOnlyWhenHungry()
+    {
+        Assert.Equal(LastDial.Purge, MealTips.LastOf(1, hungry: false));
+        Assert.Equal(LastDial.Purge, MealTips.LastOf(3, hungry: false));
+        Assert.Equal(LastDial.Hungry, MealTips.LastOf(0, hungry: true));
+        Assert.Equal(LastDial.Unfed, MealTips.LastOf(0, hungry: false));
+    }
+
+    [Fact]
     public void UnderItsDialAMealsLastTickStillShowsASecond() => Assert.Equal("1s", MealTips.Clock(1));
 
     [Fact]

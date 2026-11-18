@@ -75,10 +75,10 @@ public static class RingLight
         on.DrawTextureRect(PixelArt.Glow, new Rect2(at - new Vector2(radius, radius), new Vector2(2 * radius, 2 * radius)), false, colour);
     }
 
-    /// <summary>A plain thin ring's arc, as the canister's and the purge spot's are drawn: <paramref name="width"/> wide.</summary>
-    public static void Thin(CanvasItem on, Vector2 centre, float radius, float from, float to, Color colour, float width = 2)
-    {
-        if (to <= from || colour.A <= 0.004f) return;
-        on.DrawArc(centre, radius, from, to, Math.Max(3, (int)((to - from) * radius / 1.5f)), colour, width, true);
-    }
+    /// <summary>
+    /// An arc of a dial's ring in <paramref name="colour"/>, as thick as every dial's: the white strip tinted, for the rings that keep
+    /// their own colours (the canister's round the oxygen sign, the purge spot's).
+    /// </summary>
+    public static void Tinted(CanvasItem on, Vector2 centre, float from, float to, Color colour) =>
+        Arc(on, LightStrip.Of("white", 0), centre, Vitals.RingRadius, Vitals.RingLight, from, to, colour);
 }

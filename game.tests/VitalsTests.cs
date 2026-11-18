@@ -39,29 +39,42 @@ public class VitalsTests
     }
 
     [Fact]
-    public void TheDialsAreChargeTemperatureThreeMealsAndThePurge() =>
-        Assert.Equal((0, 1, 2, 5), (Vitals.ChargeDial, Vitals.TemperatureDial, Vitals.FirstMealDial, Vitals.PurgeDial));
+    public void TheRowIsChargeTemperatureTheMealsEatenThenPurgeOrHunger()
+    {
+        Assert.Equal((0, 1, 2), (Vitals.ChargeDial, Vitals.TemperatureDial, Vitals.FirstMealDial));
+        // No meal: charge, temperature, hunger. Three: charge, temperature, three meals, purge.
+        Assert.Equal([3, 4, 5, 6], Enumerable.Range(0, 4).Select(Vitals.DialsShown));
+        Assert.Equal([2, 3, 4, 5], Enumerable.Range(0, 4).Select(Vitals.LastDial));
+        Assert.Equal(Vitals.Dials, Vitals.DialsShown(3));
+        Assert.Equal(Vitals.RowRight, Vitals.Column(Vitals.LastDial(3)) + Vitals.Dial / 2);
+    }
 
     [Theory]
-    [InlineData(SlotScale.Normal, 513.2f)]
-    [InlineData(SlotScale.Large, 483.5f)]
-    public void TheAirEndsAGapShortOfTheEdgesKeysAtEverySize(SlotScale scale, float keys)
+    [InlineData(SlotScale.Normal, 523.1f, 514.1f)]
+    [InlineData(SlotScale.Large, 483.5f, 474.5f)]
+    public void At1280By720TheAirEndsAGapShortOfTheEdgesKeysAtEverySize(SlotScale scale, float keys, float air)
     {
-        // The page's measures at 1280×720: the first of the six keys over the rim.
+        // The first of the six keys over the rim, at a slot of 44 (×1.1) and of 60 (×1.5).
         Assert.Equal(keys, KeysLeft(scale), 1);
         int slot = Slots.SizeOf(scale);
         float end = Vitals.Origin(Screen, slot).X + Vitals.AirEnd(KeysLeft(scale), slot) * Vitals.ScaleOf(slot);
+        Assert.Equal(air, end, 1);
         Assert.Equal(KeysLeft(scale) - Vitals.KeysGap, end, 3);
     }
 
     [Fact]
-    public void AtTheNormalSizeThePagesAirReachesWhereItEndedThere()
-    {
-        int slot = Slots.SizeOf(SlotScale.Normal);
-        float end = Vitals.AirEnd(KeysLeft(SlotScale.Normal), slot);
-        Assert.Equal(Vitals.AirReach, end, 0);
-        // Its 60 units in three parts, unshrunk, end at the reach.
+    public void AUnitOfAirIsThePagesItsSixtyUnitsInThreePartsEndingAtItsReach() =>
         Assert.Equal(Vitals.AirReach, Vitals.RowLeft + Vitals.AirLength(60, 3, Vitals.AirReach) + 2 * Vitals.Gap, 3);
+
+    [Fact]
+    public void OnAWideScreenAHeavyHelmetsPartOutrunsTheStripAndIsStillDrawnWhole()
+    {
+        // At 1920 the keys stand far right: the heavy helmet's 80 units are longer than the strip the bar is read from.
+        int slot = Slots.SizeOf(SlotScale.Normal);
+        float end = Vitals.AirEnd(EdgeRow.RimLeft(1920, Keys, EdgeRow.Grown(slot)), slot);
+        float helmet = 80 * Vitals.AirLength(Spec.Crew.Lungs + 80, 2, end) / (Spec.Crew.Lungs + 80);
+        Assert.True(helmet > StripCuts.Long, $"{helmet}");
+        Assert.Equal(helmet + StripCuts.Margin, StripCuts.Of(helmet, 0, helmet)[^1].B, 3);
     }
 
     [Fact]
@@ -133,7 +146,7 @@ public class VitalsTests
     [Fact]
     public void TheBlockGrowsWithTheSlots()
     {
-        Assert.Equal(1.2f, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Normal)), 4);
+        Assert.Equal(1.1f, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Normal)), 4);
         Assert.Equal(1.5f, Vitals.ScaleOf(Slots.SizeOf(SlotScale.Large)), 4);
     }
 }

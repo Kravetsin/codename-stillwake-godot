@@ -13,6 +13,12 @@ public static class MealTips
     public static bool Pulsing(int left) => left <= Diet.RefreshWithin;
 
     /// <summary>
+    /// What the vitals' last dial is after the meals (hud-vitals): the purge spot while there is a meal to throw up (as the sim's
+    /// <c>PurgeProblem</c> has it); with none, hunger's sign, lit while hungry, dim while not yet (creative, where nobody hungers).
+    /// </summary>
+    public static LastDial LastOf(int meals, bool hungry) => meals > 0 ? LastDial.Purge : hungry ? LastDial.Hungry : LastDial.Unfed;
+
+    /// <summary>
     /// The time a meal has left under its dial, from its <paramref name="ticks"/> (format A1): whole minutes rounded up, "32m";
     /// seconds in its last minute, "45s", a part second counted whole as on its card (<see cref="ItemCards.Clock"/>).
     /// </summary>
@@ -44,6 +50,19 @@ public static class MealTips
         new TipLine(T("crew.hungerWork", ("n", WorkPercent)), Tone.Bad),
         new TipLine(T("crew.hungryWhy"), Tone.Dim));
 
-    /// <summary>An empty slot's tip: hunger's with all three empty, otherwise room for another meal.</summary>
+    /// <summary>Hunger's dial's tip, with no meal eaten: what hunger costs while hungry, otherwise room for a meal.</summary>
     public static Tip Empty(bool hungry) => hungry ? Hunger() : new Tip(T("crew.mealFree"), new TipLine(T("crew.mealHow"), Tone.Dim));
+}
+
+/// <summary>The vitals' last dial after the meals (<see cref="MealTips.LastOf"/>).</summary>
+public enum LastDial
+{
+    /// <summary>The purge spot: a meal to throw up.</summary>
+    Purge,
+
+    /// <summary>Hunger's sign, lit and breathing ochre: no meal, hungry.</summary>
+    Hungry,
+
+    /// <summary>Hunger's sign, dim and still: no meal, not hungry.</summary>
+    Unfed,
 }

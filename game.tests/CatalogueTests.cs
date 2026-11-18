@@ -12,10 +12,11 @@ public class CatalogueTests
     [Fact]
     public void IsTheMockupsSizeAtTheNormalSlotAndGrowsOnlyWithTheSlot()
     {
-        Assert.Equal((702, 208), (Normal.Width, Normal.Height));
-        Assert.Equal((676, 132), (Normal.GridWidth, Normal.GridHeight));
-        // Two rows of cards a step of the art larger than a slot (0107): 56 px pictures at the normal slot, 68 at the large.
-        Assert.Equal((56, 64, 68, 76), (Normal.Icon, Normal.Card, Large.Icon, Large.Card));
+        // Normal slots: 10 × 64 − 4 across, 2 × 64 − 4 down.
+        Assert.Equal((662, 200), (Normal.Width, Normal.Height));
+        Assert.Equal((636, 124), (Normal.GridWidth, Normal.GridHeight));
+        // Two rows of cards a step of the art larger than a slot (0107): 52 px pictures at the normal slot, 68 at the large.
+        Assert.Equal((52, 60, 68, 76), (Normal.Icon, Normal.Card, Large.Icon, Large.Card));
         // Large slots: 10 × 80 − 4 across, 2 × 80 − 4 down, the strips round them the same.
         Assert.Equal((822, 232), (Large.Width, Large.Height));
         // At 1280×720 the large menu still fits beside the screen's margins.
@@ -73,15 +74,15 @@ public class CatalogueTests
     {
         // The first card, its far corner, the gap after it, the next card.
         Assert.Equal(0, Normal.CardAt(0, 0, top: 0, count: 20));
-        Assert.Equal(0, Normal.CardAt(63.9f, 63.9f, top: 0, count: 20));
-        Assert.Null(Normal.CardAt(65, 10, top: 0, count: 20));
-        Assert.Null(Normal.CardAt(10, 66, top: 0, count: 20));
-        Assert.Equal(1, Normal.CardAt(68, 0, top: 0, count: 20));
+        Assert.Equal(0, Normal.CardAt(59.9f, 59.9f, top: 0, count: 20));
+        Assert.Null(Normal.CardAt(61, 10, top: 0, count: 20));
+        Assert.Null(Normal.CardAt(10, 62, top: 0, count: 20));
+        Assert.Equal(1, Normal.CardAt(64, 0, top: 0, count: 20));
         // The second row's first card; scrolled a row, the same spot is the third row's.
-        Assert.Equal(10, Normal.CardAt(5, 72, top: 0, count: 60));
-        Assert.Equal(20, Normal.CardAt(5, 72, top: 1, count: 60));
+        Assert.Equal(10, Normal.CardAt(5, 68, top: 0, count: 60));
+        Assert.Equal(20, Normal.CardAt(5, 68, top: 1, count: 60));
         // Past the last card, or off the grid.
-        Assert.Null(Normal.CardAt(5, 72, top: 0, count: 10));
+        Assert.Null(Normal.CardAt(5, 68, top: 0, count: 10));
         Assert.Null(Normal.CardAt(-1, 5, top: 0, count: 20));
         Assert.Null(Normal.CardAt(Normal.GridWidth, 5, top: 0, count: 60));
         Assert.Null(Normal.CardAt(5, Normal.GridHeight, top: 0, count: 60));

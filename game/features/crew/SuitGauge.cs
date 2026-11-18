@@ -146,8 +146,8 @@ public partial class SuitGauge : CanvasLayer
         return new Tip(T("hud.holds", ("name", name), ("n", size)), []);
     }
 
-    /// <summary>The ring's radius round the oxygen sign, in block units, its circle the dials' (hud-vitals); how wide it is drawn.</summary>
-    private const float RingRadius = Vitals.RingRadius, RingWidth = 2;
+    /// <summary>The ring's radius round the oxygen sign, in block units, its circle the dials' (hud-vitals).</summary>
+    private const float RingRadius = Vitals.RingRadius;
     private static readonly Color Refused = new(1, 70 / 255f, 60 / 255f);
 
     /// <summary>
@@ -164,18 +164,18 @@ public partial class SuitGauge : CanvasLayer
             float red = (float)_refused.Red;
             var jolt = new Vector2(_refused.Jolt.X, _refused.Jolt.Y);
             on.DrawTextureRect(RedSign, new Rect2(_gauge.IconAt.Position + jolt, _gauge.IconAt.Size), false, Colors.White with { A = red * bright });
-            Ring(on, centre + jolt, 0, Mathf.Tau, Refused with { A = 0.9f * red * bright });
+            Ring(on, centre + jolt, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Refused with { A = 0.9f * red * bright });
             return;
         }
         if (_cooling.Cooling)
         {
             float end = HandAngle;
-            Ring(on, centre, 0, Mathf.Tau, Style.Slate700 with { A = 0.95f * bright });
+            Ring(on, centre, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Style.Slate700 with { A = 0.95f * bright });
             Ring(on, centre, -Mathf.Pi / 2, end, Style.Sky400 with { A = 0.85f * bright });
             on.DrawRect(new Rect2(centre + RingAt(end) - Vector2.One, new Vector2(2, 2)), Style.Sky200 with { A = bright });
             return;
         }
-        if (_cooling.Ready > 0) Ring(on, centre, 0, Mathf.Tau, Style.Sky200 with { A = (float)_cooling.Ready * bright });
+        if (_cooling.Ready > 0) Ring(on, centre, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, Style.Sky200 with { A = (float)_cooling.Ready * bright });
     }
 
     /// <summary>The ring's light, added: red round a refused sign, sky as it turns ready, a spark at the sweep's head.</summary>
@@ -193,11 +193,8 @@ public partial class SuitGauge : CanvasLayer
 
     private static Vector2 RingAt(float angle) => new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * RingRadius;
 
-    private static void Ring(CanvasItem on, Vector2 centre, float start, float end, Color colour)
-    {
-        if (end <= start) return;
-        on.DrawArc(centre, RingRadius, start, end, Math.Max(3, (int)((end - start) * RingRadius / 1.5f)), colour, RingWidth, true);
-    }
+    /// <summary>An arc of the ring, as thick as the dials' light, in its own colour.</summary>
+    private static void Ring(CanvasItem on, Vector2 centre, float start, float end, Color colour) => RingLight.Tinted(on, centre, start, end, colour);
 
     private static void Glow(CanvasItem on, Vector2 at, float radius, Color colour) =>
         on.DrawTextureRect(PixelArt.Glow, new Rect2(at - new Vector2(radius, radius), new Vector2(2 * radius, 2 * radius)), false, colour);

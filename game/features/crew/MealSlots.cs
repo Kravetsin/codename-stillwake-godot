@@ -10,26 +10,33 @@ using Foods = Stillwake.Content.Foods;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The hero's three meals, the vitals' third to fifth dials (hud-vitals, food-and-the-body, the pick «dials» A1): each the dish's own
-/// picture, the hotbar's, in a ring of light that empties back to the top as the meal runs out, both pulsing in its last minute, the
-/// time it has left under it (<see cref="MealTips.Clock"/>). Eaten, the picture pops in and the ring flashes; refused, red light
-/// behind and a jolt; ended, it greys and fades. An empty slot is a faint ring; hungry, the empty rings breathe ochre and hunger's sign
-/// lights in the first, its costs on hover. What a meal does is on hover, its food card with the time left
-/// (2026-11-14-food-and-gear-cards). The purge spot is the sixth dial. Reads the sim four times a second.
+/// The hero's meals in the vitals' row of dials (hud-vitals, food-and-the-body, the pick «dials» A1): a dial for each meal eaten,
+/// packed after the temperature's, none for an empty slot; each the dish's own picture, the hotbar's, in a ring of light that empties
+/// back to the top as the meal runs out, both pulsing in its last minute, the time it has left under it (<see cref="MealTips.Clock"/>).
+/// Eaten, the picture pops in and the ring flashes; refused, red light behind and a jolt; ended, it greys and fades before the row
+/// closes up. After the meals one last dial (<see cref="MealTips.LastOf"/>): the purge spot while there is a meal to throw up, else
+/// hunger's sign, its ring breathing ochre while hungry, its costs on hover. What a meal does is on hover, its food card with the time
+/// left (2026-11-14-food-and-gear-cards). Reads the sim four times a second.
 /// </summary>
 public partial class MealSlots : CanvasLayer
 {
-    private const double RefreshS = 0.25, EatS = 0.6, EndS = 0.8, HungerS = 2.6, HungerFadeS = 0.4;
+    private const double RefreshS = 0.25, EatS = 0.6, EndS = 0.8, HungerS = 2.6, HungerFadeS = 0.4, SlideS = 0.12;
     private const float R = Vitals.RingRadius, Light = Vitals.RingLight;
+    private const float Top = -Mathf.Pi / 2, Turn = 3 * Mathf.Pi / 2;
     private static readonly Vector2 Half = new(Vitals.Dial / 2, Vitals.Dial / 2);
 
     private readonly Func<(IReadOnlyList<(string Food, int Left)> Meals, bool Hungry)?> _read;
     private readonly Control _row = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Slot[] _slots = new Slot[Diet.Meals];
+    private readonly PurgeSpot _purge;
+    private readonly HungerDial _hunger = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(Vitals.Dial, Vitals.Dial) };
+    private readonly AddedLayer _light;
     private readonly TipSpots _tips;
     private readonly Ui _ui;
-    private double _sinceRead = RefreshS, _clock, _hungerLit;
-    private bool _hungry;
+    private double _sinceRead = RefreshS, _clock;
+    private bool _hungry, _laid;
+    private int _meals;
+    private float _lastX;
 
     /// <param name="read">This player's hero's meals with their ticks left, and whether it is hungry; null without a hero, which hides the slots.</param>
     /// <param name="purge">Throws up every meal (food-tuning), held to the end on the purge spot: the refusal, or null once sent.</param>
@@ -37,11 +44,7 @@ public partial class MealSlots : CanvasLayer
     public MealSlots(Func<(IReadOnlyList<(string Food, int Left)> Meals, bool Hungry)?> read, Func<string?> purge, Ui ui)
     {
         (_read, _ui) = (read, ui);
-        _purge = new PurgeSpot(purge)
-        {
-            Position = new Vector2(Vitals.Column(Vitals.PurgeDial), Vitals.RowY) - Half,
-            Size = new Vector2(Vitals.Dial, Vitals.Dial),
-        };
+        _purge = new PurgeSpot(purge) { Size = new Vector2(Vitals.Dial, Vitals.Dial) };
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Hud;
         AddChild(_row);
@@ -53,21 +56,22 @@ public partial class MealSlots : CanvasLayer
                 Size = new Vector2(Vitals.Dial, Vitals.Dial + Vitals.CircleGap),
                 MouseFilter = Control.MouseFilterEnum.Ignore,
                 Variant = i,
+                Visible = false,
             };
             _row.AddChild(slot);
-            _tips.Add(slot, () => slot.Food is { } food ? MealTips.Of(food, slot.Left) : MealTips.Empty(_hungry));
+            _tips.Add(slot, () => slot.Food is { } food ? MealTips.Of(food, slot.Left) : null);
         }
         _row.AddChild(_light = new AddedLayer(on =>
         {
-            foreach (var slot in _slots) slot.DrawLight(on);
+            foreach (var slot in _slots)
+                if (slot.Visible) slot.DrawLight(on);
         }));
+        _row.AddChild(_hunger);
+        _tips.Add(_hunger, () => MealTips.Empty(_hungry));
         _row.AddChild(_purge);
         _tips.Add(_purge, () => new Tip(T("hud.purge"), []));
         ui.MealRefused += Refused;
     }
-
-    private readonly PurgeSpot _purge;
-    private readonly AddedLayer _light;
 
     /// <summary>A meal refused: full, every slot blinks red; the same dish too soon, only its slot.</summary>
     private void Refused(string food, string problem)
@@ -91,32 +95,43 @@ public partial class MealSlots : CanvasLayer
             if (read is var (meals, hungry))
             {
                 _hungry = hungry;
+                _meals = meals.Count;
                 for (int i = 0; i < _slots.Length; i++)
                 {
                     var (food, left) = i < meals.Count ? meals[i] : (null, 0);
                     _slots[i].Read(food, left);
                 }
-                _purge.Full = meals.Count > 0;
             }
         }
+        float breath = 0.45f + 0.35f * (0.5f - 0.5f * Mathf.Cos((float)(_clock * Mathf.Tau / HungerS)));
+        // The meals shown, a dish or one fading out, packed from the first: the last dial stands after them.
+        int shown = 0;
+        foreach (var slot in _slots)
+        {
+            slot.Step(delta, _clock);
+            slot.Visible = slot.Shown;
+            if (slot.Shown) shown++;
+            slot.QueueRedraw();
+        }
+        float lastX = Vitals.Column(Vitals.LastDial(shown)) - Vitals.Dial / 2;
+        _lastX = _laid ? Mathf.Lerp(_lastX, lastX, (float)(1 - Math.Exp(-delta / SlideS))) : lastX;
+        _laid = Visible;
+        var at = new Vector2(_lastX, Vitals.RowY - Vitals.Dial / 2);
+        var last = MealTips.LastOf(_meals, _hungry);
+        _purge.Visible = last == LastDial.Purge;
+        _hunger.Visible = !_purge.Visible;
+        _purge.Position = _hunger.Position = at;
         _purge.Step(delta);
         _purge.QueueRedraw();
-        // Hunger's ochre and sign fade in and out, breathing while lit.
-        _hungerLit = Math.Clamp(_hungerLit + (_hungry ? delta : -delta) / HungerFadeS, 0, 1);
-        float breath = 0.45f + 0.35f * (0.5f - 0.5f * Mathf.Cos((float)(_clock * Mathf.Tau / HungerS)));
-        int sign = Array.FindIndex(_slots, s => s.Food == null);
-        for (int i = 0; i < _slots.Length; i++)
-        {
-            _slots[i].Step(delta, _clock, (float)_hungerLit, breath, i == sign);
-            _slots[i].QueueRedraw();
-        }
+        _hunger.Step(delta, last, breath);
+        _hunger.QueueRedraw();
         _light.QueueRedraw();
         _tips.Frame(Visible && !_ui.MenuOpen.Get() ? GetViewport().GetMousePosition() : null);
     }
 
     /// <summary>
-    /// The purge spot, the sixth dial (food-tuning): held <see cref="HoldS"/>, a bile ring filling round it as round the oxygen sign
-    /// while a canister cools, it throws up every meal; let go early, nothing. Dim with nothing eaten; refused, it blinks red. A first
+    /// The purge spot, the last dial while there is a meal (food-tuning): held <see cref="HoldS"/>, a bile ring filling round it as
+    /// round the oxygen sign while a canister cools, it throws up every meal; let go early, nothing. Refused, it blinks red. A first
     /// draft of its sign: a mouth spilling three drops.
     /// </summary>
     private sealed partial class PurgeSpot(Func<string?> purge) : Control
@@ -126,7 +141,6 @@ public partial class MealSlots : CanvasLayer
         private const float K = R / 14;
         private static readonly Color Bile = new("c8c070"), Red = new(1, 70 / 255f, 60 / 255f);
 
-        public bool Full;
         private readonly FlatBlink _blink = new();
         private double _held = -1;
 
@@ -141,7 +155,7 @@ public partial class MealSlots : CanvasLayer
 
         public override void _Notification(int what)
         {
-            if (what == NotificationMouseExit) _held = -1;
+            if (what == NotificationMouseExit || what == NotificationVisibilityChanged) _held = -1;
         }
 
         public void Step(double delta)
@@ -157,20 +171,46 @@ public partial class MealSlots : CanvasLayer
         public override void _Draw()
         {
             var centre = Size / 2 + new Vector2(_blink.Jolt.X * 1.6f, 0);
-            float alpha = Full ? 0.9f : 0.35f;
-            RingLight.Thin(this, centre, R, 0, Mathf.Tau, Style.Slate700 with { A = 0.9f * alpha });
+            RingLight.Tinted(this, centre, Top, Turn, Style.Slate700 with { A = 0.81f });
             if (_held > 0)
             {
-                float end = -Mathf.Pi / 2 + Mathf.Tau * (float)Math.Min(1, _held / HoldS);
-                RingLight.Thin(this, centre, R, -Mathf.Pi / 2, end, Bile with { A = 0.95f });
+                float end = Top + Mathf.Tau * (float)Math.Min(1, _held / HoldS);
+                RingLight.Tinted(this, centre, Top, end, Bile with { A = 0.95f });
                 DrawRect(new Rect2(centre + new Vector2(Mathf.Cos(end), Mathf.Sin(end)) * R - Vector2.One, new Vector2(2, 2)), Colors.White);
             }
-            if (_blink.Red > 0) RingLight.Thin(this, centre, R, 0, Mathf.Tau, Red with { A = 0.9f * (float)_blink.Red });
+            if (_blink.Red > 0) RingLight.Tinted(this, centre, Top, Turn, Red with { A = 0.9f * (float)_blink.Red });
             // The mouth, and three drops falling from it.
-            var ink = Bile with { A = alpha };
+            var ink = Bile with { A = 0.9f };
             DrawArc(centre + new Vector2(0, -5 * K), 4.5f * K, 0.2f, Mathf.Pi - 0.2f, 10, ink, 1.5f * K, true);
             foreach (var (dx, dy, r) in new[] { (-2.5f, 2f, 1.3f), (1f, 4f, 1.6f), (3f, 0.5f, 1.1f) })
                 DrawCircle(centre + new Vector2(dx, dy) * K, r * K, ink);
+        }
+    }
+
+    /// <summary>
+    /// Hunger's dial, the last while no meal is eaten: its sign in a faint ring; hungry, the sign lit and the ring breathing ochre, faded
+    /// in and out; not yet hungry, the sign dim and still. What hunger costs is on hover (<see cref="MealTips.Empty"/>).
+    /// </summary>
+    private sealed partial class HungerDial : Control
+    {
+        private double _lit;
+        private float _breath;
+        private LastDial _last;
+
+        public void Step(double delta, LastDial last, float breath)
+        {
+            _lit = Math.Clamp(_lit + (last == LastDial.Hungry ? delta : -delta) / HungerFadeS, 0, 1);
+            (_last, _breath) = (last, breath);
+        }
+
+        public override void _Draw()
+        {
+            var icon = new Vector2(Vitals.Icon, Vitals.Icon);
+            RingLight.Arc(this, LightStrip.Of("pale", 0), Half, R, Light, Top, Turn, Colors.White with { A = 0.16f });
+            float lit = (float)_lit;
+            if (lit > 0) RingLight.Arc(this, LightStrip.Of("amber", 0), Half, R, Light, Top, Turn, Colors.White with { A = lit * _breath * 0.75f });
+            float sign = Math.Max(lit * (0.35f + 0.8f * _breath), _last == LastDial.Hungry ? 0 : 0.35f);
+            DrawTextureRect(Signs.Hunger(), new Rect2(Half - icon / 2, icon), false, Colors.White with { A = Math.Min(1, sign) });
         }
     }
 
@@ -184,8 +224,10 @@ public partial class MealSlots : CanvasLayer
         public FlatBlink Blink { get; } = new();
         private string? _ended;
         private double _eat = -1, _end = -1;
-        private float _pulse = 1, _hungerLit, _breath;
-        private bool _sign;
+        private float _pulse = 1;
+
+        /// <summary>Whether it shows: a meal in it, or one just ended fading out.</summary>
+        public bool Shown => Food != null || _end >= 0 && _ended != null;
 
         /// <summary>A read: a dish newly in the slot pops in; one gone greys and fades.</summary>
         public void Read(string? food, int left)
@@ -199,35 +241,35 @@ public partial class MealSlots : CanvasLayer
             (Food, Left) = (food, left);
         }
 
-        /// <param name="hungerLit">How far hunger's ochre and sign are lit, 0 to 1.</param>
-        /// <param name="breath">Hunger's breath now.</param>
-        /// <param name="sign">Whether hunger's sign stands in this slot: the first empty one.</param>
-        public void Step(double delta, double clock, float hungerLit, float breath, bool sign)
+        public void Step(double delta, double clock)
         {
             Blink.Step(delta);
             if (_eat >= 0) _eat = _eat + delta < EatS ? _eat + delta : -1;
             if (_end >= 0) _end = _end + delta < EndS ? _end + delta : -1;
             _pulse = Food != null && MealTips.Pulsing(Left) ? Vitals.Pulse(clock * 2.4) : 1;
-            (_hungerLit, _breath, _sign) = (Food == null ? hungerLit : 0, breath, sign);
         }
 
         private float Share => Food is { } food ? Math.Clamp((float)Left / (Foods.Of(food)?.Lasts ?? 1), 0, 1) : 0;
 
         private void Ring(CanvasItem on, string tone, float share, float alpha) =>
-            RingLight.Arc(on, LightStrip.Of(tone, Variant), Half, R, Light, -Mathf.Pi / 2, -Mathf.Pi / 2 + Mathf.Tau * share, Colors.White with { A = alpha });
+            RingLight.Arc(on, LightStrip.Of(tone, Variant), Half, R, Light, Top, Top + Mathf.Tau * share, Colors.White with { A = alpha });
 
         public override void _Draw()
         {
-            Ring(this, "pale", 1, 0.16f);
-            if (_hungerLit > 0) Ring(this, "amber", 1, _hungerLit * _breath * 0.75f);
+            var icon = new Vector2(Vitals.Icon, Vitals.Icon);
             var jolt = new Vector2(Blink.Jolt.X * 1.6f, 0);
             if (Blink.Red > 0) RingLight.Spot(this, Half + jolt, 16, Red with { A = 0.7f * (float)Blink.Red });
-            var icon = new Vector2(Vitals.Icon, Vitals.Icon);
-            if (_end >= 0 && _ended != null && Food == null)
-                DrawTextureRect(Greyed.Of(ItemIcons.Icon(_ended)), new Rect2(Half - icon / 2, icon), false, Colors.White with { A = 1 - (float)(_end / EndS) });
-            if (_sign && _hungerLit > 0)
-                DrawTextureRect(Signs.Hunger(), new Rect2(Half - icon / 2, icon), false, Colors.White with { A = _hungerLit * (0.35f + 0.8f * _breath) });
-            if (Food is not { } food) return;
+            if (Food is not { } food)
+            {
+                if (_end >= 0 && _ended != null)
+                {
+                    float fade = 1 - (float)(_end / EndS);
+                    Ring(this, "pale", 1, 0.16f * fade);
+                    DrawTextureRect(Greyed.Of(ItemIcons.Icon(_ended)), new Rect2(Half - icon / 2, icon), false, Colors.White with { A = fade });
+                }
+                return;
+            }
+            Ring(this, "pale", 1, 0.16f);
             Ring(this, "pale", Share, 0.9f * _pulse);
             float pop = _eat >= 0 ? 1 + 0.3f * (1 - Mathf.SmoothStep(0, 1, (float)Math.Min(1, _eat / 0.35))) : 1;
             var side = icon * pop;
@@ -241,11 +283,11 @@ public partial class MealSlots : CanvasLayer
             if (Food == null) return;
             on.DrawSetTransform(Position);
             float share = Share;
-            if (share > 0.002f) RingLight.Glow(on, LightStrip.Of("pale", Variant), Half, R, Light, -Mathf.Pi / 2, -Mathf.Pi / 2 + Mathf.Tau * share, 0.45f * _pulse);
+            if (share > 0.002f) RingLight.Glow(on, LightStrip.Of("pale", Variant), Half, R, Light, Top, Top + Mathf.Tau * share, 0.45f * _pulse);
             if (_eat >= 0)
             {
                 float fresh = 1 - (float)(_eat / EatS);
-                RingLight.Glow(on, LightStrip.Of("white", Variant), Half, R, Light, -Mathf.Pi / 2, 3 * Mathf.Pi / 2, 0.9f * fresh);
+                RingLight.Glow(on, LightStrip.Of("white", Variant), Half, R, Light, Top, Turn, 0.9f * fresh);
                 RingLight.Spot(on, Half, 14, Eaten with { A = 0.6f * fresh });
             }
             on.DrawSetTransform(Vector2.Zero);
