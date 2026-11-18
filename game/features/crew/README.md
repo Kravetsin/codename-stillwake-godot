@@ -141,7 +141,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (fog-edges).
 - **Camera** leads, eases, snaps; **markers** (0061): home, body, friends, deliveries, catchers, pings; **hurts** tint
   edges (hurts-are-shown).
-- **Water** (liquids): swum `SwimDepth` deep, left by Space, shore; wading splashes.
+- **Water** (liquids): swum `SwimDepth` deep, left by Space, shore; wading splash
 - **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left; Shift hauls
   along bends (`Wraps`); jetpack unties; Shift vents unless `Hero.Cruising`.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
