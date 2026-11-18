@@ -55,7 +55,8 @@ public static class Market
         ["crystal"] = 100,
         ["arcLamp"] = 300,
         ["arcShard"] = 200,
-        // Gear only the mafia sells, delivered (2026-11-08-mafia-deliveries): the worth its craft had when it went, so its price stays put.
+        // Gear only the mafia sells, delivered (2026-11-08-mafia-deliveries): the worth its craft had when it went, so its price stays put;
+        // the scanner's too, an item no more but the light drone's mode its node opens (light-drone).
         ["scanner"] = 492,
         ["powerDriver"] = 750,
         ["heavyHelmet"] = 1239,
@@ -83,6 +84,8 @@ public static class Market
     {
         var worths = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var item in Items.All) Worth(item.Id, worths, []);
+        // A priced good that is no item, the scanner's mode, keeps its worth for its node's price.
+        Worth(LightDrone.ScannerMode, worths, []);
         return worths;
     }
 

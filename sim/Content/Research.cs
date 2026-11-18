@@ -48,8 +48,11 @@ public static class Research
     /// <summary>What the confiscated container costs: parts of about that worth come out of it (its <c>Loot</c>).</summary>
     public const int ConfiscatedPrice = 1500;
 
-    /// <summary>What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries); the stimulant too (food-tuning).</summary>
-    public static readonly IReadOnlyList<string> GearSold = ["scanner", "powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit", Foods.Stim];
+    /// <summary>
+    /// What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries); the
+    /// stimulant too (food-tuning). The scanner is not: it opens the light drone's mode, bought once for the crew (light-drone).
+    /// </summary>
+    public static readonly IReadOnlyList<string> GearSold = ["powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit", Foods.Stim];
 
     /// <summary>An upgrade: its price its own.</summary>
     private static (string Id, int Times) Up(string id) => (id, 1);
@@ -59,7 +62,7 @@ public static class Research
     [
         // Open from the start, its later rows by the mafia's reputation, a gate's order what that level wants (2026-11-08-mafia-reputation); the solar panel once circuits sell (market-decrypt).
         // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
-        // the scanner the first level's headline, before the jetpack's far wrecks (2026-11-07-the-scanner, 2026-11-08-mafia-reputation);
+        // the scanner the first level's headline, before the jetpack's far wrecks (2026-11-07-the-scanner, 2026-11-08-mafia-reputation), a drone mode (light-drone);
         // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit);
         // gear delivered as items at the prices its blueprints had, the confiscated container with the heavy helmet (2026-11-08-mafia-deliveries).
         new(Market,

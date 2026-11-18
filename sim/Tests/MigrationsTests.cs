@@ -440,4 +440,57 @@ public class MigrationsTests
         // Found by its blueprint's place in the sorted list.
         Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
     }
+
+    [Fact]
+    public void MakesEveryScannerOfAFormatSixtyEightSaveALightDroneAndKnowsTheMode()
+    {
+        // A scanner worn on the mount, one carried, one on the floor and one made into the workbench, as format 68 had them, the
+        // knowledge as it was: after the upgrade each is a drone and the crew knows the scanner mode.
+        const string Room = """
+            ##########
+            #........#
+            #.OOOII..#
+            #.OOOII..#
+            #.OOOII..#
+            ##########
+            """;
+        const int Bench = 2;
+        int mount = Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Content.Helmet.Mount);
+        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
+            .GiveItems(0, (Content.LightDrone.Item, 3), ("plate", 1), ("wire", 2), ("coil", 1));
+        w.M.Knowledge.Grant(Content.LightDrone.Item);
+        w.Do(new Items.Move(new Items.Place(0), new Items.Target(mount), 1)).Do(new Items.Drop(new Items.Place(1), 1, w.At(7, 4), 1)).Run(30);
+        w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run(Content.Crafts.Get(Content.LightDrone.Item).Ticks * 1000 / Content.Stations.Get("workbench").Speed + 1);
+        Assert.Empty(w.Refusals);
+        var played = JsonNode.Parse(w.World.Save())!.AsObject();
+        var save = JsonNode.Parse(w.World.Save().Replace("\"lightDrone\"", "\"scanner\""))!.AsObject();
+        save["format"] = 68;
+        save["slices"]!["knowledge"] = played["slices"]!["knowledge"]!.DeepClone();
+        Assert.False(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
+
+        string upgraded = Migrations.Upgrade(save.ToJsonString());
+        Assert.DoesNotContain("\"item\":\"scanner\"", upgraded);
+        w.Reload(upgraded);
+        Assert.True(w.M.Items.Equipped(0, Content.LightDrone.Item));
+        Assert.Equal(2, w.M.Items.Inventory(0).Count(s => s?.Item == Content.LightDrone.Item));
+        Assert.Equal(Content.LightDrone.Item, Assert.Single(w.M.Items.Floor).Item);
+        Assert.Equal(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Crate(Bench)[0]);
+        Assert.True(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
+        Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
+        Assert.Equal(w.M.Knowledge.GrantedIds.Order(StringComparer.Ordinal), w.M.Knowledge.GrantedIds);
+    }
+
+    [Fact]
+    public void LeavesAFormatSixtyEightSaveWithNoScannerUnknowingOfTheModeAndAScannerDeliveryToCome()
+    {
+        var w = new Scenario(Registry.Wreck);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 68;
+        save["slices"]!["knowledge"]!["deliveries"] = JsonNode.Parse("""[{"id":1,"good":"scanner"}]""");
+        save["slices"]!["knowledge"]!["nextDelivery"] = 2;
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.False(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
+        Assert.Equal(["scanner"], w.M.Knowledge.Deliveries.Select(d => d.Good));
+    }
 }

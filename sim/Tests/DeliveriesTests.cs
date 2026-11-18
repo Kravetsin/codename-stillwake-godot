@@ -164,15 +164,32 @@ public class DeliveriesTests
     public void ACrateOfGearBrokenDropsItUnderItAsAWrecksLoot()
     {
         var w = World();
-        Mafia.Reach(w, 1);
-        Buy(w, "scanner").Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
+        Mafia.Reach(w, Tree.Node(Content.Foods.Stim)!.Ring);
+        Buy(w, Content.Foods.Stim).Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
         Break(w, Sent(w).Single(), peer: 2);
         Assert.Empty(w.Refusals);
-        Assert.Equal([("scanner", 1)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
-        Assert.DoesNotContain(w.M.Items.Inventory(2), s => s?.Item == "scanner");
-        Assert.DoesNotContain(w.M.Items.Gains, g => g.Item == "scanner");
-        Assert.False(w.M.Research.Knows("scanner"));
+        Assert.Equal([(Content.Foods.Stim, 1)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
+        Assert.DoesNotContain(w.M.Items.Inventory(2), s => s?.Item == Content.Foods.Stim);
+        Assert.DoesNotContain(w.M.Items.Gains, g => g.Item == Content.Foods.Stim);
+        Assert.False(w.M.Research.Knows(Content.Foods.Stim));
         Assert.Empty(w.M.Knowledge.Deliveries);
+    }
+
+    /// <summary>The scanner is the light drone's mode (light-drone): its crate broken, the whole crew knows it, no item falls, and it is not sold again.</summary>
+    [Fact]
+    public void TheScannersCrateBrokenGrantsTheModeCrewWideOnce()
+    {
+        string scanner = Content.LightDrone.ScannerMode;
+        var w = World();
+        Mafia.Reach(w, Tree.Node(scanner)!.Ring);
+        Buy(w, scanner).Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
+        Break(w, Sent(w).Single(), peer: 2);
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Knows(scanner));
+        Assert.Empty(w.M.Items.Floor);
+        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 2, Item: "scanner", Count: 1 });
+        Buy(w, scanner);
+        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]

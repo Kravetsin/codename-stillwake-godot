@@ -71,10 +71,16 @@ public partial class HeroView
         // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
         // The gesture key: a tap points, held its wheel opens by the arrow (gestures-for-words); clicks meanwhile use nothing.
         float wheelScale = _ui.Slot / (float)Slots.Base;
-        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && GetViewport().GuiGetFocusOwner() is not LineEdit;
+        bool typing = GetViewport().GuiGetFocusOwner() is LineEdit;
+        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && !typing;
         var mouse = GetViewport().GetMousePosition();
-        var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), GestureWheel.Middle * wheelScale);
-        _wheelView.Show(_wheel, wheelScale);
+        var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
+        _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
+        // The drone key, while the light drone is worn: a tap goes on to its next open mode, held its wheel opens (light-drone).
+        if (!DroneOpen(_droneMode)) _droneMode = DroneMode.Lamp;
+        bool droneKey = pointer != null && m.Items.Equipped(client.Id, Content.LightDrone.Item) && BindKeys.Held(Bind.Drone) && !typing;
+        if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
+        _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
         if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
         _ping.Step(elapsedMs);
@@ -83,7 +89,7 @@ public partial class HeroView
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         // Seated or flying, what is in hand works nothing: no swing, run, shot or canister's breath (Seating.Held).
-        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree && !_wheel.Open;
+        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree && !_wheel.Open && !_droneWheel.Open;
         bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
         if (seated && pressed && !passedOut)
         {

@@ -50,4 +50,14 @@ public class LightDroneTests
         // Kept when its hero dies, as all that is worn.
         Assert.True(Content.Items.Get(Drone).Gear);
     }
+
+    /// <summary>The scanner is the drone's mode, opened by its node (light-drone): no item, so no wreck or crate gives one.</summary>
+    [Fact]
+    public void TheScannerIsAModeNeitherAnItemNorLoot()
+    {
+        Assert.False(Content.Items.TryGet(LightDrone.ScannerMode, out _));
+        Assert.NotNull(Content.Research.Node(LightDrone.ScannerMode));
+        Assert.DoesNotContain(LightDrone.ScannerMode, Content.Research.GearSold);
+        Assert.DoesNotContain(Loot.All.SelectMany(t => t.Entries), e => e.Item == LightDrone.ScannerMode);
+    }
 }

@@ -236,9 +236,25 @@ public partial class HeroView : Node2D
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
     /// <summary>The gesture key and its wheel (gestures-for-words), the wheel drawn, and the gesture this hero plays.</summary>
-    private readonly GestureWheel _wheel = new();
-    private readonly GestureWheelView _wheelView = new();
+    private readonly Wheel<Gesture> _wheel = new(Gestures.WheelSides);
+    private readonly WheelView _wheelView = new();
     private readonly GesturePlay _gesture = new();
+    /// <summary>
+    /// The drone key and its wheel of the worn light drone's modes (light-drone), drawn, and the mode it is in: the client's, never saved,
+    /// a new game or a reload on the lamp. A mode opens with its node, known to the crew or to a hero in creative mode.
+    /// </summary>
+    private readonly Wheel<DroneMode> _droneWheel = new(DroneModes.Sides);
+    private readonly WheelView _droneWheelView = new();
+    private DroneMode _droneMode = DroneMode.Lamp;
+    private readonly Func<string, bool> _knows;
+    private readonly Func<DroneMode, bool> _droneOpen;
+
+    private bool Knows(string node) => _m != null && _client != null && _m.Research.Knows(_client.Id, node);
+
+    private bool DroneOpen(DroneMode mode) => DroneModes.Opened(mode, _knows);
+
+    /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
+    public bool Scanning => _figure.Scanner;
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
@@ -288,6 +304,9 @@ public partial class HeroView : Node2D
         AddChild(_outline);
         AddChild(_glyph);
         AddChild(_wheelView);
+        AddChild(_droneWheelView);
+        _knows = Knows;
+        _droneWheel.Opens = _droneOpen = DroneOpen;
         AddChild(_pingView);
         AddChild(_prompt);
         AddChild(_act);
@@ -611,8 +630,7 @@ public partial class HeroView : Node2D
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
-        _figure.HeadLamp = m.Items.Equipped(client.Id, Content.LightDrone.Item);
-        _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
+        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(m.Items.Equipped(client.Id, Content.LightDrone.Item), _droneMode);
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
@@ -640,7 +658,7 @@ public partial class HeroView : Node2D
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode)), _steps * Hero.StepMs);
         ShowPings(m);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();

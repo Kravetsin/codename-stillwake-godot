@@ -48,11 +48,11 @@ public static class Testbed
     public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: the light drone (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the light drone (0077), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails and the blasting charges, <see cref="Cooking"/> rations and canned meat for the galley, a fridge, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [LightDrone.Item, Helmet.Scanner, Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
+    public static IEnumerable<string> InSupply => [LightDrone.Item, Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc

@@ -35,6 +35,7 @@ public static partial class Ru
         ["bind.zoomIn"] = "Приблизить",
         ["bind.zoomOut"] = "Отдалить",
         ["bind.gesture"] = "Жесты; нажать — указать и отметить",
+        ["bind.drone"] = "Режим дрона",
         ["key.space"] = "Пробел",
         ["key.tab"] = "Tab",
         ["key.capslock"] = "Caps Lock",

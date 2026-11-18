@@ -366,7 +366,7 @@ public sealed class MarketPage : ITabletPage
         picture.Size = new Vector2(86, 80);
         _strip.Tips.Add(picture, () => TipOf(id));
         card.AddChild(picture);
-        if (!tile.Ladder && !ResearchModule.Repeats(id))
+        if (!tile.Ladder && !ResearchModule.Repeats(id) && !IsMode(id))
         {
             float x = WordsAt + Width(Spaced, T("research.takes").ToUpperInvariant(), 10) + 14;
             foreach (var (item, count) in TechLinks.Of(id).Takes)
@@ -425,6 +425,13 @@ public sealed class MarketPage : ITabletPage
         _readSoon();
     }
 
+    /// <summary>
+    /// Whether <paramref name="id"/> is no thing but what one does: a mode of the light drone its node opens for the crew (light-drone),
+    /// neither an item, an upgrade, a blueprint nor the seized lot.
+    /// </summary>
+    private static bool IsMode(string id) =>
+        !Content.Items.TryGet(id, out _) && Content.Upgrades.Of(id) == null && id != Content.Research.Confiscated && !Blueprints.All.Any(b => b.Id == id);
+
     /// <summary>The words about a good: an upgrade's, a blueprint's or an item's kind; none where nothing says.</summary>
     private static string AboutOf(string id) =>
         Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}.about")
@@ -434,6 +441,7 @@ public sealed class MarketPage : ITabletPage
     private Tip TipOf(string id)
     {
         if (Content.Upgrades.Of(id) is { } upgrade) return new Tip(_strip.NameOf(id), [new TipLine(T($"upgrade.{upgrade.Kind}.about"), Tone.Dim)]);
+        if (IsMode(id)) return new Tip(_strip.NameOf(id), [new TipLine(T($"item.{id}.about"), Tone.Dim)]);
         if (_strip.PlacementOf(id) is not { } placement) return new Tip(_strip.NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
         if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));
@@ -580,7 +588,7 @@ public sealed class MarketPage : ITabletPage
         Say(card, Strong, Fitted(_strip.NameOf(id), Strong, 18, room), WordsAt, 36, 18, Words);
         // What it is, or, with no station to come to, that one is wanted: every purchase drifts in by its row.
         Say(card, Plain, Fitted(_station ? AboutOf(id) : T("research.market.noStation"), Plain, 12, room), WordsAt, 55, 12, _station ? Dim : Dear);
-        if (ResearchModule.Repeats(id))
+        if (ResearchModule.Repeats(id) || IsMode(id))
         {
             Caps(card, T("research.market.arrives"), WordsAt, 88, Dim);
             return;
@@ -611,7 +619,7 @@ public sealed class MarketPage : ITabletPage
 
     /// <summary>The key of what kind of good <paramref name="id"/> is: an upgrade, gear sold per hero, the seized lot, or a blueprint.</summary>
     private static string KindOf(bool ladder, string id) =>
-        ladder ? "research.market.kind.upgrade"
+        ladder || IsMode(id) ? "research.market.kind.upgrade"
         : id == Content.Research.Confiscated ? "research.market.kind.lot"
         : ResearchModule.Repeats(id) ? "research.market.kind.gear" : "research.market.kind.blueprint";
 

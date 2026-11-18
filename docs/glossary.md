@@ -117,7 +117,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - движение удара / swing motion **≠** → `SwingMotion` (keys `MotionKey`), a weapon's `Stroke.Motions`, played as `MotionPlay` with `Overhand`, `Jab` (f/crew `MotionPlay.cs`), its `MotionKind` in gc/`SwingMotions.cs`; the offset the hero carries `AxeSwing.Aim` → Crew
 - сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
 - метка, пинг / ping → `Ping`, `PingSeen`, `PingView`, `MarkerIcon.Ping` (f/crew), a tap of F (crew-pings) → Crew
-- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `GestureWheel`, `GestureWheelView` (f/crew), bind `Gesture` (F), sent as `Handwork` (gestures-for-words) → Crew
+- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `Wheel<T>`, `WheelView` (f/crew), bind `Gesture` (H), sent as `Handwork` (gestures-for-words) → Crew
+- режим дрона, сканер / drone mode, scanner → `DroneMode` (`Lamp`, `Scan`), `DroneModes`, the same `Wheel<T>` (f/crew), bind `Drone` (F), sent as `Seen.Drone`; the scanner opened by node `scanner` (c/`LightDrone.ScannerMode`, light-drone) → Crew, Research
 - кисть руки, перчатка / hand, glove → `Rig.Wrist`, `hero_hand_glove`, `hero_hand_skin`, `HeroLooks.OutfitGloved`, frames in `GestureMotions` (hand-at-wrist) → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)

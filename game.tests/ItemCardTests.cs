@@ -246,15 +246,6 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void TheScannersCardIsItsLineAndNoRows()
-    {
-        var scanner = ItemCards.Of(Spec.Helmet.Scanner);
-        Assert.True(scanner.Worn);
-        Assert.Empty(scanner.Rows);
-        Assert.NotNull(scanner.About);
-    }
-
-    [Fact]
     public void AFoodsCardListsItsRatesFromTheDietThenItsDurationItsKeyToEatAndItsPrice()
     {
         var ration = ItemCards.Of(Spec.Foods.Ration);

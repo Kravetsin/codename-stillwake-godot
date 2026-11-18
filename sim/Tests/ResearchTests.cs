@@ -81,20 +81,41 @@ public class ResearchTests
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
-    /// <summary>The scanner (2026-11-07-the-scanner), the first level's headline: gear, three times its worth rounded, sold again and again (2026-11-08-mafia-deliveries).</summary>
+    /// <summary>
+    /// The scanner (2026-11-07-the-scanner), the first level's headline, three times its worth rounded: the light drone's mode
+    /// (light-drone), bought once for the whole crew, known when its delivery arrives.
+    /// </summary>
     [Fact]
-    public void TheScannerIsSoldAtTheFirstLevelAndBoughtIsDeliveredEachTime()
+    public void TheScannerModeIsSoldAtTheFirstLevelBoughtOnceAndKnownByTheCrewOnArrival()
     {
-        Assert.Equal(1, Node("scanner").Ring);
-        Assert.Equal(1500, Prices.Of(Node("scanner")));
+        string scanner = LightDrone.ScannerMode;
+        Assert.Equal(1, Node(scanner).Ring);
+        Assert.Equal(1500, Prices.Of(Node(scanner)));
         var w = SetUp(credits: 100_000);
-        Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node("scanner")));
-        Mafia.Reach(w, Node("scanner").Ring);
-        w.Do(new BuyBlock("scanner")).Run().Do(new BuyBlock("scanner")).Run();
+        Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node(scanner)));
+        Mafia.Reach(w, Node(scanner).Ring);
+        w.Do(new BuyBlock(scanner)).Run().Do(new BuyBlock(scanner)).Run();
+        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.True(w.M.Research.Done(Node(scanner)));
+        Assert.Equal([scanner], w.M.Knowledge.Deliveries.Select(d => d.Good));
+        Assert.Equal(100_000 - Prices.Of(Node(scanner)), w.M.Research.Credits);
+        Assert.False(w.M.Research.Knows(scanner));
+        Mafia.Receive(w);
+        Assert.True(w.M.Research.Knows(scanner));
+        Assert.False(Content.Items.TryGet(scanner, out _));
+    }
+
+    /// <summary>Gear (2026-11-08-mafia-deliveries): the power driver, sold again and again, each bought one delivered.</summary>
+    [Fact]
+    public void GearIsBoughtAgainAndAgainAndEachIsDelivered()
+    {
+        var w = SetUp(credits: 100_000);
+        Mafia.Reach(w, Node("powerDriver").Ring);
+        w.Do(new BuyBlock("powerDriver")).Run().Do(new BuyBlock("powerDriver")).Run();
         Assert.Empty(w.Refusals);
-        Assert.False(w.M.Research.Done(Node("scanner")));
-        Assert.Equal(["scanner", "scanner"], w.M.Knowledge.Deliveries.Select(d => d.Good));
-        Assert.Equal(100_000 - 2 * Prices.Of(Node("scanner")), w.M.Research.Credits);
+        Assert.False(w.M.Research.Done(Node("powerDriver")));
+        Assert.Equal(["powerDriver", "powerDriver"], w.M.Knowledge.Deliveries.Select(d => d.Good));
+        Assert.Equal(100_000 - 2 * Prices.Of(Node("powerDriver")), w.M.Research.Credits);
     }
 
     [Fact]

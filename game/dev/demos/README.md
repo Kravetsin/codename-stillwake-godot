@@ -23,7 +23,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
 | `VesselScenario.cs` | `--vessel`: the new game's hero on a vessel's world, `=class` (vessel-worlds) |
 | `ShuttleScenario.cs` | `--trip`: the testbed's hero by the crew shuttle, a freighter found and the course set by commands; `=auto` flies there and home (shuttle-flight) |
-| `PilesScenario.cs` | `--piles`: the hold with an axe in hand, a sledgehammer, the scanner worn; `--autopilot` breaks the piles. |
+| `PilesScenario.cs` | `--piles`: the hold with an axe in hand, a sledgehammer, the drone worn, its scanner open; `--autopilot` breaks the piles. |
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |
 | `MarketScenario.cs` | `--market`: a trade station, credits and the first two levels' goods with scrap, to raise the mafia's reputation |
 | `FuelScenario.cs` | `--fuel`: a fermenter piped to a fuel tank piped on to a drop pod; a biofuel generator to pipe by hand |

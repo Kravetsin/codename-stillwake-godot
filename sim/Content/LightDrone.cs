@@ -10,4 +10,10 @@ public static class LightDrone
     // Not a const: every constant of this table is a whole number (ContentTests).
     /// <summary>The item that is the light drone.</summary>
     public static readonly string Item = "lightDrone";
+
+    /// <summary>
+    /// The node that opens the scanner mode (2026-11-07-the-scanner, light-drone): bought once on the black market, known crew-wide;
+    /// in that mode the drone's light is out and a wreck's hit points show under the pointer.
+    /// </summary>
+    public static readonly string ScannerMode = "scanner";
 }

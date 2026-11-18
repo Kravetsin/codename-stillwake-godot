@@ -35,6 +35,7 @@ public static partial class En
         ["bind.zoomIn"] = "Zoom in",
         ["bind.zoomOut"] = "Zoom out",
         ["bind.gesture"] = "Gestures; tap to point and mark",
+        ["bind.drone"] = "Drone mode",
         ["key.space"] = "Space",
         ["key.tab"] = "Tab",
         ["key.capslock"] = "Caps Lock",

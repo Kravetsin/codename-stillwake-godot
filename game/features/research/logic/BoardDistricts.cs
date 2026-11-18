@@ -47,7 +47,7 @@ public static class BoardDistricts
         new("gear", 1,
         [
             "nail", "blastCharge", "grinder", "drill", "harpoon", "nailer", "pickaxe", "spear", "grapple", "sledgehammer", "screwdriver", "plasmaCutter",
-            "fireAxe", "railgun", "powerDriver", "accumulator", "battery", "heatSuit", "jetpack", "cape", "regenSuit", "scanner", "suit",
+            "fireAxe", "railgun", "powerDriver", "accumulator", "battery", "heatSuit", "jetpack", "cape", "regenSuit", "suit",
             "heatedHelmet", "heatHelmet", "heavyHelmet", "lightDrone", "helmet",
         ]),
     ];

@@ -9,56 +9,57 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Hero.cs` | `Hero`, `Step` |
 | `logic/Rig.cs` | joints, limbs, fist |
 | `logic/Pose.cs` | poses |
-| `logic/Motion.cs` | lean and landing |
-| `logic/Splashes.cs` | water heard |
+| `logic/Motion.cs` | lean, landing |
+| `logic/Splashes.cs` | water |
 | `logic/LookTint.cs` | tints |
 | `logic/Aim.cs` | aim |
-| `logic/AxeSwing.cs` | stroke clock |
+| `logic/AxeSwing.cs` | clock |
 | `logic/Strokes.cs` | strokes |
 | `logic/MotionPlay.cs` | motion |
-| `ReachAir.cs` | grinder haze |
+| `ReachAir.cs` | grinder |
 | `logic/AirCuts.cs` | dust, brush |
-| `logic/BladeTrail.cs` | blade haze |
+| `logic/BladeTrail.cs` | blade |
 | `SpearLight.cs` | spear's |
 | `logic/SpearFx.cs` | when |
 | `logic/SwingArc.cs` | angle |
-| `logic/SwingArm.cs` | arm swung |
+| `logic/SwingArm.cs` | arm |
 | `logic/HandOver.cs` | with it |
-| `logic/BodyPlay.cs` | its answers |
-| `logic/HaftGrip.cs` | far hand |
-| `logic/ArmUp.cs` | aim up |
+| `logic/BodyPlay.cs` | answers |
+| `logic/HaftGrip.cs` | grip |
+| `logic/ArmUp.cs` | up |
 | `logic/HarpoonShot.cs` | harpoon |
 | `logic/HarpoonLine.cs` | line |
 | `logic/Prompt.cs` | E |
 | `logic/Seating.cs` | seats |
-| `logic/FogMove.cs` | across fog |
+| `logic/FogMove.cs` | fog |
 | `logic/Fittings.cs` | modules |
 | `SeatedHeroes.cs` | porthole |
-| `UsePrompt.cs` | it shown |
+| `UsePrompt.cs` | shown |
 | `logic/Tether.cs` | tether |
 | `logic/DrillPace.cs` | drill |
 | `logic/RunSounds.cs` | sounds |
-| `logic/ToolEdge.cs` | cutter beam |
-| `logic/ToolRays.cs` | tool hits |
+| `logic/ToolEdge.cs` | beam |
+| `logic/ToolRays.cs` | hits |
 | `WreckPixels.cs` | wrecks |
 | `ToolWork.cs` | tools |
-| `logic/ToolHaze.cs` | tool hazes |
+| `logic/ToolHaze.cs` | hazes |
 | `logic/CutterJet.cs` | jet |
 | `logic/Motor.cs` | motors |
 | `logic/Remote.cs` | sent |
 | `logic/RemoteRod.cs` | rods |
 | `logic/RodFlourish.cs` | lights |
-| `logic/Suits.cs` | suits worn |
+| `logic/Suits.cs` | suits |
 | `logic/Skins.cs` | skins |
 | `logic/Appearance.cs` | tab |
-| `AppearanceView.cs` | it shown |
-| `SkinSlot.cs` | a slot |
+| `AppearanceView.cs` | shown |
+| `SkinSlot.cs` | slot |
 | `logic/BladeFx.cs` | effects |
 | `logic/FireFx.cs` | fire |
 | `logic/RiftFx.cs` | rift |
 | `BladeFxView.cs` | drawn |
 | `logic/Gestures.cs` | gestures |
-| `GestureWheelView.cs` | wheel |
+| `logic/Wheel.cs` | keys |
+| `WheelView.cs` | drawn |
 | `logic/Pings.cs` | pings |
 | `PingView.cs` | drawn |
 | `logic/SuitGlow.cs` | lights |
@@ -68,28 +69,29 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/BodyFit.cs` | fits |
 | `LightDrone.cs` | drone |
 | `logic/DroneFloat.cs` | float |
+| `logic/DroneModes.cs` | modes |
 | `logic/Cape.cs` | cape |
 | `logic/Spring.cs` | spring |
 | `CapeView.cs` | drawn |
 | `HeroView.cs` | hero |
 | `HeroView.Hands.cs` | hands |
 | `HeroView.Guns.cs` | gun |
-| `HeroView.Feel.cs` | air, body |
+| `HeroView.Feel.cs` | feel |
 | `logic/GunHand.cs` | cooldown |
 | `HeroView.Others.cs` | others |
 | `logic/CameraFollow.cs` | camera |
 | `JetPlume.cs` | plume |
 | `logic/PlumeWay.cs` | way |
-| `RodLight.cs` | rod light |
+| `RodLight.cs` | rod |
 | `AimOutline.cs` | outline |
 | `ModeGlyph.cs` | mark |
 | `logic/DriverMode.cs` | dots |
 | `HeroAutopilot.cs` | scripted |
 | `logic/Report.cs` | reports |
-| `Frost.cs` | the cold |
-| `Haze.cs` | the heat |
+| `Frost.cs` | cold |
+| `Haze.cs` | heat |
 | `logic/BodyHeat.cs` | body |
-| `SuitFxView.cs` | suit fx |
+| `SuitFxView.cs` | fx |
 | `logic/SuitFx.cs` | sums |
 | `logic/ScreenEase.cs` | eased |
 | `logic/Danger.cs` | gauge |
@@ -98,16 +100,16 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `AirSwirl.cs` | swirls |
 | `SuitGauge.cs` | air row |
 | `MealSlots.cs` | meals |
-| `logic/Retching.cs` | a retch |
+| `logic/Retching.cs` | retch |
 | `logic/RetchSpray.cs` | bile |
 | `InkLayer.cs` | ink |
 | `logic/MealTips.cs` | cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
 | `logic/Tunnel.cs` | tunnel |
-| `TunnelView.cs` | it drawn |
+| `TunnelView.cs` | drawn |
 | `logic/VisorFog.cs` | fog |
-| `VisorFogView.cs` | it drawn |
+| `VisorFogView.cs` | drawn |
 | `logic/HurtSeen.cs` | hurt |
 | `HurtView.cs` | shown |
 | `SuitColours.cs` | colours |
@@ -119,10 +121,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Rams.cs` | rams |
 | `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | light |
-| `Glitch.cs` | in bands |
+| `Glitch.cs` | bands |
 | `logic/CatcherFx.cs` | fight |
 | `logic/CatcherMotion.cs` | moves |
-| `logic/Crew.En.cs` | its text |
+| `logic/Crew.En.cs` | text |
 | `logic/Crew.Ru.cs` | Russian |
 
 ## Guarantees
@@ -170,7 +172,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one on release; kicks (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): F tap points, pings (crew-pings); held, a wheel; item stowed.
+- **Gestures** (gestures-for-words): H tap points, pings (crew-pings); held, a wheel; item stowed. **Drone** (light-drone):
+  F tap next mode, held a wheel; sent.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
 

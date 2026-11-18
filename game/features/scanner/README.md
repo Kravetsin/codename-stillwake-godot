@@ -14,7 +14,8 @@ the item only as gear; the readout is the client's, read from the debris module'
 
 ## Rules
 
-- **Only while worn** by this player (`Items.Equipped(own, Helmet.Scanner)`); a friend's scanner shows nothing here.
+- **Only while scanning**: this player's light drone worn in its scanner mode (`HeroView.Scanning`, light-drone); a friend's
+  scan shows nothing here.
 - **Over a pile** in the hold, failing a wreck (`Scan.OfPile`): its `Hp` less its crack, over the middle of its top
   (2026-11-07-pile-hit-points); a pile's readout id is `-1 - cell`, a wreck's its piece's.
 - **Over a wreck**, by the box the hands aim by (`game/shared/logic/WreckAim.cs`: its picture and half a cell), the

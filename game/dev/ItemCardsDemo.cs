@@ -32,7 +32,7 @@ public partial class ItemCardsDemo : CanvasLayer
         string[] gear =
         [
             Content.Helmet.Basic, Content.Helmet.Heated, Content.Helmet.HeatProof, Content.Helmet.Heavy, Content.Suit.Basic, Content.Suit.Regen, Content.Suit.Heat, Content.Cape.Item,
-            Content.Jetpack.Item, Content.LightDrone.Item, Content.Helmet.Scanner, "battery", Content.Weapons.Axe.Item,
+            Content.Jetpack.Item, Content.LightDrone.Item, "battery", Content.Weapons.Axe.Item,
         ];
         foreach (var item in gear) Add(cards, reading.TipOf(new Stack(item, 1)).Card!);
         scroll.AddChild(cards);

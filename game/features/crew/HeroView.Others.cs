@@ -94,8 +94,8 @@ public partial class HeroView
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
-            shown.Figure.HeadLamp = m.Items.Equipped(id, Content.LightDrone.Item);
-            shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
+            // Its drone shines or scans as its peer sends its mode (light-drone).
+            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(m.Items.Equipped(id, Content.LightDrone.Item), seen.Drone);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);

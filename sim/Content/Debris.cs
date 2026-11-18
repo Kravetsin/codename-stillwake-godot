@@ -341,7 +341,6 @@ public static class Loot
             new("coil", 1, 2),
             new("glass", 4, 6, OneIn: 2),
             new("arcShard", 1, 1, OneIn: 12),
-            new("scanner", 1, 1, OneIn: 24),
             new("powerDriver", 1, 1, OneIn: 24),
             new("plasmaCutter", 1, 1, OneIn: 30),
         ]),
@@ -355,7 +354,6 @@ public static class Loot
         [
             new(Stretches.Contraband, 1, 1),
             new(Foods.Stim, 1, 2, OneIn: 3),
-            new("scanner", 1, 1, OneIn: 16),
             new("powerDriver", 1, 1, OneIn: 16),
             new(Helmet.Heavy, 1, 1, OneIn: 20),
             new("plasmaCutter", 1, 1, OneIn: 20),

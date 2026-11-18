@@ -700,8 +700,7 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
-        bool scanning = _m.Items.Equipped(client.Id, Stillwake.Content.Helmet.Scanner);
-        _scanner.Frame(scanning && _hero?.Pointer() is { } pointer
+        _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null, delta * 1000);
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
         _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);
