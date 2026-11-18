@@ -123,7 +123,7 @@ public static class Creatures
     /// <summary>
     /// Asleep in its dock aboard a vessel (derelict-enemies): still, folded in its capsule or hung in its stand, till an awake hero's
     /// reported cell is in its dock's room or a blow lands; then <paramref name="Wake"/> ticks waking, and awake for good, the next drive
-    /// of its brain in charge. 0 never wakes (the robot, till its waking comes: the plan's G-3).
+    /// of its brain in charge. 0 never wakes.
     /// </summary>
     public sealed record Dock(int Wake = 0) : Drive;
 
@@ -133,6 +133,15 @@ public static class Creatures
     /// climbs. It fights by its <paramref name="Guard"/>: alerted by a hero in line within its notice, it pounces or shoots as a guard does.
     /// </summary>
     public sealed record Prowl(Guard Guard, int Pry) : Drive;
+
+    /// <summary>
+    /// Hunting the crew on its own deck (the escort, derelict-enemies), never off its floor rows: at the nearest awake hero aboard on its deck
+    /// within <paramref name="Strike"/> columns it lunges with its first move; within <paramref name="Notice"/> cells (box distance) and in line
+    /// with its middle, on any deck, it stands and shoots with its second. Else it walks: at a hero on its deck, toward him; else to the
+    /// nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. A shut door on its way (a hatch never, the
+    /// way in never) it pries <paramref name="Pry"/> ticks, then opens. With no hero aboard it stands.
+    /// </summary>
+    public sealed record Patrol(int Strike, int Notice, int Pry) : Drive;
 
     /// <summary>
     /// Hunting one hero (tracker-catchers): <paramref name="Ticks"/> on its way to it from the tick it comes, running its path on the
@@ -248,8 +257,11 @@ public static class Creatures
     /// <paramref name="Leaves"/>, a patch's kind, lies on the floor: such an arc is a lob, hurting no one, flying its <paramref name="Lingers"/>
     /// ticks and laying its patch as it lands (lurker-attacks). With a <paramref name="Through"/> it is a beam (catcher-combat): it runs
     /// on past that point, that many cells off in all, to the first wall, and hurts a hero touching any of it all its <paramref name="Lingers"/>.
+    /// With a <paramref name="Speed"/> (the escort's gauss, derelict-enemies) it is no arc but a shot flown at that speed a tick on the longer
+    /// axis, at the middle of the hero aimed at, <paramref name="Reach"/> cells' worth at most: stopped by the first solid cell or awake hero.
     /// </summary>
-    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0) : Move(Damage: 0);
+    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0,
+        int Speed = 0) : Move(Damage: 0);
 
     /// <summary>
     /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
@@ -433,13 +445,18 @@ public static class Creatures
 
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-enemies), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
-    /// four cells by five, its antenna drawn only. About twice the sentry's hit points, more circuits and scrap. Asleep only, for now:
-    /// its moves come with its waking, its look A1 «Конвоир» with its rig (the plan's G-3); till then the Istukan's look and sounds stand
-    /// in, never seen, for asleep it is its stand's picture. Placeholder numbers, for a play pass.
+    /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
+    /// let go, its lamp lit. Then it hunts the crew on its deck at 7 cells a second: a hero within 6 columns on its deck it claws, a crouch
+    /// of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit; one in line within 40 cells, above it too, it shoots:
+    /// 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) across its reach in a tick, then 1.5 s before it moves.
+    /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
+    /// sentry. Silent till its sounds are picked. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Escort = new("escort", Look: Warden.Look, Body: new Walker(Width: 4, Height: 5, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0),
-        Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard, Brain: [new Dock()], Moves: [],
-        Yields: [new("scrapChunk", 5, 8), new("circuit", 3, 5)]);
+    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 350, Run: 350, Jump: 0, JumpAcross: 0),
+        Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,
+        Brain: [new Dock(Wake: 40), new Patrol(Strike: 6, Notice: 40, Pry: 40)],
+        Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 30, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000)],
+        Yields: [new("scrapChunk", 6, 9), new("circuit", 4, 6)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Spider, Escort];
 

@@ -6,7 +6,7 @@ namespace Stillwake.Sim.Creatures;
 /// The arc (the sentry's, 2026-10-27-sentry-arc): crouched its wind-up where it clings, its eye flickering; <c>Lock</c> ticks before
 /// its end it takes its target's reported cell as it is then — its grudge wherever it is, else the nearest awake hero within its
 /// reach — and holds it; none, and it strikes nothing. At the end its arc strikes that cell at once (<see
-/// cref="CreaturesModule.StrikeArc"/>). Then it recovers, still clamped; never cut short by a blow. One that leaves a patch (the capback's slime) is a lob, landing on the floor under its end as its lingering ends. However it ends, the drive
+/// cref="CreaturesModule.StrikeArc"/>), or, with a speed, flies a shot at that hero (<see cref="CreaturesModule.Rail"/>, the escort's gauss). Then it recovers, still clamped; never cut short by a blow. One that leaves a patch (the capback's slime) is a lob, landing on the floor under its end as its lingering ends. However it ends, the drive
 /// that began it is told.
 /// </summary>
 internal sealed class ShootMove : MoveRule
@@ -41,7 +41,7 @@ internal sealed class ShootMove : MoveRule
             c.Keep(Aim, m.CellOf(aim) + 1);
         }
         if (act.Left > 0) return;
-        if (act.Phase == ActPhase.Active || !m.StrikeArc(c, spec, shoot, c.Recall(Aim) - 1))
+        if (act.Phase == ActPhase.Active || !(shoot.Speed > 0 ? m.Rail(c, spec, shoot, c.Recall(Aim) - 1) : m.StrikeArc(c, spec, shoot, c.Recall(Aim) - 1)))
         {
             c.Keep(Aim, 0);
             m.EndAct(c, spec, 0, hop: false);

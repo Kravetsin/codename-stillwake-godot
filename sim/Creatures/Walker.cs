@@ -27,11 +27,11 @@ internal sealed class WalkerBody : BodyRule
 
     internal override Type Serves => typeof(Spec.Walker);
 
-    // Pushed up a cell, still, while something built since stands in its body; a climber shut in a doorway stays (0006), to pry it.
+    // Pushed up a cell, still, while something built since stands in its body; a vessel's guard shut in a doorway stays (0006), to pry it.
     internal override bool Unstick(CreaturesModule m, Creature c, Spec.Shape s)
     {
         if (!m.Overlaps(s, c.X, c.Y)) return false;
-        if (((Spec.Walker)s).Climb > 0 && m.InShutDoorway(s, c.X, c.Y)) return false;
+        if (m.Docks.Count > 0 && m.InShutDoorway(s, c.X, c.Y)) return false;
         if (c.Y - (s.Height + 1) * Unit >= 0) c.Y -= Unit;
         (c.VX, c.VY) = (0, 0);
         return true;

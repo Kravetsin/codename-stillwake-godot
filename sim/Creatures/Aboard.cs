@@ -28,6 +28,9 @@ public sealed partial class CreaturesModule
     /// <summary>Its hatches in the world, each its left column and floor row, by row then column. Derived.</summary>
     private (int X, int Y)[] _hatches = [];
 
+    /// <summary>Its doors between rooms in the world, the way in left out, each its left column and top row, by row then column. Derived.</summary>
+    private (int X, int Y)[] _doors = [];
+
     /// <summary>Its way in through the armour (<see cref="Shipyard.WayIn"/>) in the world: never opened by a guard. Derived.</summary>
     private Box _wayIn = Box.None;
 
@@ -44,7 +47,7 @@ public sealed partial class CreaturesModule
     {
         if (Rules is not VesselKind kind)
         {
-            (_docks, _cabins, _hull, _floors, _hatches, _wayIn) = ([], [], Box.None, [], [], Box.None);
+            (_docks, _cabins, _hull, _floors, _hatches, _wayIn, _doors) = ([], [], Box.None, [], [], Box.None, []);
             return;
         }
         var v = Shipyard.Describe(Vessels.Class(kind.Class)!, Surfaces.Seed);
@@ -60,6 +63,29 @@ public sealed partial class CreaturesModule
         _hatches = [.. v.Hatches.Select(h => (X: m + h.X, Y: m + h.Y)).OrderBy(h => h.Y).ThenBy(h => h.X)];
         var door = Shipyard.WayIn(v);
         _wayIn = new Box(m + door.X, m + door.Y, m + door.X + Doorways.Thick - 1, m + door.Y + Vessels.Open - 1);
+        _doors = [.. v.Doors.Where(d => d != door).Select(d => (X: m + d.X, Y: m + d.Y)).OrderBy(d => d.Y).ThenBy(d => d.X)];
+    }
+
+    /// <summary>The floor row of the deck <paramref name="c"/>'s dock stands on: its room's floor, in the world.</summary>
+    internal int DeckFloor(Creature c)
+    {
+        var dock = _docks[c.Recall(DockKey)];
+        return Vessels.Margin + dock.Y + dock.Height;
+    }
+
+    /// <summary>
+    /// The middle, in thousandths, of the door on the deck whose floor is row <paramref name="floor"/> nearest <paramref name="x"/>
+    /// (thousandths), the lower column at a tie; the way in never; null for none on that deck.
+    /// </summary>
+    internal int? DoorOn(int floor, int x)
+    {
+        int? best = null;
+        foreach (var d in _doors)
+        {
+            int middle = (d.X + 1) * Unit;
+            if (d.Y == floor - Vessels.Open && (best is not int b || Math.Abs(middle - x) < Math.Abs(b - x))) best = middle;
+        }
+        return best;
     }
 
     /// <summary>A guard asleep on the floor in the middle of each dock's box, in their order: the frame's top-left at (<c>Margin</c>, <c>Margin</c>).</summary>

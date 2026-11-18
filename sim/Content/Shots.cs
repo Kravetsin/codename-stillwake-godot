@@ -100,7 +100,14 @@ public static class Shots
     /// </summary>
     public static readonly Gun Thrown = new("blastCharge", ["blastCharge"], Damage: 0, BlockDamage: 0, Knock: 10, Speed: 1500, Reach: 40, Pace: 20, PierceKeep: 0);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell, Missile];
+    /// <summary>
+    /// The escort robot's gauss (derelict-enemies), flown by a <see cref="Creatures.Shoot"/> with a speed: straight, across its reach in a
+    /// tick, stopped by the first solid cell or the first awake hero whose body it enters, six units of that hero's suit; it never bursts.
+    /// Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Projectile Gauss = new("gauss", Damage: 6, BlockDamage: 0, Weight: 0, HitsBodies: false);
+
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell, Missile, Gauss];
 
     public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun, Thrown];
 

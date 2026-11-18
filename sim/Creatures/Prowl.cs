@@ -73,7 +73,7 @@ internal sealed class ProwlDrive : DriveRule
         // A doorway shut on it (0006): it pries it where it stands.
         if (m.Overlaps(w, c.X, c.Y))
         {
-            if (m.ShutDoorway(left, top, right, feet) is int shut) Pry(m, c, prowl, shut);
+            if (m.ShutDoorway(left, top, right, feet) is int shut) Pry(m, c, prowl.Pry, shut);
             (c.VX, c.VY) = (0, 0);
             return;
         }
@@ -111,7 +111,7 @@ internal sealed class ProwlDrive : DriveRule
             if (hatch == null) Forget(c);
             else if (mine > its) Climb(m, c, w, floor!.Value);
             // Over the hatch down: pried, then fallen through.
-            else if (m.ShutDoorway(left, feet + 1, right, feet + 1) is int down) Pry(m, c, prowl, down);
+            else if (m.ShutDoorway(left, feet + 1, right, feet + 1) is int down) Pry(m, c, prowl.Pry, down);
             else Forget(c);
             return;
         }
@@ -119,7 +119,7 @@ internal sealed class ProwlDrive : DriveRule
         if (m.ShutDoorway(column, top, column, feet) is int door)
         {
             c.VX = 0;
-            Pry(m, c, prowl, door);
+            Pry(m, c, prowl.Pry, door);
             return;
         }
         Forget(c);
@@ -208,7 +208,7 @@ internal sealed class ProwlDrive : DriveRule
             if (m.ShutDoorway(column, top, column, Down(c.Y - 1, Unit)) is int door)
             {
                 c.VY = 0;
-                Pry(m, c, prowl, door);
+                Pry(m, c, prowl.Pry, door);
                 return;
             }
             Forget(c);
@@ -219,7 +219,7 @@ internal sealed class ProwlDrive : DriveRule
         if (m.ShutDoorway(left, top - 1, right, top - 1) is int hatch)
         {
             c.VY = 0;
-            Pry(m, c, prowl, hatch);
+            Pry(m, c, prowl.Pry, hatch);
             return;
         }
         Forget(c);
@@ -233,8 +233,11 @@ internal sealed class ProwlDrive : DriveRule
         (c.VX, c.VY) = (vx, 0);
     }
 
-    /// <summary>A tick at shut doorway <paramref name="cell"/>: begun, or counted on, and opened at its <c>Pry</c>; another doorway begins anew.</summary>
-    private static void Pry(CreaturesModule m, Creature c, Spec.Prowl prowl, int cell)
+    /// <summary>
+    /// A tick at shut doorway <paramref name="cell"/>: begun, or counted on, and opened <paramref name="pry"/> ticks on; another doorway begins
+    /// anew. A guard's pry, the escort's too (<see cref="PatrolDrive"/>).
+    /// </summary>
+    internal static void Pry(CreaturesModule m, Creature c, int pry, int cell)
     {
         if (c.Recall(PryKey) != cell + 1)
         {
@@ -242,13 +245,13 @@ internal sealed class ProwlDrive : DriveRule
             c.Keep(PrySince, m.Clock);
             return;
         }
-        if (m.Clock - c.Recall(PrySince) < prowl.Pry) return;
+        if (m.Clock - c.Recall(PrySince) < pry) return;
         m.Open(cell);
         Forget(c);
     }
 
     /// <summary>No doorway pried: one met again begins anew.</summary>
-    private static void Forget(Creature c)
+    internal static void Forget(Creature c)
     {
         if (c.Recall(PryKey) == 0) return;
         c.Keep(PryKey, 0);

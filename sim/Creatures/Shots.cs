@@ -194,7 +194,26 @@ public sealed partial class CreaturesModule
             if (broke) broken = target.Pass;
             else s.Passed.Add(target.Pass);
         }
-        return false;
+        // A creature's shot that never bursts (the escort's gauss, derelict-enemies) stops in the first awake hero it enters, hurting him.
+        if (s.By.Kind != RefKind.None || p.Bursts != null || HeroIn(cell) is not int hero) return false;
+        _crewOps.Blow(hero, p.Damage, Harm.Blow);
+        return true;
+    }
+
+    /// <summary>
+    /// The first awake hero, in the crew's order, whose body covers part of <paramref name="cell"/>: <c>Hero.Width</c> across the middle of
+    /// its reported cell, <c>Hero.Height</c> up from that cell's bottom; null for none.
+    /// </summary>
+    private int? HeroIn(int cell)
+    {
+        int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit, half = Content.Hero.Width / 2;
+        foreach (var hero in _crew.Heroes)
+        {
+            if (HeroAt(hero.Id, awake: true) is not { } at) continue;
+            int x = Middle(at.X), feet = (at.Y + 1) * Unit;
+            if (x - half < left + Unit && x + half > left && feet - Content.Hero.Height < top + Unit && feet > top) return hero.Id;
+        }
+        return null;
     }
 
     /// <summary>Whether a hit of <paramref name="damage"/> on <paramref name="target"/> takes anything: some left, and what is built there breakable by a shot (<see cref="IBuildingQueries.ShotTakes"/>).</summary>
@@ -370,6 +389,33 @@ public sealed partial class CreaturesModule
         var shot = new Shot { Id = State.Fired, Projectile = p.Id, By = Ref.None, X = x, Y = y, VX = ux * speed / Unit, VY = uy * speed / Unit, Left = flight, Heading = heading };
         shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
         State.Shots.Add(shot);
+    }
+
+    /// <summary>
+    /// <paramref name="c"/>'s <paramref name="shoot"/> flown (the escort's gauss, derelict-enemies) from its middle at the middle of the
+    /// hero whose reported cell is <paramref name="cell"/>: its speed on the longer axis, the other its share, rounded toward none, for as many
+    /// ticks as its reach takes, rounded up; its shooter flown through. False, and none, with its aim on its own middle or it off the grid.
+    /// </summary>
+    internal bool Rail(Creature c, Spec.Species spec, Spec.Shoot shoot, int cell)
+    {
+        int x = c.X, y = c.Y - spec.Body.Height * Unit / 2;
+        long run = Middle(cell % _grid.Width) - x, rise = (cell / _grid.Width + 1) * Unit - Content.Hero.Height / 2 - y, far = Math.Max(Math.Abs(run), Math.Abs(rise));
+        if (far == 0 || !ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return false;
+        State.Fired += 1;
+        var shot = new Shot
+        {
+            Id = State.Fired,
+            Projectile = shoot.Projectile,
+            By = Ref.None,
+            X = x,
+            Y = y,
+            VX = (int)(run * shoot.Speed / far),
+            VY = (int)(rise * shoot.Speed / far),
+            Left = (shoot.Reach * Unit + shoot.Speed - 1) / shoot.Speed,
+        };
+        shot.Passed.Add(new ShotPass(ShotTarget.Creature, c.Id));
+        State.Shots.Add(shot);
+        return true;
     }
 
     /// <summary>What a shot of <paramref name="p"/> from <paramref name="gun"/> at (<paramref name="x"/>, <paramref name="y"/>) gains falling this tick: by the cell it starts the tick in, none afloat.</summary>
