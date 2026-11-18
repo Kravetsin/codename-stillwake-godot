@@ -21,6 +21,39 @@ public class EnergyTabTests
     }
 
     [Fact]
+    public void TheCountShowsItsFirstReadAtOnceFallsEvenlyAndEasesOutARise()
+    {
+        var count = new EnergyCount();
+        count.Read(1000);
+        Assert.Equal(1000, count.Value);
+        count.Read(900);
+        Run(count.Step, EnergyCount.FallS / 2);
+        Assert.Equal(950, count.Value, 3);
+        Run(count.Step, EnergyCount.FallS / 2);
+        Assert.Equal(900, count.Value, 3);
+        count.Read(1800);
+        Run(count.Step, EnergyCount.RiseS / 2);
+        Assert.True(count.Value > 1350, $"{count.Value}: a rise comes most of the way at once");
+        Run(count.Step, EnergyCount.RiseS / 2);
+        Assert.Equal(1800, count.Value, 3);
+    }
+
+    [Fact]
+    public void TheNumberUnderTheDialIsWholePowerUnitsInGroupsOfThousands()
+    {
+        var count = new EnergyCount();
+        count.Read(12600);
+        Assert.Equal(["12", "600"], count.Groups);
+        count.Read(950);
+        Run(count.Step, EnergyCount.FallS);
+        Assert.Equal(["950"], count.Groups);
+        // Mid-glide, rounded to a whole unit.
+        count.Read(0);
+        Run(count.Step, EnergyCount.FallS / 2);
+        Assert.Equal(["475"], count.Groups);
+    }
+
+    [Fact]
     public void AToolDrainsTheFirstStoreHoldingATickOfItsDrawAsTheSimPays()
     {
         Assert.Equal(1, EnergyRing.DrainingOf([null, Store(Full), Store(Full)], 1));

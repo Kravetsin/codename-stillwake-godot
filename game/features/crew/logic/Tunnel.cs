@@ -37,6 +37,12 @@ public sealed class Tunnel
     /// <summary>How far it has gone, 0 clear to 1 ink.</summary>
     public double Shown => _shown;
 
+    /// <summary>
+    /// The last breath that ends first, in ticks left, of the air's (<c>Hero.Gasp</c>) and the body's past a death
+    /// (<c>BodyHeat.GaspLeft</c>, body-temperature); 0 while neither runs.
+    /// </summary>
+    public static int Sooner(int air, int body) => air == 0 ? body : body == 0 ? air : Math.Min(air, body);
+
     /// <summary>A read of this player's hero: the ticks left of its last breath and the ticks it is out, or none.</summary>
     public void Read(int gasp, int @out)
     {

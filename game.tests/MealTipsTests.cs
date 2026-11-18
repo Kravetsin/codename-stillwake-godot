@@ -48,6 +48,28 @@ public class MealTipsTests
             tip.Lines.Select(l => (l.Text, l.Tone)));
     }
 
+    [Theory]
+    [InlineData(32 * 60, "32m")]
+    [InlineData(31 * 60 + 1, "32m")]
+    [InlineData(61, "2m")]
+    [InlineData(60, "60s")]
+    [InlineData(45, "45s")]
+    [InlineData(0, "0s")]
+    public void UnderItsDialAMealsTimeIsMinutesRoundedUpThenSecondsInItsLastMinute(int seconds, string shown) =>
+        Assert.Equal(shown, MealTips.Clock(seconds * World.TicksPerSecond));
+
+    [Fact]
+    public void AfterTheMealsThePurgeShowsWhileThereIsOneElseHungerLitOnlyWhenHungry()
+    {
+        Assert.Equal(LastDial.Purge, MealTips.LastOf(1, hungry: false));
+        Assert.Equal(LastDial.Purge, MealTips.LastOf(3, hungry: false));
+        Assert.Equal(LastDial.Hungry, MealTips.LastOf(0, hungry: true));
+        Assert.Equal(LastDial.Unfed, MealTips.LastOf(0, hungry: false));
+    }
+
+    [Fact]
+    public void UnderItsDialAMealsLastTickStillShowsASecond() => Assert.Equal("1s", MealTips.Clock(1));
+
     [Fact]
     public void AMealsLastTickStillShowsASecond()
     {

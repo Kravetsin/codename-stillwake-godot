@@ -141,8 +141,9 @@ public class HandbookTests
     [Fact]
     public void LaysItsTabletScreenOutFromTheSlotSizeAndFitsItWithItsBezelOnTheSmallestScreen()
     {
-        Assert.Equal((838, 436), (Normal.Width, Normal.Height));
-        Assert.Equal((950, 516), (Large.Width, Large.Height));
+        // Each of the seven columns and five rows of kinds 4 px smaller than at a slot of 48.
+        Assert.Equal((866, 456), (Normal.Width, Normal.Height));
+        Assert.Equal((978, 536), (Large.Width, Large.Height));
         foreach (var at in (HandbookScreen[])[Normal, Large])
         {
             Assert.Equal(TabletLayout.Pad + TabletLayout.TabHeight + TabletLayout.Pad, HandbookScreen.BodyTop);

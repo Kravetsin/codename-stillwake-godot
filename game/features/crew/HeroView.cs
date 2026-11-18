@@ -361,6 +361,14 @@ public partial class HeroView : Node2D
     /// <summary>Whether this machine's hero is passed out, as the sim said this frame: it picks nothing up and its inventory closes.</summary>
     public bool PassedOut => _wasOut;
 
+    private readonly BodyHeat _body = new();
+
+    /// <summary>This machine's hero's body temperature in degrees (body-temperature): kept here, never by the sim.</summary>
+    public float Body => _body.Degrees;
+
+    /// <summary>The ticks left of the body's last breath past a death, as <c>Hero.Gasp</c> counts the air's; 0 with none.</summary>
+    public int BodyGasp => _body.GaspLeft;
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -458,7 +466,14 @@ public partial class HeroView : Node2D
             _previous = _current = Hero.At(ship, known.Cell);
             _snap = true;
         }
+        bool woke = _wasOut && !passedOut;
         _wasOut = passedOut;
+        // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
+        // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.
+        if (known == null || woke || m.Items.Creative(client.Id)) _body.Reset();
+        else if (!passedOut && !_body.Gone
+            && _body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
+            client.Send(new Sim.Crew.Succumb());
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
         int? face = Poses.FaceOf(pointed, _current);
@@ -499,6 +514,7 @@ public partial class HeroView : Node2D
                     Jetpack = jetpack,
                     Thrust = thrust,
                     Slowed = 1000 - m.Crew.PaceAt(_current.BodyCell(ship.Width)),
+                    Move = BodyHeat.SpeedOf(Body),
                 };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
@@ -599,6 +615,8 @@ public partial class HeroView : Node2D
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
+        // The suit frosts over or scorches with the body, not the place (body-temperature, picks F2 and H3).
+        _figure.Suffers(Report.ColdOf(Body), Report.HeatOf(Body));
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Room = RoomOf(ship, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);

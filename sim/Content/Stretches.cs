@@ -13,12 +13,13 @@ public static class Stretches
     public sealed record Span(int Least, int Most);
 
     /// <summary>
-    /// A storm's one bolt of lightning (docs/plans/surface-storms.md): drawn <paramref name="At"/> ticks into the storm, it glows
+    /// A storm's lightning (docs/plans/surface-storms.md): its first bolt drawn <paramref name="At"/> ticks into the storm, it glows
     /// <paramref name="Glow"/> ticks over the highest open-sky wall cell within <paramref name="Columns"/> columns of one hero drawn, then
     /// strikes it with a burst of <paramref name="Power"/> within <paramref name="Reach"/> cells, and every hero under the open sky within
-    /// <paramref name="Spread"/> columns of it loses <paramref name="Shock"/> air.
+    /// <paramref name="Spread"/> columns of it loses <paramref name="Shock"/> air. Each next one <paramref name="Again"/> ticks after the
+    /// last struck; none more a storm without.
     /// </summary>
-    public sealed record BoltRule(Span At, int Glow, int Columns, int Power, int Reach, int Spread, int Shock);
+    public sealed record BoltRule(Span At, int Glow, int Columns, int Power, int Reach, int Spread, int Shock, Span? Again = null);
 
     /// <summary>
     /// A stretch: opened once any of <paramref name="Unlock"/> has been obtained, from the start with none; its first coming
@@ -27,10 +28,11 @@ public static class Stretches
     /// colder under the open sky while it runs; its pieces drifting by in <paramref name="Zone"/>, whose <c>Stretch</c> is its id, none
     /// on a planet; the stream always by the hull beating <paramref name="Thins"/> times slower meanwhile, so its own pieces are not lost
     /// among the junk; a hero under the open sky walking and running at <paramref name="Pace"/> thousandths of its speed while it runs;
-    /// one bolt of lightning by <paramref name="Bolt"/> each time it comes, none without.
+    /// one bolt of lightning by <paramref name="Bolt"/> each time it comes, none without; <paramref name="Grit"/> units of a hero's own air
+    /// a breath under the open sky while it runs, past what it breathes: what blown grit grinds out of a suit.
     /// </summary>
     public sealed record Stretch(string Id, IReadOnlyList<string> Unlock, Span First, Span Gap, Span Duration, int Chill, int Warning,
-        DebrisZone? Zone = null, int Thins = 1, int Pace = 1000, BoltRule? Bolt = null);
+        DebrisZone? Zone = null, int Thins = 1, int Pace = 1000, BoltRule? Bolt = null, int Grit = 0);
 
     /// <summary>Ticks in a minute.</summary>
     private const int Minute = 60 * 20;
@@ -54,27 +56,30 @@ public static class Stretches
     /// <summary>
     /// The first planet's dust storm (docs/plans/surface-storms.md): open from the start, one of its two storms, about three storms in
     /// a 20-minute day between them (gap and duration average 8000 ticks), each a minute to a minute and a half, warned 40 s ahead,
-    /// the open sky 20° colder and a hero out in it at half its pace, leaning into the wind. The hour is not read. Its bolt's zone
-    /// reaches 10 columns either side.
+    /// the open sky 10° colder and a hero out in it at half its pace, leaning into the wind, its grit grinding 2 units of air a second
+    /// out of the suit (the user's, 2026-11-17: dig in). The hour is not read. Its bolt's zone reaches 10 columns either side.
     /// </summary>
     public static readonly Stretch DustStorm = new("dustStorm", [],
-        First: new(6000, 9600), Gap: new(5700, 7300), Duration: new(1200, 1800), Chill: 20, Warning: 800, Pace: 500, Bolt: Bolt(spread: 10));
+        First: new(6000, 9600), Gap: new(5700, 7300), Duration: new(1200, 1800), Chill: 10, Warning: 800, Pace: 500, Bolt: Bolt(spread: 10), Grit: 2);
 
     /// <summary>
-    /// The first planet's rain storm: the dust storm's numbers, another weather to see (rain is a look, not water); its bolt's zone
-    /// 20 columns either side, the ground wet.
+    /// The first planet's rain storm: the dust storm's numbers, another weather to see (rain is a look, not water): only 5° colder, no
+    /// grit; its bolt's zone 20 columns either side, the ground wet. Its danger is the lightning (the user's, 2026-11-17): a bolt every
+    /// 12 to 18 s, glow included, the first 9 to 15 s in.
     /// </summary>
-    public static readonly Stretch RainStorm = DustStorm with { Id = "rainStorm", Bolt = Bolt(spread: 20) };
+    public static readonly Stretch RainStorm = DustStorm with { Id = "rainStorm", Chill = 5, Grit = 0, Bolt = Bolt(spread: 20, every: new(180, 300)) };
 
     /// <summary>
-    /// A storm's bolt (docs/plans/surface-storms.md): 200 to 1000 ticks in, glowing 3 s (a run out of a 20-column zone at half pace,
+    /// A storm's bolt (docs/plans/surface-storms.md): 200 to 1000 ticks in, or with <paramref name="every"/> its first that far in and
+    /// each next that far after the last, glowing 3 s (a run out of a 20-column zone at half pace,
     /// and a reaction), aimed within 24 columns, shocking 40, nearly all of a basic helmet's 45.
     /// </summary>
     /// <remarks>
     /// Power 60, reach 2: a burst's first cell costs its strength, each step past it <c>Damage.Step</c> and the next cell's, so struck soil
     /// (40) breaks and the soil round it (42 more) only cracks, by up to 18; a built soil roof breaks, a scrap one (400) only cracks.
     /// </remarks>
-    private static BoltRule Bolt(int spread) => new(At: new(200, 1000), Glow: 60, Columns: 24, Power: 60, Reach: 2, Spread: spread, Shock: 100);
+    private static BoltRule Bolt(int spread, Span? every = null) =>
+        new(At: every ?? new(200, 1000), Glow: 60, Columns: 24, Power: 60, Reach: 2, Spread: spread, Shock: 100, Again: every);
 
     /// <summary>The ship's stretches, in the order they open on a tick and are kept in.</summary>
     public static readonly IReadOnlyList<Stretch> Ship = [IceBelt, ContrabandDrift];

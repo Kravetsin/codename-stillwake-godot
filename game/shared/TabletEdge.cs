@@ -103,6 +103,7 @@ public partial class TabletEdge : CanvasLayer
     {
         bool shown = _inWorld();
         _root.Visible = shown;
+        _ui.EdgeKeysLeft = EdgeRow.RimLeft(_root.GetViewportRect().Size.X, _slots.Count, EdgeRow.Grown(_ui.Slot));
         if (!shown)
         {
             _tips.Show(null);

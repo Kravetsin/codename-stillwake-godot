@@ -39,11 +39,10 @@ Three slices, each played by the user before the next, each opening with its pic
 ## Player sequences
 
 1. **A storm in the open.** Grass sways harder, the wind rises, the horizon dulls: 40 s of warning. Then streaks and dim
-   light. Air is lost to the cold at `Temperature.Bite` (20 thousandths a degree past the limit, a breath a second): a
-   basic suit with no cape, 10° past by day, loses 0.2 a second, **12–18 units over a storm** of its 45 (lungs 20, tank
-   25); 30° past at night, 0.6 a second, **36–54 units**: a whole storm in the open at night empties a basic helmet.
+   light. The dust storm's grit grinds 2 units of the suit's air a breath out of a hero in the open; the cold moves the body,
+   not the air ([mild-surface](../decisions/2026-11-18-mild-surface.md), [body-temperature](../decisions/2026-11-18-body-temperature.md)).
 2. **Sheltering.** Under a back wall (a built shelter, a ruin's room) or in a cave the storm's chill stops at once, as the
-   existing chill path rules; the band's own −30° stays.
+   existing chill path rules; the surface's own +12° stays.
 3. **Caught on a hill.** The glow crawls over the hilltop and the ground round it; in its 3 s the hero runs out of the
    zone (at half pace a run is about 13 cells a second: 20 cells in 1.5 s) or under a back wall, and the bolt craters the
    top. If they stay in the open in the zone, they lose 100: a basic or quilted suit's whole air and their last breath.

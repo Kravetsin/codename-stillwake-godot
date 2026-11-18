@@ -70,17 +70,13 @@ public class CapeTests
     }
 
     [Fact]
-    public void BareInVacuumTheCapeAddsFiveDegreesSoTenBreathsCostThirteenNotFourteen()
+    public void BareInVacuumTheCapeTakesFiveDegreesOffTheColdFeltAndTheAirPaysTheBreathAlone()
     {
-        // The hull's −20° on a bare hero's 0°: 20 felt, 4 units in ten breaths; caped, 15 felt, 3 (2026-11-14-temperature-in-degrees).
+        // The hull's −100° on a bare hero's 0°: 100 felt; caped, 95 (body-temperature).
         var bare = InVacuum(caped: false);
-        HeroOf(bare).Air = Lungs;
-        Breaths(bare, 10);
-        Assert.Equal(Lungs - 10 - 4, HeroOf(bare).Air);
         var caped = InVacuum(caped: true);
-        HeroOf(caped).Air = Lungs;
-        Breaths(caped, 10);
-        Assert.Equal(Lungs - 10 - 3, HeroOf(caped).Air);
+        Assert.Equal((100, 95), (bare.M.Crew.Felt(0, HeroOf(bare).Cell), caped.M.Crew.Felt(0, HeroOf(caped).Cell)));
+        Assert.Equal((Lungs - 1, Lungs - 1), (HeroOf(bare).Air, HeroOf(caped).Air));
         // The cold is no blow: nothing of it is kept for the cape's guard.
         Assert.Equal(0, HeroOf(caped).Spared);
         Assert.Equal((Content.Temperature.BareLow - Content.Cape.Warmth, Content.Temperature.BareLow), (caped.M.Crew.LowOf(0), bare.M.Crew.LowOf(0)));
@@ -228,8 +224,8 @@ public class CapeTests
 
     /// <summary>
     /// A bare hero in vacuum, its cape on and off, struck and breathing: a blow charges what the cape leaves of it, spared units
-    /// rounded down from the share and the remainder kept within a unit; a breath charges the cold of the degrees felt and keeps
-    /// the remainder as it was. The air is filled before each step so none passes out.
+    /// rounded down from the share and the remainder kept within a unit; a breath charges the breath alone, the cold moving the body, and keeps
+    /// the remainder as it was. The air is filled and the body made well before each step so none passes out.
     /// </summary>
     [Property(MaxTest = 60)]
     public Property ChargesWhatTheCapeLeavesOfEveryBlowAndColdItsRemainderWithinAUnit()
@@ -264,9 +260,8 @@ public class CapeTests
                 }
                 else
                 {
-                    // A breath, paid in full, and the cold of the degrees felt on the next breath's turn, the cape's warmth off them.
-                    int felt = Content.Temperature.BareLow - Content.Temperature.Hull - (worn ? Content.Cape.Warmth : 0);
-                    charged = 1 + TemperatureTests.ColdOn(w.Crew().Clock + Content.Crew.BreathEvery, felt);
+                    // A breath, paid in full; the cold moves the body, not the air (body-temperature).
+                    charged = 1;
                     Breaths(w, 1);
                 }
                 if (Lungs - hero.Air != charged || hero.Spared != left)
