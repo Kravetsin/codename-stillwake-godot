@@ -4,53 +4,121 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Research;
 
+/// <summary>What one read of the board brought, its cause fixed as it came (docs/plans/board-islands.md).</summary>
+/// <param name="Cause"><see cref="BoardSeen.CauseFound"/>, <see cref="BoardSeen.CauseBuilt"/> or <see cref="BoardSeen.CauseOpened"/>.</param>
+/// <param name="By">What caused it: the items newly obtained in Obtained order, or the machines newly standing; none for what was opened.</param>
+/// <param name="Things">What became known, a cause among them if it did.</param>
+/// <param name="Almost">How many things became almost.</param>
+public sealed record BoardBatch(string Cause, List<string> By, List<string> Things, int Almost);
+
 /// <summary>
-/// What is new on the board for this player (docs/decisions/2026-11-05-the-board.md): the notes not yet read, one at a time as they land (<see cref="BoardPile"/>), which light
-/// its key while it is away, what landed being marked until the player touches it ([board-thoughts](../../../../docs/decisions/2026-11-02-board-thoughts.md)); and the market's orders met, which light it until the market is chosen. With nothing
-/// kept, what was seen starts as things stand at the first read, so a new world or a late guest has nothing new.
+/// What is new on the board for this player (docs/plans/board-islands.md): each read that brought something known is a batch, its cause fixed then; a
+/// thing is unread while it is in a batch and not seen, and hovering or clicking sees it. The research key counts the batches with something unread
+/// while the tablet is away. And the market's orders met, which light it until the market is shown. With nothing kept, the first read sees all
+/// that is known, so a new world or a late guest has nothing new.
 /// </summary>
-/// <param name="seen">What was kept; null for nothing.</param>
+/// <param name="seen">What was kept as seen; null for nothing.</param>
 /// <param name="orders">How many orders met were kept as seen; null for nothing.</param>
-/// <param name="marked">What was kept as marked; null for nothing.</param>
-public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEnumerable<string>? marked = null)
+/// <param name="batches">The batches kept, oldest first; null for none.</param>
+public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEnumerable<BoardBatch>? batches = null)
 {
+    /// <summary>The causes of a batch: items newly obtained, machines newly standing, or neither (a blueprint picked up, a purchase).</summary>
+    public const string CauseFound = "found", CauseBuilt = "built", CauseOpened = "opened";
+
+    /// <summary>The most batches kept: an older one goes, what it held seen.</summary>
+    public const int Kept = 40;
+
     private HashSet<string>? _seen = seen?.ToHashSet(StringComparer.Ordinal);
-    private HashSet<string> _notes = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _marked = marked?.ToHashSet(StringComparer.Ordinal) ?? new(StringComparer.Ordinal);
-    private readonly HashSet<string> _landed = new(StringComparer.Ordinal);
+    private readonly List<BoardBatch> _batches = batches?.Where(b => b is { By: not null, Things: not null }).ToList() ?? [];
     private int? _ordersSeen = orders;
     private bool _open;
 
-    /// <summary>What was last seen, to keep.</summary>
+    /// <summary>What the last read knew, had, saw standing and saw almost: what the next is compared with; null before this run's first read.</summary>
+    private HashSet<string>? _known, _had, _standing, _almost;
+
+    /// <summary>What was seen, to keep.</summary>
     public IReadOnlyCollection<string> Seen => _seen ?? [];
 
-    /// <summary>What landed and was not touched yet, to keep.</summary>
-    public IReadOnlyCollection<string> AllMarked => _marked;
-
-    /// <summary>The notes not yet read.</summary>
-    public IReadOnlyCollection<string> Unread => _seen == null ? [] : _notes.Where(n => !_seen.Contains(n)).ToHashSet(StringComparer.Ordinal);
+    /// <summary>Every batch kept, oldest first.</summary>
+    public IReadOnlyList<BoardBatch> Batches => _batches;
 
     /// <summary>How many orders met were last seen, to keep; null before a read.</summary>
     public int? OrdersSeen => _ordersSeen;
 
-    /// <summary>Whether what was seen has changed since it was last kept.</summary>
+    /// <summary>Whether what is kept has changed since it was last written.</summary>
     public bool Unwritten { get; set; }
 
-    /// <summary>Whether the board holds any note, read or not: the research key shows from the first.</summary>
-    public bool Any => _notes.Count > 0;
+    /// <summary>Whether anything on the board is known: the research key shows from the first.</summary>
+    public bool Any => _known is { Count: > 0 };
 
     /// <summary>Whether the tablet is out.</summary>
     public bool Open => _open;
 
-    /// <summary>Whether the tablet's key is lit: a note is unread and the tablet is away.</summary>
-    public bool Lit => !_open && _seen != null && _notes.Any(n => !_seen.Contains(n));
+    /// <summary>How many batches hold something unread.</summary>
+    public int UnreadBatches => _batches.Count(Unread);
 
-    /// <summary>A read of the notes on the board.</summary>
-    public void Read(IEnumerable<string> notes)
+    /// <summary>Whether the tablet's key is lit: a batch holds something unread and the tablet is away.</summary>
+    public bool Lit => !_open && UnreadBatches > 0;
+
+    /// <summary>Whether <paramref name="id"/> came in a batch and has not been seen.</summary>
+    public bool Unread(string id) => _seen != null && !_seen.Contains(id) && _batches.Any(b => b.Things.Contains(id));
+
+    /// <summary>Whether <paramref name="batch"/> holds something not seen.</summary>
+    public bool Unread(BoardBatch batch) => _seen != null && batch.Things.Any(t => !_seen.Contains(t));
+
+    /// <summary>A read of the board's things as <paramref name="read"/> says: what became known since the last forms a batch.</summary>
+    public void Read(BoardRead read)
     {
-        _notes = notes.ToHashSet(StringComparer.Ordinal);
-        if (_seen != null) return;
-        _seen = new HashSet<string>(_notes, StringComparer.Ordinal);
+        var known = BoardThings.Ids.Where(read.Knows).ToHashSet(StringComparer.Ordinal);
+        var standing = BoardThings.Machines.Where(read.Stands).ToHashSet(StringComparer.Ordinal);
+        var almost = BoardThings.Ids.Where(id => !known.Contains(id) && BoardView.PencilOf(id, read) > 0).ToHashSet(StringComparer.Ordinal);
+        if (_seen == null)
+        {
+            _seen = known;
+            Unwritten = true;
+        }
+        else if (_known == null)
+        {
+            // This run's first read with a file: what it knew is what it saw or was told of; what came since was had now.
+            var before = _seen.Concat(_batches.SelectMany(b => b.Things)).ToHashSet(StringComparer.Ordinal);
+            (_known, _had, _standing, _almost) = (before, read.Found.Where(before.Contains).ToHashSet(StringComparer.Ordinal), standing, almost);
+        }
+        if (_known != null) Compare(read, known, standing, almost);
+        (_known, _had, _standing, _almost) = (known, read.Found.ToHashSet(StringComparer.Ordinal), standing, almost);
+    }
+
+    private void Compare(BoardRead read, HashSet<string> known, HashSet<string> standing, HashSet<string> almost)
+    {
+        var things = BoardThings.Ids.Where(id => known.Contains(id) && !_known!.Contains(id)).ToList();
+        if (things.Count == 0) return;
+        var had = read.Found.Where(i => !_had!.Contains(i)).ToList();
+        var built = BoardThings.Machines.Where(m => standing.Contains(m) && !_standing!.Contains(m)).ToList();
+        int newlyAlmost = almost.Count(id => !_almost!.Contains(id));
+        _batches.Add(had.Count > 0 ? new BoardBatch(CauseFound, had, things, newlyAlmost)
+            : built.Count > 0 ? new BoardBatch(CauseBuilt, built, things, newlyAlmost)
+            : new BoardBatch(CauseOpened, [], things, newlyAlmost));
+        while (_batches.Count > Kept)
+        {
+            _seen!.UnionWith(_batches[0].Things);
+            _batches.RemoveAt(0);
+        }
+        Unwritten = true;
+    }
+
+    /// <summary>The player hovered or clicked <paramref name="id"/>: it is read. Answers whether it was unread.</summary>
+    public bool See(string id)
+    {
+        if (!Unread(id)) return false;
+        _seen!.Add(id);
+        Unwritten = true;
+        return true;
+    }
+
+    /// <summary>"Read all": everything in a batch is read.</summary>
+    public void SeeAll()
+    {
+        if (_seen == null) return;
+        foreach (var batch in _batches) _seen.UnionWith(batch.Things);
         Unwritten = true;
     }
 
@@ -75,33 +143,8 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
         return was;
     }
 
-    /// <summary><paramref name="id"/> read: it goes onto the board, marked until the player touches it.</summary>
-    public void Land(string id)
-    {
-        if (_seen == null || !_seen.Add(id)) return;
-        _marked.Add(id);
-        _landed.Add(id);
-        Unwritten = true;
-    }
-
-    /// <summary>Whether <paramref name="id"/> has landed and the player has not touched it yet.</summary>
-    public bool Marked(string id) => _marked.Contains(id);
-
-    /// <summary>The player took <paramref name="id"/> in hand: it is no longer marked.</summary>
-    public void Touch(string id)
-    {
-        if (_marked.Remove(id)) Unwritten = true;
-    }
-
-    /// <summary>Whether <paramref name="id"/> has landed since the tablet was last put away: its threads stand out till then.</summary>
-    public bool Fresh(string id) => _landed.Contains(id);
-
     public void Opened() => _open = true;
 
-    /// <summary>The tablet put away: what landed is no longer fresh; what was not read stays unread.</summary>
-    public void Closed()
-    {
-        _open = false;
-        _landed.Clear();
-    }
+    /// <summary>The tablet put away: what was not read stays unread.</summary>
+    public void Closed() => _open = false;
 }

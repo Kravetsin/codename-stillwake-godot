@@ -1,72 +1,106 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Stillwake.Sim;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>How a thing with a slot shows on the board.</summary>
-public enum BoardShow
+/// <summary>How a frame on the board shows (docs/plans/board-islands.md).</summary>
+public enum BoardState
 {
-    Unseen,
-    Silhouette,
-    Note,
+    /// <summary>A dim «?»: nothing of it had yet.</summary>
+    Unknown,
+    /// <summary>A silhouette with a progress bar and what it still needs.</summary>
+    Almost,
+    /// <summary>Its picture and its name: obtained or granted.</summary>
+    Known,
 }
 
 /// <summary>What the board reads of the world.</summary>
-/// <param name="Found">What was obtained, in the order first obtained.</param>
-/// <param name="Granted">What is known.</param>
-/// <param name="Has">Whether an item was ever obtained.</param>
-/// <param name="Stands">Whether a machine of a kind stands.</param>
-public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<string> Granted, Func<string, bool> Has, Func<string, bool> Stands);
-
-/// <summary>What the board shows now: how each thing with a slot shows, and its threads.</summary>
-public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, IReadOnlyList<(string Note, string Shape)> Threads);
-
-/// <summary>
-/// Decides what the board shows (docs/decisions/2026-11-05-the-board.md). A note is what was obtained or is known. A shape shows at a thread's end. One with
-/// every part noted always shows: crowded off its parts' threads, it hangs one from the part noted last; what the market opens never shows as one. A click adds nothing to the board.
-/// </summary>
-public static class BoardView
+public sealed class BoardRead
 {
-    /// <summary>What of what has a slot shows as a note: what was obtained or is known.</summary>
-    public static HashSet<string> NotesOf(IReadOnlyList<BoardSlot> slots, BoardRead read)
+    private readonly HashSet<string> _known;
+
+    /// <param name="found">What was obtained, in the order first obtained.</param>
+    /// <param name="granted">The blueprints and crafts known.</param>
+    /// <param name="has">Whether an item was ever obtained.</param>
+    /// <param name="stands">Whether a machine of a kind stands on any surface.</param>
+    public BoardRead(IReadOnlyList<string> found, IReadOnlyCollection<string> granted, Func<string, bool> has, Func<string, bool> stands)
     {
-        var found = read.Found.ToHashSet(StringComparer.Ordinal);
-        var known = read.Granted.ToHashSet(StringComparer.Ordinal);
-        return slots.Select(s => s.Id).Where(id => found.Contains(id) || known.Contains(id)).ToHashSet(StringComparer.Ordinal);
+        (Found, Granted, Has, Stands) = (found, granted, has, stands);
+        _known = [.. found, .. granted];
     }
 
-    /// <param name="picked">The note or shape clicked, which stays shown; null for none.</param>
-    public static BoardPicture Of(IReadOnlyList<BoardSlot> slots, IReadOnlyList<BoardThing> things, BoardRead read, string? picked)
+    /// <summary>What was obtained, in the order first obtained.</summary>
+    public IReadOnlyList<string> Found { get; }
+
+    public IReadOnlyCollection<string> Granted { get; }
+
+    public Func<string, bool> Has { get; }
+
+    public Func<string, bool> Stands { get; }
+
+    /// <summary>Whether <paramref name="id"/> is known: obtained or granted.</summary>
+    public bool Knows(string id) => _known.Contains(id);
+
+    /// <summary>
+    /// What the board reads of <paramref name="world"/>: what is obtained and granted, and a machine standing on any of its surfaces, as research grants by
+    /// the machines of the surface it stands on.
+    /// </summary>
+    public static BoardRead Of(World world)
     {
-        var byId = things.ToDictionary(t => t.Id, StringComparer.Ordinal);
-        var slotted = slots.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
-        double Pencil(BoardThing thing) => BoardPencil.Of(thing, read.Has, read.Stands);
-        var notes = NotesOf(slots, read);
-        bool Shape(string id) => slotted.Contains(id) && !notes.Contains(id);
-        var threads = new List<(string Note, string Shape)>();
-        var ends = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var slot in slots)
+        var surfaces = Enumerable.Range(0, world.Surfaces.Count).Select(s => Registry.On(world, s)).ToList();
+        var knowledge = surfaces[0].Knowledge;
+        return new BoardRead(knowledge.Obtained.Select(t => t.Item).ToList(), knowledge.GrantedIds, item => knowledge.ObtainedOf(item) > 0,
+            kind => surfaces.Any(s => s.Grid.MachinesOf(kind).Count > 0));
+    }
+
+    /// <summary>What moves when anything the board reads of <paramref name="world"/> may have: its knowledge's version and every surface's grid's.</summary>
+    public static string KeyOf(World world)
+    {
+        var knowledge = Registry.On(world, 0).Knowledge;
+        return $"{world.Id}|{knowledge.GetHashCode()}|{knowledge.Version}|" + string.Join(',', Enumerable.Range(0, world.Surfaces.Count).Select(s => Registry.On(world, s).Grid.Version));
+    }
+}
+
+/// <summary>Decides how each frame shows (docs/plans/board-islands.md): known if obtained or granted, almost if its pencil has started, else unknown.</summary>
+public static class BoardView
+{
+    public static BoardState StateOf(string id, BoardRead read) =>
+        read.Knows(id) ? BoardState.Known : PencilOf(id, read) > 0 ? BoardState.Almost : BoardState.Unknown;
+
+    /// <summary>
+    /// How far <paramref name="id"/> has come, 0 to 1: a recipe's parts had and a machine making it standing (<see cref="BoardPencil"/>); a smelted item's source
+    /// had and a machine working it standing. Never anything of a market good, which its parts never bring nearer, nor of an item only found.
+    /// </summary>
+    public static double PencilOf(string id, BoardRead read)
+    {
+        if (BoardThings.Market(id)) return 0;
+        if (BoardThings.Of(id) is { } thing) return BoardPencil.Of(thing, read.Has, read.Stands);
+        if (BoardThings.SourcesOf(id) is not { Count: > 0 } sources) return 0;
+        var workers = TechLinks.Of(id).MadeAt;
+        return BoardPencil.Of([sources.Any(read.Has)], workers.Count == 0 ? null : workers.Any(read.Stands));
+    }
+
+    /// <summary>What <paramref name="id"/> still needs, the first missing: a part never had, else a machine to make or work it; null for nothing.</summary>
+    public static string? NeedOf(string id, BoardRead read)
+    {
+        if (BoardThings.Of(id) is { } thing)
         {
-            if (!notes.Contains(slot.Id)) continue;
-            foreach (string shape in BoardThreads.Of(slot.Id, things, Shape, Pencil))
-            {
-                threads.Add((slot.Id, shape));
-                ends.Add(shape);
-            }
+            if (thing.Parts.FirstOrDefault(p => !read.Has(p)) is { } part) return part;
+            return thing.Stations is { Count: > 0 } stations && !stations.Any(read.Stands) ? stations[0] : null;
         }
-        foreach (var slot in slots)
-        {
-            if (notes.Contains(slot.Id) || ends.Contains(slot.Id) || byId.GetValueOrDefault(slot.Id) is not { Parts.Count: > 0, Market: false } thing) continue;
-            if (!thing.Parts.All(notes.Contains)) continue;
-            threads.Add((slots.Last(s => thing.Parts.Contains(s.Id)).Id, slot.Id));
-            ends.Add(slot.Id);
-        }
-        var shows = new Dictionary<string, BoardShow>(StringComparer.Ordinal);
-        foreach (var slot in slots)
-            shows[slot.Id] = notes.Contains(slot.Id) ? BoardShow.Note
-                : ends.Contains(slot.Id) || slot.Id == picked ? BoardShow.Silhouette
-                : BoardShow.Unseen;
-        return new BoardPicture(shows, threads);
+        var sources = BoardThings.SourcesOf(id);
+        if (sources.Count > 0 && !sources.Any(read.Has)) return sources[0];
+        var workers = TechLinks.Of(id).MadeAt;
+        return workers.Count > 0 && !workers.Any(read.Stands) ? workers[0] : null;
+    }
+
+    /// <summary>How many of <paramref name="id"/>'s parts or sources are had, of how many, for its progress bar: a source had counts as all of one.</summary>
+    public static (int Had, int Of) PartsOf(string id, BoardRead read)
+    {
+        if (BoardThings.Of(id) is { Parts.Count: > 0 } thing) return (thing.Parts.Count(read.Has), thing.Parts.Count);
+        var sources = BoardThings.SourcesOf(id);
+        return sources.Count > 0 ? (sources.Any(read.Has) ? 1 : 0, 1) : (0, 1);
     }
 }

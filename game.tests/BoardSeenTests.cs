@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
+/// <summary>What is new on the board: batches of finds, each with the cause it came with (docs/plans/board-islands.md), and the market's orders.</summary>
 public sealed class BoardSeenTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -15,133 +16,180 @@ public sealed class BoardSeenTests : IDisposable
         if (Directory.Exists(_folder)) Directory.Delete(_folder, true);
     }
 
-    /// <summary>The notes of a world that has obtained <paramref name="found"/> and knows <paramref name="granted"/>, as the board works them out.</summary>
-    private static System.Collections.Generic.HashSet<string> Notes(string[] found, params string[] granted)
-    {
-        var read = new BoardRead(found, granted, _ => true, _ => false);
-        return BoardView.NotesOf(BoardSlots.Of(found, BoardThings.All, granted), read);
-    }
+    /// <summary>A world that has obtained <paramref name="found"/>, knows <paramref name="granted"/> and has <paramref name="standing"/> built.</summary>
+    private static BoardRead Read(string[] found, string[] granted, params string[] standing) =>
+        new(found, granted, found.Contains, standing.Contains);
+
+    private static readonly BoardRead Nothing = Read([], []);
+
+    /// <summary>What a board kept by a file read first: nothing seen yet, nothing known before.</summary>
+    private static BoardSeen Kept() => new([]);
 
     [Fact]
-    public void ABareWorldHasNoDot()
+    public void AFirstReadWithNoFileHasNoBatchAndSeesAllThatIsKnown()
     {
         var seen = new BoardSeen(null);
-        seen.Read(Notes([]));
+        seen.Read(Read(["scrapChunk", "scrap"], ["nail"], "workbench"));
+        Assert.Empty(seen.Batches);
+        Assert.Equal(0, seen.UnreadBatches);
         Assert.False(seen.Lit);
+        Assert.Contains("nail", seen.Seen);
     }
 
     [Fact]
-    public void ANewItemLightsTheDot()
+    public void AFindBringsWhatItOpensUnderOneCause()
     {
-        var seen = new BoardSeen(null);
-        seen.Read(Notes([]));
-        seen.Read(Notes(["scrapChunk"]));
+        var seen = Kept();
+        seen.Read(Nothing);
+        seen.Read(Read(["scrapChunk", "scrap"], ["nail", "wire"], "workbench"));
+        var batch = Assert.Single(seen.Batches);
+        Assert.Equal(BoardSeen.CauseFound, batch.Cause);
+        Assert.Equal(["scrapChunk", "scrap"], batch.By);
+        Assert.Equal(["nail", "scrap", "scrapChunk", "wire"], batch.Things.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ACraftGrantedOnceItsMachineStandsFormsABuiltBatch()
+    {
+        var seen = Kept();
+        seen.Read(Read(["scrap"], []));
+        seen.Read(Read(["scrap"], ["nail"], "workbench"));
+        var batch = seen.Batches[^1];
+        Assert.Equal(BoardSeen.CauseBuilt, batch.Cause);
+        Assert.Equal(["workbench"], batch.By);
+        Assert.Equal(["nail"], batch.Things);
+    }
+
+    [Fact]
+    public void WhatCameWithNeitherAFindNorAMachineWasOpened()
+    {
+        var seen = Kept();
+        seen.Read(Read(["scrap"], []));
+        seen.Read(Read(["scrap"], ["solarPanel"]));
+        Assert.Equal(BoardSeen.CauseOpened, seen.Batches[^1].Cause);
+        Assert.Empty(seen.Batches[^1].By);
+    }
+
+    [Fact]
+    public void MoreOfWhatIsKnownBringsNoBatch()
+    {
+        var seen = Kept();
+        seen.Read(Read(["scrap"], []));
+        int batches = seen.Batches.Count;
+        seen.Read(Read(["scrap"], []));
+        Assert.Equal(batches, seen.Batches.Count);
+    }
+
+    [Fact]
+    public void HoveringNeverChangesABatchOnlyWhatIsUnread()
+    {
+        var seen = Kept();
+        seen.Read(Nothing);
+        seen.Read(Read(["scrap"], ["nail", "wire"], "workbench"));
+        var batch = Assert.Single(seen.Batches);
+        string[] things = [.. batch.Things];
+        Assert.True(seen.Unread("nail"));
+        Assert.True(seen.See("nail"));
+        Assert.False(seen.See("nail"));
+        seen.Read(Read(["scrap"], ["nail", "wire"], "workbench"));
+        var after = Assert.Single(seen.Batches);
+        Assert.Equal(batch.Cause, after.Cause);
+        Assert.Equal(batch.By, after.By);
+        Assert.Equal(things, after.Things);
+        Assert.False(seen.Unread("nail"));
+        Assert.True(seen.Unread("wire"));
+    }
+
+    [Fact]
+    public void TheCounterCountsBatchesNotThings()
+    {
+        var seen = Kept();
+        seen.Read(Nothing);
+        seen.Read(Read(["scrap"], ["nail", "wire"], "workbench"));
+        seen.Read(Read(["scrap", "iron"], ["nail", "wire", "plate"], "workbench"));
+        Assert.Equal(2, seen.Batches.Count);
+        Assert.Equal(2, seen.UnreadBatches);
         Assert.True(seen.Lit);
-    }
-
-    [Fact]
-    public void ANewGrantWithANoteLightsTheDot()
-    {
-        var seen = new BoardSeen(null);
-        seen.Read(Notes(["scrap"]));
-        Assert.False(seen.Lit);
-        string shape = BoardSlots.Of(["scrap"], BoardThings.All, []).Select(s => s.Id).First(id => id != "scrap");
-        seen.Read(Notes(["scrap"], shape));
-        Assert.True(seen.Lit);
-        Assert.Contains(shape, seen.Unread);
-    }
-
-    [Fact]
-    public void MoreOfAKnownItemLightsNothing()
-    {
-        var seen = new BoardSeen(["scrap"]);
-        seen.Read(Notes(["scrap"]));
-        seen.Read(Notes(["scrap"]));
-        Assert.False(seen.Lit);
-    }
-
-    [Fact]
-    public void BuyingABagLightsNothing()
-    {
-        var seen = new BoardSeen(null);
-        seen.Read(Notes(["scrap"]));
-        seen.Read(Notes(["scrap"], "bag1"));
-        Assert.False(seen.Lit);
-        Assert.False(seen.Marked("bag1"));
-    }
-
-    [Fact]
-    public void OpeningPutsOutTheDotAndALandedNoteIsMarkedUntilItIsTouched()
-    {
-        var seen = new BoardSeen([]);
-        seen.Read(["scrap"]);
+        foreach (string id in seen.Batches[0].Things) seen.See(id);
+        Assert.Equal(1, seen.UnreadBatches);
         seen.Opened();
         Assert.False(seen.Lit);
-        Assert.False(seen.Marked("scrap"));
-        seen.Land("scrap");
-        Assert.True(seen.Marked("scrap"));
-        seen.Closed();
-        Assert.False(seen.Lit);
-        Assert.True(seen.Marked("scrap"));
-        seen.Touch("scrap");
-        Assert.False(seen.Marked("scrap"));
+        seen.SeeAll();
+        Assert.Equal(0, seen.UnreadBatches);
     }
 
     [Fact]
-    public void WhatLandedIsFreshOnlyUntilTheTabletCloses()
+    public void OnlyTheNewestBatchesAreKeptAndWhatAnOlderOneHeldIsSeen()
     {
-        var seen = new BoardSeen([]);
-        seen.Read(["scrap"]);
-        seen.Opened();
-        seen.Land("scrap");
-        Assert.True(seen.Fresh("scrap"));
-        seen.Closed();
-        Assert.False(seen.Fresh("scrap"));
+        var seen = Kept();
+        seen.Read(Nothing);
+        var items = BoardThings.Ids.Take(BoardSeen.Kept + 1).ToList();
+        for (int i = 1; i <= items.Count; i++) seen.Read(Read([], [.. items.Take(i)]));
+        Assert.Equal(BoardSeen.Kept, seen.Batches.Count);
+        Assert.False(seen.Unread(items[0]));
+        Assert.Contains(items[0], seen.Seen);
     }
 
     [Fact]
-    public void AMarkLastsThroughARestartUntilTouched()
+    public void BatchesAndThePinComeBackForTheirWorldAndWhatWasNewIsStillNew()
     {
         var keep = new BoardKeep(_folder);
-        keep.Of(9);
-        keep.Seen.Read([]);
-        keep.Seen.Read(["scrap", "iron"]);
-        keep.Seen.Land("scrap");
-        keep.Seen.Land("iron");
-        keep.Seen.Touch("iron");
+        keep.Of(7);
+        keep.Seen.Read(Nothing);
+        keep.Seen.Read(Read(["scrap"], ["nail"], "workbench"));
+        keep.Pinned = "plate";
         Assert.True(keep.Write());
         var again = new BoardKeep(_folder);
-        again.Of(9);
-        Assert.True(again.Seen.Marked("scrap"));
-        Assert.False(again.Seen.Marked("iron"));
-        again.Seen.Touch("scrap");
-        Assert.True(again.Seen.Unwritten);
+        again.Of(7);
+        again.Seen.Read(Read(["scrap"], ["nail"], "workbench"));
+        Assert.Equal(["nail", "scrap"], Assert.Single(again.Seen.Batches).Things.Order(StringComparer.Ordinal));
+        Assert.True(again.Seen.Lit);
+        Assert.Equal("plate", again.Pinned);
+        again.Of(8);
+        Assert.Null(again.Pinned);
+        Assert.Empty(again.Seen.Batches);
     }
 
     [Fact]
-    public void AFileFromBeforeMarksHasNoneMarked()
+    public void WhatWasFoundWhileTheFileWasNotWrittenComesAsABatch()
     {
-        Assert.True(BoardFile.Write(BoardFile.PathOf(_folder, 10), new BoardKept(null, ["scrap"])));
         var keep = new BoardKeep(_folder);
-        keep.Of(10);
-        Assert.False(keep.Seen.Marked("scrap"));
+        keep.Of(7);
+        keep.Seen.Read(Read(["scrap"], []));
+        Assert.True(keep.Write());
+        var again = new BoardKeep(_folder);
+        again.Of(7);
+        again.Seen.Read(Read(["scrap", "iron"], []));
+        var batch = Assert.Single(again.Seen.Batches);
+        Assert.Equal(BoardSeen.CauseFound, batch.Cause);
+        Assert.Equal(["iron"], batch.By);
     }
 
     [Fact]
-    public void ClosingUnreadLeavesTheDotLitAndTheNotesUnread()
+    public void AnOldFilesMarkedReadsAsSeenItsDraggedPlacesDropped()
     {
-        var seen = new BoardSeen([]);
-        seen.Read(["scrap", "iron"]);
-        seen.Opened();
-        seen.Land("scrap");
-        seen.Closed();
-        Assert.True(seen.Lit);
-        Assert.Equal(["iron"], seen.Unread);
-        Assert.Contains("scrap", seen.Seen);
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(BoardFile.PathOf(_folder, 9), """{"Moved":{"scrap":{"X":1,"Y":2}},"Seen":["scrap"],"Orders":2,"Marked":["iron"]}""");
+        var keep = new BoardKeep(_folder);
+        keep.Of(9);
+        Assert.Equal(["iron", "scrap"], keep.Seen.Seen.Order(StringComparer.Ordinal));
+        Assert.Equal(2, keep.Seen.OrdersSeen);
+        keep.Seen.Read(Read(["scrap", "iron"], []));
+        Assert.Empty(keep.Seen.Batches);
     }
 
     [Fact]
-    public void ANewlyMetOrderPlaysWhenTheMarketIsShownWhateverTheTabletDidAndLightsNoNote()
+    public void AWorldWithNoIdKeepsNoFile()
+    {
+        var keep = new BoardKeep(_folder);
+        keep.Seen.Read(Read(["scrap"], []));
+        keep.Pinned = "plate";
+        Assert.True(keep.Write());
+        Assert.False(Directory.Exists(_folder));
+    }
+
+    [Fact]
+    public void ANewlyMetOrderPlaysWhenTheMarketIsShownWhateverTheTabletDidAndLightsNoFind()
     {
         var seen = new BoardSeen([], 0);
         seen.ReadOrders(1);
@@ -192,94 +240,17 @@ public sealed class BoardSeenTests : IDisposable
     {
         var keep = new BoardKeep(_folder);
         keep.Of(7);
-        keep.Seen.Read([]);
+        keep.Seen.Read(Nothing);
         keep.Seen.ReadOrders(1);
         Assert.True(keep.Write());
         var again = new BoardKeep(_folder);
         again.Of(7);
-        again.Seen.Read([]);
+        again.Seen.Read(Nothing);
         again.Seen.ReadOrders(2);
         Assert.Equal(1, again.Seen.SeeOrders(2));
-        Assert.True(BoardFile.Write(BoardFile.PathOf(_folder, 8), new BoardKept(null, [])));
+        Assert.True(BoardFile.Write(BoardFile.PathOf(_folder, 8), new BoardKept([])));
         again.Of(8);
         again.Seen.ReadOrders(2);
         Assert.Equal(2, again.Seen.SeeOrders(2));
-    }
-
-    [Fact]
-    public void AJoinedGuestHasNoMarks()
-    {
-        var seen = new BoardSeen(null);
-        seen.Read(["scrap", "iron", "wire"]);
-        Assert.False(seen.Lit);
-        Assert.False(seen.Marked("iron"));
-    }
-
-    [Fact]
-    public void WhatWasNewIsStillNewAfterARelaunch()
-    {
-        var keep = new BoardKeep(_folder);
-        keep.Of(7);
-        keep.Seen.Read([]);
-        Assert.True(keep.Write());
-        keep.Seen.Read(["scrap"]);
-        var again = new BoardKeep(_folder);
-        again.Of(7);
-        again.Seen.Read(["scrap"]);
-        Assert.True(again.Seen.Lit);
-    }
-
-    [Fact]
-    public void WhatWasMovedAndSeenComesBackForItsWorldOnly()
-    {
-        var keep = new BoardKeep(_folder);
-        keep.Of(7);
-        keep.Move("scrap", new BoardSpot(1, 2));
-        keep.Seen.Read(["scrap"]);
-        Assert.True(keep.Write());
-        var again = new BoardKeep(_folder);
-        again.Of(7);
-        Assert.Equal(new BoardSpot(1, 2), again.Spots["scrap"]);
-        again.Seen.Read(["scrap"]);
-        Assert.False(again.Seen.Lit);
-        again.Of(8);
-        Assert.Empty(again.Spots);
-    }
-
-    [Fact]
-    public void AThingCarriedPastTheBoardStopsAtItsEdge()
-    {
-        var keep = new BoardKeep(_folder);
-        keep.Move("scrap", new BoardSpot(1e6, -1e6));
-        Assert.Equal(new BoardSpot(BoardBox.CarryWide, -BoardBox.CarryTall), keep.Spots["scrap"]);
-    }
-
-    [Fact]
-    public void AThingCanBeCarriedFarPastWhereSlotsEnd()
-    {
-        var keep = new BoardKeep(_folder);
-        var far = new BoardSpot(BoardBox.ReachWide * 2, -BoardBox.ReachTall * 2);
-        keep.Move("scrap", far);
-        Assert.Equal(far, keep.Spots["scrap"]);
-    }
-
-    [Fact]
-    public void AThingKeptPastTheBoardComesBackAtItsEdge()
-    {
-        BoardFile.Write(BoardFile.PathOf(_folder, 7), new BoardKept(new Dictionary<string, BoardSpot> { ["scrap"] = new(-1e6, 1e6), ["wire"] = new(3, 4) }));
-        var keep = new BoardKeep(_folder);
-        keep.Of(7);
-        Assert.Equal(new BoardSpot(-BoardBox.CarryWide, BoardBox.CarryTall), keep.Spots["scrap"]);
-        Assert.Equal(new BoardSpot(3, 4), keep.Spots["wire"]);
-    }
-
-    [Fact]
-    public void AWorldWithNoIdKeepsNoFile()
-    {
-        var keep = new BoardKeep(_folder);
-        keep.Move("scrap", new BoardSpot(1, 2));
-        keep.Seen.Read(["scrap"]);
-        Assert.True(keep.Write());
-        Assert.False(Directory.Exists(_folder));
     }
 }

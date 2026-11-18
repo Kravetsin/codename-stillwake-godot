@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Stillwake.Game.Features.Research;
 using Xunit;
@@ -16,20 +15,23 @@ public sealed class BoardFileTests : IDisposable
     }
 
     [Fact]
-    public void WhatWasMovedComesBack()
+    public void WhatWasKeptComesBack()
     {
         string path = BoardFile.PathOf(_folder, 7);
-        Assert.True(BoardFile.Write(path, new BoardKept(new Dictionary<string, BoardSpot> { ["scrap"] = new(12.5, -40) }, ["scrap"])));
+        Assert.True(BoardFile.Write(path, new BoardKept(["scrap"], 2, null, [new BoardBatch(BoardSeen.CauseFound, ["scrap"], ["scrap", "nail"], 3)], "plate")));
         var kept = BoardFile.Read(path);
-        Assert.Equal(new BoardSpot(12.5, -40), Assert.Single(kept.Moved!).Value);
         Assert.Equal("scrap", Assert.Single(kept.Seen!));
+        Assert.Equal(2, kept.Orders);
+        var batch = Assert.Single(kept.Batches!);
+        Assert.Equal((BoardSeen.CauseFound, "scrap", 2, 3), (batch.Cause, Assert.Single(batch.By), batch.Things.Count, batch.Almost));
+        Assert.Equal("plate", kept.Pinned);
     }
 
     [Fact]
     public void EachWorldHasItsOwnFile()
     {
-        BoardFile.Write(BoardFile.PathOf(_folder, 7), new BoardKept(new Dictionary<string, BoardSpot> { ["scrap"] = new(1, 2) }));
-        Assert.Null(BoardFile.Read(BoardFile.PathOf(_folder, 8)).Moved);
+        BoardFile.Write(BoardFile.PathOf(_folder, 7), new BoardKept(["scrap"]));
+        Assert.Null(BoardFile.Read(BoardFile.PathOf(_folder, 8)).Seen);
     }
 
     [Fact]
@@ -38,9 +40,8 @@ public sealed class BoardFileTests : IDisposable
     [Theory]
     [InlineData("not json")]
     [InlineData("null")]
-    [InlineData("""{"Moved":{"scrap":null}}""")]
-    [InlineData("""{"Moved":{"scrap":5}}""")]
     [InlineData("""{"Seen":5}""")]
+    [InlineData("""{"Batches":5}""")]
     public void ABadFileKeepsNothing(string text)
     {
         Directory.CreateDirectory(_folder);

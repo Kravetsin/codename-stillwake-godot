@@ -41,8 +41,9 @@ public partial class ResearchTablet : CanvasLayer
     /// <param name="inWorld">Whether a world is played: on the title T does nothing.</param>
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="send">Sends a command to the session.</param>
-    /// <param name="worldId">Which world is played, on every machine: what the board's layout is kept under.</param>
-    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId)
+    /// <param name="worldId">Which world is played, on every machine: what the board is kept under.</param>
+    /// <param name="surfaces">The world played, all its surfaces, for a machine standing on any; null with none played.</param>
+    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId, Func<World?> surfaces)
     {
         (_ui, _inWorld, _world) = (ui, inWorld, world);
         _tips = new TipSpots(ui.Tip);
@@ -52,7 +53,7 @@ public partial class ResearchTablet : CanvasLayer
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
         root.AddChild(_tablet);
-        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, _keep));
+        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, surfaces, _keep));
         var tab = Content.Research.Tabs.Single(t => t.Id == Content.Research.Market);
         _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen));
         _page = _board;
@@ -74,7 +75,7 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_market.Body, _view, _detail]) _tablet.OnScreen(part);
         PaintDetail();
         _page.Show(true);
-        _key = new TabletKey(world, worldId, _keep, Flash, Toggle, () => Shown && _page == _board);
+        _key = new TabletKey(world, surfaces, worldId, _keep, Flash, Toggle, () => Shown && _page == _board);
         MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _key.Affordable);
         AddChild(_key);
     }
@@ -144,7 +145,7 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Esc, before it puts the tablet away: the board's search typed or shown is emptied, the tablet staying out. Answers whether there was one.</summary>
     public bool DropSearch() => Shown && _page == _board && _board.DropSearch();
 
-    /// <summary>Writes what was moved on the board: as it is put away, and on every way out of the world.</summary>
+    /// <summary>Writes what is kept of the board: as it is put away, and on every way out of the world.</summary>
     public void KeepBoard()
     {
         if (!_keep.Write()) GD.PushWarning("The board was not kept.");
@@ -153,7 +154,7 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Where the key lies on the screen: what a recording points at.</summary>
     public Rect2 KeyCovers => _key.Cap.GetGlobalRect();
 
-    /// <summary>The flash along the edge as a note starts waiting: what the research key tells of what is new, for <see cref="FindFlashView"/> to draw.</summary>
+    /// <summary>The flash along the edge as a batch of finds starts waiting: what the research key tells of what is new, for <see cref="FindFlashView"/> to draw.</summary>
     public FindFlash Flash { get; } = new();
 
     /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>
@@ -162,14 +163,8 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Where the button buying what is picked is on the screen: what a recording points at.</summary>
     public Vector2 ActionAt => _parts.Action.GetGlobalRect().GetCenter();
 
-    /// <summary>Whether the board shows an entry to read: what a recording waits on.</summary>
-    public bool Reading => _board.Reading;
-
-    /// <summary>Where the entry shown large is on the screen: what a recording points at.</summary>
-    public Vector2 EntryAt => _board.EntryAt;
-
-    /// <summary>Where the "Take all" button is on the screen: what a recording points at.</summary>
-    public Vector2 TakeAllAt => _board.TakeAllAt;
+    /// <summary>Where the newest line of the board's finds is on the screen: what a recording points at.</summary>
+    public Vector2 FirstFindAt => _board.FirstFindAt;
 
     public override void _Process(double delta)
     {
@@ -180,7 +175,7 @@ public partial class ResearchTablet : CanvasLayer
         _page.Step(delta);
         var mouse = _view.GetViewport().GetMousePosition();
         bool over = _view.GetGlobalRect().HasPoint(mouse) || _detail.GetGlobalRect().HasPoint(mouse);
-        _tips.Frame(open && !_ui.MenuOpen.Get() && over && !_board.Carrying ? mouse : null);
+        _tips.Frame(open && !_ui.MenuOpen.Get() && over ? mouse : null);
         if (!open) return;
         _sinceRead += delta;
         if (_sinceRead < ReadEvery) return;
