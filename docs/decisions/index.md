@@ -402,3 +402,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hidden-rooms](2026-11-17-hidden-rooms.md) | A derelict's rooms are dark till a hero has seen them | accepted |  |
 | [outfits-painted](2026-11-17-outfits-painted.md) | The four outfits are painted raw, worn hard; the hips closer | accepted |  |
 | [shuttle-trip-look](2026-11-17-shuttle-trip-look.md) | The shuttle's trip is seen: «A — Под днищем» | accepted |  |
+| [bell-no-skirt](2026-11-18-bell-no-skirt.md) | The heavy bell sits as the helmet skins do, its shoulder piece gone | accepted |  |
