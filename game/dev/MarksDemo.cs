@@ -38,6 +38,8 @@ public partial class MarksDemo : Control
         var items = root["slices"]!["items"]!;
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         items["creative"] = new JsonArray();
+        // Paired, so the bag past the hotbar is open (drone-companion).
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         if (root["slices"]!["research"] is JsonObject research) research["analysed"] = new JsonArray();
         var emptied = new HashSet<int>();
         foreach (var machine in root["slices"]!["grid"]!["machines"]!.AsArray())

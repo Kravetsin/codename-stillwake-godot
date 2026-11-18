@@ -94,8 +94,8 @@ public partial class HeroView
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
-            // Its drone shines or scans as its peer sends its mode (light-drone).
-            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(m.Items.Equipped(id, Content.LightDrone.Item), seen.Drone);
+            // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion).
+            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(m.Players.HasDrone(id), seen.Drone);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
@@ -179,6 +179,14 @@ public partial class HeroView
         if (Report.EatOf(food, problem, client.InFlight) is not { } eat) return;
         client.Send(eat);
         _eats.Play();
+    }
+
+    /// <summary>Pairs with the light drone in hand (drone-companion): sent when the sim would take it now and no pairing is in flight.</summary>
+    private void Pair(Client client, Registry m)
+    {
+        if (Report.PairOf(m.Crew.PairProblem(client.Id), client.InFlight) is not { } pair) return;
+        client.Send(pair);
+        _ui.Click();
     }
 
     /// <summary>This player's hero breathes room air again: a few pale motes off its visor (0081).</summary>

@@ -630,7 +630,7 @@ public partial class HeroView : Node2D
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
-        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(m.Items.Equipped(client.Id, Content.LightDrone.Item), _droneMode);
+        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(m.Players.HasDrone(client.Id), _droneMode);
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);

@@ -29,11 +29,11 @@ public static class Equipment
     public static string? KindOf(Place place) => Is(place) ? Spec.Inventory.Equipment[place.Slot - Spec.Inventory.Slots] : null;
 
     /// <summary>
-    /// The kinds of equipment slot as the panel lays them out, a row each by where they are worn: the head and what is fixed
-    /// onto the helmet; the body, the back and the cape; the belt. Every kind once.
+    /// The kinds of equipment slot as the panel lays them out, a row each by where they are worn: the head; the body, the back
+    /// and the cape; the belt. Every kind once.
     /// </summary>
     public static readonly IReadOnlyList<IReadOnlyList<string>> Rows =
-        [[Spec.Helmet.Slot, Spec.Helmet.Mount], [Spec.Suit.Slot, "back", Spec.Cape.Slot], ["belt"]];
+        [[Spec.Helmet.Slot], [Spec.Suit.Slot, "back", Spec.Cape.Slot], ["belt"]];
 
     /// <summary>The equipment slots of one <paramref name="kind"/>, in slot order.</summary>
     public static IEnumerable<Place> Of(string kind)

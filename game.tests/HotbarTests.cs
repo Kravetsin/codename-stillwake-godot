@@ -17,6 +17,21 @@ public class HotbarTests
     }
 
     [Fact]
+    public void BeforeThePairingTheBagRowsTheDroneOpensAreDrawnShutAndNoOtherSlot()
+    {
+        var bag = new Stillwake.Sim.Items.Place(Hotbar.Row);
+        var last = new Stillwake.Sim.Items.Place(Stillwake.Content.Inventory.Start - 1);
+        Assert.True(Hotbar.Shut(bag, open: false, paired: false));
+        Assert.True(Hotbar.Shut(last, open: false, paired: false));
+        // Open, paired, the hotbar, a row an upgrade adds or a crate's slot: as ever.
+        Assert.False(Hotbar.Shut(bag, open: true, paired: false));
+        Assert.False(Hotbar.Shut(bag, open: false, paired: true));
+        Assert.False(Hotbar.Shut(new(0), open: false, paired: false));
+        Assert.False(Hotbar.Shut(new(Stillwake.Content.Inventory.Start), open: false, paired: false));
+        Assert.False(Hotbar.Shut(new(Hotbar.Row, 3), open: false, paired: false));
+    }
+
+    [Fact]
     public void EachSlotShowsTheDigitThatChoosesItFromOneToNine()
     {
         Assert.Equal("1", Hotbar.KeyOf(0));

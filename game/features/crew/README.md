@@ -136,7 +136,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop it.
 - **Jump** (0089): coyote, buffer, short hop; **the figure answers its motion** (0090, hero-gait).
 - **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
-- **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (`FogMove`, fog-edges).
+- **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (fog-edges).
 - **Camera** leads, eases, snaps; **markers** (0061): home, body, friends, deliveries, a catcher, pings; **hurts** tint
   edges (hurts-are-shown).
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
@@ -169,11 +169,11 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to a wall, through wrecks; ground rings. **Sparks**
   are the haze's (spark-rule). **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one on release; kicks (`Recoil`, body-answers).
+- **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one on release; kicks (body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
 - **Gestures** (gestures-for-words): H tap points, pings (crew-pings); held, a wheel; item stowed. **Drone** (light-drone):
-  F tap next mode, held a wheel; sent.
+  RMB in hand pairs; then F tap next mode, held a wheel; sent.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
 

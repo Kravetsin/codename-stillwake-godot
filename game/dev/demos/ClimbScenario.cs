@@ -24,15 +24,15 @@ public sealed class ClimbScenario : DevScenario
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
         var slots = new JsonArray();
-        int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount), belt = Spec.Inventory.Slots + 2;
+        int belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? Stack(Spec.Grapple.Item)
                 : i == 1 ? Stack(Spec.Harpoon.Item)
                 : i == 2 ? Stack(Spec.Weapons.Drill.Item)
-                : i == lamp ? Stack(Spec.LightDrone.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 

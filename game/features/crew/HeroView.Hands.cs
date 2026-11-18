@@ -76,9 +76,9 @@ public partial class HeroView
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
         _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
-        // The drone key, while the light drone is worn: a tap goes on to its next open mode, held its wheel opens (light-drone).
+        // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
         if (!DroneOpen(_droneMode)) _droneMode = DroneMode.Lamp;
-        bool droneKey = pointer != null && m.Items.Equipped(client.Id, Content.LightDrone.Item) && BindKeys.Held(Bind.Drone) && !typing;
+        bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing;
         if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
         _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
@@ -109,6 +109,8 @@ public partial class HeroView
         if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister) Breathe(client, m);
         // A food in hand is eaten by a right click (food-and-the-body).
         if (rightClicked && acts && _ui.Wielded.Get() is { } wielded && Content.Foods.Of(wielded) != null) Eat(client, m, wielded);
+        // The light drone in hand pairs with the hero for good (drone-companion).
+        if (rightClicked && acts && _ui.Wielded.Get() == Content.LightDrone.Item) Pair(client, m);
         if (rightClicked && acts && driver is { Area: > 1 }) _ui.DriverSquare.Set(!_ui.DriverSquare.Get());
         // The axe: a swing begun toward the pointer plays through and, as it strikes, its fan hits what it meets, let go or not;
         // put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).

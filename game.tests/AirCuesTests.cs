@@ -35,6 +35,17 @@ public class AirCuesTests
         Assert.NotNull(Report.EatOf("ration", null, [new Exert(true)]));
     }
 
+    /// <summary>A right click with the drone in hand pairs once until the first lands, and never when the sim would refuse (drone-companion).</summary>
+    [Fact]
+    public void PairsOnceUntilTheFirstHasLandedAndNothingTheSimWouldRefuse()
+    {
+        var pair = Report.PairOf(null, []);
+        Assert.Equal(new PairDrone(), pair);
+        Assert.Null(Report.PairOf(null, [pair!]));
+        Assert.Null(Report.PairOf("crew.hasDrone", []));
+        Assert.NotNull(Report.PairOf(null, [new Eat("ration")]));
+    }
+
     /// <summary>V flips the suit's mode from the last one sent and not yet applied, else the sim's (2026-11-03-the-regen-suit).</summary>
     [Fact]
     public void SwitchesTheSuitsModeFromWhatWasLastSent()

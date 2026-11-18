@@ -33,6 +33,8 @@ public partial class JetpackDemo : Control
                 : i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 }
                 : cape && i == CapeDemo.CapeSlot ? new JsonObject { ["item"] = Spec.Cape.Item, ["count"] = 1 } : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        // Paired, so the jetpack's bag slot is open (drone-companion).
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         return World.Load(root.ToJsonString(), modules());
     }
 

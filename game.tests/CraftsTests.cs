@@ -44,6 +44,14 @@ public class CraftsTests
     }
 
     [Fact]
+    public void ThePodShowsTheDronesCardOnlyToAPlayerNotPairedYet()
+    {
+        var pod = Content.Stations.Get("lifepod");
+        Assert.Equal(["helmet", "suit", "screwdriver", null, Content.LightDrone.Item, null, null, null], Crafts.Places(pod));
+        Assert.Equal(["helmet", "suit", "screwdriver", null, null, null, null, null], Crafts.Places(pod, paired: true));
+    }
+
+    [Fact]
     public void LooksReadyWhenAUnitIsCarriedShortWhenNotAndLockedWhenNotKnown()
     {
         var w = Start();
