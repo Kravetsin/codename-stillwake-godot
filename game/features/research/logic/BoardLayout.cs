@@ -17,8 +17,8 @@ public sealed record BoardBlock(string District, double X, double Y, double Wide
 /// </summary>
 public sealed class BoardLayout
 {
-    /// <summary>A frame's cell and the frame drawn in it, the gap between columns of other depths, a block's caption and its margin, and the gap between blocks.</summary>
-    public const double Cell = 112, Row = 100, FrameWide = 92, FrameTall = 88, Gap = 30, Head = 82, Pad = 22, Apart = 90;
+    /// <summary>The background grid's step, which everything stands on: a frame 3 by 3 of it, a frame and its gap 4, the gap between columns of other depths, a block's caption and its margin, the gap between blocks.</summary>
+    public const double Grid = 30, FrameWide = 3 * Grid, FrameTall = 3 * Grid, Cell = 4 * Grid, Row = 4 * Grid, Gap = Grid, Head = 3 * Grid, Pad = Grid, Apart = 3 * Grid;
 
     /// <summary>The most frames a column holds before the depth takes another column.</summary>
     public const int Rows = 6;
@@ -61,11 +61,11 @@ public sealed class BoardLayout
                     var things = column.ToList();
                     int across = (things.Count + Rows - 1) / Rows;
                     for (int i = 0; i < things.Count; i++)
-                        frames[things[i]] = new BoardFrame(things[i], district.Id, column.Key, x + i / Rows * Cell + Cell / 2, top + Head + i % Rows * Row + Row / 2);
+                        frames[things[i]] = new BoardFrame(things[i], district.Id, column.Key, x + i / Rows * Cell + FrameWide / 2, top + Head + i % Rows * Row + FrameTall / 2);
                     rows = Math.Max(rows, Math.Min(Rows, things.Count));
                     x += across * Cell + Gap;
                 }
-                double blockWide = x - Gap + Pad - left, blockTall = Head + rows * Row + Pad;
+                double blockWide = x - Gap - (Cell - FrameWide) + Pad - left, blockTall = Head + rows * Row - (Row - FrameTall) + Pad;
                 blocks.Add(new BoardBlock(district.Id, left, top, blockWide, blockTall));
                 left += blockWide + Apart;
                 tall = Math.Max(tall, blockTall);

@@ -22,7 +22,7 @@ public sealed class BoardPage : ITabletPage
 {
     private static readonly Color Screen = new("0d1626"), PanelFill = new(9 / 255f, 17 / 255f, 31 / 255f, 0.94f), LineColour = new("22385a"), LineStrong = new("35557f"),
         Bright = new("d3e4ff"), Dim = new("7d93b5"), Faint = new("44597a"), Accent = new("7cc7ff"), Out = new("b9a2ff"), Amber = new("ffb547"), Ok = new("6fe3a1"),
-        Chain = new("8ff0ff"), GridLine = new(120 / 255f, 175 / 255f, 240 / 255f, 0.07f), KnownFill = new(18 / 255f, 36 / 255f, 62 / 255f, 0.92f),
+        Chain = new("a6f26b"), GridLine = new(120 / 255f, 175 / 255f, 240 / 255f, 0.07f), KnownFill = new(18 / 255f, 36 / 255f, 62 / 255f, 0.92f),
         AlmostFill = new(14 / 255f, 28 / 255f, 48 / 255f, 0.7f), UnknownEdge = new(80 / 255f, 110 / 255f, 150 / 255f, 0.28f),
         MarketEdge = new(185 / 255f, 162 / 255f, 255 / 255f, 0.28f), Mark = new(110 / 255f, 140 / 255f, 180 / 255f, 0.32f), Veil = new(7 / 255f, 14 / 255f, 26 / 255f, 0.55f),
         Dimmed = new(1, 1, 1, 0.3f);
@@ -359,7 +359,7 @@ public sealed class BoardPage : ITabletPage
         {
             // An almost frame keeps two lines of «нужно» above its progress bar, so its picture is smaller and higher.
             bool almost = view.State == BoardState.Almost;
-            float icon = (words ? almost ? 36 : 46 : 62) * z, lift = words ? almost ? 18 : 14 : 0, from = almost ? 5 : 13;
+            float icon = (words ? almost ? 32 : 46 : 62) * z, lift = words ? almost ? 21 : 14 : 0, from = almost ? 1 : 13;
             view.Root.Size = size;
             view.Picture.Size = new Vector2(icon, icon);
             view.Picture.Position = new Vector2((size.X - icon) / 2, size.Y / 2 - lift * z - icon / 2);
@@ -447,9 +447,9 @@ public sealed class BoardPage : ITabletPage
                 view.Name.Text = state == BoardState.Known ? _strip.NameOf(id) : "";
                 _sizedAt = null;
             }
-            if (need != view.NeedOf)
+            if (need != view.NeedOf || state != view.State)
             {
-                view.Need.Text = need == null ? "" : T("research.board.need", ("what", _strip.NameOf(need)));
+                view.Need.Text = need != null ? T("research.board.need", ("what", _strip.NameOf(need))) : state == BoardState.Almost ? T("research.board.ready") : "";
                 _sizedAt = null;
             }
             (view.State, view.NeedOf, view.Parts, view.Glows) = (state, need, parts, glows);
@@ -604,9 +604,9 @@ public sealed class BoardPage : ITabletPage
     /// <summary>A thin grid on the screen, as wide apart as the zoom keeps it readable.</summary>
     private void DrawGrid(Vector2 size)
     {
-        float step = 40 * (float)_camera.Zoom;
+        float step = (float)(BoardLayout.Grid * _camera.Zoom);
         while (step < 14) step *= 4;
-        float left = (float)(_camera.X % step), top = (float)(_camera.Y % step);
+        float left = (float)((_camera.X + Margin * _camera.Zoom) % step), top = (float)((_camera.Y + Margin * _camera.Zoom) % step);
         for (float x = left < 0 ? left + step : left; x < size.X; x += step) _back.DrawLine(new Vector2(MathF.Round(x) + 0.5f, 0), new Vector2(MathF.Round(x) + 0.5f, size.Y), GridLine);
         for (float y = top < 0 ? top + step : top; y < size.Y; y += step) _back.DrawLine(new Vector2(0, MathF.Round(y) + 0.5f), new Vector2(size.X, MathF.Round(y) + 0.5f), GridLine);
     }
@@ -947,7 +947,7 @@ public sealed class BoardPage : ITabletPage
         return view.State switch
         {
             BoardState.Unknown => new Tip(T("research.board.unknown")),
-            BoardState.Almost => new Tip(_strip.NameOf(id), view.NeedOf is { } need ? [new TipLine(T("research.board.need", ("what", _strip.NameOf(need))), Tone.Dim)] : []),
+            BoardState.Almost => new Tip(_strip.NameOf(id), view.NeedOf is { } need ? [new TipLine(T("research.board.need", ("what", _strip.NameOf(need))), Tone.Dim)] : [new TipLine(T("research.board.ready"), Tone.Dim)]),
             _ => TipOf(id),
         };
     }

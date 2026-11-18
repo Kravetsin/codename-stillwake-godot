@@ -106,4 +106,12 @@ public class BoardLayoutTests
         Assert.Equal(Layout.Blocks, again.Blocks);
         Assert.Equal((Layout.Wide, Layout.Tall), (again.Wide, again.Tall));
     }
+
+    [Fact]
+    public void EveryFrameAndBlockStandsOnTheBackgroundGrid()
+    {
+        static bool On(double at) => Math.Abs(at / BoardLayout.Grid - Math.Round(at / BoardLayout.Grid)) < 1e-9;
+        Assert.All(Layout.Frames.Values, f => Assert.True(On(f.X - BoardLayout.FrameWide / 2) && On(f.Y - BoardLayout.FrameTall / 2), f.Id));
+        Assert.All(Layout.Blocks, b => Assert.True(On(b.X) && On(b.Y) && On(b.Wide) && On(b.Tall), b.District));
+    }
 }

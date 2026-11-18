@@ -57,6 +57,7 @@ public static partial class En
         ["research.board.needEach"] = "To work out how to make it, get one of each:",
         ["research.board.haveEnough"] = "That is enough. Now build the machine that makes it:",
         ["research.board.need"] = "needs: {what}",
+        ["research.board.ready"] = "can be made",
         ["research.board.unknown"] = "Not discovered yet",
         ["research.board.market"] = "market",
         ["research.board.known"] = "{k} / {n} known",
