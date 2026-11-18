@@ -51,7 +51,7 @@ public sealed class BoardPage : ITabletPage
     };
 
     /// <summary>The zooms from which names show, captions sit at a block's corner, column heads show, and frames are more than marks.</summary>
-    private const double WordsFrom = 0.58, CaptionsFrom = 0.42, HeadsFrom = 0.3, MarksBelow = 0.24;
+    private const double WordsFrom = 0.58, CaptionsFrom = 0.42, MarksBelow = 0.24;
 
     /// <summary>The room round the blocks, the list of finds' width, the goal's, and the gap to the board's edge.</summary>
     private const float Margin = 60, SideWide = 300, GoalWide = 280, Edge = 10;
@@ -352,19 +352,23 @@ public sealed class BoardPage : ITabletPage
         _sizedAt = _camera.Zoom;
         float z = (float)_camera.Zoom;
         bool words = _camera.Zoom >= WordsFrom, marks = _camera.Zoom < MarksBelow;
+        // Under the map's captions the frames step back, so the district names read over them.
+        _frames.Modulate = new Color(1, 1, 1, _camera.Zoom >= CaptionsFrom ? 1 : 0.3f);
         var size = FrameSize;
-        float icon = (words ? 46 : 62) * z;
         foreach (var view in _views.Values)
         {
+            // An almost frame keeps two lines of «нужно» above its progress bar, so its picture is smaller and higher.
+            bool almost = view.State == BoardState.Almost;
+            float icon = (words ? almost ? 36 : 46 : 62) * z, lift = words ? almost ? 18 : 14 : 0, from = almost ? 5 : 13;
             view.Root.Size = size;
             view.Picture.Size = new Vector2(icon, icon);
-            view.Picture.Position = new Vector2((size.X - icon) / 2, size.Y / 2 - (words ? 14 * z : 0) - icon / 2);
+            view.Picture.Position = new Vector2((size.X - icon) / 2, size.Y / 2 - lift * z - icon / 2);
             view.Picture.Visible = !marks && view.State != BoardState.Unknown;
-            foreach (var (label, at, font) in (ReadOnlySpan<(Label, float, float)>)[(view.Name, 13, 12), (view.Need, 13, 10.5f)])
+            foreach (var (label, bottom, font) in (ReadOnlySpan<(Label, float, float)>)[(view.Name, 2, 12), (view.Need, 13, 10.5f)])
             {
                 label.LabelSettings.FontSize = Math.Max(7, Mathf.RoundToInt(font * z));
-                label.Position = new Vector2(4 * z, size.Y / 2 + at * z);
-                label.Size = new Vector2(size.X - 8 * z, size.Y / 2 - at * z);
+                label.Position = new Vector2(4 * z, size.Y / 2 + from * z);
+                label.Size = new Vector2(size.X - 8 * z, size.Y / 2 - (from + bottom) * z);
             }
             view.Name.Visible = words && view.State == BoardState.Known;
             view.Need.Visible = words && view.State == BoardState.Almost && view.Need.Text.Length > 0;
@@ -528,6 +532,13 @@ public sealed class BoardPage : ITabletPage
     /// <summary>The ids of the pinned goal's chain, as of the last read.</summary>
     private HashSet<string> ChainIds { get; set; } = new(StringComparer.Ordinal);
 
+    /// <summary>The font size <paramref name="lines"/> take to fill <paramref name="room"/> across and half of <paramref name="tall"/>, at most 40.</summary>
+    private static int CaptionFits(string[] lines, float room, float tall)
+    {
+        float widest = lines.Max(l => Style.Bold.GetStringSize(l, HorizontalAlignment.Left, -1, 40).X);
+        return (int)Math.Clamp(Math.Min(40 * room / widest, tall * 0.6f / lines.Length / 1.2f), 7, 40);
+    }
+
     private static void Dashed(Control on, Rect2 rect, Color colour, float z)
     {
         float dash = Math.Max(2, 4 * z);
@@ -556,31 +567,35 @@ public sealed class BoardPage : ITabletPage
             string caption = T($"research.district.{block.District}").ToUpperInvariant();
             if (_camera.Zoom >= CaptionsFrom)
             {
+                // The caption shrinks to its block's width; the count sits under it.
                 int big = Mathf.RoundToInt(30 * z), small = Math.Max(7, Mathf.RoundToInt(12 * z));
+                float room = rect.Size.X - 40 * z, wide = Style.Bold.GetStringSize(caption, HorizontalAlignment.Left, -1, big).X;
+                if (wide > room) big = Math.Max(7, (int)(big * room / wide));
+                float under = 14 * z + Style.Bold.GetAscent(big) + Style.Bold.GetDescent(big) + 4 * z;
                 _back.DrawString(Style.Bold, at + new Vector2(20 * z, 14 * z + Style.Bold.GetAscent(big)), caption, HorizontalAlignment.Left, -1, big, Hsl(hue, 0.7f, 0.78f, 0.95f));
                 if (read != null)
                 {
                     var things = BoardDistricts.All.First(d => d.Id == block.District).Things;
                     string count = T("research.board.known", ("k", things.Count(read.Knows)), ("n", things.Count));
-                    _back.DrawString(Style.Mono, at + new Vector2(22 * z, 50 * z + Style.Mono.GetAscent(small)), count, HorizontalAlignment.Left, -1, small, Dim);
+                    _back.DrawString(Style.Mono, at + new Vector2(22 * z, under + Style.Mono.GetAscent(small)), count, HorizontalAlignment.Left, -1, small, Dim);
                 }
             }
             else
             {
                 _back.DrawStyleBox(_veilBox, rect);
-                int fits = Mathf.RoundToInt(Math.Clamp(Math.Min(rect.Size.X * 0.9f / Math.Max(6, caption.Length * 0.62f), rect.Size.Y * 0.5f), 9, 40));
-                float ascent = Style.Bold.GetAscent(fits), descent = Style.Bold.GetDescent(fits);
-                _back.DrawString(Style.Bold, new Vector2(rect.Position.X, rect.GetCenter().Y + (ascent - descent) / 2), caption, HorizontalAlignment.Center, rect.Size.X, fits, Hsl(hue, 0.75f, 0.8f, 0.95f));
-            }
-        }
-        if (_camera.Zoom > HeadsFrom)
-        {
-            int small = Math.Max(7, Mathf.RoundToInt(11 * z));
-            foreach (var head in _layout.Heads)
-            {
-                var at = ToScreen(head.X, head.Y);
-                string words = head.Depth == 0 ? T("research.board.stepRaw") : T("research.board.step", ("n", head.Depth));
-                _back.DrawString(Style.Mono, at + new Vector2(6 * z, Style.Mono.GetAscent(small)), words, HorizontalAlignment.Left, -1, small, Faint);
+                // One line or two, whichever lets the caption be biggest in its block; the size measured, never guessed.
+                float room = rect.Size.X * 0.85f;
+                string[] lines = [caption];
+                int fits = CaptionFits(lines, room, rect.Size.Y);
+                for (int cut = caption.IndexOf(' '); cut > 0; cut = caption.IndexOf(' ', cut + 1))
+                {
+                    string[] two = [caption[..cut], caption[(cut + 1)..]];
+                    if (CaptionFits(two, room, rect.Size.Y) is int bigger && bigger > fits) (lines, fits) = (two, bigger);
+                }
+                float ascent = Style.Bold.GetAscent(fits), descent = Style.Bold.GetDescent(fits), line = (ascent + descent) * 1.05f;
+                float first = rect.GetCenter().Y - line * (lines.Length - 1) / 2 + (ascent - descent) / 2;
+                for (int i = 0; i < lines.Length; i++)
+                    _back.DrawString(Style.Bold, new Vector2(rect.Position.X, first + i * line), lines[i], HorizontalAlignment.Center, rect.Size.X, fits, Hsl(hue, 0.75f, 0.8f, 0.95f));
             }
         }
         DrawTies();

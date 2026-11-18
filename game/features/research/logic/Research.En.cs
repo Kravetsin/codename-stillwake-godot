@@ -60,8 +60,6 @@ public static partial class En
         ["research.board.unknown"] = "Not discovered yet",
         ["research.board.market"] = "market",
         ["research.board.known"] = "{k} / {n} known",
-        ["research.board.step"] = "STEP {n}",
-        ["research.board.stepRaw"] = "STEP 0 · RAW",
         ["research.board.chain"] = "Whole chain",
         ["research.board.legendFrom"] = "made from",
         ["research.board.legendInto"] = "goes into",

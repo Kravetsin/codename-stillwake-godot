@@ -10,9 +10,6 @@ public sealed record BoardFrame(string Id, string District, int Depth, double X,
 /// <summary>A district's block: its top-left and size in board pixels.</summary>
 public sealed record BoardBlock(string District, double X, double Y, double Wide, double Tall);
 
-/// <summary>The head over a column of a block: the steps from raw its frames stand at, and where it is written.</summary>
-public sealed record BoardHead(string District, int Depth, double X, double Y, double Wide);
-
 /// <summary>
 /// Where everything on the board stands (docs/plans/board-islands.md), a pure function of Content, built once a run: every thing a fixed frame in its
 /// district's block from the start, so a find never moves anything. In a block, a column for each depth it holds, shallow to deep, rows in the
@@ -35,14 +32,12 @@ public sealed class BoardLayout
 
     public IReadOnlyList<BoardBlock> Blocks { get; }
 
-    public IReadOnlyList<BoardHead> Heads { get; }
-
     public double Wide { get; }
 
     public double Tall { get; }
 
-    private BoardLayout(IReadOnlyDictionary<string, BoardFrame> frames, IReadOnlyList<BoardBlock> blocks, IReadOnlyList<BoardHead> heads, double wide, double tall) =>
-        (Frames, Blocks, Heads, Wide, Tall) = (frames, blocks, heads, wide, tall);
+    private BoardLayout(IReadOnlyDictionary<string, BoardFrame> frames, IReadOnlyList<BoardBlock> blocks, double wide, double tall) =>
+        (Frames, Blocks, Wide, Tall) = (frames, blocks, wide, tall);
 
     /// <summary>How many steps from raw <paramref name="id"/> is; 0 for anything off the board.</summary>
     public static int DepthOf(string id) => Main.Frames.TryGetValue(id, out var frame) ? frame.Depth : 0;
@@ -52,7 +47,6 @@ public sealed class BoardLayout
     {
         var frames = new Dictionary<string, BoardFrame>(StringComparer.Ordinal);
         var blocks = new List<BoardBlock>();
-        var heads = new List<BoardHead>();
         double top = 0, wide = 0;
         foreach (var lane in districts.Select(d => d.Lane).Distinct().Order())
         {
@@ -66,7 +60,6 @@ public sealed class BoardLayout
                 {
                     var things = column.ToList();
                     int across = (things.Count + Rows - 1) / Rows;
-                    heads.Add(new BoardHead(district.Id, column.Key, x, top + Head - 26, across * Cell));
                     for (int i = 0; i < things.Count; i++)
                         frames[things[i]] = new BoardFrame(things[i], district.Id, column.Key, x + i / Rows * Cell + Cell / 2, top + Head + i % Rows * Row + Row / 2);
                     rows = Math.Max(rows, Math.Min(Rows, things.Count));
@@ -80,7 +73,7 @@ public sealed class BoardLayout
             wide = Math.Max(wide, left - Apart);
             top += tall + Apart;
         }
-        return new BoardLayout(frames, blocks, heads, wide, Math.Max(0, top - Apart));
+        return new BoardLayout(frames, blocks, wide, Math.Max(0, top - Apart));
     }
 
     /// <summary>

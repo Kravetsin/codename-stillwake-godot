@@ -60,8 +60,6 @@ public static partial class Ru
         ["research.board.unknown"] = "Ещё не открыто",
         ["research.board.market"] = "рынок",
         ["research.board.known"] = "{k} / {n} известно",
-        ["research.board.step"] = "ШАГ {n}",
-        ["research.board.stepRaw"] = "ШАГ 0 · СЫРЬЁ",
         ["research.board.chain"] = "Вся цепочка",
         ["research.board.legendFrom"] = "из чего",
         ["research.board.legendInto"] = "во что идёт",
