@@ -82,4 +82,22 @@ public class BoardChainTests
         Assert.True(BoardRead.Of(world.World).Stands("workbench"));
         Assert.NotEqual(before, BoardRead.KeyOf(world.World));
     }
+
+    [Fact]
+    public void AClosedSurfaceIsSkipped()
+    {
+        var world = new TestWorld("""
+            ......
+            .#S#..
+            .###..
+            """).Step(new OpenSurface(Surfaces.TestStrip.Id)).Edit(root =>
+        {
+            var left = root["surfaces"]![0]!.AsObject();
+            left.Remove("slices");
+            left["closed"] = true;
+        });
+        Assert.True(world.World.Surfaces[1].Closed);
+        Assert.False(BoardRead.Of(world.World).Stands("workbench"));
+        Assert.NotEmpty(BoardRead.KeyOf(world.World));
+    }
 }

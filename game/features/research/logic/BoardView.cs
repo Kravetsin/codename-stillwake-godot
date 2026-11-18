@@ -49,7 +49,7 @@ public sealed class BoardRead
     /// </summary>
     public static BoardRead Of(World world)
     {
-        var surfaces = Enumerable.Range(0, world.Surfaces.Count).Select(s => Registry.On(world, s)).ToList();
+        var surfaces = Open(world).Select(s => Registry.On(world, s)).ToList();
         var knowledge = surfaces[0].Knowledge;
         return new BoardRead(knowledge.Obtained.Select(t => t.Item).ToList(), knowledge.GrantedIds, item => knowledge.ObtainedOf(item) > 0,
             kind => surfaces.Any(s => s.Grid.MachinesOf(kind).Count > 0));
@@ -59,8 +59,11 @@ public sealed class BoardRead
     public static string KeyOf(World world)
     {
         var knowledge = Registry.On(world, 0).Knowledge;
-        return $"{world.Id}|{knowledge.GetHashCode()}|{knowledge.Version}|" + string.Join(',', Enumerable.Range(0, world.Surfaces.Count).Select(s => Registry.On(world, s).Grid.Version));
+        return $"{world.Id}|{knowledge.GetHashCode()}|{knowledge.Version}|" + string.Join(',', Open(world).Select(s => $"{s}:{Registry.On(world, s).Grid.Version}"));
     }
+
+    // A closed surface (a planet left behind) runs no modules.
+    private static IEnumerable<int> Open(World world) => world.Surfaces.Where(s => !s.Closed).Select(s => s.Id);
 }
 
 /// <summary>Decides how each frame shows (docs/plans/board-islands.md): known if obtained or granted, almost if its pencil has started, else unknown.</summary>
