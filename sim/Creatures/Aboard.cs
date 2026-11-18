@@ -19,7 +19,7 @@ public sealed partial class CreaturesModule
     /// <summary>Each dock's room's open cells in the world, in <see cref="Docks"/>' order. Derived.</summary>
     private Box[] _cabins = [];
 
-    /// <summary>The box of every room's open cells in the world, the floors between them: aboard. <see cref="Box.None"/> off a vessel world. Derived.</summary>
+    /// <summary>The box of the vessel's hull and rooms in the world, its armour in it: aboard. <see cref="Box.None"/> off a vessel world. Derived.</summary>
     private Box _hull = Box.None;
 
     /// <summary>The rows of the vessel's floors in the world, a deck's and a hatch's, ascending and distinct. Derived.</summary>
@@ -34,7 +34,7 @@ public sealed partial class CreaturesModule
     /// <summary>The guards' docks of this surface's vessel, in <see cref="Shipyard.Guards"/>'s order; none off a vessel world. Derived.</summary>
     public IReadOnlyList<Shipyard.Dock> Docks => _docks;
 
-    /// <summary>The box of every room's open cells of this surface's vessel, in the world: a hero in it is aboard. <see cref="Box.None"/> off a vessel world.</summary>
+    /// <summary>The box of this surface's vessel's hull and rooms, in the world: a hero in it is aboard. <see cref="Box.None"/> off a vessel world.</summary>
     public Box Hull => _hull;
 
     /// <summary>The place in <see cref="Docks"/> of the dock <paramref name="c"/> was spawned at; null for a creature of no vessel.</summary>
@@ -51,8 +51,11 @@ public sealed partial class CreaturesModule
         int m = Vessels.Margin;
         _docks = Shipyard.Guards(v);
         _cabins = [.. _docks.Select(d => v.Compartments[d.Room]).Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
-        _hull = new Box(m + v.Compartments.Min(r => r.Left), m + v.Compartments.Min(r => r.Top),
-            m + v.Compartments.Max(r => r.Left + r.Width) - 1, m + v.Compartments.Max(r => r.Floor) - 1);
+        // The hull and its rooms, its bow's open rows past the last room too; never a module, rib or housing bulged onto it.
+        _hull = Box.None;
+        foreach (var h in v.Sections)
+            if (h.Kind is Vessel.SectionKind.Body or Vessel.SectionKind.Bow or Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier)
+                _hull = _hull.Union(new Box(m + h.Left, m + h.Top, m + h.Left + h.Width - 1, m + h.Bottom));
         _floors = [.. v.Decks.Select(d => m + d.Floor).Concat(v.Hatches.Select(h => m + h.Y)).Distinct().Order()];
         _hatches = [.. v.Hatches.Select(h => (X: m + h.X, Y: m + h.Y)).OrderBy(h => h.Y).ThenBy(h => h.X)];
         var door = Shipyard.WayIn(v);
