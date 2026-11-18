@@ -190,10 +190,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
-| [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
-| [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
-| [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
-| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted | one-to-understand (in part) |
+| [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted | board-islands (in part) |
+| [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted | board-islands (in part) |
+| [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted | board-islands (in part) |
+| [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted | one-to-understand, board-islands (in part) |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted | composed-backdrops (in part) |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
@@ -251,7 +251,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact, spark-rule (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
-| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand (in part) |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand, board-islands (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge, spark-rule (in part) |
@@ -298,7 +298,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
 | [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
-| [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted |  |
+| [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted | board-islands (in part) |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted | planet-variety (in part) |
 | [crusher-heard](2026-11-08-crusher-heard.md) | Crusher heard | accepted |  |
@@ -403,6 +403,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [outfits-painted](2026-11-17-outfits-painted.md) | The four outfits are painted raw, worn hard; the hips closer | accepted |  |
 | [shuttle-trip-look](2026-11-17-shuttle-trip-look.md) | The shuttle's trip is seen: «A — Под днищем» | accepted |  |
 | [bell-no-skirt](2026-11-18-bell-no-skirt.md) | The heavy bell sits as the helmet skins do, its shoulder piece gone | accepted |  |
+| [board-islands](2026-11-18-board-islands.md) | The board is fixed district islands on a grid | accepted |  |
 | [body-temperature](2026-11-18-body-temperature.md) | The hero's body temperature | accepted |  |
 | [hud-dials](2026-11-18-hud-dials.md) | The vitals as a row of dials over a long air bar | accepted |  |
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |

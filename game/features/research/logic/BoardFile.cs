@@ -5,19 +5,17 @@ using System.Text.Json;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>Where a thing was moved to on the board.</summary>
-public readonly record struct BoardSpot(double X, double Y);
-
-/// <summary>What is kept of a world's board.</summary>
-/// <param name="Moved">What was moved and to where: only that, every other thing standing in its slot.</param>
-/// <param name="Seen">The notes this player last saw; none if there has been no read yet.</param>
+/// <summary>What is kept of a world's board. A file from before the islands also holds where things were dragged, which is dropped.</summary>
+/// <param name="Seen">What this player has seen; none if there has been no read yet.</param>
 /// <param name="Orders">How many of the market's orders met this player last saw; none if there has been no read yet.</param>
-/// <param name="Marked">What landed and this player has not touched yet.</param>
-public sealed record BoardKept(Dictionary<string, BoardSpot>? Moved = null, List<string>? Seen = null, int? Orders = null, List<string>? Marked = null);
+/// <param name="Marked">An older file's notes landed and not touched yet: read as seen, never written.</param>
+/// <param name="Batches">What the reads brought, oldest first.</param>
+/// <param name="Pinned">The goal pinned; none for none.</param>
+public sealed record BoardKept(List<string>? Seen = null, int? Orders = null, List<string>? Marked = null, List<BoardBatch>? Batches = null, string? Pinned = null);
 
 /// <summary>
-/// What this machine's player keeps of a world's board, in a file of its own (docs/decisions/2026-11-05-the-board.md).
-/// It is a convenience: a lost or bad file means things go back to their slots with nothing new, a failed write that they will.
+/// What this machine's player keeps of a world's board, in a file of its own (board-islands).
+/// It is a convenience: a lost or bad file means everything known is seen, a failed write that it will be.
 /// </summary>
 public static class BoardFile
 {

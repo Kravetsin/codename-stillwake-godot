@@ -1,6 +1,6 @@
 # New finds come to the board as a pile
 
-- Status: accepted
+- Status: accepted; superseded in part by [board-islands](2026-11-18-board-islands.md)
 - Date: 2026-11-02
 - Amends [tablet-key](2026-10-31-tablet-key.md): how new notes are marked
 

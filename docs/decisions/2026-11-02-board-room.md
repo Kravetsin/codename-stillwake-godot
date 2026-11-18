@@ -1,6 +1,6 @@
 # The camera stops at a size, and the player has room for heaps
 
-- Status: accepted
+- Status: accepted; superseded in part by [board-islands](2026-11-18-board-islands.md)
 - Date: 2026-11-02
 - Changes [board-edges](2026-11-02-board-edges.md): what stopped the camera shrinking was the size of the board, which left no room to sort notes into heaps
 

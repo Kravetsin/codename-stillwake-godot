@@ -194,7 +194,7 @@ public sealed class BoardScenario : DevScenario
 
     public override void Attach(DevContext c)
     {
-        if (!Args.Has("--manual")) c.Add(new BoardDemo(c.M, Args.Given("--board")));
+        if (!Args.Has("--manual")) c.Add(new BoardDemo(c.M, () => c.World()?.Client.World, Args.Given("--board")));
     }
 }
 
