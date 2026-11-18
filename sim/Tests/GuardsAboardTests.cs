@@ -154,7 +154,7 @@ public class GuardsAboardTests
     }
 
     /// <summary>A vessel of <paramref name="cls"/> found and jumped to by the new game's hero: the scenario, the vessel world and its vessel.</summary>
-    private static (Scenario W, Registry V, Vessel Vessel) Boarded(string cls, uint index = 0)
+    internal static (Scenario W, Registry V, Vessel Vessel) Boarded(string cls, uint index = 0)
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();

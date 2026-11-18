@@ -114,7 +114,7 @@ public class CreatureContractTests
         { "geodeSnail", "Guard Shell | Lunge" },
         { "catcher", "Hunt | Pounce Shoot" },
         // A vessel's guards (derelict-enemies) live only in vessel worlds, which a game's load closes: their orders may grow while they are built.
-        { "spider", "Dock | Pounce Shoot" },
+        { "spider", "Dock Prowl | Pounce Shoot" },
         { "escort", "Dock | " },
     };
 

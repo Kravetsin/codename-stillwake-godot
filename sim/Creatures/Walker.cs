@@ -16,12 +16,22 @@ internal sealed class WalkerBody : BodyRule
     /// <summary>The most ticks a leap is flown looking for its landing: past any jump's whole flight.</summary>
     private const int LeapTicks = 120;
 
+    /// <summary>
+    /// Kept in its <c>Mem</c>: what a walker that climbs holds, gravity let go of: the wall on its left (-1) or right (1), or the hatch
+    /// well's ladder (<see cref="Well"/>); 0 for none. Its drive takes hold and lets go (<see cref="ProwlDrive"/>).
+    /// </summary>
+    internal const string Wall = "wall";
+
+    /// <summary>Held in <see cref="Wall"/>: the hatch well, climbed up through its hatch.</summary>
+    internal const int Well = 2;
+
     internal override Type Serves => typeof(Spec.Walker);
 
-    // Pushed up a cell, still, while something built since stands in its body.
+    // Pushed up a cell, still, while something built since stands in its body; a climber shut in a doorway stays (0006), to pry it.
     internal override bool Unstick(CreaturesModule m, Creature c, Spec.Shape s)
     {
         if (!m.Overlaps(s, c.X, c.Y)) return false;
+        if (((Spec.Walker)s).Climb > 0 && m.InShutDoorway(s, c.X, c.Y)) return false;
         if (c.Y - (s.Height + 1) * Unit >= 0) c.Y -= Unit;
         (c.VX, c.VY) = (0, 0);
         return true;
@@ -62,6 +72,11 @@ internal sealed class WalkerBody : BodyRule
         var d = spec.Brain[c.Drive];
         var rule = RuleBook.Drive(d);
         var gait = rule.GaitOf(c);
+        if (gait == Gait.Steered)
+        {
+            Steered(m, c, w, grounded);
+            return;
+        }
         if (grounded && gait != Gait.Still)
         {
             int way = c.VX >= 0 ? 1 : -1, speed = gait == Gait.Run ? w.Run : w.Walk;
@@ -85,6 +100,28 @@ internal sealed class WalkerBody : BodyRule
         }
         else if (grounded) c.VX = 0;
         Move(m, c, w, grounded, Walks(c, spec));
+    }
+
+    /// <summary>
+    /// A tick of <paramref name="c"/> at the speed its drive set: shut in a doorway, still (0006); holding a wall or the well, gravity let
+    /// go of, up by its speed, stopped flush under what is solid; else moved as any walker, stepping up and down, a leap begun by a speed up.
+    /// </summary>
+    private static void Steered(CreaturesModule m, Creature c, Spec.Walker w, bool grounded)
+    {
+        if (m.Overlaps(w, c.X, c.Y))
+        {
+            (c.VX, c.VY) = (0, 0);
+            return;
+        }
+        if (w.Climb > 0 && c.Recall(Wall) != 0)
+        {
+            int y = c.Y;
+            c.VX = 0;
+            if (Upright(m, w, c.X, ref y, c.VY)) c.VY = 0;
+            c.Y = y;
+            return;
+        }
+        Move(m, c, w, grounded && c.VY >= 0, walks: c.VX != 0);
     }
 
     /// <summary>Whether <paramref name="c"/> walks its way now: wandering, fleeing or charging, kept against a wall till its steering turns it.</summary>
@@ -132,7 +169,13 @@ internal sealed class WalkerBody : BodyRule
     }
 
     /// <summary>Whether the column just ahead of <paramref name="c"/>'s leading edge turns it back: a wall it cannot step up, or a drop.</summary>
-    private static bool Ahead(CreaturesModule m, Creature c, Spec.Walker w, int column)
+    private static bool Ahead(CreaturesModule m, Creature c, Spec.Walker w, int column) => Walled(m, c, w, column) || Rise(m, column, c.Y / Unit) == 0 && Falls(m, column, c.Y / Unit);
+
+    /// <summary>The column just ahead of <paramref name="c"/>'s leading edge going <paramref name="way"/>: off the grid at its edge.</summary>
+    internal static int AheadOf(Creature c, Spec.Walker w, int way) => Down(way > 0 ? c.X + w.Width * Unit / 2 : c.X - w.Width * Unit / 2 - 1, Unit);
+
+    /// <summary>Whether <paramref name="column"/>, just ahead of <paramref name="c"/>'s leading edge, holds a wall it cannot step up: no drop.</summary>
+    internal static bool Walled(CreaturesModule m, Creature c, Spec.Walker w, int column)
     {
         int half = w.Width * Unit / 2;
         int feet = c.Y / Unit, top = feet - w.Height, rise = Rise(m, column, feet);
@@ -148,7 +191,7 @@ internal sealed class WalkerBody : BodyRule
         }
         for (int row = top; row < feet - 1; row++)
             if (m.Solid(column, row)) return true;
-        return Falls(m, column, feet);
+        return false;
     }
 
     /// <summary>
@@ -279,7 +322,7 @@ internal sealed class WalkerBody : BodyRule
     /// <c>Creatures.WanderLedge</c>, sized for it; <paramref name="fleeing"/>, the lowest of a jump sized for that ledge, one a step
     /// higher and its whole jump that lands it on the far side.
     /// </summary>
-    private static int? JumpFor(CreaturesModule m, Creature c, Spec.Walker w, int way, int speed, bool fleeing)
+    internal static int? JumpFor(CreaturesModule m, Creature c, Spec.Walker w, int way, int speed, bool fleeing)
     {
         if (w.Jump <= 0) return null;
         int g = m.Rules.Fall(Spec.Gravity), across = Math.Min(speed, w.JumpAcross);

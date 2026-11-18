@@ -2,8 +2,11 @@ using Spec = Stillwake.Content.Creatures;
 
 namespace Stillwake.Sim.Creatures;
 
-/// <summary>How a creature's drive in charge moves its body: standing, walking or running.</summary>
-internal enum Gait { Still, Walk, Run }
+/// <summary>
+/// How a creature's drive in charge moves its body: standing, walking or running; or <see cref="Steered"/>, its speed set by the drive
+/// itself, the walker only moving it, and holding the wall the drive says (<see cref="WalkerBody.Wall"/>): a vessel's spider.
+/// </summary>
+internal enum Gait { Still, Walk, Run, Steered }
 
 /// <summary>
 /// A hit taking hold (2026-10-26-creatures-are-composed): by peer <paramref name="Peer"/>'s hero, the way across away from it,

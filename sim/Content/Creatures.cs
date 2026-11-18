@@ -28,9 +28,9 @@ public static class Creatures
     /// <summary>
     /// A walker under the surface's gravity: how fast it walks and runs a tick, and its jump — the speed up it leaps at most, and
     /// across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for one that never
-    /// jumps.
+    /// jumps; how fast it climbs up a wall it holds, gravity let go of, 0 for one that never climbs (a vessel's spider, derelict-enemies).
     /// </summary>
-    public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross) : Shape(Width, Height);
+    public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross, int Climb = 0) : Shape(Width, Height);
 
     /// <summary>
     /// A clinger: clamped to a piece of debris at a point along its top, on one of its perches (<c>Wreckage.Perches</c>), riding its
@@ -120,8 +120,19 @@ public static class Creatures
     /// </summary>
     public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
 
-    /// <summary>Asleep in its dock aboard a vessel (derelict-enemies): still, folded in its capsule or hung in its stand. Nothing wakes it yet.</summary>
-    public sealed record Dock : Drive;
+    /// <summary>
+    /// Asleep in its dock aboard a vessel (derelict-enemies): still, folded in its capsule or hung in its stand, till an awake hero's
+    /// reported cell is in its dock's room or a blow lands; then <paramref name="Wake"/> ticks waking, and awake for good, the next drive
+    /// of its brain in charge. 0 never wakes (the robot, till its waking comes: the plan's G-3).
+    /// </summary>
+    public sealed record Dock(int Wake = 0) : Drive;
+
+    /// <summary>
+    /// Hunting the crew through its vessel (derelict-enemies): at the nearest awake hero aboard, by its decks, doorways and hatch well, no
+    /// path searched; a shut doorway on its way (the way in never) it pries <paramref name="Pry"/> ticks, then opens; a wall in its way it
+    /// climbs. It fights by its <paramref name="Guard"/>: alerted by a hero in line within its notice, it pounces or shoots as a guard does.
+    /// </summary>
+    public sealed record Prowl(Guard Guard, int Pry) : Drive;
 
     /// <summary>
     /// Hunting one hero (tracker-catchers): <paramref name="Ticks"/> on its way to it from the tick it comes, running its path on the
@@ -410,11 +421,15 @@ public static class Creatures
 
     /// <summary>
     /// The spider (derelict-enemies): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall
-    /// (<c>Vessels.Aboard</c>); its look, life, moves and yields the sentry's, in a walker three cells by three. Asleep only, for now: its
-    /// waking, walk and climb come next (the plan's G-2).
+    /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
+    /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
+    /// cells a second, jumping some three and a half cells, climbing a wall at 6 cells a second; a shut doorway it pries two seconds
+    /// before it opens it. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Spider = new("spider", Look: Sentry.Look, Body: new Walker(Width: 3, Height: 3, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0),
-        Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard, Brain: [new Dock()], Moves: Sentry.Moves, Yields: Sentry.Yields);
+    public static readonly Species Spider = new("spider", Look: Sentry.Look,
+        Body: new Walker(Width: 2, Height: 3, Walk: 900, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
+        Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard,
+        Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40)], Moves: Sentry.Moves, Yields: Sentry.Yields);
 
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-enemies), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker

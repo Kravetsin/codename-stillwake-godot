@@ -41,6 +41,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public const int Unit = 1000;
 
     private readonly IGridQueries _grid;
+    private readonly IGridOps _gridOps;
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
     private readonly IItemsQueries _held;
@@ -54,7 +55,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     public override string Id => "creatures";
 
-    public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
+    public CreaturesModule(IGridQueries grid, IGridOps gridOps, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
         IBuildingQueries built, IBuildingOps building, IRoomsQueries rooms,
         IKnowledgeOps knowledge)
     {
@@ -65,6 +66,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         _built = built;
         _building = building;
         _grid = grid;
+        _gridOps = gridOps;
         _crew = crew;
         _crewOps = crewOps;
         _held = held;
@@ -128,6 +130,9 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>The own cell of the relic <paramref name="c"/> is tied to; null for one tied to none.</summary>
     public static int? RelicOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Posted ? c.Recall(RelicKey) : null;
+
+    /// <summary>What <paramref name="c"/>, a climbing walker, holds: the wall on its left (-1) or right (1), the hatch well's ladder (2); 0 for none.</summary>
+    public static int Holds(Creature c) => c.Recall(WalkerBody.Wall);
 
     /// <summary>Whether <paramref name="c"/> is clamped on to its wreck: a clinger not flying.</summary>
     public static bool Clamped(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Mounted) == 1;

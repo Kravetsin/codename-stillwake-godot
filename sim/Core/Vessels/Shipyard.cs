@@ -22,9 +22,12 @@ public static partial class Shipyard
     /// </summary>
     public static (int X, int Y) Door(Vessel v)
     {
-        var door = v.Doors.OrderBy(d => d.Y).ThenBy(d => d.X).First();
+        var door = WayIn(v);
         return (door.X + 2, door.Y + Vessels.Open - 1);
     }
+
+    /// <summary>The way in through <paramref name="v"/>'s armour: its first door in reading order, always shut, which no guard opens (derelict-enemies).</summary>
+    public static Vessel.Door WayIn(Vessel v) => v.Doors.OrderBy(d => d.Y).ThenBy(d => d.X).First();
 
     /// <summary>
     /// The map of a vessel world (vessel-worlds): space, <paramref name="v"/>'s frame and <see cref="Vessels.Margin"/> round it,

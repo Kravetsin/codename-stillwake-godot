@@ -24,6 +24,10 @@ public enum Posture
     Escape,
     /// <summary>A vessel's guard asleep in its dock: folded in its capsule, hung in its stand (derelict-enemies).</summary>
     Docked,
+    /// <summary>A vessel's guard waking in its dock: its capsule opening, the spider unfolding and dropping to the floor.</summary>
+    Waking,
+    /// <summary>Holding a wall or the hatch well's ladder, gravity let go of: a spider climbing (derelict-enemies).</summary>
+    Climbing,
 }
 
 /// <summary>The phase of an act: crouched for it, then under way.</summary>
