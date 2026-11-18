@@ -22,10 +22,10 @@ public static partial class Shipyard
     /// <summary>
     /// The guards' docks aboard intact vessel <paramref name="v"/> (<see cref="Vessels.Aboard"/>), drawn from a stream of their own (3) so
     /// the vessel stays as it was: for each kind in turn, its rooms (a deck tall, or more) counted, the arrival room among them; the
-    /// candidates, those rooms in index order but the arrival room, where the dock's box fits clear of every ladder and, but for one that
-    /// replaces furniture, of every fitting and shelf; <c>min(ceil(rooms / Per), candidates)</c> of them drawn by a partial Fisher–Yates;
-    /// then in index order one draw each of a column where the box fits, clear of furniture where it can be. Spiders, then robots, each
-    /// by room index. What a replacing dock covers is left out as the vessel is written (<see cref="Docked"/>).
+    /// candidates, those rooms in index order but the arrival room, where the dock's box fits clear of the way (a ladder, a hatch in its
+    /// floor); <c>min(ceil(rooms / Per), candidates)</c> of them drawn by a partial Fisher–Yates; then in index order one draw each of a
+    /// column where the box fits, clear of every fitting and shelf where it can be, else over them. Spiders, then robots, each by room
+    /// index. What a capsule covers is left out as the vessel is written (<see cref="Docked"/>); a stand stands over what it covers.
     /// </summary>
     public static IReadOnlyList<Dock> Guards(Vessel v)
     {
@@ -68,7 +68,7 @@ public static partial class Shipyard
     /// </summary>
     public static IReadOnlyList<VesselPart> Docked(IReadOnlyList<VesselPart> parts, IReadOnlyList<Dock> docks)
     {
-        var boxes = docks.Where(d => d.Rule.Replaces).ToList();
+        var boxes = docks.Where(d => d.Rule.Crowded == Aboard.Crowded.Replace).ToList();
         if (boxes.Count == 0) return parts;
         bool Covered(VesselPart p) => p.Layer != "back" && p.Kind != "wall"
             && Covers(p).Any(c => boxes.Exists(d => c.X >= d.X && c.X < d.X + d.Width && c.Y >= d.Y && c.Y < d.Y + d.Height));
@@ -77,12 +77,12 @@ public static partial class Shipyard
 
     /// <summary>
     /// The left columns, in order, where <paramref name="rule"/>'s box stands on <paramref name="c"/>'s floor inside it clear of every
-    /// ladder and of all <paramref name="furniture"/>; for a rule that replaces furniture, with none so clear, those clear of ladders.
+    /// cell of the way and of all <paramref name="furniture"/>; with none so clear, those clear of the way.
     /// </summary>
     private static List<int> Fits(Vessel.Compartment c, Aboard.Rule rule, HashSet<(int, int)> ladders, HashSet<(int, int)> furniture)
     {
         var clear = Columns(c, rule, ladders, furniture);
-        return clear.Count > 0 || !rule.Replaces ? clear : Columns(c, rule, ladders, null);
+        return clear.Count > 0 ? clear : Columns(c, rule, ladders, null);
     }
 
     private static List<int> Columns(Vessel.Compartment c, Aboard.Rule rule, HashSet<(int, int)> ladders, HashSet<(int, int)>? furniture)
@@ -101,7 +101,10 @@ public static partial class Shipyard
         return fits;
     }
 
-    /// <summary>Every cell inside <paramref name="v"/> a ladder covers, and every one a fitting or a shelf of an interior covers: what stands before a back wall.</summary>
+    /// <summary>
+    /// The way inside <paramref name="v"/>, kept open: every cell a ladder covers and the cells over a hatch; and every cell a fitting or a
+    /// shelf of an interior covers, what stands before a back wall. No fitting is solid (only structures are), so a guard may stand in one.
+    /// </summary>
     private static (HashSet<(int, int)> Ladders, HashSet<(int, int)> Furniture) Taken(Vessel v)
     {
         var ladders = new HashSet<(int, int)>();
@@ -114,6 +117,7 @@ public static partial class Shipyard
         }
         foreach (var s in v.Shafts)
             for (int y = s.Top; y <= s.Bottom; y++) ladders.UnionWith([(s.Column, y), (s.Column + 1, y)]);
+        foreach (var h in v.Hatches) ladders.UnionWith([(h.X, h.Y - 1), (h.X + 1, h.Y - 1)]);
         foreach (var c in v.Compartments)
         {
             if (c.Interior.Length == 0) continue;
