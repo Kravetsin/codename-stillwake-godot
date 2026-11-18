@@ -32,8 +32,7 @@ public enum HelmetTurn
 /// that band as its shell turns: the bell's gasket.
 /// </summary>
 public sealed record HelmetFit(
-    HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null, double Band = BentLimb.Band, bool Sealed = false,
-    bool Collar = true)
+    HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null, double Band = BentLimb.Band, bool Sealed = false)
 {
     /// <summary>
     /// The angles its parts are turned by as the head looks <paramref name="look"/> (radians, as the figure turns its nodes), each
@@ -83,13 +82,10 @@ public static class BodyFit
     /// <summary>Soft hoods: their top turns, their base on the shoulders from row 12.5 drawn over the near arm.</summary>
     private static readonly HelmetFit Hood = new(HelmetTurn.Soft, NeckX, SoftY, Cut: 12.5);
 
-    /// <summary>The basic helmet's ball, nodding whole on its rubber seal.</summary>
-    private static readonly HelmetFit Ball = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Collar: false);
-    /// <summary>
-    /// A helmet skin turning whole on the basic helmet's seal: a beak, a jaw or a neck guard below the seal would bend with it
-    /// as the ball's rubber does, so none bends; a rubber seal of its own, the basic collar's ring, bends between it and the collar.
-    /// </summary>
-    private static readonly HelmetFit Shell = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Sealed: true, Collar: false);
+    /// <summary>The basic helmet's ball, still on its rubber collar (light-drone, a try): the head turns inside.</summary>
+    private static readonly HelmetFit Ball = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null);
+    /// <summary>A helmet skin, still on a rubber seal of its own, the basic collar's ring, between it and its collar.</summary>
+    private static readonly HelmetFit Shell = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Sealed: true);
 
     /// <summary>Each helmet's fit by its item, the catchers' by their pictures (<see cref="CreatureLooks.Heroes"/>).</summary>
     private static readonly Dictionary<string, HelmetFit> Fits = new()
@@ -108,6 +104,12 @@ public static class BodyFit
         ["paradeHelmet"] = Shell,
         // The bell turns whole on its rubber gasket as the skins do on theirs, with no shoulder piece: it met no suit well.
         [Stillwake.Content.Helmet.Heavy] = Shell,
+        // The raw painted helmets (gear-roles), each on its own collar; the dust wrap on its own seal too.
+        ["dustHelmet"] = Shell,
+        ["hideHelmet"] = Ball,
+        ["boilerHelmet"] = Ball,
+        [Stillwake.Content.Helmet.Heated] = Ball,
+        [Stillwake.Content.Helmet.HeatProof] = Ball,
         ["catcherHood"] = Hood,
         ["catcherCap"] = Hood,
         ["catcherBeak"] = Hood,
@@ -123,19 +125,7 @@ public static class BodyFit
     /// <see cref="Whole"/> for none or any other.
     /// </summary>
     public static HelmetFit Of(string? helmet) =>
-        helmet == null || FitOf(helmet) is not { } fit ? Whole : Trial is { } turn ? As(helmet, fit, turn) : fit;
-
-    private static HelmetFit? FitOf(string helmet) => Fits.TryGetValue(helmet, out var fit) ? fit : IsSocket(helmet) ? Ball : null;
-
-    /// <summary>
-    /// The socket helmets (helmet-socket): only a painted dome of their own, on the basic helmet's neck (in the dome's colour),
-    /// rubber seal and glass, nodding as the basic ball does, the neck and seal bending. Every new helmet is one.
-    /// </summary>
-    public static readonly IReadOnlyList<string> Sockets =
-        [Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, "dustHelmet", "hideHelmet", "boilerHelmet"];
-
-    /// <summary>Whether <paramref name="helmet"/> is one of the <see cref="Sockets"/>.</summary>
-    public static bool IsSocket(string? helmet) => helmet != null && Sockets.Contains(helmet);
+        helmet == null || !Fits.TryGetValue(helmet, out var fit) ? Whole : Trial is { } turn ? As(helmet, fit, turn) : fit;
 
     /// <summary>Every helmet turning this way instead of its own, to compare them in game (the dev key, <c>HelmetTurnKey</c>); none in play.</summary>
     public static HelmetTurn? Trial { get; set; }
@@ -150,7 +140,7 @@ public static class BodyFit
     };
 
     /// <summary>The helmets fitted, by name.</summary>
-    public static IEnumerable<string> Fitted => Fits.Keys.Concat(Sockets);
+    public static IEnumerable<string> Fitted => Fits.Keys;
 
     /// <summary>
     /// The rows of an arm's picture, from its box's top (its shoulder joint at 2.5), over which its top fades in from nothing:

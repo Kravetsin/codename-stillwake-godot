@@ -66,6 +66,8 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `SuitKeys.cs` | V |
 | `Figure.cs` | figure |
 | `logic/BodyFit.cs` | fits |
+| `LightDrone.cs` | drone |
+| `logic/DroneFloat.cs` | float |
 | `logic/Cape.cs` | cape |
 | `logic/Spring.cs` | spring |
 | `CapeView.cs` | drawn |
@@ -144,16 +146,16 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Crew** made at `Spawn`; passed out, lies, takes no orders (0061). `Enter` when the sim's room or side differ,
   each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on the shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
-  (whole-limbs); the **hand** glove or bare (hand-at-wrist); **helmets** turn (helmets-fit-the-suit), collar under a raised
-  arm; **skins** over worn items, an effect for the haze (hero-skins, fancy-skins).
+  (whole-limbs); the **hand** glove or bare (hand-at-wrist); **helmets** fit (helmets-fit-the-suit); **skins** over worn
+  items, an effect for the haze (hero-skins, fancy-skins).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
 ## Others' heroes
 
 - Sent (`SentHero`) each 50 ms while changing, each second still, at once on a rod's change (0002, 0065); hands by item
   and `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden at 3 silent s; only those here (0076). Tools strike
-  per number heard (0038), rods play out (`RemoteRod`, 0065), drills, drivers run as the sim says (0055).
+- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden at 3 s silent; only those here (0076). Tools strike
+  per number heard (0038), rods play out (`RemoteRod`, 0065), drills, drivers run as told (0055).
 
 ## The hands
 
@@ -168,12 +170,12 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **A gun** (hold-to-fire): held fires each cooldown, a `Charge` one on release; kicks (`Recoil`, body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): F tap points, pings (crew-pings); hold: a wheel; item stowed.
+- **Gestures** (gestures-for-words): F tap points, pings (crew-pings); held, a wheel; item stowed.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
 
 ## Deliberately not handled
 
-- Friends marked only while heard, unnamed; markers one way overlap.
-- A body dressed as its peer now (gone: first colour); it and a seated hero show no suit lights.
+- Friends marked only while heard, unnamed; markers overlap.
+- A body dressed as its peer now (gone: first colour); it, a seated hero show no suit lights.
 - Others' swings do not hold on contact; a friend's gun hangs, unaimed, unrecoiled.

@@ -91,6 +91,8 @@ public partial class Figure : Node2D
     /// inside, the shell and glass, and what rides on its crown; and the collar, over the near arm's shoulder, which never turns.
     /// </summary>
     private readonly Node2D _face = new(), _shellTurn = new(), _crown = new(), _collar;
+    /// <summary>The face's mask, its helmet's glass (<see cref="GlassOnly"/>).</summary>
+    private readonly Sprite2D _glass = new() { Centered = false };
     /// <summary>The helmet worn's fit, its pivot from the neck, and the way the head looks, radians, as last drawn.</summary>
     private HelmetFit _fit = BodyFit.Whole;
     /// <summary>The way every helmet was tried as it was last fitted (<see cref="BodyFit.Trial"/>): fitted again when it changes.</summary>
@@ -345,7 +347,8 @@ public partial class Figure : Node2D
         _sealBent = Bent(_seal);
         foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair }) _face.AddChild(n);
         foreach (var n in new Node2D[] { _shell, _visor }) _shellTurn.AddChild(n);
-        foreach (var n in new Node2D[] { _face, _seal, _shellTurn, _crown }) _helmet.AddChild(n);
+        _glass.AddChild(_face);
+        foreach (var n in new Node2D[] { _glass, _seal, _shellTurn, _crown }) _helmet.AddChild(n);
         _collar.AddChild(_collarPart);
         _crown.AddChild(_eyes);
         Gives(_eyes, _eyesGlow);
@@ -1085,12 +1088,40 @@ public partial class Figure : Node2D
         _pivot = new Vector2((float)(_fit.PivotX - BodyFit.NeckX), (float)(_fit.PivotY - BodyFit.NeckY));
         // A soft one bends about its pivot; any other is never bent, so where its band would be does not matter.
         foreach (var picture in (BentPicture[])[.. _helmetPictures, _sealBent]) (picture.Joint, picture.Band) = (_pivot.Y, _fit.Band);
-        _seal.Visible = helmet != null && _fit.Sealed && _fit.Collar;
+        _seal.Visible = helmet != null && _fit.Sealed;
         double cut = _fit.Cut ?? double.PositiveInfinity;
         Rows(_shell, double.NegativeInfinity, cut);
         Rows(_visor, double.NegativeInfinity, cut);
         Rows(_collarPart, _fit.Cut ?? double.NegativeInfinity, double.PositiveInfinity);
-        _collarPart.Visible = helmet != null && _fit.Collar && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+        _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+        GlassOnly(helmet != null && _fit.Turn is HelmetTurn.Bolted or HelmetTurn.BoltedStill);
+    }
+
+    private static readonly Dictionary<Texture2D, Texture2D> GlassMasks = new();
+
+    /// <summary>
+    /// The head behind a still helmet seen through its glass alone (light-drone, a try): its visor's picture, wholly clear where it is
+    /// glass at all, masks the face, the hair and the beard; bare or turning, nothing masks them.
+    /// </summary>
+    private void GlassOnly(bool masked)
+    {
+        masked &= _visor.Texture is CanvasTexture;
+        _glass.ClipChildren = masked ? ClipChildrenMode.Only : ClipChildrenMode.Disabled;
+        _glass.Texture = masked ? MaskOf((CanvasTexture)_visor.Texture) : null;
+        (_glass.Offset, _glass.RegionEnabled, _glass.RegionRect) = (_visor.Offset, _visor.RegionEnabled, _visor.RegionRect);
+    }
+
+    private static Texture2D MaskOf(CanvasTexture visor)
+    {
+        if (GlassMasks.TryGetValue(visor, out var known)) return known;
+        var image = visor.DiffuseTexture.GetImage();
+        if (image.IsCompressed()) image.Decompress();
+        image.Convert(Image.Format.Rgba8);
+        if (image.HasMipmaps()) image.ClearMipmaps();
+        for (int y = 0; y < image.GetHeight(); y++)
+            for (int x = 0; x < image.GetWidth(); x++)
+                image.SetPixel(x, y, new Color(1, 1, 1, image.GetPixel(x, y).A > 0.05f ? 1 : 0));
+        return GlassMasks[visor] = HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(image)), (Vector2I)visor.GetSize());
     }
 
     /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
@@ -1128,9 +1159,6 @@ public partial class Figure : Node2D
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
         // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
-        // A socket helmet (helmet-socket) is its dome and neck on the basic one's rubber collar; its glass the basic one's, tinted or
-        // opened where the dome stands in front of it.
-        "collar" when BodyFit.IsSocket(_helmetWorn) => "helmet_collar",
         "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
         // A collar of its own (helmets-fit-the-suit), else the shell's rows from its cut.

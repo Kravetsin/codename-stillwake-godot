@@ -17,27 +17,16 @@ public class SkinCatalogueTests
             .Concat(Skins.All.Where(s => s.Kind == Skins.Head).Select(s => s.Id));
 
     [Fact]
-    public void EveryHelmetPictureHasItsLampAndScannerMounts()
+    public void EveryStillHelmetHasItsShellGlassAndCollar()
     {
-        foreach (var helmet in HelmetPictures.Where(h => !BodyFit.IsSocket(h)))
+        // light-drone (a try): nothing mounts on a helmet; it sits still on a rubber collar, the head seen through its glass.
+        foreach (var helmet in HelmetPictures)
         {
-            Assert.True(LampMounts.On.ContainsKey(helmet), $"{helmet} has no lamp mount");
-            Assert.True(ScannerInk.On.ContainsKey(helmet), $"{helmet} has no scanner row");
-        }
-    }
-
-    [Fact]
-    public void ASocketHelmetIsItsDomeAloneOnTheBasicOnesMountsAndSeal()
-    {
-        // helmet-socket: the neck, rubber collar, lamp and scanner are the basic helmet's, and it nods as the basic one does.
-        foreach (var helmet in BodyFit.Sockets)
-        {
-            Assert.Contains(helmet, HelmetPictures);
-            Assert.True(Png.Has($"hero_{helmet}_shell"), $"hero_{helmet}_shell");
-            Assert.True(Png.Has($"items/{helmet}") || Png.Has($"skins/{helmet}"), $"{helmet}'s card");
-            Assert.False(Png.Has($"hero_{helmet}_seal") || Png.Has($"hero_{helmet}_collar"), $"{helmet} has a seal or collar of its own");
-            Assert.False(LampMounts.On.ContainsKey(helmet) || ScannerInk.On.ContainsKey(helmet), $"{helmet} has a mount row of its own");
-            Assert.Same(BodyFit.Of(Content.Helmet.Basic), BodyFit.Of(helmet));
+            string drawn = helmet == Content.Helmet.Basic ? "helmet" : helmet;
+            foreach (string part in (string[])["shell", "collar"])
+                Assert.True(Png.Has($"hero_{drawn}_{part}"), $"hero_{drawn}_{part}");
+            Assert.True(Png.Has(helmet == Content.Helmet.Basic ? "hero_visor" : $"hero_{helmet}_visor"), $"{helmet}'s glass");
+            if (BodyFit.Of(helmet).Sealed) Assert.True(Png.Has($"hero_{drawn}_seal"), $"hero_{drawn}_seal");
         }
     }
 
