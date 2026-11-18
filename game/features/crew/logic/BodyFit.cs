@@ -32,7 +32,8 @@ public enum HelmetTurn
 /// that band as its shell turns: the bell's gasket.
 /// </summary>
 public sealed record HelmetFit(
-    HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null, double Band = BentLimb.Band, bool Sealed = false)
+    HelmetTurn Turn, double PivotX, double PivotY, double? Cut, (double Whole, double None)? Fade = null, double Band = BentLimb.Band, bool Sealed = false,
+    bool Collar = true)
 {
     /// <summary>
     /// The angles its parts are turned by as the head looks <paramref name="look"/> (radians, as the figure turns its nodes), each
@@ -83,13 +84,12 @@ public static class BodyFit
     private static readonly HelmetFit Hood = new(HelmetTurn.Soft, NeckX, SoftY, Cut: 12.5);
 
     /// <summary>The basic helmet's ball, nodding whole on its rubber seal.</summary>
-    private static readonly HelmetFit Ball = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null);
-
+    private static readonly HelmetFit Ball = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Collar: false);
     /// <summary>
     /// A helmet skin turning whole on the basic helmet's seal: a beak, a jaw or a neck guard below the seal would bend with it
     /// as the ball's rubber does, so none bends; a rubber seal of its own, the basic collar's ring, bends between it and the collar.
     /// </summary>
-    private static readonly HelmetFit Shell = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Sealed: true);
+    private static readonly HelmetFit Shell = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Sealed: true, Collar: false);
 
     /// <summary>Each helmet's fit by its item, the catchers' by their pictures (<see cref="CreatureLooks.Heroes"/>).</summary>
     private static readonly Dictionary<string, HelmetFit> Fits = new()

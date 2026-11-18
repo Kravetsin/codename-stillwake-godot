@@ -341,8 +341,7 @@ public partial class Figure : Node2D
         _faceLight.AddChild(_faceLit = new Sprite2D { Centered = false, Offset = _facePart.Offset, Material = Added });
         (_beard, _hair) = (Part("beard", joint: "hair"), Part("hair", joint: "hair"));
         (_shell, _visor, _collarPart) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"), Part("collar", joint: "helmet"));
-        _helmetPictures = [Bent(_headPart), Bent(_facePart), Bent(_headLit), Bent(_faceLit), Bent(_shell), Bent(_visor), Bent(_collarPart)];
-        _seal = Part("seal", joint: "helmet");
+        _helmetPictures = [Bent(_headPart), Bent(_facePart), Bent(_headLit), Bent(_faceLit), Bent(_shell), Bent(_visor), Bent(_collarPart)]; _seal = Part("seal", joint: "helmet");
         _sealBent = Bent(_seal);
         foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair }) _face.AddChild(n);
         foreach (var n in new Node2D[] { _shell, _visor }) _shellTurn.AddChild(n);
@@ -747,6 +746,9 @@ public partial class Figure : Node2D
 
     private readonly LightDrone _drone = new();
 
+    /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
+    private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
+
     private void ShowDrone()
     {
         _drone.Visible = _lampWorn || _scannerWorn;
@@ -1036,8 +1038,11 @@ public partial class Figure : Node2D
         FitHelmet(helmet);
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
-        _hair.Visible = helmet == null;
-        _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        // Behind a still helmet's glass the head is the hero's own, hair and beard too (light-drone, a try); a hood hides them.
+        bool seen = helmet == null || _fit.Turn is HelmetTurn.Bolted or HelmetTurn.BoltedStill;
+        _hair.Visible = seen;
+        _beard.Visible = seen && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        _helmetPictures[VisorPicture].Modulate = helmet != null && _fit.Turn is HelmetTurn.Bolted or HelmetTurn.BoltedStill ? GlassTint : Colors.White;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
         ShowScanner();
@@ -1080,12 +1085,12 @@ public partial class Figure : Node2D
         _pivot = new Vector2((float)(_fit.PivotX - BodyFit.NeckX), (float)(_fit.PivotY - BodyFit.NeckY));
         // A soft one bends about its pivot; any other is never bent, so where its band would be does not matter.
         foreach (var picture in (BentPicture[])[.. _helmetPictures, _sealBent]) (picture.Joint, picture.Band) = (_pivot.Y, _fit.Band);
-        _seal.Visible = helmet != null && _fit.Sealed;
+        _seal.Visible = helmet != null && _fit.Sealed && _fit.Collar;
         double cut = _fit.Cut ?? double.PositiveInfinity;
         Rows(_shell, double.NegativeInfinity, cut);
         Rows(_visor, double.NegativeInfinity, cut);
         Rows(_collarPart, _fit.Cut ?? double.NegativeInfinity, double.PositiveInfinity);
-        _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+        _collarPart.Visible = helmet != null && _fit.Collar && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
     }
 
     /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
