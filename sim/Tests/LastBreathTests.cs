@@ -37,8 +37,7 @@ public class LastBreathTests
     {
         var w = new Scenario(PodRoom) { Bare = bare }.GiveItems(0, ("scrap", 4));
         w.Do(new Enter(Beyond) { From = 0 }).Run();
-        // Bare, space's cold takes most of a unit a breath besides (2026-11-14-temperature-in-degrees).
-        while (HeroOf(w).Air > 0) Breaths(w, 1);
+        while (HeroOf(w).Air > 0 && HeroOf(w).Out == 0) Breaths(w, 1);
         Assert.Equal((0, Content.Crew.LastBreath, 0), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out));
         return w;
     }
@@ -58,6 +57,7 @@ public class LastBreathTests
     [Fact]
     public void BareTheColdCutsNoLastBreath()
     {
+        // The cold moves the body, which the client keeps, never the air (body-temperature).
         var w = Dry(bare: true);
         w.Run(Content.Crew.LastBreath - 1);
         Assert.Equal((1, 0), (HeroOf(w).Gasp, HeroOf(w).Out));

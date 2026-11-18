@@ -55,8 +55,9 @@ public sealed record StretchNow(string Id) : Command;
 /// <paramref name="ComingIn"/> ticks of it left, and the running one <paramref name="Ran"/> ticks on: when each began, so its far
 /// picture is the same for every peer and after a load. Null and 0 for none. Time and night are 0 and off with no day.
 /// <paramref name="Pace"/>, the running stretch's: thousandths of its speed a hero walks at under the open sky; whole with none.
+/// <paramref name="Grit"/>, the running stretch's: units of a hero's own air a breath under the open sky; 0 with none.
 /// </summary>
-public readonly record struct SkyNow(int Time, bool Night, int Chill, string? Stretch, string? Coming, int ComingIn, int Ran = 0, int Pace = 1000);
+public readonly record struct SkyNow(int Time, bool Night, int Chill, string? Stretch, string? Coming, int ComingIn, int Ran = 0, int Pace = 1000, int Grit = 0);
 
 /// <summary>What any module may read of the sky.</summary>
 public interface ISkyQueries
@@ -93,14 +94,14 @@ public sealed partial class SkyModule : Module<SkyState>, ISkyQueries
         {
             var s = State;
             var running = s.Active is { } active ? StretchOf(active) : null;
-            int chill = running?.Chill ?? 0, pace = running?.Pace ?? 1000;
+            int chill = running?.Chill ?? 0, pace = running?.Pace ?? 1000, grit = running?.Grit ?? 0;
             string? coming = Coming ? s.Next : null;
             int comingIn = coming != null ? s.NextIn : 0;
-            if (Rules.Cycle is not { } cycle) return new SkyNow(0, false, chill, s.Active, coming, comingIn, s.Ran, pace);
+            if (Rules.Cycle is not { } cycle) return new SkyNow(0, false, chill, s.Active, coming, comingIn, s.Ran, pace, grit);
             // Modulo: a save's hour past a shorter day's end is read as the hour it wraps to.
             int time = s.Time % cycle.Length;
             bool night = time >= cycle.Length - cycle.Night;
-            return new SkyNow(time, night, chill + (night ? cycle.Chill : 0), s.Active, coming, comingIn, s.Ran, pace);
+            return new SkyNow(time, night, chill + (night ? cycle.Chill : 0), s.Active, coming, comingIn, s.Ran, pace, grit);
         }
     }
 

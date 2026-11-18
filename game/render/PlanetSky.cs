@@ -20,11 +20,20 @@ public partial class PlanetSky : Node2D
     private const float CloudDrift = 1.5f;
 
     /// <summary>
-    /// Where the sun and the giant hang, their middles as shares of the screen across and down: on the screen, not by the
+    /// Where the giant hangs and the sun is at noon, their middles as shares of the screen across and down: on the screen, not by the
     /// ground, so they stay in the sky however near the camera is. The clouds' top, likewise.
     /// </summary>
-    private static readonly Vector2 Sun = new(0.8f, 0.16f), Giant = new(0.17f, 0.22f);
+    private static readonly Vector2 Noon = new(0.5f, 0.08f), Giant = new(0.17f, 0.22f);
     private const float CloudsAt = 0.02f;
+
+    /// <summary>
+    /// The share of the screen down where the sun rises and sets: about the far mountains' tops, so it is soon clear of them (the
+    /// user's, 2026-11-17). It crosses the sky left to right, from wholly past the screen's left edge to wholly past its right.
+    /// </summary>
+    private const float Rim = 0.22f;
+
+    /// <summary>How far across the sky the sun is, 0 rising to 1 setting (<c>Daylight.Sun</c>); null while it is down.</summary>
+    public float? Day { get; set; }
 
     private readonly ColorRect _above = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Sprite2D _sky, _giant, _clouds, _sun;
@@ -65,8 +74,17 @@ public partial class PlanetSky : Node2D
         _sky.Scale = new Vector2(screen.X / gradient.X, zoom);
         _giant.Position = screen * Giant - _giant.Texture.GetSize() * zoom / 2;
         _giant.Scale = Vector2.One * zoom;
-        _sun.Position = screen * Sun - _sun.Texture.GetSize() * zoom / 2;
-        _sun.Scale = Vector2.One * zoom;
+        _sun.Visible = Day != null;
+        if (Day is float day)
+        {
+            // An arc from the rim up to noon's height, steep at its ends: the sun is soon high and low only near its rise and set. It
+            // comes in and goes out past the screen's sides, glow and all, so it is never seen to vanish.
+            var half = _sun.Texture.GetSize() * zoom / 2;
+            float high = Mathf.Sqrt(Mathf.Max(0, Mathf.Sin(Mathf.Pi * day)));
+            var at = new Vector2(Mathf.Lerp(-half.X, screen.X + half.X, day), Mathf.Lerp(Rim, Noon.Y, high) * screen.Y);
+            _sun.Position = at - half;
+            _sun.Scale = Vector2.One * zoom;
+        }
         Spread(_clouds, centre.X * CloudFollows + (float)(seconds * CloudDrift + _blown), zoom, screen, screen.Y * CloudsAt);
         if (_haze.Share > 0 && (_haze.Horizon != sky || _haze.Screen != screen))
         {

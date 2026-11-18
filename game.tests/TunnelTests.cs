@@ -20,6 +20,16 @@ public class TunnelTests
     }
 
     [Fact]
+    public void ClosesOnWhicheverLastBreathEndsFirstTheAirsOrTheBodys()
+    {
+        Assert.Equal(0, Tunnel.Sooner(0, 0));
+        Assert.Equal(150, Tunnel.Sooner(150, 0));
+        Assert.Equal(40, Tunnel.Sooner(0, 40));
+        Assert.Equal(40, Tunnel.Sooner(150, 40));
+        Assert.Equal(30, Tunnel.Sooner(30, 40));
+    }
+
+    [Fact]
     public void StaysOpenWithAirAndClosesOnTheSimsClockBetweenReads()
     {
         var tunnel = new Tunnel();

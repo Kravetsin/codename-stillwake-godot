@@ -2,52 +2,46 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// How the wrist computer's gauges and keys look and move (0081), the user's picks from the wrist-gauges mockup:
-/// segmented gauges (A), the loss trail that flashes and drains (T3), energy as the bolt and a number, the bag's
-/// sort key on the display's right edge (A). Pixels are screen pixels; a cosmetic of the client, never read by the sim.
+/// segmented gauges (A), energy as the bolt and a number, the bag's sort key on the display's right edge (A); the air bar
+/// as the air-motion pick E has it. Pixels are screen pixels; a cosmetic of the client, never read by the sim.
 /// </summary>
 public static class WristLook
 {
-    /// <summary>The equal stretches of the air row the chips of lost air and a canister's wash count in: three suit units each at a basic helmet.</summary>
-    public const int SuitCells = 15;
-
     /// <summary>
-    /// A drop between two reads this big, of full, is a hit: its lost part flashes too. Just over a running breath (2 of
-    /// 45 suit units, 4.4 %), so breathing never flashes; a big refill eases in.
+    /// A drop between two reads this big, of full, is a hit: its lost part stays lit white. Just over a running breath (2 of
+    /// 45 suit units, 4.4 %), so breathing never counts as one.
     /// </summary>
     public const double BigDrop = 0.05;
 
-    /// <summary>How long a lost part stays whole before it drains, and how long a hit's flash fades.</summary>
-    public const double TrailHoldS = 0.6, FlashS = 0.3;
-
-    /// <summary>How fast the lost part drains: this much of full a second, and this much more for each of full still lost.</summary>
-    public const double TrailDrain = 0.2, TrailDrainPerGap = 4;
-
-    /// <summary>A small rise slides at an even pace over this long, so a slow refill moves steadily.</summary>
-    public const double SlideS = 1.0;
-
-    /// <summary>A big refill eases out at this rate a second, never slower than <see cref="RiseFloor"/> of full a second.</summary>
-    public const double RiseEase = 6, RiseFloor = 0.12;
-
-    /// <summary>The refill's light (a sweep along the cells, the head bright) stays this long after the value stops rising.</summary>
-    public const double GainS = 0.45;
-
-    /// <summary>The fill's bright leading edge fades this long after the fill stops moving, rising or falling.</summary>
-    public const double EdgeFadeS = 0.3;
-
     /// <summary>
-    /// A canister breathed (0047): how long the motes rise thick and high off the cells from the click; the tab's flood, rim
-    /// and shake are <c>GaugeWash</c>'s (air-feedback).
+    /// The air bar's springs (air-motion pick E), a second: the lit edge following the air; a part put on or taken off growing
+    /// or shrinking; the bar turning red; the refill's light; the edge's highlight.
     /// </summary>
-    public const double SurgeS = 1.3;
+    public const double AirFollow = 9, AirResize = 7, AirRed = 5, AirGain = 4, AirEdge = 8;
 
-    /// <summary>The motes rising off the cells, and how high in pixels, on a slow refill and in a canister's surge.</summary>
+    /// <summary>What a breath changes is spread over this long, so the bar glides instead of stepping once a breath.</summary>
+    public const double BreathS = 1.0;
+
+    /// <summary>The refill's light shows while the air rose by a breath this long ago or less.</summary>
+    public const double GainS = 1.15;
+
+    /// <summary>How fast the edge moves, in units a second, for its highlight to show whole.</summary>
+    public const double EdgeSpeed = 1.2;
+
+    /// <summary>A hit's lost air: lit whole this long, then drained back to the edge over <see cref="HitDrainS"/>; gone by <see cref="HitS"/>.</summary>
+    public const double HitHoldS = 0.6, HitDrainS = 0.7, HitS = 1.6;
+
+    /// <summary>A canister breathed: how long its light runs over the bar; how long a breath waits for its air to be read.</summary>
+    public const double CanisterS = 2.2, CanisterWaitS = 1;
+
+    /// <summary>The motes rising off the bar, and how high in pixels, on a slow refill and when a canister is breathed.</summary>
     public const int Motes = 4, MoteRise = 7, SurgeMotes = 12, SurgeRise = 13;
 
     /// <summary>
-    /// Breathing room air again (out of thin air or vacuum): one soft wave across the oxygen cells over this long, this many
-    /// cells either side of its middle, this bright; and never again within <see cref="AgainGapS"/>, so a sill's to and fro waves once.
+    /// Breathing room air again (out of thin air or vacuum): one soft wave across the air bar over this long; and never again
+    /// within <see cref="AgainGapS"/>, so a sill's to and fro waves once.
     /// </summary>
-    public const double WaveS = 0.85, WaveBand = 2.5, WaveBright = 0.4, AgainGapS = 4;
+    public const double WaveS = 0.85, AgainGapS = 4;
 
     /// <summary>How bright the charge row is with no battery on the belt.</summary>
     public const float NoBattery = 0.35f;

@@ -92,7 +92,7 @@ public partial class Frost : CanvasLayer
     private double _sinceRead = RefreshS, _shown;
     private float _cold;
 
-    /// <param name="read">How cold this player's hero is, 0 to 1: <see cref="Report.Cold"/> at its body's cell, bare or not.</param>
+    /// <param name="read">How cold this player's hero is, 0 to 1: its body's, <see cref="Report.Cold"/>.</param>
     public Frost(Func<float> read)
     {
         _read = read;

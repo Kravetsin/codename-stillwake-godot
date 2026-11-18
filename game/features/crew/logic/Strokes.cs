@@ -12,8 +12,11 @@ namespace Stillwake.Game.Features.Crew;
 public sealed record Stroke(
     SectorMotions Motions, HeldLook Look, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0)
 {
-    /// <summary>When in a stroke playing <paramref name="motion"/> its whoosh begins: its loudest moment (<see cref="PeakS"/> in) at the motion's.</summary>
-    public double WhooshMsOf(SwingMotion motion) => Math.Max(0, (motion.WhooshShare ?? HitShare) * Ms - PeakS * 1000);
+    /// <summary>
+    /// When in a stroke playing <paramref name="motion"/> its whoosh begins: its loudest moment (<see cref="PeakS"/> in) at the motion's,
+    /// the stroke lasting <paramref name="slow"/> times its own (body-temperature).
+    /// </summary>
+    public double WhooshMsOf(SwingMotion motion, double slow = 1) => Math.Max(0, (motion.WhooshShare ?? HitShare) * Ms * slow - PeakS * 1000);
 }
 
 /// <summary>Every tool struck with by hand, by its item: the axe, the sledgehammer, the spear and the pickaxe.</summary>

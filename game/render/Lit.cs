@@ -250,15 +250,21 @@ public static class Lit
     /// A material of its own lit as <see cref="Set"/>'s with <paramref name="share"/>, its picture's colour first changed by
     /// <paramref name="paint"/>, statements run at the start of the fragment on <c>COLOR</c>, beside <paramref name="declarations"/>
     /// (uniforms, varyings) and a <paramref name="vertex"/> function of its own, which must set <c>world</c> as the plain one does: the
-    /// frost on the hull (stretches), grown and melted in its shader. Made once by its user, never freed.
+    /// frost on the hull (stretches), grown and melted in its shader; <paramref name="after"/>, statements run once it is lit, for what
+    /// glows past the light (a suit's embers, <c>SuitFxView</c>). Made once by its user, never freed.
     /// </summary>
-    public static ShaderMaterial Painted(string declarations, string vertex, string paint, float share)
+    public static ShaderMaterial Painted(string declarations, string vertex, string paint, float share, string after = "")
     {
         var body = Body.Replace("void fragment() {", "void fragment() {\n" + paint + "\n", System.StringComparison.Ordinal);
         if (body == Body) throw new System.InvalidOperationException("Lit's fragment moved: nowhere to paint");
+        int end = body.LastIndexOf('}');
+        body = body[..end] + after + "\n" + body[end..];
         var made = new ShaderMaterial { Shader = new Shader { Code = Head + declarations + vertex + body } };
         return Prepared(made, share, false, false);
     }
+
+    /// <summary>Another material with <paramref name="painted"/>'s shader (<see cref="Painted"/>), lit with <paramref name="share"/>: its own parameters, one shader compiled. Never freed.</summary>
+    public static ShaderMaterial Like(ShaderMaterial painted, float share) => Prepared(new ShaderMaterial { Shader = painted.Shader }, share, false, false);
 
     private static ShaderMaterial MaterialOf(float share, bool shines, bool bends, bool windy, bool bare)
     {

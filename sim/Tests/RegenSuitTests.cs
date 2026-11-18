@@ -128,19 +128,19 @@ public class RegenSuitTests
     }
 
     [Fact]
-    public void PastTheFieldTheBreathIsGivenBackAndTheColdPaidInFull()
+    public void AcrossTheFieldTheBreathIsGivenBackAndTheColdTakesNoAir()
     {
-        // The map in the reference world, its field's left edge 384 cells in: halfway there the cold takes some, not all.
+        // The map in the reference world: half way across its field, −150° on the suit's −110°, the cold felt, not paid in air
+        // (body-temperature).
         var w = new Scenario(Layout.Parse(PodRoom).Doubled().InWorld()) { Bare = true }.Wear(0, Helmet.Heavy).Wear(0, Suit.Regen);
         w.Put(Belt, new Stack("battery", 1, Full));
-        int left = (Content.World.Width - Content.World.ZoneWidth) / 2 - Field.Margin, cell = Content.World.Height / 2 * Content.World.Width + left / 2;
-        int cold = w.M.Crew.EdgeCost(cell);
-        Assert.InRange(cold, 1, 40);
+        int left = (Content.World.Width - Content.World.ZoneWidth) / 2, cell = Content.World.Height / 2 * Content.World.Width + left - Field.Margin / 2;
+        Assert.Equal(-150, w.M.Crew.TemperatureAt(cell));
         w.Do(new Enter(cell) { From = 0 }).Run().Do(new SuitMode(true) { From = 0 }).Run();
         Breaths(w, 1);
         int air = HeroOf(w).Air, charge = Charge0(w);
         Breaths(w, 2);
-        Assert.Equal((air - 2 * cold, charge - 2 * Cost), (HeroOf(w).Air, Charge0(w)));
+        Assert.Equal((air, charge - 2 * Cost), (HeroOf(w).Air, Charge0(w)));
     }
 
     [Fact]

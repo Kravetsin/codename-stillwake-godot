@@ -19,6 +19,17 @@ public static class Daylight
     public static (float R, float G, float B) Backdrop(PlanetLooks.Look look, int time, Stillwake.Content.Sky.Cycle cycle) =>
         At(look.DayBackdrop, look.DuskBackdrop, look.NightBackdrop, time, cycle);
 
+    /// <summary>
+    /// How far across the sky the sun is at <paramref name="time"/> of <paramref name="cycle"/>, 0 rising to 1 setting; null while it is
+    /// down. It rises halfway through the dawn and sets halfway through the dusk, so it is low in their warm light (the user's, 2026-11-17).
+    /// </summary>
+    public static float? Sun(int time, Stillwake.Content.Sky.Cycle cycle)
+    {
+        int length = cycle.Length, rise = length - Dawn / 2, set = length - cycle.Night - Dusk / 2;
+        int since = ((time - rise) % length + length) % length, up = set + length - rise;
+        return since > up ? null : since / (float)up;
+    }
+
     private static (float R, float G, float B) At(
         (float R, float G, float B) day, (float R, float G, float B) dusk, (float R, float G, float B) night, int time, Stillwake.Content.Sky.Cycle cycle)
     {

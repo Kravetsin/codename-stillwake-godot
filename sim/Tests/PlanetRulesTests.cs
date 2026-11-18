@@ -96,18 +96,17 @@ public class PlanetRulesTests
     }
 
     [Fact]
-    public void OutsideOnAPlanetBareTheBreathIsPaidOnTheThinAirsBeatAndTheColdEveryBreath()
+    public void OutsideOnAPlanetBareTheBreathIsPaidOnTheThinAirsBeatAndTheMildDayCostsNoCold()
     {
-        // By day the strip's −30° on a bare 0°: 30 felt, 3 units over thin air's 5 breaths (2026-11-14-temperature-in-degrees).
+        // By day the strip's mild 12° is past no bare body's limit (2026-11-17-mild-climate): only thin air's beat is paid.
         int every = Strip.ThinAir!.Value, span = every * Content.Crew.BreathEvery;
         var w = Down(bare: true);
         var hero = w.On(1).Crew.HeroOf(0)!;
-        int cold = every * (Content.Temperature.BareLow - Strip.Temperatures[0]) * Content.Temperature.Bite / 1000;
-        Assert.Equal(3, cold);
+        Assert.True(Strip.Temperatures[0] > Content.Temperature.BareLow);
         w.Run(span);
-        Assert.Equal(Content.Crew.Lungs - 1 - cold, hero.Air);
+        Assert.Equal(Content.Crew.Lungs - 1, hero.Air);
         w.Run(2 * span);
-        Assert.Equal(Content.Crew.Lungs - 3 * (1 + cold), hero.Air);
+        Assert.Equal(Content.Crew.Lungs - 3, hero.Air);
     }
 
     [Fact]
@@ -190,12 +189,12 @@ public class PlanetRulesTests
     }
 
     [Fact]
-    public void APlanetCostsNoColdAtItsEdgeItsWholeGridIsItsField()
+    public void APlanetHasNoColdAtItsEdgeItsWholeGridIsItsField()
     {
         var w = Down();
         var crew = w.On(1).Crew;
         int cells = Width * 2 * Strip.Rows.Count;
-        Assert.All(Enumerable.Range(0, cells), cell => Assert.Equal(0, crew.EdgeCost(cell)));
+        Assert.All(Enumerable.Range(0, cells), cell => Assert.True(crew.TemperatureAt(cell) >= Strip.Temperatures[0], $"{cell}"));
         // At the strip's very corner, outside, the suit still pays its thin air alone.
         w.Do(new Enter(0)).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
         Assert.Equal(Scenario.Full - 1, crew.HeroOf(0)!.Air);

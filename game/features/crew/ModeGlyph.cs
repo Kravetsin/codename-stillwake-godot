@@ -55,7 +55,7 @@ public partial class ModeGlyph : CanvasLayer
     {
         if (!_plate.Visible) return;
         if (_since < double.MaxValue) _since += delta * 1000;
-        float scale = Slots.SizeOf(_ui.SlotScale.Get()) / 40f;
+        float scale = _ui.Slot / (float)Slots.Base;
         _plate.Scale = Vector2.One * scale;
         _plate.Position = (_arrow + FromArrow * scale).Round();
         _plate.QueueRedraw();

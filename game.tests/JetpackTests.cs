@@ -32,6 +32,23 @@ public class JetpackTests
     }
 
     [Fact]
+    public void AfloatTheBodysColdSlowsNeitherTheSwimNorTheFlight()
+    {
+        // Nothing weighs afloat (body-temperature): a chilled body walks slower, but swims and flies as a well one.
+        var (ship, h) = Adrift();
+        var chilled = HeroTests.Right with { Move = 300 };
+        Assert.Equal(h.X + Spec.Swim, h.Step(chilled, ship).X);
+        var (well, cold) = (h, h);
+        for (int i = 0; i < 60; i++)
+        {
+            well = well.Step(Worn with { Thrust = East }, ship);
+            cold = cold.Step(Worn with { Thrust = East, Move = 300 }, ship);
+        }
+        Assert.Equal(well, cold);
+        Assert.True(Hero.Cruising(cold.Vx, cold.Vy, East));
+    }
+
+    [Fact]
     public void ThrustGainsSpeedTheWayItPointsToFullSpeedInAboutHalfASecond()
     {
         var (ship, h) = Adrift();

@@ -122,7 +122,7 @@ public partial class MarkerLayer : CanvasLayer
     private void Show(List<Marker> markers, Point from, Rect2? prompt, double delta)
     {
         var screen = GetViewport().GetVisibleRect().Size;
-        float scale = _ui.Slot / (float)Slots.SizeOf(SlotScale.Normal);
+        float scale = _ui.Slot / (float)Slots.Base;
         float reach = (Radius + Chevron) * scale;
         // The marker's middle stays its reach and the HUD's margin in from the edge.
         float margin = Slots.Margin + reach;

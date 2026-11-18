@@ -14,6 +14,7 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
 | `BackdropAtlas.cs` | the pictures a land places, packed once into one texture at half the hi-res detail |
 | `BackdropLayer.cs` | one layer drawn once into its canvas item, its veil shader |
 | `BackdropView.cs` | the three layers made from a planet type, look and seed, laid each frame for the camera |
+| `FocusView.cs` | the sky and the land behind out of focus by the look's `Far`, the play plane sharp |
 
 ## Rules
 
@@ -39,6 +40,9 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
   with a wall or a back wall) averaged over `Reach` columns either side of the camera. A layer's ground row lies on the screen
   at `screen/2 + (line − camera) × zoom × Follows`, `Down × zoom` lower, across at its share of the camera. Its land goes on
   `Below` under its height. The near layer sits `Down` 56 lower, so the mid layer's groves show over it.
+- **Out of focus** (moving-sun): `FocusView`, on the stars' layer after all they draw, blurs the sky and the land behind by
+  the look's `Far` (0.4 mip levels at 1080 rows) through the screen's mipmaps; the play plane stays sharp. Hidden while sharp,
+  aboard and in space, so no screen is copied for it.
 
 ## Deliberately not handled
 
@@ -46,4 +50,4 @@ sky's pictures (`render/PlanetSky.cs`), both drawn by `render/Stars.cs`. Client 
 - Digging does not move the horizon: the rows are read once a showing, a crater is small beside ±100 columns.
 - No ease of the ground line over time: a column more moves the mean of 201 by a 201st of a step; an ease waits for frames that show one.
 - One recipe for every planet type, the first's; the test strip takes the first planet's plants.
-- A dev view zoomed out past 2048 px of the world across shows the tile end; a player's farthest zoom shows 1536.
+- A dev view zoomed out past 2048 px of the world across shows the tile end; a player's farthest zoom shows 1280.
