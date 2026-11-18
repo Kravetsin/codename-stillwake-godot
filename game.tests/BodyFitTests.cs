@@ -18,7 +18,7 @@ public class BodyFitTests
     /// <summary>Every helmet a hero wears, the items and the catchers' alike.</summary>
     public static TheoryData<string> Helmets() =>
     [
-        Stillwake.Content.Helmet.Basic, Stillwake.Content.Helmet.Quilted, Stillwake.Content.Helmet.Heavy,
+        .. Stillwake.Content.Items.All.Where(i => i.Equip == Stillwake.Content.Helmet.Slot).Select(i => i.Id),
         .. CreatureLooks.Heroes.Values.SelectMany(look => look.Gear).Select(gear => gear.Helmet).Distinct(),
     ];
 
@@ -34,8 +34,10 @@ public class BodyFitTests
     public void TheModesAreThePickedOnes()
     {
         Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
-        Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Quilted).Turn);
         Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+        // The raw painted helmets (gear-roles) sit as the skins do.
+        Assert.Same(BodyFit.Of("brassHelmet"), BodyFit.Of(Stillwake.Content.Helmet.Heated));
+        Assert.Same(BodyFit.Of("brassHelmet"), BodyFit.Of(Stillwake.Content.Helmet.HeatProof));
     }
 
     [Fact]

@@ -204,30 +204,30 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void AHelmetsCardSaysTheAirItAddsPastTheLungsInTheHudsUnits()
+    public void AHelmetsCardSaysTheAirItAddsPastTheLungsInTheHudsUnitsThenItsPartOfTheColdAndTheHeat()
     {
-        foreach (var helmet in new[] { Spec.Helmet.Basic, Spec.Helmet.Quilted, Spec.Helmet.Heavy })
+        foreach (var helmet in new[] { Spec.Helmet.Basic, Spec.Helmet.Heated, Spec.Helmet.HeatProof, Spec.Helmet.Heavy })
         {
             var card = ItemCards.Of(helmet);
-            Assert.Equal([($"+{Spec.Items.Get(helmet).Tank} O₂", "Air supply")], Said(card.Rows));
+            Assert.Equal(($"+{Spec.Items.Get(helmet).Tank} O₂", "Air supply"), Said(card.Rows)[0]);
             Assert.Equal((CardSign.Tank, CardGroup.Air), (card.Rows[0].Sign, card.Rows[0].Group));
         }
-        Assert.Equal("+25 O₂", ItemCards.Of(Spec.Helmet.Basic).Rows[0].Value);
-        Assert.Equal("+50 O₂", ItemCards.Of(Spec.Helmet.Quilted).Rows[0].Value);
+        Assert.Equal([("+25 O₂", "Air supply"), ("−50°", "Cold"), ("+10°", "Heat")], Said(ItemCards.Of(Spec.Helmet.Basic).Rows));
+        Assert.Equal([("+50 O₂", "Air supply"), ("−90°", "Cold"), ("0°", "Heat")], Said(ItemCards.Of(Spec.Helmet.Heated).Rows));
         Assert.Equal("+80 O₂", ItemCards.Of(Spec.Helmet.Heavy).Rows[0].Value);
     }
 
     [Fact]
-    public void ASuitSaysTheColdestAndTheHottestItWithstandsAndTheRegenSuitWhatAirItMakesAndWhatEachUnitCosts()
+    public void ASuitSaysItsPartOfTheColdAndTheHeatAndTheRegenSuitWhatAirItMakesAndWhatEachUnitCosts()
     {
         var suit = ItemCards.Of(Spec.Suit.Basic);
-        Assert.Equal([("−110°", "Withstands down to"), ("+50°", "Withstands heat up to")], Said(suit.Rows));
+        Assert.Equal([("−60°", "Cold"), ("+10°", "Heat")], Said(suit.Rows));
         Assert.Equal([(CardSign.Cold, CardGroup.Guard), (CardSign.Heat, CardGroup.Guard)], suit.Rows.Select(r => (r.Sign, r.Group)));
         Assert.Null(suit.Use);
-        Assert.Equal([("−110°", "Withstands down to"), ("+60°", "Withstands heat up to")], Said(ItemCards.Of(Spec.Suit.Heat).Rows));
+        Assert.Equal([("−50°", "Cold"), ("+20°", "Heat")], Said(ItemCards.Of(Spec.Suit.Heat).Rows));
         var regen = ItemCards.Of(Spec.Suit.Regen);
         // A unit a breath, a breath a second; 15 power-ticks a unit.
-        Assert.Equal([("−110°", "Withstands down to"), ("+50°", "Withstands heat up to"), ("up to 1 O₂/s", "Makes air"), ($"{Spec.Suit.RegenCost}", "Charge use")], Said(regen.Rows));
+        Assert.Equal([("−60°", "Cold"), ("+10°", "Heat"), ("up to 1 O₂/s", "Makes air"), ($"{Spec.Suit.RegenCost}", "Charge use")], Said(regen.Rows));
         Assert.Equal([CardSign.Cold, CardSign.Heat, CardSign.Regen, CardSign.Battery], regen.Rows.Select(r => r.Sign));
         Assert.Equal([CardGroup.Guard, CardGroup.Guard, CardGroup.Special, CardGroup.Special], regen.Rows.Select(r => r.Group));
         Assert.Equal(("per 1 O₂", true), (regen.Rows[3].Note, regen.Rows[3].Bolt));

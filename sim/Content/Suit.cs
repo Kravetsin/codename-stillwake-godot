@@ -41,8 +41,11 @@ public static class Helmet
     /// <summary>The heavy helmet (2026-11-03-the-heavy-helmet): more than twice the basic's air, for the jetpack's long flights; its blueprint sold on the black market.</summary>
     public static readonly string Heavy = "heavyHelmet";
 
-    /// <summary>The quilted helmet (2026-11-14-quilted-helmet-and-traced-art): between the basic and the heavy, sewn at the workbench round the basic one.</summary>
-    public static readonly string Quilted = "quiltedHelmet";
+    /// <summary>The heated helmet (gear-roles): copper coils keep the cold out, at the cost of the heavy one's air; made at the workbench in space.</summary>
+    public static readonly string Heated = "heatedHelmet";
+
+    /// <summary>The heat helmet (gear-roles): the heat suit's pair, its ceramic tiles keeping the heat out; made at the workbench on the planet.</summary>
+    public static readonly string HeatProof = "heatHelmet";
 
     /// <summary>The kind of equipment slot a helmet is worn in: the head.</summary>
     public static readonly string Slot = "head";

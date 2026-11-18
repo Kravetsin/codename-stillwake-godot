@@ -17,7 +17,6 @@ public static class ScannerInk
     {
         ["helmet"] = ("hero_scanner", 6.2, -1.9),
         ["heavyHelmet"] = ("hero_heavyHelmet_scanner", 6.2, -4.1),
-        ["quiltedHelmet"] = ("hero_quiltedHelmet_scanner", 6.2, -3),
         ["brassHelmet"] = ("hero_scanner", 6.2, -2.4),
         ["beakHelmet"] = ("hero_scanner", 6.2, -2.8),
         ["roninHelmet"] = ("hero_scanner", 6.2, -2.2),
@@ -27,6 +26,11 @@ public static class ScannerInk
         ["ramHelmet"] = ("hero_scanner", 6.2, -2.4),
         ["bathysphereHelmet"] = ("hero_scanner", 6.2, -2.9),
         ["paradeHelmet"] = ("hero_scanner", 6.2, -2.4),
+        ["heatedHelmet"] = ("hero_scanner", 6.2, -2.1),
+        ["heatHelmet"] = ("hero_scanner", 6.2, -2),
+        ["dustHelmet"] = ("hero_scanner", 6.2, -1.5),
+        ["hideHelmet"] = ("hero_scanner", 6.2, -2.5),
+        ["boilerHelmet"] = ("hero_scanner", 6.2, -2),
     };
 
     /// <summary>The scanner on <paramref name="helmet"/>'s picture; the basic helmet's for one without a row.</summary>

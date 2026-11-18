@@ -106,8 +106,12 @@ public static class BodyFit
         ["ramHelmet"] = Shell,
         ["bathysphereHelmet"] = Shell,
         ["paradeHelmet"] = Shell,
-        // The hood's last roll, under its plate, bends; its bottom fades into the suit rather than end in a line across it.
-        [Stillwake.Content.Helmet.Quilted] = Hood with { Fade = (13.6, 14.6) },
+        ["dustHelmet"] = Shell,
+        ["hideHelmet"] = Shell,
+        ["boilerHelmet"] = Shell,
+        // The raw painted helmets (gear-roles) are laid as the skins are.
+        [Stillwake.Content.Helmet.Heated] = Shell,
+        [Stillwake.Content.Helmet.HeatProof] = Shell,
         // The bell turns whole on its rubber gasket as the skins do on theirs, with no shoulder piece: it met no suit well.
         [Stillwake.Content.Helmet.Heavy] = Shell,
         ["catcherHood"] = Hood,

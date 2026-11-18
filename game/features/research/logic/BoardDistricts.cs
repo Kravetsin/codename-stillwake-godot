@@ -48,7 +48,7 @@ public static class BoardDistricts
         [
             "nail", "blastCharge", "grinder", "drill", "harpoon", "nailer", "pickaxe", "spear", "grapple", "sledgehammer", "screwdriver", "plasmaCutter",
             "fireAxe", "railgun", "powerDriver", "accumulator", "battery", "heatSuit", "jetpack", "cape", "regenSuit", "scanner", "suit",
-            "quiltedHelmet", "heavyHelmet", "helmetLamp", "helmet",
+            "heatedHelmet", "heatHelmet", "heavyHelmet", "helmetLamp", "helmet",
         ]),
     ];
 

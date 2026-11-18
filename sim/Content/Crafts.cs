@@ -42,10 +42,12 @@ public static class Crafts
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
-        // The basic helmet padded with the ruins' cloth, a welder's plate and two canisters' more air (2026-11-14-quilted-helmet-and-traced-art).
-        new("quiltedHelmet", [("helmet", 1), ("cloth", 3), ("plate", 2), ("canister", 2)], Ticks: 120),
+        // The basic helmet plated over and wound in heating coils (gear-roles): space parts only, so it is made before a landing.
+        new(Helmet.Heated, [("helmet", 1), ("coil", 2), ("wire", 2), ("plate", 2)], Ticks: 120),
         // Mica for its weave and the planet's alloy for its seams (2026-11-14-heat-limits): so after a landing.
         new("heatSuit", [("mica", 4), ("alloyScrap", 4), ("plate", 2), ("tube", 2)], Ticks: 240),
+        // Its pair (gear-roles): the basic helmet tiled in mica and the planet's alloy, behind heat glass.
+        new(Helmet.HeatProof, [("helmet", 1), ("mica", 2), ("alloyScrap", 2), ("glass", 1)], Ticks: 120),
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // The salvage tools (salvage-tools), all at the workbench: the grinder round a planet's motor, so after a landing;
         // the spear and the sledgehammer of the first parts.

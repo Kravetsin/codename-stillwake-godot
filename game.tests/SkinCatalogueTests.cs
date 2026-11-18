@@ -13,7 +13,7 @@ namespace Stillwake.Game.Tests;
 public class SkinCatalogueTests
 {
     private static IEnumerable<string> HelmetPictures =>
-        new[] { Content.Helmet.Basic, Content.Helmet.Heavy, Content.Helmet.Quilted }
+        Content.Items.All.Where(i => i.Equip == Content.Helmet.Slot).Select(i => i.Id)
             .Concat(Skins.All.Where(s => s.Kind == Skins.Head).Select(s => s.Id));
 
     [Fact]

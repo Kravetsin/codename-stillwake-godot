@@ -102,8 +102,8 @@ public interface ICrewQueries
     /// </summary>
     bool OpenSky(int cell);
     /// <summary>
-    /// The coldest hero <paramref name="peer"/> withstands, in degrees: its body's <c>Low</c>, or <c>Temperature.BareLow</c> with none,
-    /// <c>Cape.Warmth</c> lower with the cape on.
+    /// The coldest hero <paramref name="peer"/> withstands, in degrees: <c>Temperature.BareLow</c> plus its helmet's and body's
+    /// <c>Low</c> (gear-roles), <c>Cape.Warmth</c> lower with the cape on.
     /// </summary>
     int LowOf(int peer);
     /// <summary>
@@ -112,8 +112,8 @@ public interface ICrewQueries
     /// </summary>
     int Felt(int peer, int cell);
     /// <summary>
-    /// The hottest hero <paramref name="peer"/> withstands, in degrees (2026-11-14-heat-limits): its body's <c>High</c>, or
-    /// <c>Temperature.BareHigh</c> with none, <c>Cape.Warmth</c> lower with the cape on.
+    /// The hottest hero <paramref name="peer"/> withstands, in degrees (2026-11-14-heat-limits): <c>Temperature.BareHigh</c> plus its
+    /// helmet's and body's <c>High</c> (gear-roles), <c>Cape.Warmth</c> lower with the cape on.
     /// </summary>
     int HighOf(int peer);
     /// <summary>
@@ -601,12 +601,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     /// <summary><paramref name="beyond"/> cells past the field's line of the <paramref name="span"/> from it to the grid's edge, in thousandths, rounded down; none inside.</summary>
     private static int Share(int beyond, int span) => beyond <= 0 || span <= 0 ? 0 : Math.Min(1000, beyond * 1000 / span);
 
-    public int LowOf(int peer) => Caped(peer, SuitOf(peer)?.Low ?? Content.Temperature.BareLow);
+    public int LowOf(int peer) => Caped(peer, Content.Temperature.BareLow + (Worn(peer, Content.Helmet.Slot)?.Low ?? 0) + (Worn(peer, Content.Suit.Slot)?.Low ?? 0));
 
-    public int HighOf(int peer) => Caped(peer, SuitOf(peer)?.High ?? Content.Temperature.BareHigh);
+    public int HighOf(int peer) => Caped(peer, Content.Temperature.BareHigh + (Worn(peer, Content.Helmet.Slot)?.High ?? 0) + (Worn(peer, Content.Suit.Slot)?.High ?? 0));
 
-    /// <summary>The body slot's item hero <paramref name="peer"/> wears, its suit; null bare.</summary>
-    private Content.ItemSpec? SuitOf(int peer) => _items.WornIn(peer, Content.Suit.Slot) is { } body ? Content.Items.Get(body) : null;
+    /// <summary>The item hero <paramref name="peer"/> wears in the <paramref name="slot"/>, its helmet or suit; null bare.</summary>
+    private Content.ItemSpec? Worn(int peer, string slot) => _items.WornIn(peer, slot) is { } item ? Content.Items.Get(item) : null;
 
     /// <summary>A limit with the cape's warmth taken off it, cold's or heat's alike (2026-11-14-heat-limits).</summary>
     private int Caped(int peer, int limit) => _items.Equipped(peer, Content.Cape.Item) ? limit - Content.Cape.Warmth : limit;
