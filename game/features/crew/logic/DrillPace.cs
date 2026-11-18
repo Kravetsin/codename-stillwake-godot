@@ -11,7 +11,7 @@ public struct DrillPace
 
     /// <summary>
     /// A run tool's <paramref name="pace"/> in ticks as the body works it at <paramref name="work"/> thousandths
-    /// (<c>ICrewQueries.WorkOf</c>, body-temperature): pace × 1000 / work, rounded up.
+    /// (<c>BodyHeat.SpeedOf</c>, body-temperature): pace × 1000 / work, rounded up.
     /// </summary>
     public static int Slowed(int pace, int work) => (pace * 1000 + work - 1) / work;
 

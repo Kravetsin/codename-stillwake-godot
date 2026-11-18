@@ -63,7 +63,7 @@ public struct AxeSwing
     /// </summary>
     public readonly double Slow => _slow > 0 ? _slow : 1;
 
-    /// <summary>How many times its own a stroke lasts with the body working at <paramref name="work"/> thousandths (<c>ICrewQueries.WorkOf</c>).</summary>
+    /// <summary>How many times its own a stroke lasts with the body working at <paramref name="work"/> thousandths (<c>BodyHeat.SpeedOf</c>).</summary>
     public static double SlowOf(int work) => 1000.0 / Math.Max(1, work);
     /// <summary>Following another's hero, the last of its swings shown.</summary>
     private int? _followed;
