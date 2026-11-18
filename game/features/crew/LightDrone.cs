@@ -27,6 +27,7 @@ public partial class LightDrone : Node2D
 
     private static Texture2D? _body;
     private readonly DroneFloat _float = new();
+    private readonly DroneHolo _sign = new();
     /// <summary>How long it takes to turn most of the way to a new aim, in ms.</summary>
     private const double TurnMs = 90;
 
@@ -40,7 +41,12 @@ public partial class LightDrone : Node2D
         (ZAsRelative, ZIndex) = (false, Render.Layers.Drones);
         Visible = false;
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+        AddChild(_sign);
     }
+
+    /// <summary>Shows the gesture playing on its hero as a hologram over it (<see cref="DroneSign"/>), after <see cref="Follow"/>; none hides it.</summary>
+    public void Sign((GestureMotion Motion, double Ms, Vector2 At)? gesture) =>
+        _sign.Show(gesture, Vector2.FromAngle(_angle) * LensAhead, Vector2.FromAngle(_angle), _timeMs);
 
     /// <summary>Whether it scans rather than shines: the scanner worn, not the drone.</summary>
     public bool Scanning { get; set; }

@@ -1704,7 +1704,11 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend);
         _sealBent.Show(_fit.SealBy(_gaze));
-        if (_drone.Visible) _drone.Follow(_helmet.GlobalPosition, hero.Facing, HeadLampToward, elapsedMs, _timeMs);
+        if (_drone.Visible)
+        {
+            _drone.Follow(_helmet.GlobalPosition, hero.Facing, HeadLampToward, elapsedMs, _timeMs);
+            _drone.Sign(signing ? Gesture : null);
+        }
         ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
