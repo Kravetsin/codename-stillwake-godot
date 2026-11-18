@@ -50,7 +50,8 @@ public static class ItemCards
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             if (Spec.Foods.Of(item) is { } food) return card with { Food = true, Rows = FoodRows(food, null) };
             if (Litres.In(item) != null) return card with { Liquid = true, Rows = LiquidRows(item, 1) };
-            return Spec.Items.Get(item).Equip == null ? card : Worn(card);
+            // The light drone is worn nowhere now (drone-companion), yet its card is still its light's.
+            return Spec.Items.Get(item).Equip == null && item != Spec.LightDrone.Item ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), key, price);
         if (item == Spec.Grapple.Item) return new ItemCard(item, name, kind, GrappleTiles(), key, price);

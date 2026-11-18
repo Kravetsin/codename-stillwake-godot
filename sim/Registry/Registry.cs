@@ -83,7 +83,7 @@ public sealed class Registry
         Grid = new GridModule();
         Sky = new SkyModule(Knowledge);
         Rooms = new RoomsModule(Grid);
-        Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
+        Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge, Players);
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Pipes = new PipesModule(Grid, Items, Items);

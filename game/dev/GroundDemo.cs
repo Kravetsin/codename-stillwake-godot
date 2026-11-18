@@ -63,15 +63,16 @@ public sealed class GroundDemo(string mode)
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
         var slots = new JsonArray();
-        int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount), belt = Spec.Inventory.Slots + 2;
+        int belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? module != null ? Testbed.FittedDrill(module) : Stack(Spec.Weapons.Axe.Item)
                 : i == 1 ? Stack(Spec.Weapons.Drill.Item)
                 : i == 2 && module != null ? Stack(Spec.Weapons.Axe.Item)
-                : i == lamp ? Stack(Spec.LightDrone.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        // The light drone paired, its lamp lighting the dig (drone-companion).
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         return World.Load(root.ToJsonString(), modules());
     }
 

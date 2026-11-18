@@ -193,8 +193,8 @@ public class ItemCardTests
         Assert.Equal([CardGroup.Light, CardGroup.Light, CardGroup.Special], lamp.Rows.Select(r => r.Group));
         Assert.True(lamp.Rows[2].Bolt);
         Assert.Null(lamp.Draw);
-        // Worn, it takes no key.
-        Assert.Null(lamp.Use);
+        // Paired by a right click in hand (drone-companion).
+        Assert.Equal("RMB", lamp.Use?.Key);
         // A battery's number is its charge, set per stack: no rows.
         Assert.True(ItemCards.Of("battery").Worn);
         Assert.Empty(ItemCards.Of("battery").Rows);

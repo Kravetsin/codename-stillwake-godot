@@ -258,8 +258,8 @@ public static class Items
         new("pickaxe", 1, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
-        // A soft warm light round the head (0077): free, drawing no power.
-        new("lightDrone", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
+        // The drone a hero pairs with once, by a right click in hand (drone-companion): worn nowhere, the item gone as it pairs.
+        new("lightDrone", 1, Gear: true, Group: ItemGroup.Tool),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
@@ -299,7 +299,10 @@ public static class Inventory
     /// <summary>The most an inventory's own slots can come to (2026-10-30-room-upgrades); <see cref="Start"/> are open at first, the rest by <see cref="Upgrades"/>.</summary>
     public const int Slots = 38;
 
-    /// <summary>The own slots open from the start: the hotbar and two rows.</summary>
+    /// <summary>
+    /// The own slots open once a hero pairs with its drone (drone-companion): the hotbar and two bag rows. Before it, the hotbar
+    /// alone (<see cref="Hotbar"/>); creative opens all.
+    /// </summary>
     public const int Start = 27;
 
     /// <summary>The belt slots open from the start, of those in <see cref="Equipment"/>.</summary>
@@ -315,7 +318,7 @@ public static class Inventory
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
-    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Mount, Cape.Slot];
+    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Cape.Slot];
 
     /// <summary>
     /// The trash (trash-slot), after the equipment: a stack moved in replaces what it held, which is gone. Nothing but a move

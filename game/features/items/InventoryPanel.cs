@@ -208,6 +208,12 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>This player's hero's ticks left before another canister (canister-mark): its slots sweep round while it cools. Set by <c>Main</c>.</summary>
     public Func<int>? CanisterIn { get; set; }
 
+    /// <summary>Whether this player has paired with its drone (drone-companion): before it, its bag rows are drawn shut. Set by <c>Main</c>.</summary>
+    public Func<bool>? Paired { get; set; }
+
+    /// <summary>A bag slot shut till the drone is paired: there, dark, holding nothing.</summary>
+    private static readonly Color ShutLook = new(1, 1, 1, 0.3f);
+
     private readonly CanisterCooling _cooling = new();
     private readonly FlatBlink _refused = new();
     private bool _coolShown;
@@ -367,7 +373,7 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>
     /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058), in rows by where it
-    /// is worn (<see cref="Equipment.Rows"/>): the head with the helmet's mount, the body with the back and the cape, the
+    /// is worn (<see cref="Equipment.Rows"/>): the head, the body with the back and the cape, the
     /// belt's three; each kind under its name, no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so
     /// the hands have no slot.
     /// </summary>
@@ -636,18 +642,22 @@ public partial class InventoryPanel : CanvasLayer
         var held = Held;
         // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).
         var carried = held is { } inHand ? reading.At(inHand.Place)?.Item : null;
+        bool paired = Paired?.Invoke() ?? true;
         foreach (var box in _slots)
         {
             var p = box.Place;
-            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
-            box.Visible = _items!.SlotOpen(_client!.Id, p);
-            var stack = reading.At(p);
+            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades); the bag rows the drone opens are, shut.
+            bool open = _items!.SlotOpen(_client!.Id, p), shut = Hotbar.Shut(p, open, paired);
+            box.Visible = open || shut;
+            // What a closed slot holds (creative turned off) waits there unseen till the pairing.
+            var stack = shut ? null : reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
                 stack == null || p.Crate != null ? SlotMark.None : reading.MarkOf(stack.Item),
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
+            if (shut) box.Modulate = ShutLook;
         }
         // The trash's frame shows with its slot: in creative mode only (trash-slot).
         _trash.Visible = _trashBox.Visible;

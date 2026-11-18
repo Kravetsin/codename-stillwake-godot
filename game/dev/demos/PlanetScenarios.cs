@@ -306,12 +306,11 @@ public sealed class OreShineScenario : DevScenario
         var root = JsonNode.Parse(world.Save())!;
         var slots = new JsonArray();
         int Worn(string slot) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(slot);
-        // A lamp shines only on a helmet: both worn, or the helmet alone.
+        // The helmet worn; the drone paired, or not with =off.
         for (int i = 0; i < Content.Inventory.Total; i++)
-            slots.Add(i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
-                : i == Worn(Content.Helmet.Mount) && Args.Given("--ore-shine") != "off" ? new JsonObject { ["item"] = Content.LightDrone.Item, ["count"] = 1 }
-                : null);
+            slots.Add(i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        if (Args.Given("--ore-shine") != "off") root["slices"]!["players"]!["drones"] = new JsonArray(0);
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 
@@ -390,9 +389,9 @@ public sealed class LakeScenario : DevScenario
         for (int i = 0; i < Content.Inventory.Total; i++)
             slots.Add(i < tools.Length ? new JsonObject { ["item"] = tools[i], ["count"] = 1 }
                 : i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
-                : i == Worn(Content.Helmet.Mount) ? new JsonObject { ["item"] = Content.LightDrone.Item, ["count"] = 1 }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 

@@ -52,11 +52,12 @@ public static class Crafts
 
     /// <summary>
     /// Every place of <paramref name="station"/>'s recipes' grid, row by row: a craft in the place content gives it,
-    /// or null for an empty one; whole rows, <see cref="RowsLeast"/> at least.
+    /// or null for an empty one; whole rows, <see cref="RowsLeast"/> at least. The light drone's place is empty for a player
+    /// <paramref name="paired"/> with its drone already: one is all a player has (drone-companion).
     /// </summary>
-    public static IReadOnlyList<string?> Places(Content.Station station) => Enumerable.Range(0, Math.Max(RowsLeast, station.Rows.Count))
+    public static IReadOnlyList<string?> Places(Content.Station station, bool paired = false) => Enumerable.Range(0, Math.Max(RowsLeast, station.Rows.Count))
         .SelectMany(r => Enumerable.Range(0, Columns).Select(c =>
-            r < station.Rows.Count && c < station.Rows[r].Count ? station.Rows[r][c] : null))
+            r < station.Rows.Count && c < station.Rows[r].Count && !(paired && station.Rows[r][c] == Content.LightDrone.Item) ? station.Rows[r][c] : null))
         .ToList();
 
     /// <summary>What one unit of <paramref name="craft"/> costs, item by item, against what is <paramref name="carried"/>.</summary>

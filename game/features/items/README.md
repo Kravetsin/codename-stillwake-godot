@@ -57,13 +57,14 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **Every shift that sends flies** (0075): `Clicks.On`/`OnSocket` decide its `Flight`, at most `Fx.MostRibbons`.
 - **One hand** (0022): 1–9 and the wheel choose a hotbar slot and free the hand; Tab opens the inventory; Q throws the
   chosen stack (not while a card is in hand). `Ui.Wielded` is the chosen item while the hand is free (0034).
-  Esc or passing out closes the inventory and crate, before the menu. `Ui.OpenCrate` is set by crew's E within reach.
+  Esc or passing out closes the inventory and crate first. `Ui.OpenCrate` is set by crew's E within reach.
 - **Layout and size** (0058): hotbar top-left, gauges under it, then the grid, in creative the trash under it
-  (trash-slot), the open machine under them, equipment at the right edge; every slot `Ui.Slot` wide, rebuilt when
-  the setting changes. Tints by `Slots.TintOf`: tools amber, worn items green.
+  (trash-slot), the open machine under them, equipment at the right edge; every slot `Ui.Slot` wide, rebuilt on
+  the setting. Tints by `Slots.TintOf`: tools amber, worn items green.
 - **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
   dim. Its left key (`LooksButton`) turns the screen to **Appearance** (hero-skins), crew's tab, which `Main` sets as
   `Appearance`; unset, no key.
+- **Shut bag** (drone-companion): unpaired, rows empty, dimmed (`Hotbar.Shut`).
 - **Look** (0074): hotbar, bag, equipment in the wrist's metal, content fading in; a machine's window a hologram in
   its station's tone, beamed from it (`MachineHolo`, machine-holograms).
 - **One machine frame** (0058): name, and for a powered one a bolt with its power (`IPowerQueries.Draw`, modules in),
@@ -77,23 +78,21 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **A tool in a slot** (tool-icons): its icon fills the slot (`Slots.IconBox`); any other item sits in the inset.
 - **Station marks** (0097): an open station marks the slots it works (`Smelts`, `Burns`, `Grows`), the card what
   it makes; an empty one shows the mark's ghost, lit while a fitting stack is carried.
-- **Sorting** (0008, 0081): the bag's or a crate's key sends `Sort`, shown at once with a sweep; a picked stack is put
-  back first; one whose slot changed is let go (`Clicks.StillHeld`).
+- **Sorting** (0008, 0081): the bag's or a crate's key sends `Sort`, shown at once; a picked stack is put back first; one whose slot changed is let go (`Clicks.StillHeld`).
 - **Stash** (2026-11-06-quick-stash): `Bind.Stash` or the key under sort sends `Stash` when `StashPlan` moves anything;
-  icons fly from the chest to each crate. Alt+click marks an item kept (`Ui.Favourites`, this machine's): a star on it.
-- **The one tooltip** (0073): a stack's card follows the pointer. A tool shows its picture large
-  (tool-card-pictures), its `ToolStats` as icon rows in groups (tool-card-rows), boosts in the module colour (0098), a
+  icons fly from the chest to each crate. Alt+click marks an item kept (`Ui.Favourites`, local): a star on it.
+- **The one tooltip** (0073): a stack's card follows the pointer. A tool shows its picture large (tool-card-pictures), its `ToolStats` as icon rows in groups (tool-card-rows), boosts in the module colour (0098), a
   charge its blast; food, gear, a canister and a bottle a picture and rows (food-and-gear-cards, liquid-cards); a battery its charge (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter), an empty one its picture.
 - **Floor stacks** (loot-pieces): 1–3 small objects (`LootLooks`), unlit, side by side when still; over
   machines, under heroes. In the air they turn about their middle; landing squashes (`FloorFeel`) and tips each onto its
-  nearest side (`LootPose`); a bounce clinks. A warm outline near the hero; seeds, crystals glint. None in a creature or body.
+  nearest side (`LootPose`); a bounce clinks. Warm outline near the hero; seeds, crystals glint. None in a creature or body.
 - **Pick-up**: a stack the hero's body overlaps is picked up unless refused, flying home; loot nobody dropped within
   `Floor.PickUpReach` too, pulled in; a body's all within `Floor.BodyReach`, one line; never while passed out (0061).
 - **Own catches** (0075): a grab or net `Collect` seen in flight then gone has run; `CaughtFrom` counts each item
   where its piece was drawn (`NetHolds`), only when new since it set off: a refused one shows nothing.
 - **The counts** (2026-11-06-gain-spots): a column of "icon +n" beside each place that gave, a gain within `GainSpots.Near`
-  of one showing going onto it; each a spark into the chest. Digs, fellings, refunds: `ItemsModule.Gains` (`OwnGains`).
+  of one showing going onto it; each a spark into the chest. Digs, fellings, refunds too (`OwnGains`).
 
 ## Main's hook
 

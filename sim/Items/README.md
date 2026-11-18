@@ -20,7 +20,7 @@
 
 Every stack of items (0008).
 
-- **Depends on:** `Grid` (machines, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
+- **Depends on:** `Grid` (machines, floors), `Rooms` (space, open cells), `Knowledge` (`Obtain`), `Players` (`HasDrone`).
 - **State** (saved, sorted lists; derived only `Gains`): `Inventories` by peer, once changed; `Crates` holding something,
   by id; `Creative` peers; `Floor` (`FloorStack`, id order), `NextFloorId`; `Ticks`; `Kept` (0062); `Running`, a `Runner` a
   peer (0055); `Fitted` by machine, module (0086) and `Hands` (tool-in-hand), saved only when set.
@@ -29,20 +29,20 @@ Every stack of items (0008).
 ## Rules
 
 - **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047), then the
-  trash (trash-slot); `SlotOpen` says which are open (upgrades). A `Stack`: `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
+  trash (trash-slot); `SlotOpen` says which are open. A `Stack`: `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
+- **Own slots** (drone-companion): unpaired (`HasDrone`) the hotbar; paired `Inventory.Start` and bag upgrades.
+  A shut slot keeps its stack, unseen by give, take, sort, stash.
 - **Per-item values** (0053, 0098): `Charge` (thousandths of a power-tick) and `Module` (a module on a
-  tool among its `Hosts`) live on a stack of one and go with it, the floor included. Stacks merge only
-  when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none.
-  Saved if set.
+  tool among its `Hosts`) live on a stack of one and go with it. Stacks merge only
+  when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none. Saved if set.
 - **Tools work in hand** (tool-in-hand): `ToolStack(peer, item)` is the hand's (`Wielding`) stack of that item, else none.
   `ToolStats.Of(stack)` folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)`: that stack's, else the weapon's.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
-  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn (2026-10-27-suits-are-worn).
+  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn.
 - **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `Caught`, `DropAt` for `Nobody` count, `GiveWhatFits`
   what it gave; the rest moves or refunds.
-- **Gains** (head-tally): `GiveOrDrop` notes what went in at its cell in unsaved `Gains`, a grab
-  not; `NoteDelivered` a good.
+- **Gains** (head-tally): `GiveOrDrop` notes what went in at its cell in unsaved `Gains`, a grab not; `NoteDelivered` a good.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full. `TakeStock`/`GiveStock`: the same over own slots, then each crate (craft-from-crates).
@@ -52,30 +52,26 @@ Every stack of items (0008).
   items with a `Capacity` (`items.notBattery`, 0053); an arc bench's vise only a tool a module fits (`items.notTool`,
   0099); one that `Takes` an item only it; a `SlotTakes` slot (a bay's fuel) only with its item, checked first, deliveries
   too (`items.notTaken`). Onto the trash it replaces what it held, lost.
-- **Sort** (0008): the bag past the hotbar, or every slot of a `crate`. Alike
-  stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
-- **Stash** (quick-stash): bag stacks not in `Keep` move into each `Container` within `StashReach` of
-  `Cell`, through walls, that holds the item, nearest then by id.
+- **Sort** (0008): the bag past the hotbar, or every slot of a `crate`. Alike stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
+- **Stash** (quick-stash): bag stacks not in `Keep` move into each `Container` within `StashReach` of `Cell`,
+  through walls, holding the item, nearest then by id.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
-  first belt battery holding it; creative, nothing.
+  first belt battery holding it; creative none.
 - **Creative**, a peer's (creative-per-player): `Take*` take nothing, return it whole; `ShortOf*` pass; its slots and trash open.
 - **Running** (0055): `Run(Item, On)`, one thing a hero. Each tick, in peer order, a run draws its stack's boosted `Draw`
-  through `Drain`; it stops when its belt cannot pay or its hand lets go, or as its hero passes out or leaves (`StopRunning`).
+  through `Drain`; stopping when its belt cannot pay, its hand lets go, or its hero passes out or leaves (`StopRunning`).
 - **Modules** (0086): `Fit` takes a module out of every slot into one of its `Hosts`, one of each kind a machine;
   `Unfit` returns it. `Boost(machine)` sums their trades in thousandths over 1000 (`Gain` rounds down, `Cost` up).
   At an arc bench (0099) `Fit`/`Unfit` act on the vise's tool stack; its `Fitted` stays empty.
-- **`Spill(machine, cell)`** (unified-damage): a breaking machine's slots, then its modules, laid at the cell for
-  anyone; its `Kept` forgotten.
+- **`Spill(machine, cell)`** (unified-damage): a breaking machine's slots, then modules, laid at the cell for anyone; `Kept` forgotten.
 - **Inputs remember** their last item (`KeptAt`) till a hand empties one (0062).
-- **Deliveries** (0062) go where `Receiving` says, a fuel to a `FuelSlot`. Outputs are the slots past the inputs (0057).
-- **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, run and hand on;
-  `Inherit` keeps `Creative`.
+- **Deliveries** (0062) go where `Receiving` says, a fuel to a `FuelSlot`.
+- **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, run and hand; `Inherit` keeps `Creative`.
 - **The floor**: a drop is thrown the way its hero faces. Each tick, by id: a stack
-  inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell
-  first, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall; else falls (`Fall`), bounces (`BounceOf`, loot-pieces), slides. Gone past the grid's edge or `Lasts`
+  inside anything built is pushed out breadth-first to `PushReach`, a room's open cell first, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall; else falls (`Fall`), bounces (`BounceOf`, loot-pieces), slides. Gone past the grid's edge or `Lasts`
   after a drop. Alike stacks resting in a cell merge, the later time kept.
   `Spray` (kill-feel): loot a unit a piece up to `SprayMost` (a burst's `BurstPieces`), away from the striker.
-- **Machines and ladders hold no stack**: one falls through. A stack is a point on a cell's top, never climbing (0106).
+- **Machines and ladders hold no stack**: one falls through; a stack is a point on a cell's top (0106).
 - **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks; a drone's `Lift` takes one whole.
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
   `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative, none. Each is gone

@@ -36,7 +36,7 @@ public partial class AsteroidDemo : CanvasLayer
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
     /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>, the module fitted into it instead, a comma list putting the rest on the slots after the axe), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
     /// With <paramref name="fullBelt"/> (<c>--belt</c>, energy-ring) all three belt slots are open and worn: a battery near flat, a full one and an
-    /// accumulator half full, with the grinder and a spare battery on the hotbar. With <paramref name="scanner"/> (<c>--scanner</c>) the light drone is worn, its scanner
+    /// accumulator half full, with the grinder and a spare battery on the hotbar. With <paramref name="scanner"/> (<c>--scanner</c>) the light drone is paired, its scanner
     /// mode known (F switches to it), and the rocks are <see cref="Wrecks"/>.
     /// </summary>
     public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null, bool fullBelt = false, bool scanner = false)
@@ -44,7 +44,6 @@ public partial class AsteroidDemo : CanvasLayer
         var root = JsonNode.Parse(world.Save())!;
         int belt = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Charge.Belt);
         int back = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf("back");
-        int mount = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount);
         string[] helds = held?.Split(',') ?? [];
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
@@ -54,7 +53,6 @@ public partial class AsteroidDemo : CanvasLayer
                 : i >= 2 && i <= helds.Length ? new JsonObject { ["item"] = helds[i - 1], ["count"] = 1 }
                 : i == 9 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
-                : scanner && i == mount ? new JsonObject { ["item"] = Spec.LightDrone.Item, ["count"] = 1 }
                 : i == Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot) ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * (fullBelt ? 60 : Charge) }
@@ -64,6 +62,7 @@ public partial class AsteroidDemo : CanvasLayer
                 : fullBelt && i == 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        if (scanner) root["slices"]!["players"]!["drones"] = new JsonArray(0);
         if (fullBelt || scanner)
         {
             var granted = root["slices"]!["knowledge"]!["granted"]!.AsArray();

@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Knowledge;
+using Stillwake.Sim.Players;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim.Items;
@@ -133,9 +134,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
+    private readonly IPlayersQueries _players;
 
-    /// <summary>An inventory's own slots open now, before its equipment: what giving, taking and picking up use (2026-10-30-room-upgrades).</summary>
-    private int Own(int peer) => OpenOf(Content.Upgrades.Bag, Content.Inventory.Start, Content.Inventory.Slots, Creative(peer));
+    /// <summary>
+    /// An inventory's own slots open now, before its equipment: what giving, taking and picking up use (2026-10-30-room-upgrades).
+    /// The hotbar alone till its player pairs with its drone (drone-companion), then the bag rows and what upgrades add; creative, all.
+    /// </summary>
+    private int Own(int peer) =>
+        Creative(peer) || _players.HasDrone(peer) ? OpenOf(Content.Upgrades.Bag, Content.Inventory.Start, Content.Inventory.Slots, Creative(peer)) : Content.Inventory.Hotbar;
 
     /// <summary>The first <paramref name="start"/> slots of a kind and what upgrades add; with <paramref name="all"/> (a creative peer's) all <paramref name="most"/>.</summary>
     private int OpenOf(string kind, int start, int most, bool all) =>
@@ -161,8 +167,9 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     public override string Id => "items";
 
-    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps, IPlayersQueries players)
     {
+        _players = players;
         _grid = grid;
         _rooms = rooms;
         _knowledge = knowledge;

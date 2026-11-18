@@ -135,6 +135,17 @@ public static class Report
     }
 
     /// <summary>
+    /// <c>PairDrone</c> when the sim would take it now (<paramref name="problem"/>, <c>PairProblem</c>'s, is null) with none in
+    /// <paramref name="inFlight"/>; null otherwise: a second click before the first lands spends no second drone (drone-companion).
+    /// </summary>
+    public static PairDrone? PairOf(string? problem, IReadOnlyList<Command> inFlight)
+    {
+        foreach (var c in inFlight)
+            if (c is PairDrone) return null;
+        return problem == null ? new PairDrone() : null;
+    }
+
+    /// <summary>
     /// <c>SuitMode</c> flipping the suit's mode on a press (V, its edge key; 2026-11-03-the-regen-suit): from the last one in
     /// <paramref name="inFlight"/>, sent and not yet applied, else from the sim's <paramref name="on"/>; switching on only
     /// where <paramref name="problem"/>, <c>SuitModeProblem</c>'s, is null. Off is always sent.
