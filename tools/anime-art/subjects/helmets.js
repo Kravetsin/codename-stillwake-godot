@@ -6,7 +6,7 @@
 // painted raw (suits.js).
 (function () {
 'use strict';
-/** Where each sits on the head (hero.js's 13 × 12 box), in its pixels: its front edge, its top and how tall it stands, the seal on the neck, the bell's collar on the shoulders. */
+/** Where each sits on the head (hero.js's 13 × 12 box), in its pixels: its front edge, its top and how tall it stands, the seal on the neck. */
 const HEAD = {
   helmet: { right: 13.1, top: 0, height: 13.3 },
   heavyHelmet: { right: 13.9, top: -2, height: 17 },
@@ -21,7 +21,7 @@ function worn(name) {
 }
 
 Subjects.helmets = function () {
-  // Their shells, the basic one's collar and the bell's collar and seal are painted raw (suits.js); the glass is drawn here.
+  // Their shells, the basic one's collar and the bell's seal are painted raw (suits.js; its collar empty, bell-no-skirt); the glass is drawn here.
   const basic = worn('helmet'), bell = worn('heavyHelmet');
   out('hero_visor', HeroKit.cut(basic.draw, basic.glass, [])[1]);
   out('hero_helmet', Anime.bake({ w: 13, h: 12, light: [0, -1], ...CARD, draw: basic.draw }));
