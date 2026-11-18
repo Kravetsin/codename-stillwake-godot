@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>What is new on the board: batches of finds, each with the cause it came with (docs/plans/board-islands.md), and the market's orders.</summary>
+/// <summary>What is new on the board: batches of finds, each with the cause it came with (board-islands), and the market's orders.</summary>
 public sealed class BoardSeenTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

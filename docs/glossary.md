@@ -79,8 +79,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - ферментёр, перегонный аппарат / fermenter → machine `fermenter` (process `ferment`): biomass and fat into its 20 l fuel store, the only way to biofuel → Crafting, Fuel
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
-- заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)
+- доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardLayout`, `BoardDistricts`, `BoardView` (client) → Research. Fixed district islands (board-islands); the board learns, the black market sells
+- район, силуэт, находки, цель / district, silhouette, finds, goal → `BoardDistricts`, `BoardView` (almost), `BoardSeen` (batches as cards), `BoardChain` (a pinned goal), `BoardPencil` (how far a silhouette has come) (client)
 - найдено, счёт / obtained, count → `Knowledge.Obtained` (`Tally`), `ObtainedOf`, counted in `Items` → Knowledge, Items
 - понять / understood (the rule: one of each part, a machine for a craft) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
 - продано / sold → `Knowledge.Sold`, `SoldOf`, counted at a capsule's launch → Knowledge, Trade

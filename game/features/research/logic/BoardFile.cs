@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Research;
 public sealed record BoardKept(List<string>? Seen = null, int? Orders = null, List<string>? Marked = null, List<BoardBatch>? Batches = null, string? Pinned = null);
 
 /// <summary>
-/// What this machine's player keeps of a world's board, in a file of its own (docs/plans/board-islands.md).
+/// What this machine's player keeps of a world's board, in a file of its own (board-islands).
 /// It is a convenience: a lost or bad file means everything known is seen, a failed write that it will be.
 /// </summary>
 public static class BoardFile

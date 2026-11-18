@@ -11,7 +11,7 @@ public sealed record BoardFrame(string Id, string District, int Depth, double X,
 public sealed record BoardBlock(string District, double X, double Y, double Wide, double Tall);
 
 /// <summary>
-/// Where everything on the board stands (docs/plans/board-islands.md), a pure function of Content, built once a run: every thing a fixed frame in its
+/// Where everything on the board stands (board-islands), a pure function of Content, built once a run: every thing a fixed frame in its
 /// district's block from the start, so a find never moves anything. In a block, a column for each depth it holds, shallow to deep, rows in the
 /// table's order, at most <see cref="Rows"/> a column; blocks side by side along their lane, lanes one under another.
 /// </summary>

@@ -5,7 +5,7 @@ using Stillwake.Sim;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>How a frame on the board shows (docs/plans/board-islands.md).</summary>
+/// <summary>How a frame on the board shows (board-islands).</summary>
 public enum BoardState
 {
     /// <summary>A dim «?»: nothing of it had yet.</summary>
@@ -66,7 +66,7 @@ public sealed class BoardRead
     private static IEnumerable<int> Open(World world) => world.Surfaces.Where(s => !s.Closed).Select(s => s.Id);
 }
 
-/// <summary>Decides how each frame shows (docs/plans/board-islands.md): known if obtained or granted, almost if its pencil has started, else unknown.</summary>
+/// <summary>Decides how each frame shows (board-islands): known if obtained or granted, almost if its pencil has started, else unknown.</summary>
 public static class BoardView
 {
     public static BoardState StateOf(string id, BoardRead read) =>

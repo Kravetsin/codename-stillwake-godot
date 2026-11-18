@@ -7,7 +7,7 @@ using Surfaces = Stillwake.Content.Surfaces;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A goal's chain down to raw, the frames' three states, and a machine standing on any surface (docs/plans/board-islands.md).</summary>
+/// <summary>A goal's chain down to raw, the frames' three states, and a machine standing on any surface (board-islands).</summary>
 public class BoardChainTests
 {
     private static BoardRead Read(string[] found, string[] granted, params string[] standing) =>

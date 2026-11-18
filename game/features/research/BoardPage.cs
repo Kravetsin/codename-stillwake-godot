@@ -12,7 +12,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The tablet's first page: the board as fixed district islands (docs/plans/board-islands.md). Every thing has its frame in its district's block from the
+/// The tablet's first page: the board as fixed district islands (board-islands). Every thing has its frame in its district's block from the
 /// start (<see cref="BoardLayout"/>), unknown, almost or known (<see cref="BoardView"/>); hovering lights its ties, a toggle its whole chain. Finds arrive as
 /// batches in the list beside it (<see cref="BoardSeen"/>), new frames glowing until hovered. A click picks and says what is known of it in the strip below,
 /// whose pin button makes it the goal: its chain glows and its missing pieces are listed (<see cref="BoardChain"/>). Dragged and zoomed

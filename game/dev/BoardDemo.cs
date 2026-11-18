@@ -10,7 +10,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --board</c>: the board on the tablet, a world's counts seeded through its save and nothing obtained during the run (docs/plans/board-islands.md).
+/// <c>-- --board</c>: the board on the tablet, a world's counts seeded through its save and nothing obtained during the run (board-islands).
 /// Bare it is all «?»; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: finds that light the
 /// key (with something seeded; 6 with <c>=burst</c>, 15 with <c>=late</c>), T, a frame pointed at, the newest find clicked, a silhouette clicked, the wheel
 /// out, the board dragged, T again, a press on the key; each step is printed with its time. <c>=bought</c> has everything found and the solar panel bought:

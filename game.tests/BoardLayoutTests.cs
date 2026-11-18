@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The board's fixed islands (docs/plans/board-islands.md): every thing in one district, a frame each, worked out from Content alone.</summary>
+/// <summary>The board's fixed islands (board-islands): every thing in one district, a frame each, worked out from Content alone.</summary>
 public class BoardLayoutTests
 {
     private static readonly BoardLayout Layout = BoardLayout.Main;

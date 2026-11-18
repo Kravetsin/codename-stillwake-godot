@@ -1,6 +1,6 @@
 # The board names what was never had
 
-- Status: accepted
+- Status: accepted; superseded in part by [board-islands](2026-11-18-board-islands.md)
 - Date: 2026-11-08
 - Amends [board-thoughts](2026-11-02-board-thoughts.md) and [the pile](2026-11-02-board-pile.md): what was never had is no longer hidden
 

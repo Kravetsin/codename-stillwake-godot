@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Research;
 public sealed record BoardDistrict(string Id, int Lane, IReadOnlyList<string> Things);
 
 /// <summary>
-/// The board's districts (docs/plans/board-islands.md), in flow order, as ids only: client presentation, so a table edit never touches the sim. Whoever adds a
+/// The board's districts (board-islands), in flow order, as ids only: client presentation, so a table edit never touches the sim. Whoever adds a
 /// thing to Content adds it here; <c>BoardDistrictsTests</c> names anything left out or listed twice. Contraband and loot no recipe uses go to raw.
 /// </summary>
 public static class BoardDistricts

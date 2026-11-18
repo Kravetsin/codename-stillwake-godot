@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Research;
 public sealed record BoardChainOf(IReadOnlyList<string> Ids, IReadOnlyList<(string From, string To)> Ties);
 
 /// <summary>
-/// What a thing rests on, down to raw (docs/plans/board-islands.md): a recipe's parts and one machine making it, a smelted item's one source and one machine
+/// What a thing rests on, down to raw (board-islands): a recipe's parts and one machine making it, a smelted item's one source and one machine
 /// working it; one that was had or stands, else the shallowest. What the pinned goal shows and the "whole chain" toggle lights.
 /// </summary>
 public static class BoardChain

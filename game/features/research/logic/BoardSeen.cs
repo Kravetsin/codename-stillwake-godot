@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>What one read of the board brought, its cause fixed as it came (docs/plans/board-islands.md).</summary>
+/// <summary>What one read of the board brought, its cause fixed as it came (board-islands).</summary>
 /// <param name="Cause"><see cref="BoardSeen.CauseFound"/>, <see cref="BoardSeen.CauseBuilt"/> or <see cref="BoardSeen.CauseOpened"/>.</param>
 /// <param name="By">What caused it: the items newly obtained in Obtained order, or the machines newly standing; none for what was opened.</param>
 /// <param name="Things">What became known, a cause among them if it did.</param>
@@ -12,7 +12,7 @@ namespace Stillwake.Game.Features.Research;
 public sealed record BoardBatch(string Cause, List<string> By, List<string> Things, List<string>? Closer = null);
 
 /// <summary>
-/// What is new on the board for this player (docs/plans/board-islands.md): each read that brought something known is a batch, its cause fixed then; a
+/// What is new on the board for this player (board-islands): each read that brought something known is a batch, its cause fixed then; a
 /// thing is unread while it is in a batch and not seen, and hovering or clicking sees it. The research key counts the batches with something unread
 /// while the tablet is away. And the market's orders met, which light it until the market is shown. With nothing kept, the first read sees all
 /// that is known, so a new world or a late guest has nothing new.
