@@ -1,15 +1,20 @@
 using System;
 using System.Collections.Generic;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The Appearance tab (hero-skins), Godot-free: its slots in rows, the strip a slot opens, and what a pick makes of the skins kept.
+/// The Appearance tab (hero-skins), Godot-free: its slots by the doll, the strip a slot opens, and what a pick makes of the skins kept.
 /// </summary>
 public static class Appearance
 {
-    /// <summary>The kinds as the tab lays them out, a row each by where they are worn: the head; the body and the cape; the weapon effect.</summary>
-    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [[Skins.Head], [Skins.Suit, Skins.Cape], [Skins.Effect]];
+    /// <summary>
+    /// Where each kind's slot is by the doll (gear-tabs): the head's, the suit's and the cape's at their gear's places, the weapon
+    /// effect's by the hand, where the first belt slot is.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Kind, DollSpot Spot)> Spots =
+        [(Skins.Head, DollSpot.Head), (Skins.Suit, DollSpot.Suit), (Skins.Cape, DollSpot.Cape), (Skins.Effect, DollSpot.Hand)];
 
     /// <summary>One entry of a strip: a skin, none for "none", and whether this player may pick it.</summary>
     public readonly record struct Choice(string? Id, bool Owned);

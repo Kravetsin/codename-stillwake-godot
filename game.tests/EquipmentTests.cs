@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Items;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Items;
 using Xunit;
 using Spec = Stillwake.Content;
@@ -23,10 +24,23 @@ public class EquipmentTests
     }
 
     [Fact]
-    public void LaysTheSlotsOutByTheBodyTheHeadsThenTheBodysThenTheBeltEveryKindOnce()
+    public void PutsEverySlotByThePartItDressesEachSpotOnceTheBeltsInARow()
     {
-        Assert.Equal([["head", "mount"], ["suit", "back", "cape"], ["belt"]], Equipment.Rows);
-        Assert.Equal(Spec.Inventory.Equipment.Distinct().Order(StringComparer.Ordinal), Equipment.Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        var spots = Equipment.All().Select(Equipment.SpotOf).ToList();
+        Assert.Equal(Spec.Inventory.Equipment.Count, spots.Count);
+        Assert.Equal(DollLayout.Gear.Order(), spots.Order());
+        Assert.Equal(DollSpot.Head, Equipment.SpotOf(Head));
+        Assert.Equal(DollSpot.Back, Equipment.SpotOf(Back));
+        Assert.Equal([DollSpot.Belt1, DollSpot.Belt2, DollSpot.Belt3], Equipment.Of("belt").Select(Equipment.SpotOf));
+    }
+
+    [Fact]
+    public void LiftingAStackTurnsTheAppearanceTabBackToTheGear()
+    {
+        Assert.True(Equipment.LooksShown(chosen: true, carrying: false));
+        Assert.False(Equipment.LooksShown(chosen: true, carrying: true));
+        Assert.False(Equipment.LooksShown(chosen: false, carrying: false));
+        Assert.False(Equipment.LooksShown(chosen: false, carrying: true));
     }
 
     [Fact]

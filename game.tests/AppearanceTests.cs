@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
@@ -28,10 +29,18 @@ public class AppearanceTests
     }
 
     [Fact]
-    public void EveryKindHasItsSlotOnce()
+    public void EveryKindHasItsSlotOnceAtItsGearsPlaceTheEffectByTheHand()
     {
-        var seen = new List<string>();
-        foreach (var row in Appearance.Rows) seen.AddRange(row);
-        Assert.Equal(Skins.Kinds, seen);
+        var kinds = new List<string>();
+        var spots = new List<DollSpot>();
+        foreach (var (kind, spot) in Appearance.Spots)
+        {
+            kinds.Add(kind);
+            spots.Add(spot);
+        }
+        Assert.Equal(Skins.Kinds, kinds);
+        Assert.Equal(DollLayout.Looks, spots);
+        var layout = DollLayout.Of(DollLayout.BaseSlot);
+        Assert.Equal(layout.SlotAt(DollSpot.Belt1), layout.SlotAt(DollSpot.Hand));
     }
 }
