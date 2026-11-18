@@ -360,6 +360,8 @@ public partial class Figure : Node2D
         Lit.Set(_scanner);
         _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
         _crown.AddChild(_scanner);
+        // light-drone (a try): the lamp and the scanner float by the head instead, the helmet carrying neither.
+        AddChild(_drone);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -712,21 +714,23 @@ public partial class Figure : Node2D
     }
     private string _capePicture = Stillwake.Content.Cape.Item;
 
-    /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow and shines, only on a helmet.</summary>
+    /// <summary>Whether the hero wears the helmet lamp (0077): its light drone floats by the head and shines (light-drone, a try).</summary>
     public bool HeadLamp
     {
-        get => _headLamp.Visible;
+        get => _lampWorn;
         set
         {
             _lampWorn = value;
-            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
+            _headLamp.Visible = false;
+            _faceLight.Visible = _lampWorn && _helmetWorn != null;
+            ShowDrone();
         }
     }
 
-    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): along the helmet's crown, in the lamp's mount; only on a helmet.</summary>
+    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): its light drone floats by the head (light-drone, a try).</summary>
     public bool Scanner
     {
-        get => _scanner.Visible;
+        get => _scannerWorn;
         set
         {
             if (value == _scannerWorn) return;
@@ -735,10 +739,25 @@ public partial class Figure : Node2D
         }
     }
 
+    /// <summary>
+    /// Where the hero points, pixels of the world, for the drone to shine at; none for a friend, whose drone shines where its
+    /// head looks.
+    /// </summary>
+    public Vector2? LampAim { get; set; }
+
+    private readonly LightDrone _drone = new();
+
+    private void ShowDrone()
+    {
+        _drone.Visible = _lampWorn || _scannerWorn;
+        _drone.Scanning = _scannerWorn && !_lampWorn;
+    }
+
     /// <summary>The scanner's pictures for the helmet worn, at its mount: each helmet's hugs its dome.</summary>
     private void ShowScanner()
     {
-        _scanner.Visible = _scannerWorn && _helmetWorn != null;
+        ShowDrone();
+        _scanner.Visible = false;
         if (!_scanner.Visible) return;
         var (name, x, y) = ScannerInk.Of(_helmetWorn!);
         _scanner.Texture = PixelArt.Picture(name);
@@ -747,7 +766,7 @@ public partial class Figure : Node2D
     }
 
     /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
-    public Vector2 HeadLampAt => _lens.GlobalPosition;
+    public Vector2 HeadLampAt => _drone.GlobalPosition;
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
     public Vector2 Visor => _crown.ToGlobal(VisorOn);
@@ -759,7 +778,9 @@ public partial class Figure : Node2D
     public Vector2 HeadAt => _helmet.GlobalPosition;
 
     /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces, a bolted helmet's too.</summary>
-    public Vector2 HeadLampToward => _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
+    public Vector2 HeadLampToward =>
+        LampAim is { } aim && aim.DistanceTo(_drone.GlobalPosition) > 1 ? (aim - _drone.GlobalPosition).Normalized()
+            : _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
@@ -1644,6 +1665,7 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend);
         _sealBent.Show(_fit.SealBy(_gaze));
+        if (_drone.Visible) _drone.Follow(_helmet.GlobalPosition, hero.Facing, HeadLampToward, elapsedMs, _timeMs);
         ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.

@@ -83,13 +83,13 @@ public static class BodyFit
     private static readonly HelmetFit Hood = new(HelmetTurn.Soft, NeckX, SoftY, Cut: 12.5);
 
     /// <summary>The basic helmet's ball, nodding whole on its rubber seal.</summary>
-    private static readonly HelmetFit Ball = new(HelmetTurn.Soft, NeckX, SealY, Cut: null);
+    private static readonly HelmetFit Ball = new(HelmetTurn.BoltedStill, NeckX, SealY, Cut: null);
 
     /// <summary>
     /// A helmet skin turning whole on the basic helmet's seal: a beak, a jaw or a neck guard below the seal would bend with it
     /// as the ball's rubber does, so none bends; a rubber seal of its own, the basic collar's ring, bends between it and the collar.
     /// </summary>
-    private static readonly HelmetFit Shell = new(HelmetTurn.Ring, NeckX, SealY, Cut: null, Sealed: true);
+    private static readonly HelmetFit Shell = new(HelmetTurn.BoltedStill, NeckX, SealY, Cut: null, Sealed: true);
 
     /// <summary>Each helmet's fit by its item, the catchers' by their pictures (<see cref="CreatureLooks.Heroes"/>).</summary>
     private static readonly Dictionary<string, HelmetFit> Fits = new()

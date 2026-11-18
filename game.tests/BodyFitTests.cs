@@ -33,8 +33,20 @@ public class BodyFitTests
     [Fact]
     public void TheModesAreThePickedOnes()
     {
-        Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
-        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+        Assert.Equal(HelmetTurn.BoltedStill, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
+        Assert.Equal(HelmetTurn.BoltedStill, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+    }
+
+    [Fact]
+    public void EveryPlayersHelmetStaysStillOnTheSuitItsDroneShiningInstead()
+    {
+        // light-drone (a try): a real helmet is fixed to the suit's neck ring; nothing of it turns or bends as the head looks.
+        foreach (var helmet in Stillwake.Content.Items.All.Where(i => i.Equip == Stillwake.Content.Helmet.Slot).Select(i => i.Id))
+            foreach (double look in Looks)
+            {
+                Assert.Equal((0d, 0d, 0d, 0d), BodyFit.Of(helmet).TurnsBy(look));
+                Assert.Equal(0, BodyFit.Of(helmet).SealBy(look));
+            }
     }
 
     [Fact]
@@ -98,15 +110,6 @@ public class BodyFitTests
     }
 
     [Fact]
-    public void TheBasicHelmetNodsOnItsSealBendingAsTheHoodsClothDoes()
-    {
-        var fit = BodyFit.Of(Stillwake.Content.Helmet.Basic);
-        Assert.Equal((HelmetTurn.Soft, BodyFit.NeckX, BodyFit.SealY), (fit.Turn, fit.PivotX, fit.PivotY));
-        // Its seal is its own picture over the near arm, the ball whole above it: nothing cut off the shell.
-        Assert.Null(fit.Cut);
-    }
-
-    [Fact]
     public void ATrialTurnsEveryHelmetThatWayAndItsOwnComesBack()
     {
         try
@@ -123,7 +126,7 @@ public class BodyFitTests
         {
             BodyFit.Trial = null;
         }
-        Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
+        Assert.Equal(HelmetTurn.BoltedStill, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
     }
 
     [Fact]

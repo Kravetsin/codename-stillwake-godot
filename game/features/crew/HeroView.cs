@@ -613,6 +613,7 @@ public partial class HeroView : Node2D
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
+        _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
         // The suit frosts over or scorches with the body, not the place (body-temperature, picks F2 and H3).
