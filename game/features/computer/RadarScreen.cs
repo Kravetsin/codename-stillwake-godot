@@ -24,7 +24,11 @@ public partial class RadarScreen : Control
 {
     private static readonly Color GlassTop = new("111a2c"), GlassBottom = new("0c1322"), Ink = new("d8e0ec"), Drawn = new("b4bfd0"),
         Faint = new(0.59f, 0.65f, 0.75f, 0.22f), Mute = new("8c97ab"), DimText = new("5b6579"), Text = new("dfe5ee"), Loop = new("f2b84b"),
-        ShipColour = new("a9dcec"), Amber = new("ffb02e"), Warn = new("d79a6a"), Card = new(0.035f, 0.055f, 0.094f, 0.95f), Hull = new("1b2333");
+        ShipColour = new("a9dcec"), Amber = new("ffb02e"), Warn = new("d79a6a"), Card = new(0.035f, 0.055f, 0.094f, 0.95f), Hull = new("1b2333"),
+        Broken = new("e0785a");
+
+    /// <summary>Each class's crack through its model, in the model's frame: written once (vessel-wrecks).</summary>
+    private static readonly Dictionary<string, Vector2[]> Cracks = [];
 
     /// <summary>A contact with fewer ticks than this left blinks: going soon (2 min).</summary>
     private const int Going = 2 * 60 * Sim.World.TicksPerSecond;
@@ -357,14 +361,16 @@ public partial class RadarScreen : Control
             var at = Screen(NavMap.Contact(At, c.Offset));
             bool going = c.Left < Going;
             var contact = c;
+            bool wrecked = IsWreck(c);
             float wide = RadarModels.Long(c.Class, RadarModels.MapPerCell, RadarModels.MapLeast, RadarModels.MapMost);
             var hit = Hit.Round($"contact{c.Id}", at, Mathf.Max(20, wide / 2), () => Select(null, contact.Id), _ui.RadarContact.Get() == c.Id ? null
-                : () => new Tip(ClassName(contact.Class), [new TipLine(T("computer.radar.km", ("n", RadarOrbit.Km(contact.Offset)))),
-                    new TipLine(Leaves(contact.Left), contact.Left < Going ? Tone.Bad : Tone.Plain)]));
+                : () => new Tip(ClassName(contact.Class), ContactLines(contact, wrecked)));
             if (Route == c.Id) DrawDashedLine(Screen(NavMap.Ship(At)), at, Loop with { A = 0.8f * shown }, 1.4f, 6, true, true);
-            Silhouette(at, wide, c.Class, going && _blink, shown);
+            Silhouette(at, wide, c.Class, going && _blink, shown, wrecked);
             Words(T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset))), at + new Vector2(0, 22), Tiny, (Hovered(hit) ? Colors.White : Text) with { A = shown }, true);
-            if (going) Words(Clock(c.Left), at + new Vector2(0, 36), Tiny, Amber with { A = shown }, true);
+            // A wreck says so under its distance (vessel-wrecks); what wrecked it is learnt on arrival.
+            if (wrecked) Words(T("computer.radar.wreckTag"), at + new Vector2(0, 36), Tiny, Broken with { A = shown }, true);
+            if (going) Words(Clock(c.Left), at + new Vector2(0, wrecked ? 50 : 36), Tiny, Amber with { A = shown }, true);
             if (shown > 0.5f) _hits.Add(hit);
             if (_ui.RadarContact.Get() == c.Id) HandLoop(at, Mathf.Max(27, wide / 2 + 8), 22, c.Id);
         }
@@ -623,8 +629,10 @@ public partial class RadarScreen : Control
         // The course's contact clears it in place of setting it; any contact can be forgotten, for everyone.
         var way = Route == id ? new ButtonSpec(T("computer.radar.clearRoute"), true, null, () => ClearRoute?.Invoke(), null)
             : new ButtonSpec(T("computer.radar.setCourse"), true, null, () => SetRoute?.Invoke(id), null);
-        return new CardView((Screen(NavMap.Contact(At, c.Offset)), Mathf.Max(18, onMap / 2)), ClassName(c.Class), T("computer.radar.vessel"), facts,
-            at => Silhouette(at, inCard, kind, false, 1),
+        bool wrecked = IsWreck(c);
+        return new CardView((Screen(NavMap.Contact(At, c.Offset)), Mathf.Max(18, onMap / 2)), ClassName(c.Class),
+            T(wrecked ? "computer.radar.wreck" : "computer.radar.vessel"), facts,
+            at => Silhouette(at, inCard, kind, false, 1, wrecked),
             [way, new ButtonSpec(T("computer.radar.forget"), true, null, () => Forget?.Invoke(id), null, Quiet: true)]);
     }
 
@@ -644,6 +652,18 @@ public partial class RadarScreen : Control
 
     private static string PlanetName(int i) => T("computer.radar.planetN", ("n", i + 1));
     private static string ClassName(string cls) => T($"computer.radar.class.{cls}");
+    /// <summary>A contact's tip: wrecked first if it is, its distance, when it goes.</summary>
+    private static List<TipLine> ContactLines(Contact c, bool wrecked)
+    {
+        var lines = new List<TipLine>();
+        if (wrecked) lines.Add(new TipLine(T("computer.radar.wreckTag"), Tone.Bad));
+        lines.Add(new TipLine(T("computer.radar.km", ("n", RadarOrbit.Km(c.Offset)))));
+        lines.Add(new TipLine(Leaves(c.Left), c.Left < Going ? Tone.Bad : Tone.Plain));
+        return lines;
+    }
+
+    /// <summary>Whether a contact's vessel arrives wrecked (vessel-wrecks): read from its seed, never built.</summary>
+    private static bool IsWreck(Contact c) => Vessels.Class(c.Class) is { } cls && Sim.Shipyard.IsWreck(cls, c.Seed, c.Wreck);
     private static string Decks(VesselClass? cls) => cls == null ? "?" : cls.Decks.Min == cls.Decks.Max ? $"{cls.Decks.Min}" : $"{cls.Decks.Min}–{cls.Decks.Max}";
     private static string Leaves(int ticks) => T("computer.radar.leaves", ("t", Clock(ticks)));
 
@@ -680,14 +700,14 @@ public partial class RadarScreen : Control
 
     /// <summary>
     /// A derelict from the side, <paramref name="wide"/> long, its middle at <paramref name="at"/>: its class's model (<see cref="RadarModels"/>),
-    /// written once at a unit's length and drawn scaled, its ink hairlines.
+    /// written once at a unit's length and drawn scaled, its ink hairlines; a wreck's darker, a crack through it.
     /// </summary>
-    private void Silhouette(Vector2 at, float wide, string cls, bool hot, float alpha)
+    private void Silhouette(Vector2 at, float wide, string cls, bool hot, float alpha, bool wrecked = false)
     {
         var model = RadarModels.Of(cls);
         DrawSetTransform(at - new Vector2(0, model.Mid * wide), 0, new Vector2(wide, wide));
         if (hot) DrawCircle(new Vector2(0, model.Mid), 0.6f, Amber with { A = 0.18f * alpha });
-        Color fill = Hull with { A = alpha }, line = (hot ? Amber : Ink) with { A = 0.86f * alpha };
+        Color fill = (wrecked ? Hull.Darkened(0.35f) : Hull) with { A = alpha }, line = (hot ? Amber : Ink) with { A = (wrecked ? 0.6f : 0.86f) * alpha };
         for (int i = 0; i < model.Back.Length; i++)
         {
             DrawColoredPolygon(model.Back[i], fill);
@@ -698,7 +718,24 @@ public partial class RadarScreen : Control
         if (model.Lines.Length > 0) DrawMultiline(model.Lines, Mute with { A = 0.55f * alpha }, -1);
         foreach (var (centre, r) in model.Rings) DrawArc(centre, r, 0, Mathf.Tau, 20, Mute with { A = 0.6f * alpha }, -1);
         DrawPolyline(model.HullLine, line, -1);
+        if (wrecked)
+        {
+            var crack = CrackOf(cls, model);
+            DrawPolyline(crack, Card with { A = alpha }, 0.035f);
+            DrawPolyline(crack, Broken with { A = 0.9f * alpha }, -1);
+        }
         DrawSetTransform(Vector2.Zero);
+    }
+
+    /// <summary>A jagged crack top to bottom through <paramref name="model"/>, a little aft of its middle: a wreck at a glance.</summary>
+    private static Vector2[] CrackOf(string cls, RadarModel model)
+    {
+        if (Cracks.TryGetValue(cls, out var known)) return known;
+        float x0 = model.Hull.Min(p => p.X), x1 = model.Hull.Max(p => p.X), y0 = model.Hull.Min(p => p.Y), y1 = model.Hull.Max(p => p.Y);
+        float x = x0 + (x1 - x0) * 0.46f, step = (y1 - y0) / 5, jog = (x1 - x0) * 0.025f;
+        var points = new Vector2[6];
+        for (int i = 0; i < 6; i++) points[i] = new Vector2(x + (i % 2 == 0 ? -jog : jog) * (i is 0 or 5 ? 0.5f : 1), y0 - step * 0.2f + step * i * 1.08f);
+        return Cracks[cls] = points;
     }
 
     /// <summary>The orange loop the board marks a thing with, drawn round as it is selected.</summary>

@@ -11,6 +11,8 @@ public static partial class En
         ["computer.program.radar"] = "Radar",
         ["computer.radar.ship"] = "My ship",
         ["computer.radar.vessel"] = "Derelict ship",
+        ["computer.radar.wreck"] = "Wrecked ship",
+        ["computer.radar.wreckTag"] = "Wrecked",
         ["computer.radar.km"] = "{n} km",
         ["computer.close"] = "Close",
         ["computer.closeHow"] = "E or Esc",

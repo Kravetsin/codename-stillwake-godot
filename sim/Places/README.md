@@ -24,8 +24,8 @@ described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.W
 - **The radar's own contacts** ([radar-contacts](../../docs/decisions/2026-11-08-radar-contacts.md)), aboard, each tick: `Left`
   down by one, gone at 0; a countdown from `Contacts.First` (15 min); at 0 a contact of a class drawn by `Weight` (while under
   `MaxContacts`), the next in `EveryMin..EveryMax`. `Lasts` ≤ `EveryMin`: never two at once.
-- **A contact added** (by the radar or `Find(Class, Wreck)`, the dev flag `--vessel` and the dev panel's): its seed drawn from the
-  world's Rng, then its side and its distance in `Contacts.Nearest..Reach`, each evenly; `Offset` the distance signed (minus
+- **A contact added** (by the radar or `Find(Class, Wreck, Wrecked)`, the dev flag `--vessel` and the dev panel's): its seed drawn from the
+  world's Rng (again, up to 64 times, till `Shipyard.IsWreck` matches an asked `Wrecked`), then its side and its distance in `Contacts.Nearest..Reach`, each evenly; `Offset` the distance signed (minus
   left of the ship); `Left` = `Contacts.Lasts`. The client draws it on the radar, where Set course sends `SetCourse`; `Jump` is the dev panel's.
 - **The course** ([shuttle-flight](../../docs/decisions/2026-11-16-shuttle-flight.md)): one per world, `SetCourse(Contact)`
   by anyone aboard, the last of a tick winning; cleared by `ClearCourse`, when its contact runs out, is jumped to or forgotten
@@ -60,7 +60,7 @@ described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.W
 ## API
 
 - **Queries:** `Contacts`, `NextIn`, `Course`, `CostOf` (static), `SetOffProblem(peer)`.
-- **Commands:** `Find(Class, Wreck)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact)` — `places.notAboard`,
+- **Commands:** `Find(Class, Wreck, Wrecked)` — `places.notAboard`, `places.noClass`, `places.full`. `Jump(Contact)` — `places.notAboard`,
   `places.noContact`, `places.noHero`, `places.seated`. `SetCourse(Contact)` — `places.notAboard`, `places.noContact`.
   `ClearCourse` — `places.notAboard`. `Forget(Contact)` — `places.notAboard`, `places.noContact`. `SetOff` — `places.noCourse`, then Landing's.
 - **Fuzz:** now and then, a jump opening a whole surface: `Find` of a class or none, half with a forced chain of up to four

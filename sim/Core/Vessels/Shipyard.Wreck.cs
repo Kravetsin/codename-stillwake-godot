@@ -21,6 +21,14 @@ public static partial class Shipyard
     /// </summary>
     public static Built Build(VesselClass cls, uint seed, IReadOnlyList<WreckStep>? forced = null) => Build(cls, seed, forced, Wrecks.WreckPercent);
 
+    /// <summary>
+    /// Whether <see cref="Build"/> makes a wreck of <paramref name="cls"/> from <paramref name="seed"/>, without building it: a forced
+    /// chain with steps, else the seed's own first draw (a drawn wreck always has an event: icing first is always allowed). Cheap, so
+    /// the radar marks every contact by it. A forced chain whose every step is refused still builds intact: dev tools' only.
+    /// </summary>
+    public static bool IsWreck(VesselClass cls, uint seed, IReadOnlyList<WreckStep>? forced = null) =>
+        forced != null ? forced.Count > 0 : Draws(cls, seed, 3).Below(100) < Wrecks.WreckPercent;
+
     /// <summary><see cref="Build(VesselClass, uint, IReadOnlyList{WreckStep}?)"/> with a vessel a wreck <paramref name="wreckPercent"/> times in a hundred: the tests' every seed a wreck.</summary>
     internal static Built Build(VesselClass cls, uint seed, IReadOnlyList<WreckStep>? forced, int wreckPercent)
     {

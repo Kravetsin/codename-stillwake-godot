@@ -32,12 +32,13 @@ picked the look on a mockup drawn from real stamped vessels: https://claude.ai/a
   them; rooms not reached keep everything (scavengers take nothing from rooms).
 - **The arrival room** (the compartment just inside the intact vessel's first door) and two cells round it are never touched; a
   break leaves it whole on one side, the spawn following its door.
-- **The radar is unchanged:** a contact shows its class only; a wreck is learnt on arrival.
+- **The radar marks a wreck** (2026-11-18, the user): its silhouette cracked and darker, "Wrecked" under its distance, in its tip and its
+  callout's title, read from its seed by `Shipyard.IsWreck` without building it; what wrecked it is learnt on arrival.
 - **One builder:** `Shipyard.Build(cls, seed, forced)` returns `Built(Vessel, VesselWreck?, Parts)`: described, stamped, wrecked
   (`Hulk`, a port of the mockup's geometry on integers), every caller on it (`Places.Opened`, `World.Open`, the client's dress,
   lights, signs, beacons, looks and motion); `Stamp` internal. Draws are the vessel's own streams: 3 the wreck, 4 + i event i,
   9 scavenging, so an intact vessel stamps as before.
-- **Forced chains are data:** `Find(Class, Wreck?)` → `Contact.Wreck` → `ISurfaces.Visit`/`Open` and the shuttle's `Voyage` →
+- **Forced chains are data:** `Find(Class, Wreck?, Wrecked?)` (`Wrecked` a dev's ask for a wrecked or an intact vessel: the seed drawn again till `IsWreck` agrees) → `Contact.Wreck` → `ISurfaces.Visit`/`Open` and the shuttle's `Voyage` →
   `Surface.Wreck` (saved), each null for the seed's own; an empty chain is intact; a step not allowed at its turn is skipped.
   Every peer and a late joiner build the same. The dev flag `--vessel=<class> --wrecked=blast,fire,rock:old` forces one.
 - **The record** (`VesselWreck`): each event's kind, age, group, centre, radius, direction, carved cells, burnt or frozen

@@ -48,6 +48,8 @@ public partial class DevPanel : CanvasLayer
     private readonly Button _speed, _creative, _instant, _calm, _items;
     /// <summary>A vessel asked for and found, but not jumped to yet: its class, the last contact id before, and how long it has waited.</summary>
     private (string Class, int After, double WaitedMs)? _summoning;
+    /// <summary>Whether the "to …" buttons summon a wrecked vessel or an abandoned (intact) one (vessel-wrecks); its button says which.</summary>
+    private bool _wrecked;
     /// <summary>How long a summon waits for its contact before it gives up: a refused <c>Find</c> never brings one.</summary>
     private const double SummonWaitMs = 3000;
     private readonly VBoxContainer _picker = Style.Gap(new VBoxContainer { Visible = false }, 4);
@@ -115,7 +117,15 @@ public partial class DevPanel : CanvasLayer
         column.AddChild(surfaces);
         // A vessel world (vessel-worlds): a contact of each class jumped to, its world opened and this hero moved in by its door; home
         // is "to ship", which closes it once nobody is left there.
+        // Which state they summon it in: abandoned (intact) or wrecked, the button's words switched on each press (vessel-wrecks).
         var summon = Style.Gap(new HBoxContainer(), 8);
+        Button state = null!;
+        state = Style.Button("abandoned", () =>
+        {
+            _wrecked = !_wrecked;
+            state.Text = _wrecked ? "wrecked" : "abandoned";
+        });
+        summon.AddChild(state);
         foreach (var cls in Content.Vessels.Classes) summon.AddChild(Style.Button($"to {cls.Id}", () => Summon(cls.Id)));
         column.AddChild(summon);
         column.AddChild(_status);
@@ -291,8 +301,9 @@ public partial class DevPanel : CanvasLayer
     }
 
     /// <summary>
-    /// To a vessel of <paramref name="cls"/> (vessel-worlds): a contact of it the radar holds jumped to at once, else one found first
-    /// and jumped to once it comes (<see cref="Summoning"/>); the jump opens its world and moves this hero in. Aboard only.
+    /// To a vessel of <paramref name="cls"/> (vessel-worlds), abandoned or wrecked as the state button says: a contact of it in that
+    /// state the radar holds jumped to at once, else one found in it first and jumped to once it comes (<see cref="Summoning"/>); the
+    /// jump opens its world and moves this hero in. Aboard only.
     /// </summary>
     private void Summon(string cls)
     {
@@ -303,16 +314,19 @@ public partial class DevPanel : CanvasLayer
             return;
         }
         var contacts = _modules().Places.Contacts;
-        if (contacts.LastOrDefault(c => c.Class == cls) is { } held)
+        if (contacts.LastOrDefault(c => c.Class == cls && InState(c)) is { } held)
         {
             s.Client.Send(new Jump(held.Id));
             Say("");
             return;
         }
-        s.Client.Send(new Find(cls));
+        s.Client.Send(new Find(cls, null, _wrecked));
         _summoning = (cls, contacts.Count == 0 ? 0 : contacts.Max(c => c.Id), 0);
-        Say($"Finding a {cls}…");
+        Say($"Finding {(_wrecked ? "a wrecked" : "an abandoned")} {cls}…");
     }
+
+    /// <summary>Whether contact <paramref name="c"/>'s vessel is in the state the summon asks: wrecked or abandoned.</summary>
+    private bool InState(Contact c) => Content.Vessels.Class(c.Class) is { } cls && Sim.Shipyard.IsWreck(cls, c.Seed, c.Wreck) == _wrecked;
 
     /// <summary>Each frame while a summon waits: its contact come, the jump to it sent; none after a while, given up.</summary>
     private void Summoning(double elapsedMs)

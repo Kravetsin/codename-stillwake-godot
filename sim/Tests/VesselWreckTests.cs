@@ -153,6 +153,35 @@ public class VesselWreckTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void IsWreckSaysWhatTheBuildMakesWithoutBuilding()
+    {
+        foreach (var cls in Content.Vessels.Classes)
+        {
+            for (uint seed = 1; seed <= 120; seed++)
+                Assert.Equal(Shipyard.Build(cls, seed).Wreck != null, Shipyard.IsWreck(cls, seed));
+            Assert.False(Shipyard.IsWreck(cls, 1, []));
+            Assert.True(Shipyard.IsWreck(cls, 1, [new WreckStep(WreckKind.Icing)]));
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AFindAskedWreckedOrIntactGetsAContactThatArrivesSo(bool wrecked)
+    {
+        var w = new Scenario(Registry.Wreck);
+        foreach (var cls in Content.Vessels.Classes)
+            for (int n = 0; n < 2; n++)
+            {
+                w.Do(new Find(cls.Id, null, wrecked)).Run();
+                var c = w.M.Places.Contacts[^1];
+                Assert.Equal(wrecked, Shipyard.IsWreck(cls, c.Seed, c.Wreck));
+                Assert.Equal(wrecked, Shipyard.Build(cls, c.Seed, c.Wreck).Wreck != null);
+                w.Do(new Forget(c.Id)).Run();
+            }
+    }
+
+    [Fact]
     public void ASeedThatDrawsNoWreckStampsTheIntactVessel()
     {
         foreach (var cls in Content.Vessels.Classes)

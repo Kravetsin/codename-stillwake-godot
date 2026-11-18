@@ -18,9 +18,10 @@ public sealed record Contact(int Id, string Class, uint Seed, int Offset, int Le
 /// <summary>
 /// Finds a vessel of <c>Class</c> at once: a contact as the radar's own come, its seed and place drawn from the world's Rng. Dev
 /// tools'. <c>Wreck</c> forces its chain of events (vessel-wrecks): an empty one an intact vessel, null the seed's own; a step not
-/// allowed at its turn is skipped as it is built.
+/// allowed at its turn is skipped as it is built. <c>Wrecked</c>, with no chain forced, the state its vessel must arrive in: its seed
+/// drawn again till <c>Shipyard.IsWreck</c> says so; null takes the first seed.
 /// </summary>
-public sealed record Find(string Class, IReadOnlyList<WreckStep>? Wreck = null) : Command;
+public sealed record Find(string Class, IReadOnlyList<WreckStep>? Wreck = null, bool? Wrecked = null) : Command;
 
 /// <summary>
 /// Goes to contact <c>Contact</c> (vessel-worlds): a surface of its own opened with the vessel written in its middle, as built,
@@ -158,15 +159,21 @@ public sealed class PlacesModule : Module<PlacesState>
         : Vessels.Class(c.Class) == null ? "places.noClass"
         : State.Contacts.Count >= Vessels.MaxContacts ? "places.full" : null;
 
-    private void ApplyFind(Find c) => Add(c.Class, c.Wreck);
+    private void ApplyFind(Find c) => Add(c.Class, c.Wreck, c.Wrecked);
+
+    /// <summary>Seeds drawn at most for a <c>Find</c> that asks a wrecked or an intact vessel: each comes out right 60 or 40 in 100.</summary>
+    private const int SeedTries = 64;
 
     /// <summary>
-    /// A contact of <paramref name="cls"/>: its seed drawn first, then its side and distance on the orbit, each evenly; seen
-    /// <c>Contacts.Lasts</c> ticks.
+    /// A contact of <paramref name="cls"/>: its seed drawn first (again, up to <see cref="SeedTries"/>, till its vessel is
+    /// <paramref name="wrecked"/> when that is asked and no chain is forced), then its side and distance on the orbit, each evenly;
+    /// seen <c>Contacts.Lasts</c> ticks.
     /// </summary>
-    private void Add(string cls, IReadOnlyList<WreckStep>? wreck = null)
+    private void Add(string cls, IReadOnlyList<WreckStep>? wreck = null, bool? wrecked = null)
     {
         uint seed = (uint)Random.Below(1UL << 32);
+        if (wreck == null && wrecked is bool want)
+            for (int i = 1; i < SeedTries && Shipyard.IsWreck(Vessels.Class(cls)!, seed) != want; i++) seed = (uint)Random.Below(1UL << 32);
         int side = Random.Below(2) == 0 ? -1 : 1;
         int distance = Content.Contacts.Nearest + (int)Random.Below((uint)(Content.Contacts.Reach - Content.Contacts.Nearest + 1));
         State.Contacts.Add(new(State.NextContactId++, cls, seed, side * distance, Content.Contacts.Lasts, wreck));
@@ -245,7 +252,7 @@ public sealed class PlacesModule : Module<PlacesState>
 
     /// <summary>
     /// Now and then, as a jump opens a whole surface: a contact found, of a class or none, now and then with a forced chain of up to
-    /// four steps, allowed or not (vessel-wrecks); a jump to one, a course set to one or one forgotten, held or not; the course cleared; a
+    /// four steps, allowed or not (vessel-wrecks), or asked wrecked or intact; a jump to one, a course set to one or one forgotten, held or not; the course cleared; a
     /// set off, mostly refused but from a shuttle's rider.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
@@ -255,7 +262,7 @@ public sealed class PlacesModule : Module<PlacesState>
         if (what == 0)
         {
             string cls = rng.Below(5) == 0 ? "nothing" : Vessels.Classes[(int)rng.Below((uint)Vessels.Classes.Count)].Id;
-            if (rng.Below(2) == 0) return new Find(cls) { From = from };
+            if (rng.Below(2) == 0) return new Find(cls, null, rng.Below(3) switch { 0 => null, 1 => true, _ => false }) { From = from };
             var chain = new List<WreckStep>();
             for (int n = (int)rng.Below(5); n > 0; n--) chain.Add(new((WreckKind)rng.Below(5), rng.Below(2) == 0));
             return new Find(cls, chain) { From = from };

@@ -39,7 +39,7 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
 - **The radar** (2026-11-16-solar-system) is one map in the tablet's ink (`NavMap`): the system from above, the sun in the
   middle, each planet on its orbit, the ship's mark over `Landing.At` or along its course; the wheel, `+`/`−` or the
   breadcrumb zoom it 12 times down to the ship's planet, where the ship's orbit and places' contacts on it show (an offset
-  a quarter turn each way at the radar's reach), a drag pans it. A contact leaving within 2 minutes blinks amber.
+  a quarter turn each way at the radar's reach), a drag pans it. A contact leaving within 2 minutes blinks amber; a wreck (`Shipyard.IsWreck`) is drawn cracked and darker, "Wrecked" under it.
 - **A click** on a planet or a contact opens its callout, rows wrapped to its width (`Ui.RadarContact` for a contact, the player's own), on the side
   away from the middle, tied by ink: a planet's number, type, ruins, ores (`OresOf`), flight, fuel and `Plot course` (landing's `PlotCourse`,
   dim with the sim's reason but `crewAway`, which sends: the call); a contact's class, size, decks, distance
