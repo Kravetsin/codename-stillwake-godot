@@ -63,6 +63,12 @@ public static class Layers
     public const int Creatures = FloorItems;
 
     /// <summary>
+    /// The escorts (derelict-enemies) a step under the creatures, so what holds one in its stand, its yoke and clamp, lies over it at the
+    /// creatures' z, whatever the order of the nodes.
+    /// </summary>
+    public const int Escorts = Bodies, StandFronts = Creatures;
+
+    /// <summary>
     /// Heat shimmer (0075): one copy of the screen, then every shimmer, all at this z. After the world, before the flames, the
     /// aim's outline, the plans and every mark, which it must never copy: sharing a z, tree order would decide, and a flame
     /// drawn before a later fire's shimmer was wiped by it.

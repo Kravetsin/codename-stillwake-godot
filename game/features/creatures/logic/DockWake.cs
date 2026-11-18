@@ -41,3 +41,44 @@ public static class DockWake
     /// <summary>Whether its hazard lamp shows red (else amber) <paramref name="seconds"/> into its waking.</summary>
     public static bool Red(double seconds) => (int)Math.Floor(seconds * FlashHz * 2) % 2 == 0;
 }
+
+/// <summary>
+/// How a stand lets its escort go (derelict-enemies), the pick page's S1 «Люлька» over its dock's <c>Wake</c> ticks, as shares of it: the
+/// waist clamp swinging up; the drum paying out its cable as the robot is lowered its hang to the floor; the yoke's hooks opening and the
+/// yoke rising off its shoulders; the robot unfolding, its red lamp flickering on; the beacon flashing all through. Plain C#, tested.
+/// </summary>
+public static class StandWake
+{
+    /// <summary>How high the robot hangs asleep, in cells over the floor; how far the clamp swings up, in radians; how far the yoke rises off it, in cells.</summary>
+    public const double Hang = 0.4, ClampSwing = 1.3, YokeRise = 0.3;
+
+    /// <summary>The shares of its waking where each part of it begins and ends.</summary>
+    public const double ClampTo = 0.25, LowerFrom = 0.3, LowerTo = 0.8, LampFrom = 0.4, LampTo = 0.55, HooksFrom = 0.85, HooksTo = 0.95, RiseFrom = 0.86, UnfoldFrom = 0.82;
+
+    /// <summary>How often the beacon flashes a second while its robot wakes.</summary>
+    public const double BeaconHz = 2;
+
+    private static double Ease(double from, double to, double p) => TickMotion.Ease((p - from) / (to - from));
+
+    /// <summary>How far the clamp has swung up at <paramref name="p"/>, in radians.</summary>
+    public static double Clamp(double p) => ClampSwing * Ease(0, ClampTo, p);
+
+    /// <summary>How high the robot still hangs over its floor at <paramref name="p"/>, in cells.</summary>
+    public static double Hung(double p) => Hang * (1 - Ease(LowerFrom, LowerTo, p));
+
+    /// <summary>How open the yoke's hooks are at <paramref name="p"/>, 0..1.</summary>
+    public static double Hooks(double p) => Ease(HooksFrom, HooksTo, p);
+
+    /// <summary>How far the yoke has risen off the robot's shoulders at <paramref name="p"/>, in cells.</summary>
+    public static double Risen(double p) => YokeRise * Ease(RiseFrom, 1, p);
+
+    /// <summary>How folded the robot is at <paramref name="p"/>: 1 stowed in its stand, 0 standing.</summary>
+    public static double Folded(double p) => 1 - Ease(UnfoldFrom, 1, p);
+
+    /// <summary>Its lamp at <paramref name="p"/>: dark, then flickering on <paramref name="seconds"/> into its waking, then lit; 0..1.</summary>
+    public static double Lamp(double p, double seconds) =>
+        p < LampFrom ? 0 : p >= LampTo ? 1 : (int)Math.Floor(seconds * 14) % 3 == 0 ? 0.2 : 1;
+
+    /// <summary>Whether the beacon is lit <paramref name="seconds"/> into its robot's waking.</summary>
+    public static bool Beacon(double seconds) => (int)Math.Floor(seconds * BeaconHz * 2) % 2 == 0;
+}

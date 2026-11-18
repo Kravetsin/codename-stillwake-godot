@@ -612,7 +612,6 @@ public static class Sound
     public static readonly IReadOnlyDictionary<string, IstukanCues> Istukans = new Dictionary<string, IstukanCues>
     {
         [Stillwake.Content.Creatures.Warden.Id] = WardenCues,
-        [Stillwake.Content.Creatures.Escort.Id] = WardenCues,
     };
 
     /// <summary>

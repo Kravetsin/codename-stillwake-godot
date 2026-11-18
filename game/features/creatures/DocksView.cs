@@ -12,11 +12,14 @@ namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
 /// A vessel's guards' docks (derelict-enemies), from <see cref="CreaturesModule.Docks"/>, listed once as its world opens: a spider's
-/// capsule G1 on its room's back wall, a robot's stand S1 on its room's floor, its yoke and clamp in front. A capsule is drawn with the
+/// capsule G1 on its room's back wall, a robot's stand S1 on its room's floor, its yoke and clamp in front of its robot. A capsule is drawn with the
 /// back-wall objects; a stand before the machines, for it stands over what furniture its floor holds; both behind bodies and under the
 /// unseen rooms' fog. A capsule shows its spider's state: asleep, shut, its hazard lamp's amber standby pip blinking with a little light;
 /// waking, its lamp flashing red and amber and lighting the room as its iris opens (<see cref="DockWake"/>); open after, its lamp red
-/// while its spider lives, dark once it is killed. The spider is drawn by <see cref="TickBodies"/> once the iris is open.
+/// while its spider lives, dark once it is killed. The spider is drawn by <see cref="TickBodies"/> once the iris is open. A stand lets its
+/// escort go as it wakes (<see cref="StandWake"/>): its clamp swings up, its drum pays out the cable that lowers the yoke with the robot,
+/// the yoke's hooks open and it rises off its shoulders, its beacon flashing amber; after, it stands open and empty. The escort is drawn
+/// by <see cref="EscortBodies"/>, between the stand's back and its front.
 /// </summary>
 public partial class DocksView : Node2D, ILightSource
 {
@@ -37,7 +40,8 @@ public partial class DocksView : Node2D, ILightSource
     /// <summary>The creature at each dock this frame, by its place among the creatures; -1 for none.</summary>
     private readonly int[] _guards;
 
-    private readonly Sketch _back = new(Layers.Pipes, lit: true), _stands = new(Layers.Fittings, lit: true), _pips = new(Layers.Pipes);
+    private readonly Sketch _back = new(Layers.Pipes, lit: true), _stands = new(Layers.Fittings, lit: true), _fronts = new(Layers.StandFronts, lit: true),
+        _pips = new(Layers.Pipes);
     private readonly List<LightSource> _lights = [];
     private double _timeMs;
 
@@ -47,7 +51,15 @@ public partial class DocksView : Node2D, ILightSource
     /// <summary>The iris's radius and its blades' width, as guards.js draws them shut.</summary>
     private const float IrisR = 12.85f, Blade = 3.6f;
 
-    private static readonly Color Ink = new(0.043f, 0.055f, 0.075f), Smoke = new(0.15f, 0.2f, 0.23f, 0.6f);
+    private static readonly Color Ink = new(0.043f, 0.055f, 0.075f), Smoke = new(0.15f, 0.2f, 0.23f, 0.6f), Cable = new(0.086f, 0.094f, 0.11f);
+
+    /// <summary>
+    /// Where a stand's moving parts sit in its picture (guards.js, the page's cells mapped to it: a cell 8 px, its floor at the bottom):
+    /// the drum's middle, the yoke's middle (its bar's bottom, asleep), its hooks either side, the clamp's hinge, the beacon, the cables' tops.
+    /// </summary>
+    private static readonly Vector2 Drum = new(30.8f, 12.96f), Yoke = new(24, 17.2f), Clamp = new(42.4f, 40.4f), Beacon = new(10, 3.2f);
+
+    private const float HookApart = 10, CableLeft = 22.4f, CableRight = 25.6f, CableTop = 12.4f, CableShort = 4;
 
     public DocksView(CreaturesModule creatures, Func<double> progress)
     {
@@ -59,11 +71,14 @@ public partial class DocksView : Node2D, ILightSource
         for (int i = 0; i < docks.Count; i++) _docks[i] = (Corner(docks[i]), docks[i].Rule == Content.Vessels.Aboard.Capsule);
         Lit.Set(_back);
         Lit.Set(_stands);
+        Lit.Set(_fronts);
         AddChild(_back);
         AddChild(_stands);
+        AddChild(_fronts);
         AddChild(_pips);
         _back.Paint = g => Paint(g, capsules: true);
         _stands.Paint = g => Paint(g, capsules: false);
+        _fronts.Paint = PaintFronts;
         _pips.Paint = PaintPips;
     }
 
@@ -98,11 +113,16 @@ public partial class DocksView : Node2D, ILightSource
         var view = GetCanvasTransform().AffineInverse() * GetViewportRect();
         for (int i = 0; i < _docks.Length; i++)
         {
-            if (!_docks[i].Capsule || Lamp(i) is not { } lamp) continue;
-            var at = _docks[i].Corner + Pip;
+            if (Lamp(i) is not { } lamp) continue;
+            var at = _docks[i].Corner + (_docks[i].Capsule ? Pip : Beacon);
             if (view.HasPoint(at)) _lights.Add(new LightSource(at.X, at.Y, lamp.Colour, lamp.Strength, lamp.Reach, lamp.Keep, 1));
         }
-        if (changed) _back.QueueRedraw();
+        if (changed)
+        {
+            _back.QueueRedraw();
+            _stands.QueueRedraw();
+            _fronts.QueueRedraw();
+        }
         _pips.QueueRedraw();
     }
 
@@ -116,7 +136,6 @@ public partial class DocksView : Node2D, ILightSource
         bool changed = false;
         for (int i = 0; i < _docks.Length; i++)
         {
-            if (!_docks[i].Capsule) continue;
             var now = (State: Shown.Empty, P: 1.0);
             if (_guards[i] >= 0)
             {
@@ -135,13 +154,14 @@ public partial class DocksView : Node2D, ILightSource
     }
 
     /// <summary>Capsule <paramref name="i"/>'s lamp as lit now, on this client's clock: none while dark.</summary>
-    private L.LampLight? Lamp(int i) => _now[i] switch
-    {
-        (Shown.Asleep, _) => (_timeMs + i * L.GuardPipStaggerMs) % L.GuardPipEveryMs < L.GuardPipOnMs ? L.GuardPip : null,
-        (Shown.Waking, var p) => DockWake.Red(p * WakeOf(_creatures.Creatures[_guards[i]]) / World.TicksPerSecond) ? L.GuardAlarm : L.GuardAlarmAmber,
-        (Shown.Open, _) => L.GuardAlarmOn,
-        _ => null,
-    };
+    private L.LampLight? Lamp(int i) => !_docks[i].Capsule ? _now[i] is (Shown.Waking, var w) && StandWake.Beacon(w * WakeOf(_creatures.Creatures[_guards[i]]) / World.TicksPerSecond) ? L.GuardAlarmAmber : null
+        : _now[i] switch
+        {
+            (Shown.Asleep, _) => (_timeMs + i * L.GuardPipStaggerMs) % L.GuardPipEveryMs < L.GuardPipOnMs ? L.GuardPip : null,
+            (Shown.Waking, var p) => DockWake.Red(p * WakeOf(_creatures.Creatures[_guards[i]]) / World.TicksPerSecond) ? L.GuardAlarm : L.GuardAlarmAmber,
+            (Shown.Open, _) => L.GuardAlarmOn,
+            _ => null,
+        };
 
     private void Paint(Sketch g, bool capsules)
     {
@@ -151,8 +171,7 @@ public partial class DocksView : Node2D, ILightSource
             if (capsule != capsules) continue;
             if (!capsule)
             {
-                g.DrawTexture(PixelArt.Picture("guard_stand"), corner);
-                g.DrawTexture(PixelArt.Picture("guard_stand_front"), corner);
+                Stand(g, corner, Let(i), Lamp(i) != null);
                 continue;
             }
             var (state, p) = _now[i];
@@ -164,6 +183,48 @@ public partial class DocksView : Node2D, ILightSource
             g.DrawTexture(PixelArt.Picture("guard_capsule_open"), corner);
             if (state == Shown.Waking && DockWake.Iris(p) < 1) Blades(g, corner + Iris, DockWake.Iris(p));
         }
+    }
+
+    /// <summary>How far a stand has let its robot go: 0 asleep, its waking's share, 1 open (its robot up, or killed).</summary>
+    private double Let(int i) => _now[i].State switch { Shown.Asleep => 0, Shown.Waking => _now[i].P, _ => 1 };
+
+    /// <summary>Where a stand's yoke is at <paramref name="p"/>: over its robot's head as it is lowered, risen off it at the end.</summary>
+    private static Vector2 YokeAt(Vector2 corner, double p) =>
+        corner + Yoke + new Vector2(0, (float)((StandWake.Hang - StandWake.Hung(p) - StandWake.Risen(p)) * Cell));
+
+    /// <summary>A stand's back at <paramref name="p"/>: its picture, its drum turned as it pays out, its cables down to the yoke, its beacon lit or not.</summary>
+    private static void Stand(Sketch g, Vector2 corner, double p, bool beacon)
+    {
+        g.DrawTexture(PixelArt.Picture("guard_stand"), corner);
+        Part(g, "drum", corner + Drum, (float)((StandWake.Hang - StandWake.Hung(p)) * 9), 1);
+        float bottom = YokeAt(corner, p).Y - CableShort;
+        foreach (float x in new[] { CableLeft, CableRight }) g.DrawLine(corner + new Vector2(x, CableTop), new Vector2(corner.X + x, bottom), Cable, 0.8f);
+        if (beacon) Part(g, "beacon_lit", corner + Beacon, 0, 1);
+    }
+
+    /// <summary>Each stand's front, over its robot: its yoke and hooks, its waist clamp.</summary>
+    private void PaintFronts(Sketch g)
+    {
+        for (int i = 0; i < _docks.Length; i++)
+        {
+            var (corner, capsule) = _docks[i];
+            if (capsule) continue;
+            double p = Let(i), open = StandWake.Hooks(p) * 0.9;
+            var yoke = YokeAt(corner, p);
+            Part(g, "hook", yoke + new Vector2(-HookApart, 0), (float)open, 1);
+            Part(g, "hook", yoke + new Vector2(HookApart, 0), (float)-open, -1);
+            Part(g, "yoke", yoke, 0, 1);
+            Part(g, "clamp", corner + Clamp, (float)StandWake.Clamp(p), 1);
+        }
+    }
+
+    /// <summary>Stand part <paramref name="part"/> with its pivot at <paramref name="at"/>, turned <paramref name="turn"/>, mirrored for a <paramref name="face"/> of −1.</summary>
+    private static void Part(Sketch g, string part, Vector2 at, float turn, int face)
+    {
+        var p = CreatureArt.InkStand.Parts[part];
+        g.DrawSetTransform(at, turn, new Vector2(face, 1));
+        g.DrawTexture(CreatureParts.Ink(CreatureArt.InkStand.Id, part, CreatureParts.Kind.Colour), new Vector2(-p.PivotX, -p.PivotY));
+        g.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
     }
 
     /// <summary>The iris's smoked glass and blades, <paramref name="open"/> of the way open: guards.js's blades, their pinhole grown to the rim.</summary>

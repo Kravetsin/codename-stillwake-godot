@@ -34,14 +34,18 @@ public sealed class VesselScenario : DevScenario
 
     /// <summary>
     /// The cell a hero's feet stand on beside the first dock of <paramref name="species"/>'s guard, on its floor: two columns past its right
-    /// side where open, else two before its left; null on a surface with none.
+    /// side where open, else two before its left; for a stand in its big hall, on along its floor up to ten more short of a wall or a door,
+    /// out of its escort's claw's reach so it shoots first; null on a surface with none.
     /// </summary>
     private static int? Beside(Registry m, string species)
     {
         if (m.Creatures.Docks.FirstOrDefault(d => d.Species == species) is not { } dock) return null;
         int margin = Content.Vessels.Margin, w = m.Grid.Width, y = margin + dock.Y + dock.Height - 1;
         int right = margin + dock.X + dock.Width + 1, left = margin + dock.X - 2;
-        return m.Grid.Solid(y * w + right) || m.Grid.Solid((y - 4) * w + right) ? y * w + left : y * w + right;
+        bool Open(int x) => !m.Grid.Solid(y * w + x) && !m.Grid.Solid((y - 4) * w + x) && !Sim.Grid.Doorways.IsDoorway(m.Grid.StructureAt((y - 4) * w + x));
+        int at = Open(right) ? right : left, way = at == right ? 1 : -1;
+        for (int k = 0; dock.Rule.Big && k < 10 && Open(at + way * 2); k++) at += way;
+        return y * w + at;
     }
 
     public override World Seed(World world, DevSeed seed)

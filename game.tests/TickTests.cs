@@ -193,5 +193,9 @@ public class TickTests
         Assert.True(DockWake.Iris(DockWake.ShownAt) > 0.5 && DockWake.Folded(DockWake.ShownAt) == 1);
         Assert.True(DockWake.Folded(DockWake.DropFrom) == 0 && DockWake.Drop(DockWake.DropFrom) == 0);
         Assert.Equal((1.0, true, 0.0, 1.0), (DockWake.Iris(1), DockWake.Shown(1), DockWake.Folded(1), DockWake.Drop(1)));
+        // A stand: shut and hung asleep; its clamp up before its robot is lowered; lowered before its hooks open; open, risen and its robot up at the end.
+        Assert.Equal((0.0, StandWake.Hang, 0.0, 1.0, 0.0), (StandWake.Clamp(0), StandWake.Hung(0), StandWake.Hooks(0), StandWake.Folded(0), StandWake.Lamp(0, 0)));
+        Assert.True(StandWake.Clamp(StandWake.LowerFrom) == StandWake.ClampSwing && StandWake.Hung(StandWake.HooksFrom) == 0);
+        Assert.Equal((StandWake.ClampSwing, 0.0, 1.0, StandWake.YokeRise, 0.0, 1.0), (StandWake.Clamp(1), StandWake.Hung(1), StandWake.Hooks(1), StandWake.Risen(1), StandWake.Folded(1), StandWake.Lamp(1, 2)));
     }
 }

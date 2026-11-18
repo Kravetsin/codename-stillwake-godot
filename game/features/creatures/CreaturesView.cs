@@ -93,10 +93,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         AddChild(_worldHits);
         AddChild(_ticks);
         AddChild(_istukans);
+        AddChild(_escorts);
         AddChild(_lurkers);
         AddChild(_bursts);
         _ticks.Bursts = _bursts;
         _istukans.Bursts = _bursts;
+        _escorts.Bursts = _bursts;
         _lurkers.Bursts = _bursts;
     }
 
@@ -110,6 +112,10 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     /// <summary>The creatures drawn as the Istukan (<see cref="CreatureLooks.Istukans"/>): posed and drawn anew as the tick is.</summary>
     private readonly IstukanBodies _istukans = new();
+
+    /// <summary>The creatures drawn as the escort (<see cref="CreatureLooks.Escorts"/>), asleep in their stands too.</summary>
+    private readonly EscortBodies _escorts = new();
+    private readonly List<Creature> _escorted = [];
 
     private readonly List<Creature> _posted = [];
 
@@ -140,6 +146,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _bursts.Clear();
             _ticks.Reset();
             _istukans.Reset();
+            _escorts.Reset();
             _lurkers.Reset();
             _of = creatures;
             if (rules is Spec.PlanetType { Creatures.Count: > 0 }) CreatureParts.Warm();
@@ -156,13 +163,20 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _drawn.Clear();
         _ticked.Clear();
         _posted.Clear();
+        _escorted.Clear();
         _lurked.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
             _out.Add(c.Id);
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
-            // A guard asleep in its dock is hidden in it (DocksView, derelict-enemies); waking, the tick shows it unfolding there.
+            // A spider asleep in its capsule is hidden in it (DocksView, derelict-enemies); waking, the tick shows it unfolding there. An
+            // escort hangs in its stand in sight.
+            if (CreatureLooks.Escorts.Contains(Spec.Creatures.Get(c.Species).Look))
+            {
+                _escorted.Add(c);
+                continue;
+            }
             if (c.Posture == Posture.Docked) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
             else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
@@ -217,6 +231,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
                 CreatureLooks.LightKeep, 1));
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
+        _escorts.Frame(creatures, grid.Width, _escorted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources);
         _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }

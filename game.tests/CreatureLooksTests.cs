@@ -10,13 +10,13 @@ public class CreatureLooksTests
 
     [Fact]
     public void EveryWalkerHasARig() =>
-        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look)
+        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look) && !CreatureLooks.Escorts.Contains(s.Look)
             && !CreatureLooks.Ticks.Contains(s.Look)), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
 
     [Theory]
     [MemberData(nameof(Species))]
     public void EverySpeciesIsDrawnByItsRigOrAsTheTickOrAHero(string species) =>
-        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Escorts.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
 
     [Fact]
     public void EveryOutfitOfAHeroLookHasEveryPictureAndEachCatcherOneByItsId()
@@ -41,6 +41,12 @@ public class CreatureLooksTests
     {
         Assert.True(HitLooks.Creatures.TryGetValue(species, out var impact), $"{species} has no hit look");
         Assert.NotEmpty(HitLooks.Of[impact].Throws);
+        // The escort is silent till its sounds are picked (derelict-enemies): none of its own, none borrowed.
+        if (CreatureLooks.Escorts.Contains(Spec.Creatures.Get(species).Look))
+        {
+            Assert.False(Sound.Creatures.ContainsKey(species) || Sound.Istukans.ContainsKey(species) || Sound.RamHits.ContainsKey(species), $"{species} is heard");
+            return;
+        }
         if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look))
         {
             Assert.True(Sound.Istukans.TryGetValue(species, out var guard), $"{species} is drawn as the Istukan with no sounds of its own");

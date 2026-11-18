@@ -50,6 +50,8 @@ public static class CreatureParts
         foreach (var design in CreatureArt.Lurkers.Values) Parts(design.Id, design.Parts);
         Parts(CreatureArt.InkIstukan.Id, CreatureArt.InkIstukan.Parts);
         Parts(CreatureArt.InkTick.Id, CreatureArt.InkTick.Parts);
+        Parts(CreatureArt.InkEscort.Id, CreatureArt.InkEscort.Parts);
+        Parts(CreatureArt.InkStand.Id, CreatureArt.InkStand.Parts);
     }
 
     private static bool _warm;
