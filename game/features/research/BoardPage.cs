@@ -437,7 +437,8 @@ public sealed class BoardPage : ITabletPage
         {
             string id = view.Id;
             var state = BoardView.StateOf(id, read);
-            string? need = state == BoardState.Almost ? BoardView.NeedOf(id, read) : null;
+            var missing = state == BoardState.Almost ? BoardView.MissingOf(id, read) : [];
+            string? need = state == BoardState.Almost ? string.Join(',', missing) : null;
             var parts = state == BoardState.Almost ? BoardView.PartsOf(id, read) : default;
             bool glows = _keep.Seen.Unread(id);
             if (state == view.State && need == view.NeedOf && parts == view.Parts && glows == view.Glows) continue;
@@ -449,7 +450,8 @@ public sealed class BoardPage : ITabletPage
             }
             if (need != view.NeedOf || state != view.State)
             {
-                view.Need.Text = need != null ? T("research.board.need", ("what", _strip.NameOf(need))) : state == BoardState.Almost ? T("research.board.ready") : "";
+                // A count, never the first name: naming one would read as the last one missing.
+                view.Need.Text = state != BoardState.Almost ? "" : missing.Count > 0 ? T("research.board.missing", ("n", missing.Count)) : T("research.board.ready");
                 _sizedAt = null;
             }
             (view.State, view.NeedOf, view.Parts, view.Glows) = (state, need, parts, glows);
@@ -605,10 +607,12 @@ public sealed class BoardPage : ITabletPage
     private void DrawGrid(Vector2 size)
     {
         float step = (float)(BoardLayout.Grid * _camera.Zoom);
-        while (step < 14) step *= 4;
+        // Always the frames' own grid, fading as it grows dense: a coarser one would miss the frames, which stand a small cell apart.
+        if (step < 5) return;
+        var line = GridLine with { A = GridLine.A * Math.Clamp((step - 5) / 9, 0, 1) };
         float left = (float)((_camera.X + Margin * _camera.Zoom) % step), top = (float)((_camera.Y + Margin * _camera.Zoom) % step);
-        for (float x = left < 0 ? left + step : left; x < size.X; x += step) _back.DrawLine(new Vector2(MathF.Round(x) + 0.5f, 0), new Vector2(MathF.Round(x) + 0.5f, size.Y), GridLine);
-        for (float y = top < 0 ? top + step : top; y < size.Y; y += step) _back.DrawLine(new Vector2(0, MathF.Round(y) + 0.5f), new Vector2(size.X, MathF.Round(y) + 0.5f), GridLine);
+        for (float x = left < 0 ? left + step : left; x < size.X; x += step) _back.DrawLine(new Vector2(MathF.Round(x) + 0.5f, 0), new Vector2(MathF.Round(x) + 0.5f, size.Y), line);
+        for (float y = top < 0 ? top + step : top; y < size.Y; y += step) _back.DrawLine(new Vector2(0, MathF.Round(y) + 0.5f), new Vector2(size.X, MathF.Round(y) + 0.5f), line);
     }
 
     /// <summary>The pinned goal's chain, breathing; and the ties of what is hovered or picked: what it is made of, and what is made of it that the board names.</summary>
@@ -947,7 +951,7 @@ public sealed class BoardPage : ITabletPage
         return view.State switch
         {
             BoardState.Unknown => new Tip(T("research.board.unknown")),
-            BoardState.Almost => new Tip(_strip.NameOf(id), view.NeedOf is { } need ? [new TipLine(T("research.board.need", ("what", _strip.NameOf(need))), Tone.Dim)] : [new TipLine(T("research.board.ready"), Tone.Dim)]),
+            BoardState.Almost => new Tip(_strip.NameOf(id), view.NeedOf is { Length: > 0 } need ? [new TipLine(T("research.board.need", ("what", string.Join(", ", need.Split(',').Select(_strip.NameOf)))), Tone.Dim)] : [new TipLine(T("research.board.ready"), Tone.Dim)]),
             _ => TipOf(id),
         };
     }

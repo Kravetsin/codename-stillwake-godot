@@ -85,18 +85,24 @@ public static class BoardView
         return BoardPencil.Of([sources.Any(read.Has)], workers.Count == 0 ? null : workers.Any(read.Stands));
     }
 
-    /// <summary>What <paramref name="id"/> still needs, the first missing: a part never had, else a machine to make or work it; null for nothing.</summary>
-    public static string? NeedOf(string id, BoardRead read)
+    /// <summary>
+    /// Everything <paramref name="id"/> still needs: each part never had and a machine to make it if none stands; of a smelted item one source if none
+    /// was had and a machine to work it. Empty when nothing is missing and it only waits to be made.
+    /// </summary>
+    public static IReadOnlyList<string> MissingOf(string id, BoardRead read)
     {
+        var missing = new List<string>();
         if (BoardThings.Of(id) is { } thing)
         {
-            if (thing.Parts.FirstOrDefault(p => !read.Has(p)) is { } part) return part;
-            return thing.Stations is { Count: > 0 } stations && !stations.Any(read.Stands) ? stations[0] : null;
+            missing.AddRange(thing.Parts.Where(p => !read.Has(p)));
+            if (thing.Stations is { Count: > 0 } stations && !stations.Any(read.Stands)) missing.Add(stations[0]);
+            return missing;
         }
         var sources = BoardThings.SourcesOf(id);
-        if (sources.Count > 0 && !sources.Any(read.Has)) return sources[0];
+        if (sources.Count > 0 && !sources.Any(read.Has)) missing.Add(sources[0]);
         var workers = TechLinks.Of(id).MadeAt;
-        return workers.Count > 0 && !workers.Any(read.Stands) ? workers[0] : null;
+        if (workers.Count > 0 && !workers.Any(read.Stands)) missing.Add(workers[0]);
+        return missing;
     }
 
     /// <summary>How many of <paramref name="id"/>'s parts or sources are had, of how many, for its progress bar: a source had counts as all of one.</summary>

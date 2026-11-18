@@ -58,6 +58,7 @@ public static partial class Ru
         ["research.board.haveEnough"] = "Этого хватит. Осталось построить машину, где это делают:",
         ["research.board.need"] = "нужно: {what}",
         ["research.board.ready"] = "можно получить",
+        ["research.board.missing"] = "не хватает: {n}",
         ["research.board.unknown"] = "Ещё не открыто",
         ["research.board.market"] = "рынок",
         ["research.board.known"] = "{k} / {n} известно",

@@ -51,7 +51,7 @@ public class BoardChainTests
     {
         Assert.Equal(BoardState.Unknown, BoardView.StateOf("nail", Read([], [])));
         Assert.Equal(BoardState.Almost, BoardView.StateOf("nail", Read(["scrap"], [])));
-        Assert.Equal("workbench", BoardView.NeedOf("nail", Read(["scrap"], [])));
+        Assert.Equal(["workbench"], BoardView.MissingOf("nail", Read(["scrap"], [])));
         Assert.Equal(BoardState.Known, BoardView.StateOf("nail", Read(["scrap"], ["nail"])));
         Assert.Equal(BoardState.Known, BoardView.StateOf("scrapChunk", Read(["scrapChunk"], [])));
         Assert.Equal(BoardState.Almost, BoardView.StateOf("scrap", Read(["scrapChunk"], [])));
@@ -99,5 +99,13 @@ public class BoardChainTests
         Assert.True(world.World.Surfaces[1].Closed);
         Assert.False(BoardRead.Of(world.World).Stands("workbench"));
         Assert.NotEmpty(BoardRead.KeyOf(world.World));
+    }
+
+    [Fact]
+    public void ASilhouetteCountsEveryPartMissingNotJustTheFirst()
+    {
+        var thing = BoardThings.All.First(t => !t.Market && t.Parts.Count >= 2);
+        var read = Read([thing.Parts[0]], [], [.. BoardThings.Machines]);
+        Assert.Equal(thing.Parts.Where(p => p != thing.Parts[0]), BoardView.MissingOf(thing.Id, read));
     }
 }
