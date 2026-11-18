@@ -9,8 +9,8 @@
 | `Stretches.cs` | Stretches, the ship's and a planet's storms: their schedule, the sky's fork and `StretchNow`. |
 
 A planet's day and night ([night-chills](../../docs/decisions/2026-11-07-night-chills.md)), and stretches: the ship's spells of space
-([stretches-of-space](../../docs/decisions/2026-11-15-stretches-of-space.md)) and a planet's storms ([surface-storms](../../docs/decisions/2026-11-16-surface-storms.md)). What the cold costs is Crew's (its chill in degrees,
-[temperature-in-degrees](../../docs/decisions/2026-11-14-temperature-in-degrees.md)); what it looks like is the client's
+([stretches-of-space](../../docs/decisions/2026-11-15-stretches-of-space.md)) and a planet's storms ([surface-storms](../../docs/decisions/2026-11-16-surface-storms.md)). What the cold does is Crew's (its chill in degrees,
+[body-temperature](../../docs/decisions/2026-11-18-body-temperature.md)), and a storm's grit ([mild-surface](../../docs/decisions/2026-11-18-mild-surface.md)); what it looks like is the client's
 (`Daylight`, `StretchLooks`). The numbers are `Content/Sky.cs` (`Surfaces.Kind.Cycle`) and `Content/Stretches.cs` (`Kind.Stretches`).
 
 - **Depends on:** `Knowledge` (what has been obtained). Listed `[Grid, …, Knowledge, Sky, …]`, before Crew and Debris, which read it.
@@ -40,8 +40,8 @@ A planet's day and night ([night-chills](../../docs/decisions/2026-11-07-night-c
 
 ## API
 
-- **Queries** (`ISkyQueries`): `Now` — `SkyNow(Time, Night, Chill, Stretch, Coming, ComingIn, Ran, Pace)`: `Chill` night's plus the
-  running stretch's, `Pace` its `Pace` (1000 with none). Read by Crew (`Chill`, `Pace`), Debris (`Stretch`) and the client.
+- **Queries** (`ISkyQueries`): `Now` — `SkyNow(Time, Night, Chill, Stretch, Coming, ComingIn, Ran, Pace, Grit)`: `Chill` night's plus
+  the running stretch's, `Pace` and `Grit` its own (1000 and 0 with none). Read by Crew (`Chill`, `Pace`, `Grit`), Debris (`Stretch`) and the client.
 - **Commands:** `SetTime(Time)` — `sky.noDay`; `StretchNow(Id)` — `sky.noStretch`, `sky.stretchRunning`.
 - **Fuzz:** one turn in sixteen, an hour from −10 000 to 50 000, refused on the ship; `StretchNow` of any stretch.
 
@@ -54,6 +54,6 @@ A planet's day and night ([night-chills](../../docs/decisions/2026-11-07-night-c
 
 ## Deliberately not handled
 
-- **Rain is a look**, not water; wind pushes nothing. Lightning is planned (docs/plans/surface-storms.md).
+- **Rain is a look**, not water; wind pushes nothing. Lightning is Hazards'.
 - **No hour shown aboard:** the sky is the clock; a later visit may land in the dark.
 - **Two stretches at once**, unlocks per hero: each surface has its own `Sky`.

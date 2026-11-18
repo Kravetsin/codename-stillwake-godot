@@ -19,6 +19,8 @@ joining mid-warning sees what the others do. The sim knows nothing of the frost 
 
 ## Rules
 
+- **The far picture** (`render/StretchBackdrop`, moving-sun) is sunk into space by `StretchLooks.Deep`, the pick «Дымка
+  глубины»: greyed, flattened toward its paint's mean, hazed toward space's colour, never blurred. The hulk is 480 px across.
 - **Made by `SurfaceViews`** on a surface with stretches (the ship), shown only while a stretch with `Frost` is coming, running
   or easing back (`Frost.Shows`).
 - **A hull cell** is a wall with a side facing space (`Frost.SidesOf`) or an inner corner, where its two sides are walled and the

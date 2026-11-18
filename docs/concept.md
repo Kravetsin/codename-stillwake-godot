@@ -74,7 +74,7 @@ A living document: what is decided about the game and what is still open. Techni
   ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). It also makes its room's air as a first generator, with no power, so
   the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet adds its air past the lungs' 20, the body
-  withstands the cold down to its limit, −40° for the basic ([temperature-in-degrees](decisions/2026-11-14-temperature-in-degrees.md)); the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
+  withstands the cold down to its limit, −110° for the basic ([body-temperature](decisions/2026-11-18-body-temperature.md)); the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
   helmet adds 80 to the basic 25 (totals 100 and 45, [air-segments](decisions/2026-11-15-air-segments.md)), sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)); between
   them the quilted helmet's +50, sewn at the workbench round the basic one of a planet's cloth ([quilted-helmet](decisions/2026-11-14-quilted-helmet-and-traced-art.md)).
   A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
@@ -128,7 +128,7 @@ A living document: what is decided about the game and what is still open. Techni
   a machine block, an electronics rack, oxygen tanks, a shield slab and, rarely, a soil clod, each broken with the fire axe
   into what its picture shows it holds, floating where it was
   ([0034](decisions/0034-wreckage-and-the-axe.md), [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
-- **Death** is a suit run dry: the hero wakes at the pod with its tools, its jetpack and its batteries, and
+- **Death** is a suit run dry, or a body frozen or overheated: the hero wakes at the pod with its tools, its jetpack and its batteries, and
   everything else it carried lies where it fell, a body in its suit with a beacon blinking, pointed at from the
   screen's edge. Anyone may pick it up, as any stack; out in space it drifts with the rest and leaves the world
   at its edge, and wherever it is, it is gone ten minutes after the death
@@ -137,12 +137,18 @@ A living document: what is decided about the game and what is still open. Techni
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
   the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
-- **Temperature:** every place has one in degrees: space −20° by the ship to −40° at the field's line, an aired room +20°,
-  a planet smoothly by its depth ([temperature-gradients](decisions/2026-11-14-temperature-gradients.md)). A body withstands
-  down to its limit, the cape adds 5°; each degree past it costs air ([temperature-in-degrees](decisions/2026-11-14-temperature-in-degrees.md)).
-- **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky is 20° colder: a hero with no
-  back wall behind feels it past a suit's limit, the cape halving what it costs; caves, tunnels and back walls
-  shelter. Dusk dims the light a minute before, and the dark is lit by the helmet lamp ([night-chills](decisions/2026-11-07-night-chills.md)).
+- **Temperature:** every place has one in degrees: space −100° by the ship, −200° at the field's line and colder on to the
+  world's edge, an aired room +20°, a planet smoothly by its depth, the first one mild on its surface and cold in its caves
+  ([temperature-gradients](decisions/2026-11-14-temperature-gradients.md), [mild-surface](decisions/2026-11-18-mild-surface.md)).
+  A suit withstands down to its limit and up to its high, the cape adds 5°. Past either the hero's own body cools from 37° or
+  heats, slowing it on foot and at its tools, and at 28° or 42° it dies after a last breath: how far a hero goes from the
+  ship is its suit's to decide, not its air's ([body-temperature](decisions/2026-11-18-body-temperature.md)). The HUD shows
+  the body to a tenth on a dial beside the charge's and the meals' ([hud-dials](decisions/2026-11-18-hud-dials.md)).
+- **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky is 20° colder: a bare hero with no
+  back wall behind feels it; caves, tunnels and back walls shelter. Dusk dims the light a minute before, and the dark is lit
+  by the helmet lamp ([night-chills](decisions/2026-11-07-night-chills.md)); the sun crosses the sky by the hour
+  ([moving-sun](decisions/2026-11-18-moving-sun.md)). Storms come: the dust's grit grinds a suit's air out in the open, the
+  rain's lightning strikes every 12–18 s ([mild-surface](decisions/2026-11-18-mild-surface.md)).
 - **Hunting:** a planet's grazers, met in small herds of one kind, drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
   sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and adds 5° against the cold. Both are a

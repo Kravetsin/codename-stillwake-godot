@@ -15,21 +15,21 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Aim.cs` | aim |
 | `logic/AxeSwing.cs` | stroke clock |
 | `logic/Strokes.cs` | strokes |
-| `logic/MotionPlay.cs` | its motion |
+| `logic/MotionPlay.cs` | motion |
 | `ReachAir.cs` | grinder haze |
 | `logic/AirCuts.cs` | dust, brush |
 | `logic/BladeTrail.cs` | blade haze |
 | `SpearLight.cs` | spear's |
 | `logic/SpearFx.cs` | when |
-| `logic/SwingArc.cs` | its angle kept |
+| `logic/SwingArc.cs` | angle |
 | `logic/SwingArm.cs` | arm swung |
 | `logic/HandOver.cs` | with it |
 | `logic/BodyPlay.cs` | its answers |
 | `logic/HaftGrip.cs` | far hand |
 | `logic/ArmUp.cs` | aim up |
 | `logic/HarpoonShot.cs` | harpoon |
-| `logic/HarpoonLine.cs` | its line |
-| `logic/Prompt.cs` | what E does |
+| `logic/HarpoonLine.cs` | line |
+| `logic/Prompt.cs` | E |
 | `logic/Seating.cs` | seats |
 | `logic/FogMove.cs` | across fog |
 | `logic/Fittings.cs` | modules |
@@ -47,10 +47,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Motor.cs` | motors |
 | `logic/Remote.cs` | sent |
 | `logic/RemoteRod.cs` | rods |
-| `logic/RodFlourish.cs` | its lights |
+| `logic/RodFlourish.cs` | lights |
 | `logic/Suits.cs` | suits worn |
 | `logic/Skins.cs` | skins |
-| `logic/Appearance.cs` | their tab |
+| `logic/Appearance.cs` | tab |
 | `AppearanceView.cs` | it shown |
 | `SkinSlot.cs` | a slot |
 | `logic/BladeFx.cs` | effects |
@@ -70,18 +70,18 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Spring.cs` | spring |
 | `CapeView.cs` | drawn |
 | `HeroView.cs` | hero |
-| `HeroView.Hands.cs` | its hands |
-| `HeroView.Guns.cs` | its gun |
+| `HeroView.Hands.cs` | hands |
+| `HeroView.Guns.cs` | gun |
 | `HeroView.Feel.cs` | air, body |
 | `logic/GunHand.cs` | cooldown |
 | `HeroView.Others.cs` | others |
 | `logic/CameraFollow.cs` | camera |
 | `JetPlume.cs` | plume |
-| `logic/PlumeWay.cs` | its way |
+| `logic/PlumeWay.cs` | way |
 | `RodLight.cs` | rod light |
 | `AimOutline.cs` | outline |
 | `ModeGlyph.cs` | mark |
-| `logic/DriverMode.cs` | its dots |
+| `logic/DriverMode.cs` | dots |
 | `HeroAutopilot.cs` | scripted |
 | `logic/Report.cs` | reports |
 | `Frost.cs` | the cold |
@@ -98,7 +98,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `MealSlots.cs` | meals |
 | `logic/Retching.cs` | a retch |
 | `logic/RetchSpray.cs` | bile |
-| `InkLayer.cs` | bile drawn |
+| `InkLayer.cs` | ink |
 | `logic/MealTips.cs` | cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | read |
@@ -116,9 +116,9 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `BodyView.cs` | drawn |
 | `logic/Rams.cs` | rams |
 | `HunterView.cs` | catchers |
-| `CatcherFxView.cs` | its light |
+| `CatcherFxView.cs` | light |
 | `Glitch.cs` | in bands |
-| `logic/CatcherFx.cs` | its fight |
+| `logic/CatcherFx.cs` | fight |
 | `logic/CatcherMotion.cs` | moves |
 | `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
@@ -133,13 +133,14 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Jump** (0089): coyote, buffer, short hop; **the figure answers its motion** (0090, hero-gait).
 - **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (`FogMove`, fog-edges).
-- **Camera** leads, eases, snaps; **markers** (0061): home, last body, friends heard, deliveries, a catcher, pings;
-  **hurts** tint edges, gauge (hurts-are-shown).
+- **Camera** leads, eases, snaps; **markers** (0061): home, body, friends, deliveries, a catcher, pings; **hurts** tint
+  edges (hurts-are-shown).
 - **Water** (liquids): swum `SwimDepth` deep, left by Space or shore; wading splashes.
 - **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied where it left; Shift hauls
   along bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
-- **Meals:** RMB `Eat`; refused, slots blink (hud-vitals); 4th held 3 s, `Purge` (food-tuning); degrees over (the-thermometer).
+- **Dials** (hud-dials): meals (RMB `Eat`), purge held 3 s (food-tuning), the body.
+- **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; past death a last breath, `Succumb`; `SpeedOf` on foot.
 - **Crew** made at `Spawn`; passed out, lies, takes no orders (0061). `Enter` when the sim's room or side differ,
   each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on the shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
