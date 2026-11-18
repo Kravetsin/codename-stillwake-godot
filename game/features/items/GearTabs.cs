@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Items;
 
 /// <summary>
 /// The equipment's two folder tabs on top of its metal (gear-tabs, pick B): Gear, a helmet, and Appearance, a coat hanger. The one
-/// open is the metal's own, merged into the frame, its name on a strip of screen in the screen's colour, cyan on the gear's, amber
+/// open is the metal's own, merged into the frame, its name straight on the metal in the screen's colour, cyan on the gear's, amber
 /// on the Appearance's; the other sits back, darker. A press on the closed one opens it. Laid out at the slot size.
 /// </summary>
 public partial class GearTabs : HBoxContainer
@@ -41,7 +41,6 @@ public partial class GearTabs : HBoxContainer
     {
         private static readonly Color BackTop = new("3e434b"), BackFoot = new("2b2f36"), OpenTop = new("8a9099"), OpenFoot = new("6c7179");
         private static readonly Color Ink = new("77818f"), InkHover = new("a8b2c0"), Cyan = new("62d6ea"), Amber = new("e9a84c");
-        private static readonly Color GearGlass = new("0e1526"), LooksGlass = new("1b120a");
 
         private readonly string _name;
         private readonly bool _looksTab;
@@ -90,22 +89,25 @@ public partial class GearTabs : HBoxContainer
             float top = _open ? 0 : 6 * _k, w = Size.X, h = Size.Y + (_open ? 2 : 0), r = 5 * _k;
             Shape(top, w, h, r, _open ? OpenTop : BackTop, _open ? OpenFoot : BackFoot);
             DrawLine(new Vector2(r, top + 0.5f), new Vector2(w - r, top + 0.5f), Colors.White with { A = _open ? 0.5f : 0.12f });
-            var (ink, glass) = _open ? (_looksTab ? Amber : Cyan, _looksTab ? LooksGlass : GearGlass) : (_hovered ? InkHover : Ink, default);
+            var ink = _open ? (_looksTab ? Amber : Cyan) : _hovered ? InkHover : Ink;
             float pad = 6 * _k;
             var label = new Rect2(pad, top + 5 * _k, w - 2 * pad, Size.Y - top - 11 * _k);
-            if (_open)
-            {
-                DrawRect(label, glass);
-                // The glass's recess, as the screen's own.
-                DrawRect(new Rect2(label.Position, new Vector2(label.Size.X, 1)), Colors.Black with { A = 0.6f });
-                DrawRect(new Rect2(label.Position, new Vector2(1, label.Size.Y)), Colors.Black with { A = 0.4f });
-            }
             float icon = 11 * _k, x = label.Position.X + 6 * _k, middle = label.Position.Y + label.Size.Y / 2;
-            if (_looksTab) Hanger(new Vector2(x, middle - icon / 2), icon, ink);
-            else Helmet(new Vector2(x, middle - icon / 2), icon, ink);
+            // The open tab's name lies straight on its light metal: a dark shadow under it keeps it read.
+            if (_open) Title(new Vector2(x, middle) + Vector2.One, icon, Shade);
+            Title(new Vector2(x, middle), icon, ink);
+        }
+
+        private static readonly Color Shade = new Color("0b1120") with { A = 0.85f };
+
+        /// <summary>The glyph and the name, their middle left at <paramref name="at"/>.</summary>
+        private void Title(Vector2 at, float icon, Color ink)
+        {
+            if (_looksTab) Hanger(new Vector2(at.X, at.Y - icon / 2), icon, ink);
+            else Helmet(new Vector2(at.X, at.Y - icon / 2), icon, ink);
             var font = Style.Mono;
-            float baseline = middle + (font.GetAscent(_fontSize) - font.GetDescent(_fontSize)) / 2;
-            DrawString(font, new Vector2(x + icon + 5 * _k, Mathf.Round(baseline)), _name, HorizontalAlignment.Left, -1, _fontSize, ink);
+            float baseline = at.Y + (font.GetAscent(_fontSize) - font.GetDescent(_fontSize)) / 2;
+            DrawString(font, new Vector2(at.X + icon + 5 * _k, Mathf.Round(baseline)), _name, HorizontalAlignment.Left, -1, _fontSize, ink);
         }
 
         // A tab's outline, its top corners rounded, shaded from top to foot.

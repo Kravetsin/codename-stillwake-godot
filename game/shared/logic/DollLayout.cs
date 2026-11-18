@@ -22,7 +22,8 @@ public enum DollSpot
 /// The equipment's screen as a doll (gear-tabs, pick B): the hero standing in the middle, facing right, and the slots round it, the
 /// left column the head, the cape and the back, the right the helmet's mount, the suit and the belt's row; each slot's leader
 /// line reaching the part it dresses. One table for the items feature's gear and crew's Appearance tab, at any slot size: drawn
-/// for the 44 px slot and scaled with it. Room is left right of the suit for the clothes under it (body-temperature, phase 3).
+/// for the 44 px slot and scaled with it. The screen ends a margin past its last open slot (<see cref="WidthFor"/>): a belt slot
+/// opened widens it, as the clothes under the suit will (body-temperature, phase 3).
 /// </summary>
 public sealed class DollLayout
 {
@@ -51,7 +52,7 @@ public sealed class DollLayout
         (DollSpot.Hand, 230, 168, (90, 300)),
     ];
 
-    private const int BaseWidth = 384, BaseHeight = 260, BaseFeetX = 150, BaseFeetY = 252, BaseTall = 196;
+    private const int BaseMargin = 12, BaseHeight = 260, BaseFeetX = 150, BaseFeetY = 252, BaseTall = 196;
 
     private readonly int[] _x = new int[Table.Length], _y = new int[Table.Length];
     private readonly (int X, int Y)?[] _to = new (int X, int Y)?[Table.Length];
@@ -59,7 +60,6 @@ public sealed class DollLayout
     private DollLayout(int slot)
     {
         Slot = slot;
-        Width = Scaled(BaseWidth, slot);
         Height = Scaled(BaseHeight, slot);
         Feet = (Scaled(BaseFeetX, slot), Scaled(BaseFeetY, slot));
         Tall = Scaled(BaseTall, slot);
@@ -69,6 +69,7 @@ public sealed class DollLayout
             (_x[i], _y[i]) = (Scaled(x, slot), Scaled(y, slot));
             _to[i] = to is var (ahead, up) ? (Feet.X + (int)Math.Round(ahead * Tall / 1000.0), Feet.Y - (int)Math.Round(up * Tall / 1000.0)) : null;
         }
+        Width = WidthFor(1);
     }
 
     /// <summary>The doll laid out for slots <paramref name="slot"/> px wide.</summary>
@@ -77,8 +78,15 @@ public sealed class DollLayout
     /// <summary>The slot side it is laid out for.</summary>
     public int Slot { get; }
 
-    /// <summary>The screen's size it fills, px.</summary>
+    /// <summary>The screen's size it fills with the first belt slot only open, px: the Appearance tab's always.</summary>
     public int Width { get; }
+
+    /// <summary>The screen's width with <paramref name="belts"/> belt slots open, ending a margin past the last.</summary>
+    public int WidthFor(int belts)
+    {
+        var last = belts >= 3 ? DollSpot.Belt3 : belts == 2 ? DollSpot.Belt2 : DollSpot.Belt1;
+        return _x[(int)last] + Slot + Scaled(BaseMargin, Slot);
+    }
 
     public int Height { get; }
 

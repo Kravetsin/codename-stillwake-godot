@@ -375,7 +375,7 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private WristScreen Body(int size)
     {
-        var layout = DollLayout.Of(size);
+        var layout = _dollLayout = DollLayout.Of(size);
         var mouseless = Control.MouseFilterEnum.Ignore;
         _stage = new Control { CustomMinimumSize = new Vector2(layout.Width, layout.Height), MouseFilter = mouseless };
         _gearSpots = new Control { Size = _stage.CustomMinimumSize, MouseFilter = mouseless };
@@ -437,6 +437,7 @@ public partial class InventoryPanel : CanvasLayer
     private GearTabs _tabs = null!;
     private Control _stage = null!, _gearSpots = null!;
     private DollLeads _gearLeads = null!;
+    private DollLayout _dollLayout = null!;
     private MarginContainer _bodyShows = null!;
     private Control? _appearance, _doll;
     /// <summary>Whether the Appearance tab is chosen, kept while the panel is built again.</summary>
@@ -667,6 +668,10 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
+        // The screen ends past the last belt slot open: one more opened widens it.
+        int belts = Equipment.Of(Content.Charge.Belt).Count(p => _items!.SlotOpen(_client!.Id, p));
+        var stage = new Vector2(_dollLayout.WidthFor(belts), _dollLayout.Height);
+        if (_stage.CustomMinimumSize != stage) _stage.CustomMinimumSize = _gearSpots.Size = stage;
         // The trash's frame shows with its slot: in creative mode only (trash-slot).
         _trash.Visible = _trashBox.Visible;
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).

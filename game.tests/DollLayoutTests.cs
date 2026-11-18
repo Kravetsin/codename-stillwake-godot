@@ -20,7 +20,7 @@ public class DollLayoutTests
         a.X < b.X + b.W + Slots.Gap && b.X < a.X + a.W + Slots.Gap && a.Y < b.Y + b.H + Slots.Gap && b.Y < a.Y + a.H + Slots.Gap;
 
     private static bool Inside(DollLayout layout, (int X, int Y, int W, int H) box) =>
-        box.X >= 0 && box.Y >= 0 && box.X + box.W <= layout.Width && box.Y + box.H <= layout.Height;
+        box.X >= 0 && box.Y >= 0 && box.X + box.W <= layout.WidthFor(3) && box.Y + box.H <= layout.Height;
 
     [Theory]
     [MemberData(nameof(Sizes))]
@@ -50,7 +50,7 @@ public class DollLayoutTests
                     Assert.Contains(spot, new[] { DollSpot.Belt2, DollSpot.Belt3 });
                     continue;
                 }
-                Assert.InRange(x, 0, layout.Width);
+                Assert.InRange(x, 0, layout.WidthFor(1));
                 Assert.InRange(y, layout.Feet.Y - layout.Tall, layout.Feet.Y);
                 foreach (var other in tab)
                 {
@@ -58,6 +58,19 @@ public class DollLayoutTests
                     Assert.False(x >= b.X && x <= b.X + b.W && y >= b.Y && y <= b.Y + b.H, $"{spot}'s dot under {other}");
                 }
             }
+    }
+
+    [Theory]
+    [MemberData(nameof(Sizes))]
+    public void TheScreenEndsPastItsLastOpenBeltSlot(int slot)
+    {
+        var layout = DollLayout.Of(slot);
+        // With the first belt slot only, nothing of either tab is cut off but the closed two.
+        foreach (var spot in DollLayout.Gear.Concat(DollLayout.Looks).Except([DollSpot.Belt2, DollSpot.Belt3]))
+            Assert.True(Box(layout, spot).X + slot <= layout.Width, $"{spot} cut at {slot}");
+        Assert.Equal(layout.Width, layout.WidthFor(1));
+        Assert.True(layout.WidthFor(2) >= Box(layout, DollSpot.Belt2).X + slot && layout.WidthFor(3) >= Box(layout, DollSpot.Belt3).X + slot);
+        Assert.True(layout.WidthFor(1) < layout.WidthFor(2) && layout.WidthFor(2) < layout.WidthFor(3));
     }
 
     [Theory]
