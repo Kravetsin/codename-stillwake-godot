@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Crew;
 /// (<see cref="Danger.Low"/>). A suit running low out of room air fogs the visor, its last units dimming with each breath (<see cref="VisorFog"/>; the last
 /// breath and passing out darken it in <see cref="TunnelView"/>), and beeps softly every <see cref="S.AlarmEveryS"/>,
 /// silent once passed out; out of danger the fog evaporates. Reads the sim four times a second, never every frame; the
-/// gauge moves smoothly between reads (<see cref="GaugeMotion"/>). Air coming back is felt (<see cref="AirCues"/>): a
+/// gauge moves smoothly between reads (<see cref="AirMotion"/>). Air coming back is felt (<see cref="AirCues"/>): a
 /// canister breathed surges the gauge; room air breathed again sends a wave across it and a soft inhale through the helmet.
 /// While the canister cools the sign greys and a ring sweeps round it (<see cref="DrawRing"/>).
 /// </summary>
@@ -42,7 +42,6 @@ public partial class SuitGauge : CanvasLayer
     private readonly VisorFog _fog = new();
     private readonly VisorFogView _fogView = new();
     private double _sinceRead = RefreshS;
-    private int _capacity;
     private SuitDanger _danger;
     private readonly AirCues _cues = new();
     private readonly AudioStreamPlayer _alarm = Cues.Player(S.Alarm, S.Helmet), _inhale = Cues.Player(S.Inhale, S.Helmet);
@@ -105,14 +104,12 @@ public partial class SuitGauge : CanvasLayer
             (int suit, int capacity, _danger, bool inAir) = _read();
             bool again = _cues.Read(suit, capacity, _danger, inAir, _sinceRead);
             _sinceRead = 0;
-            // A helmet put on or off changes the share with nothing lost: shown at once, no white.
-            if (_capacity != 0 && capacity != _capacity) _gauge.Motion.Show((double)suit / capacity);
-            // A hit is more than the dearest breath, running bare in the cold (a unit of it): bare lungs are small enough for a
-            // breath to look like one.
-            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + 1 + 0.5) / capacity));
-            _capacity = _gauge.Units = capacity;
-            // Each part of the air its own segment of the same scale, past a gap, named on hover (air-segments).
-            _gauge.Parts = [.. (_shown = _parts()).Select(p => p.Size)];
+            // Each part of the air its own piece of the same scale, past a gap, named on hover (air-segments). A hit is more than
+            // the dearest breath, running bare in the cold (a unit of it): bare lungs are small enough for a breath to look like
+            // one. A breath's refill is at most a room's and the pod's together.
+            _shown = _parts();
+            _gauge.Read(suit, capacity, [.. _shown.Select(p => (p.Key, p.Size))], Math.Max(WristLook.BigDrop * capacity, CrewSpec.Exerted + 1 + 0.5),
+                CrewModule.FillOf(capacity) + CrewSpec.PodRefill);
             for (; _tipped < _shown.Count; _tipped++)
             {
                 int part = _tipped;

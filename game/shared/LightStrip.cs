@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 
@@ -6,41 +6,39 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// The vitals' pieces of light (hud-vitals, look D): a wash with a wandering tide line, baked by <c>gauge.js</c> per tone in two
-/// variants so neighbours differ. A row's piece is the long strip cut to its length, its start then its own end; a dial's ring
-/// is the strip bent round (<see cref="RingLight"/>). The glow under a lit part is the strip again, added and spread.
+/// variants so neighbours differ. A dial's ring is the strip bent round (<see cref="RingLight"/>); the air's bar reads it whole,
+/// its columns by <see cref="StripCuts"/>, in its own shader (<see cref="AirRow"/>).
 /// </summary>
 public static class LightStrip
 {
-    /// <summary>The baked margin round every picture, in block units.</summary>
-    private const float Margin = StripCuts.Margin;
+    private static readonly Dictionary<string, Vector4> Means = new();
 
     /// <summary>The long strip of <paramref name="tone"/>: sky, red, pale, white, green, paleGreen, amber, darkSky, darkRed, darkGreen.</summary>
     public static Texture2D Of(string tone, int variant) => PixelArt.Picture($"gauge_strip_{tone}_{variant & 1}");
 
     /// <summary>
-    /// The part from <paramref name="from"/> to <paramref name="to"/> along a piece <paramref name="length"/> long at
-    /// (<paramref name="x"/>, <paramref name="top"/>), <paramref name="height"/> tall, drawn in <paramref name="strip"/>: past either
-    /// end its soft margin comes too; longer than the strip, its body repeats (<see cref="StripCuts"/>).
+    /// The mean colour of <paramref name="tone"/>'s light, premultiplied, over its strip's length and the rows of its light: what
+    /// its light looks like blurred, for a glow. Read once, as the HUD is made.
     /// </summary>
-    public static void Span(CanvasItem on, Texture2D strip, float x, float top, float length, float height, float from, float to, Color modulate)
+    public static Vector4 Mean(string tone)
     {
-        if (modulate.A <= 0.004f) return;
-        float ky = height / 10;
-        foreach (var (a, b, shift) in StripCuts.Of(length, from, to)) Part(on, strip, x, top, ky, a, b, shift, modulate);
-    }
-
-    /// <summary>The columns from <paramref name="a"/> to <paramref name="b"/> of a piece, read from the strip <paramref name="shift"/> further on.</summary>
-    private static void Part(CanvasItem on, Texture2D strip, float x, float top, float ky, float a, float b, float shift, Color modulate)
-    {
-        if (b - a <= 0.01f) return;
-        float tall = strip.GetSize().Y;
-        on.DrawTextureRectRegion(strip, new Rect2(x + a, top - Margin * ky, b - a, tall * ky), new Rect2(Margin + a + shift, 0, b - a, tall), modulate);
-    }
-
-    /// <summary>The even glow under a lit part, drawn on an added layer: the strip again, spread above and below it.</summary>
-    public static void Glow(CanvasItem on, Texture2D strip, float x, float top, float length, float height, float from, float to, float alpha)
-    {
-        foreach (var (spread, a) in new[] { (5f, 0.12f), (2.5f, 0.2f) })
-            Span(on, strip, x, top - spread, length, height + 2 * spread, from, to, Colors.White with { A = a * alpha });
+        if (Means.TryGetValue(tone, out var known)) return known;
+        var image = HiRes.Load($"gauge_strip_{tone}_0");
+        if (image == null) return Means[tone] = Vector4.One;
+        int w = image.GetWidth(), h = image.GetHeight();
+        float tall = Of(tone, 0).GetSize().Y;
+        int from = (int)(h * StripCuts.Margin / tall), to = (int)(h * (StripCuts.Margin + 10) / tall);
+        int left = (int)(w * StripCuts.Margin / (StripCuts.Long + 2 * StripCuts.Margin)), right = w - left;
+        byte[] data = image.GetData();
+        double r = 0, g = 0, b = 0, a = 0;
+        for (int y = from; y < to; y++)
+            for (int x = left; x < right; x++)
+            {
+                int i = 4 * (y * w + x);
+                double alpha = data[i + 3] / 255.0;
+                (r, g, b, a) = (r + data[i] / 255.0 * alpha, g + data[i + 1] / 255.0 * alpha, b + data[i + 2] / 255.0 * alpha, a + alpha);
+            }
+        double n = System.Math.Max(1, (to - from) * (right - left));
+        return Means[tone] = new Vector4((float)(r / n), (float)(g / n), (float)(b / n), (float)(a / n));
     }
 }

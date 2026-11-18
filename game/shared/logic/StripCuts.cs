@@ -1,12 +1,11 @@
 using System;
-using System.Collections.Generic;
 
 namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// Where a piece of light reads its columns from the long strip (<c>LightStrip</c>, hud-vitals): its start as baked, then the strip's
 /// own end. A piece longer than the strip repeats the strip's body between them, so it is drawn whole however long it grows: the air's
-/// bar runs to the edge's keys, past the strip's length on a wide screen.
+/// bar runs to the edge's keys, past the strip's length on a wide screen. The air bar's shader reads its columns by the same rule.
 /// </summary>
 public static class StripCuts
 {
@@ -14,35 +13,20 @@ public static class StripCuts
     public const float Long = 304, Margin = 2, Cap = 8;
 
     /// <summary>
-    /// The stretches of the part from <paramref name="from"/> to <paramref name="to"/> along a piece <paramref name="length"/> long, its
-    /// soft margin past either end when the part reaches it: each from <c>A</c> to <c>B</c> along the piece, read from the strip's column
-    /// <see cref="Margin"/> + a + <c>Shift</c>.
+    /// The strip's column, counted from its light's start (<see cref="Margin"/> into the picture), that the point
+    /// <paramref name="along"/> a piece <paramref name="length"/> long reads; from −<see cref="Margin"/> to its length + <see cref="Margin"/>.
     /// </summary>
-    public static IReadOnlyList<(float A, float B, float Shift)> Of(float length, float from, float to)
+    public static float Column(float along, float length)
     {
-        var cuts = new List<(float, float, float)>();
-        from = Math.Max(0, from);
-        to = Math.Min(length, to);
-        if (to - from <= 0.01f || length <= 0.01f) return cuts;
-        float a0 = from <= 0.01f ? -Margin : from, a1 = to >= length - 0.01f ? length + Margin : to;
-        void Add(float a, float b, float shift)
-        {
-            a = Math.Max(a, a0);
-            b = Math.Min(b, a1);
-            if (b - a > 0.01f) cuts.Add((a, b, shift));
-        }
         if (length <= Long)
         {
             float cut = Math.Max(0, length - Math.Min(Cap, length / 2));
-            Add(-Margin, cut, 0);
-            Add(cut, length + Margin, Long - length);
-            return cuts;
+            return along < cut ? along : along + Long - length;
         }
         // The start as baked; the body again and again; the strip's own end.
-        float body = Long - 2 * Cap, x = Long - Cap;
-        Add(-Margin, x, 0);
-        for (; x < length - Cap; x += body) Add(x, Math.Min(x + body, length - Cap), Cap - x);
-        Add(length - Cap, length + Margin, Long - length);
-        return cuts;
+        if (along < Long - Cap) return along;
+        if (along >= length - Cap) return along + Long - length;
+        float body = Long - 2 * Cap, into = along - (Long - Cap);
+        return Cap + (into - body * MathF.Floor(into / body));
     }
 }

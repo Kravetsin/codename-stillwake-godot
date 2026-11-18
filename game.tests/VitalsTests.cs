@@ -74,7 +74,8 @@ public class VitalsTests
         float end = Vitals.AirEnd(EdgeRow.RimLeft(1920, Keys, EdgeRow.Grown(slot)), slot);
         float helmet = 80 * Vitals.AirLength(Spec.Crew.Lungs + 80, 2, end) / (Spec.Crew.Lungs + 80);
         Assert.True(helmet > StripCuts.Long, $"{helmet}");
-        Assert.Equal(helmet + StripCuts.Margin, StripCuts.Of(helmet, 0, helmet)[^1].B, 3);
+        // Its last columns are still the strip's own end.
+        Assert.Equal(StripCuts.Long + StripCuts.Margin, StripCuts.Column(helmet + StripCuts.Margin, helmet), 3);
     }
 
     [Fact]

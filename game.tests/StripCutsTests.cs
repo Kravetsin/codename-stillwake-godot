@@ -1,4 +1,3 @@
-using System.Linq;
 using Stillwake.Game.Shared;
 using Xunit;
 
@@ -18,36 +17,31 @@ public class StripCutsTests
     [InlineData(1100)]
     public void APieceIsDrawnWholeFromItsMarginToItsEndsAndReadsOnlyTheStrip(float length)
     {
-        var cuts = StripCuts.Of(length, 0, length);
-        Assert.Equal(-M, cuts[0].A, 4);
-        Assert.Equal(length + M, cuts[^1].B, 4);
-        for (int i = 1; i < cuts.Count; i++) Assert.Equal(cuts[i - 1].B, cuts[i].A, 4);
-        Assert.All(cuts, c =>
-        {
-            Assert.InRange(M + c.A + c.Shift, -1e-3f, Strip + 1e-3f);
-            Assert.InRange(M + c.B + c.Shift, -1e-3f, Strip + 1e-3f);
-        });
+        for (float a = -M; a <= length + M; a += 0.25f)
+            Assert.InRange(M + StripCuts.Column(a, length), -1e-3f, Strip + 1e-3f);
         // Its last columns are the strip's own end, its first the strip's start.
-        Assert.Equal(Strip, M + cuts[^1].B + cuts[^1].Shift, 3);
-        Assert.Equal(0, M + cuts[0].A + cuts[0].Shift, 3);
+        Assert.Equal(Strip, M + StripCuts.Column(length + M, length), 3);
+        Assert.Equal(0, M + StripCuts.Column(-M, length), 3);
     }
 
     [Fact]
     public void APieceNoLongerThanTheStripIsItsStartThenItsEnd()
     {
-        var cuts = StripCuts.Of(200, 0, 200);
-        Assert.Equal([(-M, 192f, 0f), (192f, 200 + M, 104f)], cuts);
+        Assert.Equal(191.5f, StripCuts.Column(191.5f, 200));
+        Assert.Equal(192f + 104, StripCuts.Column(192, 200));
+        Assert.Equal(200f + 104, StripCuts.Column(200, 200));
     }
 
     [Fact]
-    public void APartOfALongPieceIsCutFromTheSameColumnsAsTheWhole()
+    public void ALongPieceRepeatsTheBodyWithoutAJumpInside()
     {
-        var whole = StripCuts.Of(700, 0, 700);
-        var part = StripCuts.Of(700, 250, 520);
-        Assert.Equal(250, part[0].A, 4);
-        Assert.Equal(520, part[^1].B, 4);
-        foreach (var (a, b, shift) in part)
-            Assert.Contains(whole, w => w.A <= a + 1e-3f && b <= w.B + 1e-3f && w.Shift == shift);
-        Assert.Empty(StripCuts.Of(700, 300, 300));
+        const float length = 1100, body = StripCuts.Long - 2 * StripCuts.Cap;
+        // Within one body's stretch the columns run on one for one; a body's length on, they read the same again.
+        for (float a = StripCuts.Long - StripCuts.Cap; a < length - StripCuts.Cap - body; a += 7.5f)
+        {
+            Assert.Equal(StripCuts.Column(a, length), StripCuts.Column(a + body, length), 3);
+            Assert.InRange(StripCuts.Column(a, length), StripCuts.Cap - 1e-3f, StripCuts.Long - StripCuts.Cap + 1e-3f);
+        }
+        Assert.Equal(100, StripCuts.Column(100, length));
     }
 }
