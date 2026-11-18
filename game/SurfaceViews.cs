@@ -99,7 +99,7 @@ public static class SurfaceViews
         // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
         new(c => Features.Grid.VesselSigns.For(c.M.Rules, c.Seed) is { } signs ? new Features.Grid.VesselSignsView(c.M.Grid, signs) : null),
         // Its guards' docks (derelict-enemies): capsules on back walls, stands on hall floors, their guards asleep inside.
-        new(c => Features.Creatures.DocksView.Of(c.M.Creatures)),
+        new(c => Features.Creatures.DocksView.Of(c.M.Creatures, c.Progress)),
         // Its inside dark till a hero has seen it, over all of the above (hidden-rooms).
         new(c => Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.

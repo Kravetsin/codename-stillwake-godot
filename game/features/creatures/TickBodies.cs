@@ -105,13 +105,23 @@ public partial class TickBodies : Node2D
             if (!_shown.TryGetValue(c.Id, out var one)) _shown[c.Id] = one = Take(c, creatures, tick);
             Follow(one, c, creatures, debris, tick);
             var feet = one.From.Lerp(one.To, (float)Math.Clamp(progress, 0, 1)) / Unit * Cell;
+            // A vessel's spider waking (derelict-enemies): hidden till its capsule's iris is open, then unfolding on its shelf and dropping.
+            double folded = 0;
+            one.Visible = true;
+            if (c.Posture == Posture.Waking && CreaturesModule.DockOf(c) is int dock && dock < creatures.Docks.Count)
+            {
+                double p = DockWake.Progress(c.Left, DocksView.WakeOf(c), progress);
+                folded = DockWake.Folded(p);
+                one.Visible = DockWake.Shown(p);
+                feet = DocksView.Shelf(creatures.Docks[dock]).Lerp(feet, (float)DockWake.Drop(p));
+            }
             if (c.Damage > one.Damage)
             {
                 // A friend's strike, or one of this player's own already shown as it was sent.
                 if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
                 one.Damage = c.Damage;
             }
-            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress), dt);
+            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress, folded), dt);
             one.Drawn = feet;
             one.Show(feet);
             Moments(one, moments);
@@ -200,11 +210,14 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>What the sim says of <paramref name="c"/> as its motion reads it, <paramref name="progress"/> of the way to the next tick.</summary>
-    private TickMotion.Seen SeenOf(Shown one, Creature c, CreaturesModule creatures, IDebrisQueries debris, double progress)
+    private TickMotion.Seen SeenOf(Shown one, Creature c, CreaturesModule creatures, IDebrisQueries debris, double progress, double folded)
     {
         var spec = Spec.Creatures.Get(c.Species);
-        bool clamped = CreaturesModule.Clamped(c);
         var act = c.Act;
+        // A vessel's spider walks (derelict-enemies): on its feet or holding a wall, it is as a tick clamped on; it crawls at its run or climb.
+        bool walker = spec.Body is Spec.Creatures.Walker, flies = act is { Phase: ActPhase.Active } && spec.Moves[act.Move] is Spec.Creatures.Pounce;
+        int wall = walker ? CreaturesModule.Holds(c) : 0;
+        bool clamped = walker ? !flies && (wall != 0 || c.VY == 0) : CreaturesModule.Clamped(c);
         // An arc is no pounce: it crouches to aim, its eye flickering the arc's colour, held once its aim is taken, and recovers
         // clamped on.
         bool shoots = act != null && spec.Moves[act.Move] is Spec.Creatures.Shoot;
@@ -215,7 +228,7 @@ public partial class TickBodies : Node2D
         if (winding && spec.Moves[act!.Move] is Spec.Creatures.Pounce pounce)
             windUpS = (pounce.WindUp - act.Left + Math.Clamp(progress, 0, 1)) / World.TicksPerSecond;
         double perTick = Cell / (double)Unit * World.TicksPerSecond;
-        double crawl = clamped ? (one.AlongTo - one.AlongFrom) * perTick : 0;
+        double crawl = walker ? (wall != 0 ? Math.Abs(c.VY) : c.VX) * perTick : clamped ? (one.AlongTo - one.AlongFrom) * perTick : 0;
         var middle = one.Drawn + new Vector2(0, -8);
         (double, double)? hero = Nearest(middle) is { } h ? (h.X - middle.X, h.Y - middle.Y) : null;
         var (cutLeft, cutOf) = creatures.CutLeft(c);
@@ -223,7 +236,7 @@ public partial class TickBodies : Node2D
         (double, double)? line = cutting && LineEnd(debris, one.Piece) is { } end ? (end.X - middle.X, end.Y - middle.Y) : null;
         double done = cutting ? Math.Clamp((cutOf - cutLeft + Math.Clamp(progress, 0, 1)) / cutOf, 0, 1) : 0;
         return new TickMotion.Seen(clamped, CreaturesModule.Alerted(c), winding, windUpS, pouncing, pouncing ? act!.Left : 0,
-            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked);
+            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked, walker, folded, wall);
     }
 
     /// <summary>

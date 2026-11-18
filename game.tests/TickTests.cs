@@ -166,4 +166,32 @@ public class TickTests
 
     private static readonly IEqualityComparer<TickArt.Rgb> Near = EqualityComparer<TickArt.Rgb>.Create(
         (a, b) => Math.Abs(a.R - b.R) < 2 && Math.Abs(a.G - b.G) < 2 && Math.Abs(a.B - b.B) < 2, _ => 0);
+
+    /// <summary>A vessel's spider (derelict-enemies): folded asleep, its legs tucked and its burner dark; holding a wall it faces it nose up.</summary>
+    [Fact]
+    public void ASpiderFoldedTucksItsLegsAndOnAWallTurnsNoseUpFacingIt()
+    {
+        var motion = new TickMotion(() => 0.5);
+        var spider = Watching with { Walker = true };
+        Run(motion, spider with { Folded = 1 }, 0.5);
+        Assert.True(motion.Pose.Fly > 0.95 && motion.Thrust < 0.01, $"fly {motion.Pose.Fly}, thrust {motion.Thrust}");
+        Run(motion, spider with { Wall = -1, Crawl = 120 }, 0.5);
+        Assert.Equal(-1, motion.Face);
+        Assert.InRange(motion.Angle, Math.PI / 2 - 0.05, Math.PI / 2 + 0.05);
+        Assert.True(motion.Pose.Walk > 0.9);
+        // Falling it stays upright, its burner dark: a walker, no flyer.
+        Run(motion, spider with { Clamped = false, Vy = 120 }, 0.5);
+        Assert.True(Math.Abs(motion.Angle) < 0.05 && motion.Thrust < 0.01, $"angle {motion.Angle}, thrust {motion.Thrust}");
+    }
+
+    /// <summary>A capsule's waking in order: its iris opens, then the spider is seen folded, unfolds, and only then drops.</summary>
+    [Fact]
+    public void ASpiderWakesItsIrisOpeningThenItUnfoldsThenDrops()
+    {
+        Assert.Equal((0.0, 1.0), (DockWake.Progress(30, 30, 0), DockWake.Progress(0, 30, 0.5)));
+        Assert.Equal((0.0, false, 1.0, 0.0), (DockWake.Iris(0), DockWake.Shown(0), DockWake.Folded(0), DockWake.Drop(0)));
+        Assert.True(DockWake.Iris(DockWake.ShownAt) > 0.5 && DockWake.Folded(DockWake.ShownAt) == 1);
+        Assert.True(DockWake.Folded(DockWake.DropFrom) == 0 && DockWake.Drop(DockWake.DropFrom) == 0);
+        Assert.Equal((1.0, true, 0.0, 1.0), (DockWake.Iris(1), DockWake.Shown(1), DockWake.Folded(1), DockWake.Drop(1)));
+    }
 }

@@ -1,6 +1,7 @@
 // A vessel's guards' docks, as picked (derelict-enemies): capsule G1 «Зрачок — впадина» on a small room's back wall and stand S1 «Люлька»
 // on a big room's floor, ported from the pick pages' draw code (mountG, faceLamp, CAP_G1; STANDS[0]). Asleep: the capsule shut behind its
 // smoked iris, its hazard lamp dark (the game blinks its amber pip); the stand without its robot, drawn in front of it later.
+// `guard_capsule_open` is the capsule awake, its iris open (the game draws the blades opening over it, then the lamp red).
 // `guard_capsule`, 40 × 48: its dock's 5 × 5 cells and the row over them, the floor at its foot. `guard_stand`, 56 × 64, and
 // `guard_stand_front` (yoke and waist clamp, over the robot): its dock's 7 × 8 cells, the robot's middle 3 cells from its left.
 (function () {
@@ -51,7 +52,8 @@ function faceLamp(a) {
   a.flat(ell(x, y, 1.15), '#2a1a12');
   a.flat(path([...arc(x, y, .95, -2.6, -1.4, 4), ...arc(x - .2, y - .2, .6, -1.4, -2.6, 4)]), 'rgba(255,255,255,.55)');
 }
-function capsule(a) {
+/** The capsule; with its iris shut, as asleep, or open (its spider awake: the game draws the iris opening over it). */
+function capsule(a, shut) {
   const [cx, cy] = GC;
   // The eight-sided wall plate and its bolts, the machined collar, the face inside it.
   a.shape(path(oct(cx, cy, 19)), PLATE, { lite: path([[cx - 19, cy - 7.8], [cx - 7.8, cy - 19], [cx + 7.8, cy - 19], [cx + 7.8, cy - 17.6], [cx - 7.2, cy - 17.6], [cx - 17.6, cy - 7.2]]), shade: 1.6, deep: .6 });
@@ -68,13 +70,13 @@ function capsule(a) {
   a.shape(path(rect(cx - 9, cy + 10, 18, 1.6)), SHELF, { lite: path(rect(cx - 9, cy + 10, 18, .5)), shade: .5 });
   // The iris shut: smoked glass blades round a pinhole, turned to their stops.
   const R = GR + .05, h = .6, blades = path(ring(cx, cy, R, 32));
-  a.flat(blades, 'rgba(38,50,58,.6)');
-  for (let i = 0; i < 8; i++) {
+  if (shut) a.flat(blades, 'rgba(38,50,58,.6)');
+  for (let i = 0; i < (shut ? 8 : 0); i++) {
     const q = i / 8 * Math.PI * 2, ca = Math.cos(q), sa = Math.sin(q), tx = cx + ca * h, ty = cy + sa * h, d = Math.sqrt(R * R - h * h) + 1;
     a.line(open([[tx, ty], [tx - sa * d, ty + ca * d]]), { w: 3.6, c: INK });
     a.line(open([[tx + ca * .5, ty + sa * .5], [tx - sa * d + ca * .5, ty + ca * d + sa * .5]]), { w: 2, c: 'rgba(200,220,230,.22)' });
   }
-  a.flat(path([[cx - 9.4, cy - 5.6], [cx - 6.8, cy - 9.2], [cx - 5.6, cy - 8.4], [cx - 8.2, cy - 4.8]]), 'rgba(220,236,242,.2)');
+  if (shut) a.flat(path([[cx - 9.4, cy - 5.6], [cx - 6.8, cy - 9.2], [cx - 5.6, cy - 8.4], [cx - 8.2, cy - 4.8]]), 'rgba(220,236,242,.2)');
   a.line(path(ring(cx, cy, R, 32)), { w: 3.4 });
   // Three status pips under the face, dark asleep; the hazard lamp.
   for (let i = 0; i < 3; i++) a.flat(path(rect(cx - 3.3 + i * 2.2, cy + 15.1, 1.2, .9)), '#2d4a3e');
@@ -163,7 +165,8 @@ function standFront(a) {
 }
 
 Subjects.guards = function () {
-  out('guard_capsule', Anime.bake({ w: 40, h: 48, draw: capsule }));
+  out('guard_capsule', Anime.bake({ w: 40, h: 48, draw: (a) => capsule(a, true) }));
+  out('guard_capsule_open', Anime.bake({ w: 40, h: 48, draw: (a) => capsule(a, false) }));
   out('guard_stand', Anime.bake({ w: 56, h: 64, draw: stand }));
   out('guard_stand_front', Anime.bake({ w: 56, h: 64, draw: standFront }));
 };
