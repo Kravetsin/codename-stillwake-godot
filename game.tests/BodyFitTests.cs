@@ -36,8 +36,10 @@ public class BodyFitTests
         Assert.Equal(HelmetTurn.Soft, BodyFit.Of(Stillwake.Content.Helmet.Basic).Turn);
         Assert.Equal(HelmetTurn.Ring, BodyFit.Of(Stillwake.Content.Helmet.Heavy).Turn);
         // The raw painted helmets (gear-roles) sit and nod as the basic ball does.
-        foreach (string helmet in (string[])[Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, "dustHelmet", "hideHelmet", "boilerHelmet"])
+        foreach (string helmet in (string[])[Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, "hideHelmet", "boilerHelmet"])
             Assert.Same(BodyFit.Of(Stillwake.Content.Helmet.Basic), BodyFit.Of(helmet));
+        // The dust wrap's filter hangs below the seal: it turns whole on a seal of its own, as the skins do, so the band never stretches it.
+        Assert.Same(BodyFit.Of("skullHelmet"), BodyFit.Of("dustHelmet"));
     }
 
     [Fact]

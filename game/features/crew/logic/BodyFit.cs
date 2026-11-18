@@ -107,8 +107,8 @@ public static class BodyFit
         ["bathysphereHelmet"] = Shell,
         ["paradeHelmet"] = Shell,
         // The raw painted helmets (gear-roles): laid in the basic ball's box on its rubber collar, nodding as it does, the best fit
-        // in play; their own painted neck ring cut off.
-        ["dustHelmet"] = Ball,
+        // in play; their own painted neck ring cut off. The dust wrap's filter hangs below the seal, so it turns whole as the skins do.
+        ["dustHelmet"] = Shell,
         ["hideHelmet"] = Ball,
         ["boilerHelmet"] = Ball,
         [Stillwake.Content.Helmet.Heated] = Ball,
