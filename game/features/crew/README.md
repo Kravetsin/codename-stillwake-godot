@@ -53,6 +53,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Appearance.cs` | tab |
 | `AppearanceView.cs` | it shown |
 | `SkinSlot.cs` | a slot |
+| `HeroDoll.cs` | doll |
 | `logic/BladeFx.cs` | effects |
 | `logic/FireFx.cs` | fire |
 | `logic/RiftFx.cs` | rift |
@@ -129,7 +130,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - A step never ends in a wall, shut door, hatch, off the grid; afloat, unjetted, within `Hero.Tether` of its anchor; a
   shut door pushes it `Hero.PushStep` to a fit (0089). Doors go as shown here (0014); presses send `SetDoor`, `SetValve`
   (0071), `SetPlatform`.
-- **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop it.
+- **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop.
 - **Jump** (0089): coyote, buffer, short hop; **the figure answers its motion** (0090, hero-gait).
 - **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (`FogMove`, fog-edges).
@@ -140,7 +141,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   along bends (`Wraps`); a jetpack unties; Shift vents unless `Hero.Cruising`.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
 - **Dials** (hud-dials): meals (RMB `Eat`), purge held 3 s (food-tuning), the body.
-- **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; past death a last breath, `Succumb`; `SpeedOf` on foot.
+- **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; dying, a last breath, `Succumb`; `SpeedOf` on foot.
 - **Crew** made at `Spawn`; passed out, lies, takes no orders (0061). `Enter` when the sim's room or side differ,
   each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on the shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
