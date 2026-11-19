@@ -94,7 +94,7 @@ public partial class LightDrone : Node2D
     {
         var toward = Vector2.FromAngle(_angle);
         _sign.Show(gesture, toward * LensAhead, toward, _timeMs);
-        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible || Projecting, Scanning), _angle, _timeMs, _bare);
+        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible || Projecting, Scanning, Idle), _angle, _timeMs, _bare);
         _run.Step(double.IsNaN(_ranMs) ? 0 : Math.Max(0, (_timeMs - _ranMs) / 1000), _bare);
         _ranMs = _timeMs;
         for (int i = 0; i < _placed.Length; i++) _placed[i] = _swarm.PlateAt(i, _angle, _timeMs);

@@ -20,15 +20,16 @@ public class ScrewdriverTests
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
 
     [Fact]
-    public void AHeroComesAboardWithTheScrewdriverAloneOnceAndItsPlayerBuildsAPlanWithIt()
+    public void AHeroComesAboardWithTheScrewdriverAndTheCoreOnceAndItsPlayerBuildsAPlanWithIt()
     {
         var w = new Scenario(Room);
         int cell = w.M.Grid.Width * (w.M.Grid.Height / 2) + w.M.Grid.Width / 2;
         w.Do(new Enter(cell)).Run();
         Assert.Equal(new Stack(Screwdrivers.Basic.Item, 1), w.M.Items.Inventory(0)[0]);
-        Assert.Null(w.M.Items.Inventory(0)[1]);
+        Assert.Equal(new Stack(Content.LightDrone.Core, 1), w.M.Items.Inventory(0)[1]);
+        Assert.Null(w.M.Items.Inventory(0)[2]);
         w.Do(new Leave()).Run().Do(new Enter(cell)).Run().Fed();
-        Assert.Equal(1, Count(w, Screwdrivers.Basic.Item));
+        Assert.Equal((1, 1), (Count(w, Screwdrivers.Basic.Item), Count(w, Content.LightDrone.Core)));
 
         // Beside the hero, clear of its body (building.heroInside).
         w.GiveItems(0, ("scrapChunk", 5)).Do(new PlacePlan(cell + 2, Placement.Wall("scrap"))).Run();

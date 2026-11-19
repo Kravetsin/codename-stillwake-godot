@@ -348,4 +348,13 @@ public class DroneSwarmTests
         Assert.Equal(SwarmShape.Lamp, DroneSwarm.ShapeOf(signs: false, scanning: false));
         Assert.Equal(SwarmShape.Scan, DroneSwarm.ShapeOf(signs: false, scanning: true));
     }
+
+    /// <summary>A drone with no mode open rests: its soot on the three orbits, its plates circling, no lamp's dish.</summary>
+    [Fact]
+    public void ADroneWithNoModeRestsButStillSigns()
+    {
+        Assert.Equal(SwarmShape.Idle, DroneSwarm.ShapeOf(signs: false, scanning: false, idle: true));
+        Assert.Equal(SwarmShape.Sign, DroneSwarm.ShapeOf(signs: true, scanning: false, idle: true));
+        Assert.Equal(SwarmShape.Idle, DroneSwarm.DustOf(SwarmShape.Idle));
+    }
 }

@@ -7,7 +7,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>A figure the light drone's soot and plates re-form into (drone-swarm).</summary>
 public enum SwarmShape
 {
-    /// <summary>The soot running round three tilted orbits, the plates circling wide and tumbling: before its first mode.</summary>
+    /// <summary>The soot running round three tilted orbits, the plates circling wide and tumbling: with no mode open yet.</summary>
     Idle,
 
     /// <summary>A soot mirror behind the core, its inner face lit, the plates in a dish before it, open toward the aim.</summary>
@@ -168,10 +168,11 @@ public sealed class DroneSwarm
     }
 
     /// <summary>
-    /// The shape for a drone that <paramref name="signs"/> (shows a gesture) or not, and <paramref name="scanning"/> or shining:
-    /// the sign's over either mode's.
+    /// The shape for a drone that <paramref name="signs"/> (shows a gesture) or not, and <paramref name="scanning"/> or shining, or
+    /// <paramref name="idle"/>, no mode of its open: the sign's over any other.
     /// </summary>
-    public static SwarmShape ShapeOf(bool signs, bool scanning) => signs ? SwarmShape.Sign : scanning ? SwarmShape.Scan : SwarmShape.Lamp;
+    public static SwarmShape ShapeOf(bool signs, bool scanning, bool idle = false) =>
+        signs ? SwarmShape.Sign : idle ? SwarmShape.Idle : scanning ? SwarmShape.Scan : SwarmShape.Lamp;
 
     /// <summary>The soot's own shape in <paramref name="shape"/>: the sign's is the idle orbits, since its own lays out the bag's grid.</summary>
     public static SwarmShape DustOf(SwarmShape shape) => shape == SwarmShape.Sign ? SwarmShape.Idle : shape;

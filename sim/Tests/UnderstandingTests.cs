@@ -184,7 +184,8 @@ public class UnderstandingTests
     private static bool Allowed(Scenario w, Recipe recipe, HashSet<string> blueprints)
     {
         if (Content.Research.Node(recipe.Id) is { Tab: Content.Research.Market }) return false;
-        if (recipe.Cost.Any(c => w.M.Knowledge.ObtainedOf(c.Item) == 0)) return false;
+        // A part every hero comes aboard with, the drone's core, waits for nothing.
+        if (recipe.Cost.Any(c => w.M.Knowledge.ObtainedOf(c.Item) == 0 && !Inventory.Kit.Any(k => k.Item == c.Item))) return false;
         return blueprints.Contains(recipe.Id) || Stations.All.Any(s => s.Rows.Any(r => r.Contains(recipe.Id)) && w.M.Grid.MachinesOf(s.Machine).Count > 0);
     }
 
