@@ -347,6 +347,12 @@ public sealed class Ui
     public (bool Open, double Out) DroneWindow { get; set; }
 
     /// <summary>
+    /// Where this player's drone's lens is, in the world's pixels, while it floats by the hero; none without one. Set by <c>crew</c>
+    /// every frame; <c>items</c> flies what the hero picks up into it, the bag being the drone's (drone-holo).
+    /// </summary>
+    public (double X, double Y)? DroneAt { get; set; }
+
+    /// <summary>
     /// How far every hologram window trails the hero this frame, in screen pixels (<c>HoloSway</c>, the motion «Отставание»).
     /// Set by <c>items</c> every frame; <c>crafting</c> carries its station's panel by it.
     /// </summary>

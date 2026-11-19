@@ -36,12 +36,11 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// the hands pull the body up onto (0092); none away from one. On the floor the figure eases its gait (2026-11-04-hero-gait):
 /// <see cref="Cycle"/>, the strides the legs have gone through, <see cref="Gait"/> from backpedalling (-1) through walking (0)
 /// into running (1), and <see cref="Moving"/> from standing (0) into striding (1); with none, the stride is <see cref="Travelled"/>
-/// over the pose's own and the pose is all there is. <see cref="FarHolds"/>: the plan held is the drone's hologram, the far hand
-/// alone on it.
+/// over the pose's own and the pose is all there is.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
     double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false,
-    Momentum? Momentum = null, double? Ledge = null, double? Cycle = null, double? Gait = null, double? Moving = null, bool FarHolds = false);
+    Momentum? Momentum = null, double? Ledge = null, double? Cycle = null, double? Gait = null, double? Moving = null);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -253,8 +252,6 @@ public static class Poses
         double along = Hold.FarHand * Sheet.Length;
         double turn = SheetTurn(look);
         var far = new Vec(front.X + Math.Cos(turn) * along, front.Y + Math.Sin(turn) * along);
-        // The drone's hologram the far hand holds alone, where the near one held the sheet; the near one is free (drone-holo).
-        if (moment.FarHolds) return landed with { BackArm = Rig.Reach(front, Rig.Arm, 1) };
         // Afloat one hand holds it and the other swims on.
         if (pose == Pose.Float) return landed with { FrontArm = Rig.Reach(front, Rig.Arm, 1) };
         return landed with { FrontArm = Rig.Reach(front, Rig.Arm, 1), BackArm = Rig.Reach(far, Rig.Arm, 1) };

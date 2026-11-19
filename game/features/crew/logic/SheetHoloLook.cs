@@ -3,52 +3,26 @@ using System;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The drone's hologram in the planner sheet's place (drone-holo, the pick «Дуга»): while a drone window is open or a plan is
-/// held, a band of light curved round the hero's eyes, its middle where the sheet's would be, two rows of dim squares in it.
-/// It flickers on, holds still but for a faint flicker, and goes out squashing flat. Client only. Lengths in world px.
+/// The drone projecting before the hero (drone-holo): while a drone window is open or the plan out, the drone floats before the
+/// hero's waist and its motes (<see cref="DroneMotesLook"/>) flicker on over it, hold but for a faint flicker, and go out. Client
+/// only. Lengths in world px.
 /// </summary>
 public static class SheetHoloLook
 {
     /// <summary>How long it takes to come on and to go out.</summary>
     public const double OnMs = 100, OffMs = 80;
 
-    /// <summary>Half the band's length along its curve, and half its thickness across it.</summary>
-    public const double HalfLength = 8.5, HalfThick = 2.8;
-
-    /// <summary>Its squares: how many along each of its two rows, their side, and how far each row is off the band's middle.</summary>
-    public const int Squares = 6;
-    public const double Square = 1.2, RowOff = 1.25;
-
-    /// <summary>The band's fill, its rim and width, the squares' alpha, all of the hologram's; the marker dot's radius, alpha and paleness.</summary>
-    public const double Fill = 0.1, Rim = 0.75, RimWidth = 0.3, SquareAlpha = 0.42, DotRadius = 0.5, DotAlpha = 0.9, DotPale = 0.5;
-
-    /// <summary>Where along the band the marker dot sits, a share of its half length past the middle.</summary>
-    public const double DotAt = 0.86;
-
-    /// <summary>The cone from the drone's lens: its alpha at the lens and at the band, of the hologram's.</summary>
-    public const double ConeAtLens = 0.45, ConeAtBand = 0.12;
-
-    /// <summary>How thick it stays at the last moment of going out, a share of its full thickness.</summary>
-    public const double FlatAtLast = 0.2;
-
     /// <summary>
-    /// A drone window projected (not a plan held): the drone before the hero, <see cref="OverAhead"/> past its middle the way it
-    /// faces and <see cref="OverUp"/> over its feet; its motes' cloud (<see cref="DroneMotesLook"/>) <see cref="OverRise"/> over it.
+    /// The drone before the hero, <see cref="OverAhead"/> past its middle the way it faces and <see cref="OverUp"/> over its feet;
+    /// its motes <see cref="OverRise"/> over it.
     /// </summary>
     public const double OverAhead = 16, OverUp = 12, OverRise = 9;
 
     /// <summary>How near its place before the hero the drone first is before the motes come on, pixels; they stay on as it follows after.</summary>
     public const double OverArrived = 1.5;
 
-    /// <summary>The light it throws on the helmet and what is near, a share of the planner sheet's.</summary>
+    /// <summary>The light the motes throw on what is near, a share of the planner sheet's.</summary>
     public const float Light = 1.2f;
-
-    /// <summary>The band round <paramref name="eye"/> through <paramref name="middle"/>, the sheet's middle: its radius, the angle to its middle, half its span in radians.</summary>
-    public static (double Radius, double Toward, double HalfSpan) Arc((double X, double Y) eye, (double X, double Y) middle)
-    {
-        double dx = middle.X - eye.X, dy = middle.Y - eye.Y, radius = Math.Max(Math.Sqrt(dx * dx + dy * dy), HalfLength);
-        return (radius, Math.Atan2(dy, dx), HalfLength / radius);
-    }
 
     /// <summary>How far in it is after <paramref name="elapsedMs"/> more, from <paramref name="was"/>, while <paramref name="on"/> or not.</summary>
     public static double Step(double was, bool on, double elapsedMs) =>
@@ -63,9 +37,6 @@ public static class SheetHoloLook
         if (!coming || shown >= 1) return shown;
         return shown < 0.25 ? 0.85 : shown < 0.45 ? 0.15 : shown < 0.7 ? 1 : shown < 0.85 ? 0.4 : 1;
     }
-
-    /// <summary>How thick it is, a share of its full thickness: whole coming on, flattening as it goes out.</summary>
-    public static double Thickness(double shown, bool coming) => coming ? 1 : FlatAtLast + (1 - FlatAtLast) * shown;
 
     /// <summary>Its faint flicker at <paramref name="timeMs"/>, 0..1, a different one for each <paramref name="seed"/>; dips by <see cref="DroneSign.FlickerDepth"/> of it.</summary>
     public static double Flicker(double timeMs, double seed)
