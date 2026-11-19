@@ -71,6 +71,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/DroneFloat.cs` | float |
 | `logic/DroneModes.cs` | modes |
 | `logic/DroneSign.cs` | sign |
+| `logic/DroneSwarm.cs` | swarm |
 | `DroneHolo.cs` | drawn |
 | `logic/Cape.cs` | cape |
 | `logic/Spring.cs` | spring |
@@ -147,10 +148,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
 - **Dials** (hud-dials): meals (RMB `Eat`), purge held 3 s (food-tuning), the body.
 - **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; past death a last breath, `Succumb`; `SpeedOf` on foot.
-- **Crew** made at `Spawn`; passed out, lies, no orders (0061). `Enter` when the sim's room or side differ,
+- **Crew** made at `Spawn`; passed out, lies, no orders (0061). `Enter` when sim's room or side differ,
   each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
-  (whole-limbs); the **hand** glove or bare (hand-at-wrist); **helmets** fit (helmets-fit-the-suit); **skins** over worn
+  (whole-limbs); **hand** glove or bare (hand-at-wrist); **helmets** fit (helmets-fit-the-suit); **skins** over worn
   items, an effect for the haze (hero-skins, fancy-skins).
 - **Tracker** blinks (`SignalOf`); **catchers**: heroes in gear, untracked, tumble killed (tracker-catchers).
 
@@ -163,19 +164,19 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 ## The hands
 
-- **The held item shows** (`HeldLook`); a builder twists plans, motors (`Twist`, `Driven`).
+- **Held item shows** (`HeldLook`); a builder twists plans, motors (`Twist`, `Driven`).
 - **Aimed only in use** (aim-on-use): up in use, `LingerMs` after, at the pointer; shots, hits wait.
-- **Left front, right back** (0107, 0108): left, a screwdriver works plans, repairs; the plan, wiring, lays cables.
-- **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (0099), tank, door, valve, wreck, else nearest small
+- **Left front, right back** (0107, 0108): left, screwdriver works plans, repairs; plan, wiring, lays cables.
+- **One aim** (`Aiming.AimAt`): plan (back walls first), machine (0099), tank, door, valve, wreck, else nearest small
   piece; outlined green/red, `UsePrompt` why; plan in hand, E idle. Armed: small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to walls, through wrecks; ground rings. **Sparks**
   are the haze's (spark-rule). **Struck tools** (0038, swing-motions): by sector, hit as the blade crosses the aim.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
-- **A gun** (hold-to-fire): held fires each cooldown, `Charge` on release; kicks (body-answers).
-- **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, the cutter's by beam (`ToolEdges`).
+- **Gun** (hold-to-fire): held fires each cooldown, `Charge` on release; kicks (body-answers).
+- **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): H tap points, pings (crew-pings); held, a wheel; item stowed. **Drone** (light-drone):
-  RMB in hand pairs; then F tap next mode, held a wheel; sent.
+- **Gestures** (gestures-for-words): H tap points, pings (crew-pings); held, wheel; item stowed. **Drone** (light-drone):
+  RMB in hand pairs; F tap next mode, held a wheel; sent.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
 
