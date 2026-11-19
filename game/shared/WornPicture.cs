@@ -6,16 +6,16 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A worn item's or food's picture on its card (the item card mockup's medium card), in a small dark window
-/// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp fixed on a helmet
-/// (<see cref="HeadLampArt"/>), its warm beam reaching out across the window with motes drifting through it, as wide as the game's
+/// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the light drone at the window's left, its lamp's
+/// warm beam reaching out of its core across the window with motes drifting through it, as wide as the game's
 /// (<see cref="Light.HeadLampHalfAngle"/>); a battery glowing green as much as it holds, slowly pulsing.
 /// </summary>
 public partial class WornPicture : Control
 {
-    /// <summary>The window's side, and the helmet lamp's wider one, in screen pixels.</summary>
-    private const int Side = 72, LampWidth = 132, HelmetLeft = 6;
-    /// <summary>Where the battery's glow sits on its icon, in its pixels.</summary>
-    private static readonly Vector2 Cell = new(8, 9.5f);
+    /// <summary>The window's side, and the light drone's wider one, in screen pixels.</summary>
+    private const int Side = 72, LampWidth = 132, DroneLeft = 4;
+    /// <summary>Where the battery's glow sits on its icon, and the light drone's lens on its, in their pixels.</summary>
+    private static readonly Vector2 Cell = new(8, 9.5f), Lens = new(8.5f, 7.5f);
     private static readonly Color BulbColour = new("fff4d6"), BulbGlow = new("ffd696"), MoteColour = new("ffecc8");
     private const float BeamAlpha = 0.42f, BeamMiddle = 0.15f, BulbGlowAcross = 24, ChargeGlowAcross = 36;
 
@@ -50,10 +50,10 @@ public partial class WornPicture : Control
         ClipContents = true;
         bool lamp = card.Item == Content.LightDrone.Item;
         CustomMinimumSize = new Vector2(lamp ? LampWidth : Side, Side);
-        int scale = lamp ? CardLook.HelmetScale : CardLook.WornScale;
-        var texture = lamp ? PixelArt.Picture("hero_helmet") : ItemIcons.Icon(card.Picture);
+        int scale = lamp ? CardLook.DroneScale : CardLook.WornScale;
+        var texture = ItemIcons.Icon(card.Picture);
         var size = texture.GetSize() * scale;
-        var origin = new Vector2(lamp ? HelmetLeft : Mathf.Round((Side - size.X) / 2), Mathf.Round((Side - size.Y) / 2));
+        var origin = new Vector2(lamp ? DroneLeft : Mathf.Round((Side - size.X) / 2), Mathf.Round((Side - size.Y) / 2));
         AddChild(new TextureRect
         {
             Texture = texture,
@@ -61,23 +61,12 @@ public partial class WornPicture : Control
             Size = size,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.Scale,
-            TextureFilter = TextureFilterEnum.Nearest,
+            TextureFilter = lamp ? TextureFilterEnum.Linear : TextureFilterEnum.Nearest,
             MouseFilter = MouseFilterEnum.Ignore,
         });
         if (lamp)
         {
-            var on = origin + HeadLampArt.On * scale;
-            AddChild(new TextureRect
-            {
-                Texture = HeadLampArt.Picture,
-                Position = on,
-                Size = HeadLampArt.Picture.GetSize() * scale,
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.Scale,
-                TextureFilter = TextureFilterEnum.Nearest,
-                MouseFilter = MouseFilterEnum.Ignore,
-            });
-            _bulb = on + HeadLampArt.Lens * scale;
+            _bulb = origin + Lens * scale;
             _motes = new Mote[CardLook.Motes];
             for (int i = 0; i < _motes.Length; i++)
                 _motes[i] = new Mote
@@ -175,8 +164,8 @@ public partial class WornPicture : Control
             on.DrawRect(new Rect2(m.X - 0.5f, m.Y - 0.5f, 1, 1), MoteColour with { A = 0.7f * lit });
             on.DrawTextureRect(SoftDots.Dot, new Rect2(m.X - 2.2f, m.Y - 2.2f, 4.4f, 4.4f), false, BulbGlow with { A = 0.3f * lit });
         }
-        const int Lens = CardLook.HelmetScale;
-        on.DrawRect(new Rect2(_bulb - new Vector2(Lens / 2f, Lens), new Vector2(Lens, 2 * Lens)), BulbColour);
+        const float Bulb = CardLook.WornScale;
+        on.DrawRect(new Rect2(_bulb - Vector2.One * Bulb / 2, Vector2.One * Bulb), BulbColour);
         on.DrawTextureRect(PixelArt.Glow, new Rect2(_bulb - Vector2.One * BulbGlowAcross / 2, Vector2.One * BulbGlowAcross), false, BulbGlow with { A = 0.7f });
     }
 }
