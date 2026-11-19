@@ -131,19 +131,47 @@ public class SootRunTests
     }
 
     [Fact]
-    public void BreathingStaysWithin0_14And0_38()
+    public void TheWholeFrameGlowsNeverUnderItsBase()
+    {
+        foreach (var spots in new[] { Bag, Menu })
+            for (double t = 0; t < 30; t += 0.07)
+                for (int i = 0; i < spots.Count; i++)
+                    Assert.InRange(SootRun.Glow(spots, i, t), SootRun.Tune.GlowBase - 1e-4f, SootRun.Tune.GlowBase + SootRun.Tune.GlowPeak * SootRun.Tune.Runners.Length);
+    }
+
+    [Fact]
+    public void NeighboursGlowAlikeSoTheFrameReadsAsOneLine()
+    {
+        // Sticks of their own brightness were seen in game: the glow changes smoothly round the frame, never stepping at a mote.
+        foreach (var spots in new[] { Bag, Menu, Shape(1800, 1000) })
+            for (double t = 0; t < 30; t += 0.07)
+                for (int i = 0; i < spots.Count; i++)
+                {
+                    int next = (i + 1) % spots.Count;
+                    float gap = MathF.Abs(spots.Round(next) - spots.Round(i)), apart = MathF.Min(gap, spots.Perimeter - gap);
+                    float step = MathF.Abs(SootRun.Glow(spots, i, t) - SootRun.Glow(spots, next, t));
+                    Assert.True(step <= 0.006f * apart, $"{i} at {t}: {step} over {apart} px");
+                }
+    }
+
+    [Fact]
+    public void TheEmbersLightRunsRoundTheFrame()
+    {
+        int Brightest(double t) => Enumerable.Range(0, Bag.Count).MaxBy(i => SootRun.Glow(Bag, i, t));
+        var seen = Enumerable.Range(0, 40).Select(k => Brightest(k * 0.5)).Distinct().Count();
+        Assert.True(seen > 10, $"the light stood on {seen} spots only");
+    }
+
+    [Fact]
+    public void NothingShowsOnceTheSootIsHome()
     {
         var run = New();
-        Run(run, 0.5, true, Bag, BagAt);
-        float least = 1, most = 0;
-        for (double t = 0; t < 60; t += 0.07)
-            for (int j = 0; j < run.Count; j++)
-            {
-                float b = run.Breath(j, t);
-                (least, most) = (Math.Min(least, b), Math.Max(most, b));
-            }
-        Assert.InRange(least, 0.14f - 1e-4f, 0.15f);
-        Assert.InRange(most, 0.37f, 0.38f + 1e-4f);
+        Run(run, 1, true, Bag, BagAt);
+        Assert.True(run.Shows);
+        Run(run, 0.15, false, Bag, BagAt);
+        Assert.True(run.Shows);
+        Run(run, 0.1, false, Bag, BagAt);
+        Assert.False(run.Shows);
     }
 
     [Fact]

@@ -44,17 +44,20 @@ public sealed class Triangles(int points = 64, int indices = 96)
     }
 
     /// <summary>A line from <paramref name="a"/> to <paramref name="b"/>, <paramref name="width"/> wide, as one quad.</summary>
-    public void Quad(Vector2 a, Vector2 b, float width, Color colour)
+    public void Quad(Vector2 a, Vector2 b, float width, Color colour) => Quad(a, b, width, colour, colour);
+
+    /// <summary>A line from <paramref name="a"/> to <paramref name="b"/>, its colour going from <paramref name="atA"/> to <paramref name="atB"/>.</summary>
+    public void Quad(Vector2 a, Vector2 b, float width, Color atA, Color atB)
     {
         var along = b - a;
         if (along.LengthSquared() < 1e-8f) return;
         var side = new Vector2(-along.Y, along.X).Normalized() * (width / 2);
         Room(4, 6);
         int at = _pointCount;
-        Point(a + side, colour);
-        Point(b + side, colour);
-        Point(b - side, colour);
-        Point(a - side, colour);
+        Point(a + side, atA);
+        Point(b + side, atB);
+        Point(b - side, atB);
+        Point(a - side, atA);
         Quad(at);
     }
 

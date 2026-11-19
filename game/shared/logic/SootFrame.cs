@@ -130,6 +130,9 @@ public sealed class SootSpots
     /// <summary>How far round the outline spot <paramref name="i"/> is from the near corner, the shorter way.</summary>
     public float Along(int i) => Alongs[i];
 
+    /// <summary>How far round the outline spot <paramref name="i"/> is from the near corner in the outline's own order, 0..perimeter.</summary>
+    public float Round(int i) => Ways[i] > 0 ? Alongs[i] : Perimeter - Alongs[i];
+
     /// <summary>Which way round spot <paramref name="i"/> is reached: 1 the outline's order, -1 against it.</summary>
     public int Way(int i) => Ways[i];
 

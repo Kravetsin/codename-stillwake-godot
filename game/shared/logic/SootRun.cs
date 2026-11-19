@@ -48,11 +48,20 @@ public sealed class SootRun
         public const double Break = 0.08;
         public const float BreakFlash = 0.7f;
 
-        /// <summary>A span's breath: its alpha at least, how much more at most, and a flash's share.</summary>
+        /// <summary>The drone's arcs' breath: its alpha at least, how much more at most; a window span's flash's share.</summary>
         public const float BreathLow = 0.14f, BreathSwing = 0.24f, BreathFlash = 0.6f;
 
+        /// <summary>
+        /// A window's frame glows whole, <see cref="GlowBase"/> everywhere, and embers' light runs round it: each runner a soft
+        /// swell <see cref="GlowPeak"/> more at its middle, <see cref="GlowWidth"/> px to either side, at its own pace (px a
+        /// second, the sign its way) from its own start (a share of the outline). Played in game 2026-11-19: spans breathing
+        /// each on its own read as loose sticks.
+        /// </summary>
+        public const float GlowBase = 0.45f, GlowPeak = 0.45f, GlowWidth = 200;
+        public static readonly (float Pace, float From)[] Runners = [(42, 0), (-27, 0.37f), (61, 0.69f)];
+
         /// <summary>A span's core width, its halo's width and alpha, the core's paleness.</summary>
-        public const float SpanWidth = 0.9f, SpanHalo = 3.5f, SpanHaloAlpha = 0.13f, SpanPale = 0.45f;
+        public const float SpanWidth = 1.6f, SpanHalo = 7f, SpanHaloAlpha = 0.3f, SpanPale = 0.2f;
 
         /// <summary>How often a crackle comes, least and most; the first's share of the least after its place changes.</summary>
         public const double CrackleMin = 4, CrackleMax = 8, CrackleFirst = 0.6;
@@ -175,8 +184,28 @@ public sealed class SootRun
     /// <summary>The crackle playing: on which span, how long it has, its seed.</summary>
     public (int Span, float Age, int Seed)? Crackle => _crackle is { } c ? (c.Span, (float)(_t - c.At), c.Seed) : null;
 
-    /// <summary>Span <paramref name="j"/>'s breath at <paramref name="t"/>, its alpha before a flash.</summary>
-    public float Breath(int j, double t) => Breathe(_spots!.Phase(j), t);
+    /// <summary>Whether there is anything to draw: soot out or on its way. Once home, nothing; the drone shows its own.</summary>
+    public bool Shows => Busy && Count > 0;
+
+    /// <summary>The frame's glow at mote <paramref name="i"/>, its alpha before a flash (<see cref="Glow(SootSpots, int, double)"/>).</summary>
+    public float Glow(int i) => Glow(_spots!, i, _t);
+
+    /// <summary>
+    /// The frame's glow at spot <paramref name="i"/> of <paramref name="spots"/> at <paramref name="t"/>: the base everywhere and
+    /// the runners' swells passing, so neighbours glow alike and the light runs round the whole frame.
+    /// </summary>
+    public static float Glow(SootSpots spots, int i, double t)
+    {
+        float p = spots.Perimeter, s = spots.Round(i), glow = Tune.GlowBase;
+        if (p <= 0) return glow;
+        foreach (var (pace, from) in Tune.Runners)
+        {
+            float at = (float)(((from * p + pace * t) % p + p) % p), d = MathF.Abs(s - at);
+            d = MathF.Min(d, p - d) / Tune.GlowWidth;
+            glow += Tune.GlowPeak * MathF.Exp(-d * d);
+        }
+        return glow;
+    }
 
     /// <summary>A span's breath at <paramref name="t"/>, from its own <paramref name="phase"/>, 0..1: each at its own pace.</summary>
     public static float Breathe(float phase, double t)

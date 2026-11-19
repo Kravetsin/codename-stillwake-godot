@@ -40,7 +40,8 @@ public partial class DroneFrame : CanvasLayer
     {
         _ui = ui;
         Layer = ScreenLayers.DroneFrame;
-        foreach (var (node, added, draw) in (ValueTuple<Node2D, bool, Action>[])[(_light, true, DrawLight), (_motes, false, DrawMotes), (_embers, true, DrawEmbers)])
+        // The motes under the light, so the frame's line runs whole through them.
+        foreach (var (node, added, draw) in (ValueTuple<Node2D, bool, Action>[])[(_motes, false, DrawMotes), (_light, true, DrawLight), (_embers, true, DrawEmbers)])
         {
             if (added) node.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
             node.Draw += draw;
@@ -62,7 +63,7 @@ public partial class DroneFrame : CanvasLayer
         if (soot.Outline.Count >= 3) Lay(soot.Outline, from, open);
         _run.Step(delta, open, _spots, _at, from, canvas.X.Length());
         _ui.DroneWindow = (open, _run.Busy ? Math.Max(_run.Out, 1e-3) : 0);
-        bool drawing = _run.Busy && _run.Count > 0;
+        bool drawing = _run.Shows;
         if (drawing || _drawn)
         {
             _light.QueueRedraw();
@@ -96,7 +97,7 @@ public partial class DroneFrame : CanvasLayer
     private void DrawLight()
     {
         _lit.Clear();
-        if (_spots != null && _run.Count > 0)
+        if (_spots != null && _run.Shows)
         {
             Film();
             float alpha = _run.Alpha;
@@ -105,8 +106,10 @@ public partial class DroneFrame : CanvasLayer
                 float strength = _run.Strength(j);
                 if (strength <= 0) continue;
                 int next = (j + 1) % _run.Count;
-                float a = alpha * strength * (_run.Breath(j, _run.Time) + SootRun.Tune.BreathFlash * _run.Flash(j));
-                Span(new Vector2(_run.X(j), _run.Y(j)), new Vector2(_run.X(next), _run.Y(next)), SootRun.Tune.SpanWidth, SootRun.Tune.SpanHalo, a);
+                // Each end lit by its mote's glow, the colour running between: one line, no stick brighter than its neighbours.
+                float flash = SootRun.Tune.BreathFlash * _run.Flash(j), lit = alpha * strength;
+                Span(new Vector2(_run.X(j), _run.Y(j)), new Vector2(_run.X(next), _run.Y(next)), SootRun.Tune.SpanWidth, SootRun.Tune.SpanHalo,
+                    lit * (_run.Glow(j) + flash), lit * (_run.Glow(next) + flash));
             }
             if (_run.Crackle is { } crackle && crackle.Span < _run.Count)
             {
@@ -124,11 +127,14 @@ public partial class DroneFrame : CanvasLayer
     }
 
     /// <summary>One ember span or a piece of a crackle, <paramref name="alpha"/> strong: its soft halo and its pale core.</summary>
-    private void Span(Vector2 from, Vector2 to, float width, float halo, float alpha)
+    private void Span(Vector2 from, Vector2 to, float width, float halo, float alpha) => Span(from, to, width, halo, alpha, alpha);
+
+    /// <summary>A span lit <paramref name="atFrom"/> at one end and <paramref name="atTo"/> at the other.</summary>
+    private void Span(Vector2 from, Vector2 to, float width, float halo, float atFrom, float atTo)
     {
-        if (alpha <= 0.004f) return;
-        _lit.Quad(from, to, halo, new Color(Ember, SootRun.Tune.SpanHaloAlpha * alpha));
-        _lit.Quad(from, to, width, new Color(EmberPale, alpha));
+        if (atFrom <= 0.004f && atTo <= 0.004f) return;
+        _lit.Quad(from, to, halo, new Color(Ember, SootRun.Tune.SpanHaloAlpha * atFrom), new Color(Ember, SootRun.Tune.SpanHaloAlpha * atTo));
+        _lit.Quad(from, to, width, new Color(EmberPale, atFrom), new Color(EmberPale, atTo));
     }
 
     /// <summary>
@@ -172,15 +178,16 @@ public partial class DroneFrame : CanvasLayer
         if (cut.Length > 0) _lit.Polygon(CollectionsMarshal.AsSpan(_filmPoints), CollectionsMarshal.AsSpan(_filmColours), cut);
     }
 
-    /// <summary>The motes: each a dark rim, its tone over it.</summary>
+    /// <summary>The motes: each its tone, a dark rim round it while it flies.</summary>
     private void DrawMotes()
     {
         _soot.Clear();
         float alpha = _run.Alpha;
-        for (int i = 0; i < _run.Count; i++)
+        for (int i = 0; _run.Shows && i < _run.Count; i++)
         {
             float side = _run.Size(i), x = _run.X(i) - side / 2, y = _run.Y(i) - side / 2, rim = SootRun.Tune.MoteRim / 2;
-            _soot.Rect(x - rim, y - rim, side + 2 * rim, side + 2 * rim, Rim with { A = alpha });
+            // Landed, a mote is a bead on the line: no dark rim to break it.
+            if (!_run.Landed(i)) _soot.Rect(x - rim, y - rim, side + 2 * rim, side + 2 * rim, Rim with { A = alpha });
             _soot.Rect(x, y, side, side, (_run.Dark(i) ? SootDark : SootLight) with { A = alpha });
         }
         _soot.Flush(_motes.GetCanvasItem());
@@ -191,7 +198,7 @@ public partial class DroneFrame : CanvasLayer
     {
         _hot.Clear();
         float alpha = _run.Alpha;
-        for (int i = 0; i < _run.Count; i++)
+        for (int i = 0; _run.Shows && i < _run.Count; i++)
         {
             float heat = _run.Heat(i);
             if (heat <= 0) continue;
