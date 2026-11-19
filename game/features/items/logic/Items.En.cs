@@ -248,7 +248,7 @@ public static partial class En
         ["item.jetpack.kind"] = "Equipment · Back",
         ["item.jetpack.key"] = "{key:sprint}",
         ["item.jetpack.use"] = "in space",
-        ["item.lightDrone.kind"] = "Drone · Yours for good",
+        ["item.lightDrone.kind"] = "Yours for good",
         ["item.dormantCore.kind"] = "Core · Dormant",
         ["item.dormantCore.about"] = "Warm to the touch, and still. It will not wake bare: craft it at the pod in 5 chunks of raw scrap.",
         ["item.lightDrone.key"] = "RMB",

@@ -245,7 +245,7 @@ public static partial class Ru
         ["item.jetpack.kind"] = "Снаряжение · Спина",
         ["item.jetpack.key"] = "{key:sprint}",
         ["item.jetpack.use"] = "в космосе",
-        ["item.lightDrone.kind"] = "Дрон · Твой навсегда",
+        ["item.lightDrone.kind"] = "Твой навсегда",
         ["item.dormantCore.kind"] = "Ядро · Спит",
         ["item.dormantCore.about"] = "Тёплое на ощупь и неподвижное. Голым оно не проснётся: собери его в капсуле в 5 кусков лома.",
         ["item.lightDrone.key"] = "ПКМ",
