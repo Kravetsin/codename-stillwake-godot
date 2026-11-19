@@ -105,6 +105,22 @@ public class ResearchTests
         Assert.False(Content.Items.TryGet(scanner, out _));
     }
 
+    /// <summary>The drone's lamp (light-drone): sold from the start, bought once, known by the crew when its crate comes in.</summary>
+    [Fact]
+    public void TheDroneLampIsSoldFromTheStartBoughtOnceAndKnownOnArrival()
+    {
+        string lamp = LightDrone.LampMode;
+        Assert.Equal(0, Node(lamp).Ring);
+        var w = SetUp(credits: 100_000);
+        Assert.Null(w.M.Research.BuyProblem(Node(lamp)));
+        w.Do(new BuyBlock(lamp)).Run().Do(new BuyBlock(lamp)).Run();
+        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal([lamp], w.M.Knowledge.Deliveries.Select(d => d.Good));
+        Assert.False(w.M.Research.Knows(lamp));
+        Mafia.Receive(w);
+        Assert.True(w.M.Research.Knows(lamp));
+    }
+
     /// <summary>Gear (2026-11-08-mafia-deliveries): the power driver, sold again and again, each bought one delivered.</summary>
     [Fact]
     public void GearIsBoughtAgainAndAgainAndEachIsDelivered()

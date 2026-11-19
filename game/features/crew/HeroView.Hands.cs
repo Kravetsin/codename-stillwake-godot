@@ -77,7 +77,7 @@ public partial class HeroView
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
         _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
         // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
-        if (!DroneOpen(_droneMode)) _droneMode = DroneMode.Lamp;
+        if (!DroneOpen(_droneMode) && DroneModes.Next(_droneMode, _droneOpen) is { } otherMode) _droneMode = otherMode;
         bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing;
         if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
         _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);

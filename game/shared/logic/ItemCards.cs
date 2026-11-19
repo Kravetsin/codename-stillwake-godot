@@ -50,7 +50,7 @@ public static class ItemCards
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             if (Spec.Foods.Of(item) is { } food) return card with { Food = true, Rows = FoodRows(food, null) };
             if (Litres.In(item) != null) return card with { Liquid = true, Rows = LiquidRows(item, 1) };
-            // The light drone is worn nowhere now (drone-companion), yet its card is still its light's.
+            // The light drone is worn nowhere now (drone-companion), yet its card is a worn one's, its picture in a window.
             return Spec.Items.Get(item).Equip == null && item != Spec.LightDrone.Item ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), key, price);
@@ -244,8 +244,8 @@ public static class ItemCards
     /// <summary>
     /// A worn item's card and its rows (2026-11-14-food-and-gear-cards), what it guarantees in the units the HUD shows: a helmet's
     /// air in O₂; a body's coldest it withstands (2026-11-14-temperature-in-degrees), the regen suit's air made a second and the charge
-    /// each unit costs; the cape's share off blows in percent and the degrees it adds; the jetpack's top speed and the air its thrust spends a second; the light drone's reach,
-    /// its beam across (<see cref="Light.HeadLampReach"/>) and its draw. A battery's number is its charge, set per stack.
+    /// each unit costs; the cape's share off blows in percent and the degrees it adds; the jetpack's top speed and the air its thrust spends a second; the light drone none, its
+    /// modes bought apart. A battery's number is its charge, set per stack.
     /// </summary>
     private static ItemCard Worn(ItemCard card)
     {
@@ -270,14 +270,6 @@ public static class ItemCards
             rows.Add(Row(CardSign.Speed, CardGroup.Move, T("card.cellsPerSecond", ("n", Number(Spec.Jetpack.Top * HeroSteps / 1000.0))), "card.topSpeed"));
             double spent = (double)World.TicksPerSecond / Spec.Jetpack.TicksPerUnit;
             rows.Add(Row(CardSign.Tank, CardGroup.Move, T("card.oxygenPerSecond", ("n", Number(spent))), "card.thrustAir"));
-        }
-        if (card.Item == Spec.LightDrone.Item)
-        {
-            int beam = (int)Math.Round(Light.HeadLampHalfAngle * 2 * 180 / Math.PI);
-            rows.Add(Row(CardSign.Light, CardGroup.Light, T("card.cells", ("n", Light.HeadLampReach)), "card.range"));
-            rows.Add(Row(CardSign.Arc, CardGroup.Light, T("card.degrees", ("n", beam)), "card.beamWidth"));
-            // What it draws, nothing: a bolt and 0 says it is free.
-            rows.Add(Row(CardSign.Battery, CardGroup.Special, (spec.Draw ?? 0).ToString(CultureInfo.InvariantCulture), "card.draw") with { Bolt = true });
         }
         return card with { Worn = true, Rows = rows };
     }

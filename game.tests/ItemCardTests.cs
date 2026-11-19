@@ -182,16 +182,12 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void WearEquipmentOnTheMediumCardTheLightDroneWithItsReachFromItsLight()
+    public void WearEquipmentOnTheMediumCardTheLightDroneWithNoRowsItsLampBoughtApart()
     {
         var lamp = ItemCards.Of(Spec.LightDrone.Item);
         Assert.True(lamp.Worn);
         Assert.False(lamp.Tool);
-        // As content stands: 18 of the 8 px cells (0104), 30 degrees either side; it draws nothing, a bolt and 0.
-        Assert.Equal([($"{Light.HeadLampReach} cells", "Range"), ("60°", "Beam"), ("0", "Battery draw")], Said(lamp.Rows));
-        Assert.Equal([CardSign.Light, CardSign.Arc, CardSign.Battery], lamp.Rows.Select(r => r.Sign));
-        Assert.Equal([CardGroup.Light, CardGroup.Light, CardGroup.Special], lamp.Rows.Select(r => r.Group));
-        Assert.True(lamp.Rows[2].Bolt);
+        Assert.Empty(lamp.Rows);
         Assert.Null(lamp.Draw);
         // Paired by a right click in hand (drone-companion).
         Assert.Equal("RMB", lamp.Use?.Key);

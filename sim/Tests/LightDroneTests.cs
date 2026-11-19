@@ -199,14 +199,18 @@ public class LightDroneTests
         Assert.True(w.M.Items.SlotOpen(1, FirstBag));
     }
 
-    /// <summary>The scanner is the drone's mode, opened by its node (light-drone): no item, so no wreck or crate gives one.</summary>
-    [Fact]
-    public void TheScannerIsAModeNeitherAnItemNorLoot()
+    /// <summary>The lamp and the scanner are the drone's modes, each opened by its node (light-drone): no item, so no wreck or crate gives one.</summary>
+    [Theory]
+    [InlineData("scanner")]
+    [InlineData("droneLamp")]
+    public void EachModeIsANodeNeitherAnItemNorLoot(string mode)
     {
-        Assert.False(Content.Items.TryGet(LightDrone.ScannerMode, out _));
-        Assert.NotNull(Content.Research.Node(LightDrone.ScannerMode));
-        Assert.DoesNotContain(LightDrone.ScannerMode, Content.Research.GearSold);
-        Assert.DoesNotContain(Loot.All.SelectMany(t => t.Entries), e => e.Item == LightDrone.ScannerMode);
+        Assert.Contains(mode, (string[])[LightDrone.ScannerMode, LightDrone.LampMode]);
+        Assert.False(Content.Items.TryGet(mode, out _));
+        Assert.NotNull(Content.Research.Node(mode));
+        Assert.DoesNotContain(mode, Content.Research.GearSold);
+        Assert.DoesNotContain(Loot.All.SelectMany(t => t.Entries), e => e.Item == mode);
+        Assert.DoesNotContain(mode, Content.Research.StartKnown);
     }
 
     /// <summary>
