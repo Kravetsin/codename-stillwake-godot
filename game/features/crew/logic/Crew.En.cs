@@ -25,7 +25,7 @@ public static partial class En
         ["crew.sameFood"] = "Already eaten; again in its last minute",
         ["crew.mealsFull"] = "Three meals already",
         ["crew.noMeals"] = "Nothing eaten to throw up",
-        ["crew.hasDrone"] = "Your drone is with you already",
+        ["crew.hasDrone"] = "Your companion is with you already",
         ["hud.purge"] = "Throw up every meal: hold",
         ["crew.hungry"] = "Hungry",
         ["crew.hungryWhy"] = "Eat something",

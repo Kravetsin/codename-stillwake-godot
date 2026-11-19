@@ -25,7 +25,7 @@ public static partial class Ru
         ["crew.sameFood"] = "Уже съедено; снова — в последнюю минуту",
         ["crew.mealsFull"] = "Уже три блюда",
         ["crew.noMeals"] = "Нечего выблевать",
-        ["crew.hasDrone"] = "Твой дрон уже с тобой",
+        ["crew.hasDrone"] = "Твой спутник уже с тобой",
         ["hud.purge"] = "Выблевать всю еду: удерживать",
         ["crew.hungry"] = "Голод",
         ["crew.hungryWhy"] = "Поешь что-нибудь",
