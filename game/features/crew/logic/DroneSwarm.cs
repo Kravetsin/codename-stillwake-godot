@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -125,18 +127,31 @@ public sealed class DroneSwarm
     public SwarmShape Shape { get; private set; } = SwarmShape.Idle;
 
     /// <summary>
-    /// Sends it into <paramref name="shape"/> at <paramref name="timeMs"/>, aimed <paramref name="aim"/>; the same shape does nothing.
-    /// Mid-change the plates and motes leave from where they are, so a quick change never jumps.
+    /// Whether it is bare (drone-frame): its soot out framing a drone window, but for <see cref="Ring"/>, which runs the idle orbits;
+    /// the plates keep the mode's shape.
     /// </summary>
-    public void Become(SwarmShape shape, float aim, double timeMs)
+    public bool Bare { get; private set; }
+
+    /// <summary>
+    /// The soot that stays while it is bare (the pick's <c>ORB</c>): six motes on each of the three orbits, each orbit's in order
+    /// round it, spread evenly by phase among its motes.
+    /// </summary>
+    public static IReadOnlyList<IReadOnlyList<int>> Ring { get; } = RingOf();
+
+    private static readonly bool[] InRing = Enumerable.Range(0, Tune.Motes).Select(i => Ring.Any(o => o.Contains(i))).ToArray();
+
+    /// <summary>Whether mote <paramref name="i"/> is with the drone: every one, or while it is bare only the ring's.</summary>
+    public bool Kept(int i) => !Bare || InRing[i];
+
+    /// <summary>
+    /// Sends it into <paramref name="shape"/> at <paramref name="timeMs"/>, aimed <paramref name="aim"/>, <paramref name="bare"/> or
+    /// not; the same does nothing. Mid-change the plates and motes leave from where they are, so a quick change never jumps.
+    /// </summary>
+    public void Become(SwarmShape shape, float aim, double timeMs, bool bare = false)
     {
-        if (shape == Shape) return;
+        Bare = bare;
         // Each is read where it is before the flag says to start from there.
-        bool platesMid = timeMs - _changedMs < PlatesSettleMs;
-        if (platesMid)
-            for (int i = 0; i < Tune.Plates; i++) _leftPlates[i] = PlateAt(i, aim, timeMs);
-        _platesLeftMid = platesMid;
-        var dust = DustOf(shape);
+        var dust = bare ? SwarmShape.Idle : DustOf(shape);
         if (dust != _dust)
         {
             bool motesMid = timeMs - _dustChangedMs < DustSettleMs;
@@ -144,12 +159,17 @@ public sealed class DroneSwarm
                 for (int i = 0; i < Tune.Motes; i++) _leftMotes[i] = MoteAt(i, aim, timeMs);
             (_motesLeftMid, _dustFrom, _dust, _dustChangedMs) = (motesMid, _dust, dust, timeMs);
         }
+        if (shape == Shape) return;
+        bool platesMid = timeMs - _changedMs < PlatesSettleMs;
+        if (platesMid)
+            for (int i = 0; i < Tune.Plates; i++) _leftPlates[i] = PlateAt(i, aim, timeMs);
+        _platesLeftMid = platesMid;
         (_from, Shape, _changedMs) = (Shape, shape, timeMs);
     }
 
     /// <summary>
-    /// The shape for a drone that <paramref name="signs"/> (shows a gesture, or projects the bag, drone-companion) or not, and
-    /// <paramref name="scanning"/> or shining: the sign's over either mode's.
+    /// The shape for a drone that <paramref name="signs"/> (shows a gesture) or not, and <paramref name="scanning"/> or shining:
+    /// the sign's over either mode's.
     /// </summary>
     public static SwarmShape ShapeOf(bool signs, bool scanning) => signs ? SwarmShape.Sign : scanning ? SwarmShape.Scan : SwarmShape.Lamp;
 
@@ -311,6 +331,18 @@ public sealed class DroneSwarm
             motes[i] = (phase, r1, r2, r3, size, hot, dark);
         }
         return motes;
+    }
+
+    /// <summary>Six motes of each orbit, its motes sorted by phase and every sixth of the way along them taken.</summary>
+    private static IReadOnlyList<IReadOnlyList<int>> RingOf()
+    {
+        var ring = new IReadOnlyList<int>[3];
+        for (int orbit = 0; orbit < 3; orbit++)
+        {
+            var ids = Enumerable.Range(0, Tune.Motes).Where(i => i % 3 == orbit).OrderBy(i => MoteSeeds[i].Phase).ToArray();
+            ring[orbit] = Enumerable.Range(0, 6).Select(k => ids[k * ids.Length / 6]).ToArray();
+        }
+        return ring;
     }
 
     private static (float X, float Y) Rotate(float x, float y, float a) => (x * MathF.Cos(a) - y * MathF.Sin(a), x * MathF.Sin(a) + y * MathF.Cos(a));

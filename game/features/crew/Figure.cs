@@ -749,12 +749,21 @@ public partial class Figure : Node2D
 
     private readonly LightDrone _drone = new();
 
-    /// <summary>Whether its drone projects the open bag (drone-companion): turned to <see cref="LampAim"/> in the sign's shape.</summary>
-    public bool DroneProjects
+    /// <summary>
+    /// Whether a drone window of its hero's is open, and how far its soot is out, 0..1 (drone-frame): while either is so, its drone
+    /// is bare.
+    /// </summary>
+    public (bool Open, double Out) DroneWindow
     {
-        get => _drone.Projects;
-        set => _drone.Projects = value;
+        get => _droneWindow;
+        set
+        {
+            _droneWindow = value;
+            _drone.Window(value.Open, value.Out);
+        }
     }
+
+    private (bool Open, double Out) _droneWindow;
 
     /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
     public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;

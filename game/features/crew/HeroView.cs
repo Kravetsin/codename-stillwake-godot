@@ -631,10 +631,9 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(m.Players.HasDrone(client.Id), _droneMode);
-        // Projecting the open bag (drone-companion), the drone turns to its window on the screen, never the pointer.
-        var projected = _ui.BagProjected is var (bx, by) ? GetViewport().GetCanvasTransform().AffineInverse() * new Vector2(bx, by) : (Vector2?)null;
-        _figure.DroneProjects = projected != null;
-        _figure.LampAim = projected ?? (pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null);
+        // A drone window out, the drone is bare: its soot frames the window (drone-frame).
+        _figure.DroneWindow = _ui.DroneWindow;
+        _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
         // The suit frosts over or scorches with the body, not the place (body-temperature, picks F2 and H3).

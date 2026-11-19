@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -8,8 +9,9 @@ namespace Stillwake.Game.Features.Crew;
 /// The light drone (light-drone, drone-swarm), the picked «Пепел в латах»: an iron core floating by the hero's head, its lens turned
 /// where it shines, its body a cloud of soot with four scrap plates riding it as armour, in a shape per mode (<see cref="DroneSwarm"/>).
 /// The core and the plates are pictures (<c>drone_core</c>, <c>drone_plates</c>, tools/anime-art drone.js); the soot, the lens, its
-/// haze, the field's threads, the embers and the glow are drawn here, as the pick drew them. Drawn unlit, in the world's frame; its
-/// light is the head lamp's.
+/// haze, the ember arcs to the plates (drone-frame, «Угли»), the embers and the glow are drawn here, as the picks drew them. Bare
+/// while a drone window is out: its soot frames the window, but for the ring. Drawn unlit, in the world's frame; its light is the
+/// head lamp's.
 /// </summary>
 public partial class LightDrone : Node2D
 {
@@ -19,8 +21,11 @@ public partial class LightDrone : Node2D
     /// <summary>How far the lens sits ahead of the core's middle, its bezel's and glass's half-axes and its ink, in world px (the pick's, scaled 0.82, a quarter of its pixels).</summary>
     private const float LensAhead = 0.55f, BezelX = 0.636f, BezelY = 0.902f, BezelInk = 0.267f, GlassX = 0.43f, GlassY = 0.677f;
 
-    /// <summary>A glowing plate's halo, its radius and its alpha at the middle; a thread's width and its alpha mid-flight.</summary>
-    private const float HaloRadius = 1.75f, HaloAlpha = 0.45f, ThreadWidth = 0.175f, ThreadAlpha = 0.6f;
+    /// <summary>A glowing plate's halo, its radius and its alpha at the middle.</summary>
+    private const float HaloRadius = 1.75f, HaloAlpha = 0.45f;
+
+    /// <summary>The arcs' own phases, the pick's: to each plate, and round each orbit of the ring.</summary>
+    private const float ArcPhase = 0.23f, ArcPhaseFrom = 0.05f, RingPhase = 0.053f, RingPhaseFrom = 0.1f;
 
     /// <summary>The lens's added haze: its radius in world px, its alpha at the glass, its rings (the pick's 14 px, scaled 0.82).</summary>
     private const float LensHaze = 1.9f, LensHazeAlpha = 0.28f;
@@ -40,19 +45,24 @@ public partial class LightDrone : Node2D
     private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f), Ember = new(1f, 138 / 255f, 58 / 255f);
     /// <summary>Its lens's colour shining and scanning, the mode wheel's too.</summary>
     internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
-    private static readonly Color Holo = new(DroneSign.Tint);
+    private static readonly Color Holo = new(DroneSign.Tint), Embers = new(SootRun.Tune.Ember), EmbersPale = Embers.Lerp(Colors.White, SootRun.Tune.SpanPale);
 
     private static Texture2D? _core, _plates;
     private readonly DroneFloat _float = new();
     private readonly DroneSwarm _swarm = new();
     private readonly Plate[] _placed = new Plate[DroneSwarm.Tune.Plates];
     private readonly Mote[] _motes = new Mote[DroneSwarm.Tune.Motes];
-    private readonly Node2D _threads = new() { ShowBehindParent = true }, _glow = new();
-    private readonly Vector2[] _thread = new Vector2[9];
+    private readonly Node2D _spans = new(), _glow = new();
     // A mote is up to three rects, an ember a rect and a fan of six: what one pass can hold.
     private readonly Triangles _soot = new(DroneSwarm.Tune.Motes * 3 * 4, DroneSwarm.Tune.Motes * 3 * 6);
     private readonly Triangles _sparks = new(DroneSwarm.Tune.Motes * 15, DroneSwarm.Tune.Motes * 30);
     private readonly DroneHolo _sign = new();
+    /// <summary>The arcs and their crackle, and its clock: it crackles only while no drone window is out (drone-frame).</summary>
+    private readonly Triangles _arcs = new();
+    private readonly SootRun _run = new(window: false, new Random());
+    private readonly (float X, float Y)[] _jag = new (float, float)[SootRun.Tune.ArcSegments + 1];
+    private double _ranMs = double.NaN;
+    private bool _bare;
     /// <summary>How long it takes to turn most of the way to a new aim, in ms.</summary>
     private const double TurnMs = 90;
 
@@ -66,40 +76,45 @@ public partial class LightDrone : Node2D
         (ZAsRelative, ZIndex) = (false, Render.Layers.Drones);
         Visible = false;
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-        // The field's light adds, as the pick's did: its threads behind everything, the glow and the embers over them.
-        foreach (var light in (Node2D[])[_threads, _glow])
+        // The field's light adds, as the picks' did, over the drone: the arcs, then the glow and the embers.
+        foreach (var light in (Node2D[])[_spans, _glow])
         {
             light.Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded, BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
             AddChild(light);
         }
-        _threads.Draw += DrawThreads;
+        _spans.Draw += DrawSpans;
         _glow.Draw += DrawGlow;
         AddChild(_sign);
     }
 
     /// <summary>
     /// Shows the gesture playing on its hero as a hologram over it (<see cref="DroneSign"/>), the plates fanned toward it, after
-    /// <see cref="Follow"/> each frame; none hides it and sends the plates back to the mode's shape, unless it <see cref="Projects"/>.
+    /// <see cref="Follow"/> each frame; none hides it and sends the plates back to the mode's shape.
     /// </summary>
     public void Sign((GestureMotion Motion, double Ms, Vector2 At)? gesture)
     {
         var toward = Vector2.FromAngle(_angle);
         _sign.Show(gesture, toward * LensAhead, toward, _timeMs);
-        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible || Projects, Scanning), _angle, _timeMs);
+        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible, Scanning), _angle, _timeMs, _bare);
+        _run.Step(double.IsNaN(_ranMs) ? 0 : Math.Max(0, (_timeMs - _ranMs) / 1000), _bare);
+        _ranMs = _timeMs;
         for (int i = 0; i < _placed.Length; i++) _placed[i] = _swarm.PlateAt(i, _angle, _timeMs);
         for (int i = 0; i < _motes.Length; i++) _motes[i] = _swarm.MoteAt(i, _angle, _timeMs);
         QueueRedraw();
-        _threads.QueueRedraw();
+        _spans.QueueRedraw();
         _glow.QueueRedraw();
     }
 
     /// <summary>Whether it scans rather than shines: the scanner worn, not the drone.</summary>
     public bool Scanning { get; set; }
 
-    /// <summary>Whether it projects its hero's open bag (drone-companion): in the sign's shape, as for a gesture.</summary>
-    public bool Projects { get; set; }
+    /// <summary>
+    /// Whether a drone window is <paramref name="open"/> or its soot still out by <paramref name="soot"/>, 0..1 (drone-frame): either
+    /// way it is bare, its soot but the ring gone to the window, the plates in the mode's shape, and its arcs do not crackle.
+    /// </summary>
+    public void Window(bool open, double soot) => _bare = open || soot > 0;
 
-    /// <summary>The box round its lens as drawn, in pixels of the world: where the bag's hologram beams from.</summary>
+    /// <summary>The box round its lens as drawn, in pixels of the world: where the soot frame flies from.</summary>
     public Rect2 LensBox
     {
         get
@@ -146,13 +161,14 @@ public partial class LightDrone : Node2D
             if (_placed[i].Front) DrawPlate(i);
     }
 
-    /// <summary>The motes on one side of the core in one call: each a dark rim, its tone, a lit top on the larger ones.</summary>
+    /// <summary>The motes kept on one side of the core in one call: each a dark rim, its tone, a lit top on the larger ones.</summary>
     private void DrawSoot(bool front)
     {
         _soot.Clear();
-        foreach (var mote in _motes)
+        for (int i = 0; i < _motes.Length; i++)
         {
-            if (mote.Front != front) continue;
+            var mote = _motes[i];
+            if (mote.Front != front || !_swarm.Kept(i)) continue;
             float s = mote.Side, x = mote.X - s / 2, y = mote.Y - s / 2;
             _soot.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, mote.Dark ? RimDark : RimLight);
             _soot.Rect(x, y, s, s, mote.Dark ? SootDark : SootLight);
@@ -177,22 +193,59 @@ public partial class LightDrone : Node2D
         DrawSetTransform(Vector2.Zero, 0);
     }
 
-    /// <summary>A faint thread of the field from the core to each plate in flight, brightest halfway, bowed as the pick's.</summary>
-    private void DrawThreads()
+    /// <summary>
+    /// The pick «Угли»'s charge on the drone (its <c>droneLinks</c>): an ember arc from the core to each plate at all times, each
+    /// breathing at its own pace; while bare, the ring's motes linked round each orbit; and the crackle on one arc now and then.
+    /// </summary>
+    private void DrawSpans()
     {
-        var colour = Field.Lerp(Colors.White, 0.3f);
-        foreach (var plate in _placed)
+        _arcs.Clear();
+        double t = _timeMs / 1000;
+        for (int i = 0; i < _placed.Length; i++)
         {
-            if (plate.Flight is <= 0 or >= 1) continue;
-            var end = new Vector2(plate.X, plate.Y);
-            var bow = new Vector2(end.X * 0.5f + end.Y * 0.25f, end.Y * 0.5f - end.X * 0.25f);
-            for (int k = 0; k < _thread.Length; k++)
-            {
-                float s = k / (_thread.Length - 1f);
-                _thread[k] = 2 * (1 - s) * s * bow + s * s * end;
-            }
-            _threads.DrawPolyline(_thread, new Color(colour, ThreadAlpha * Mathf.Sin(plate.Flight * Mathf.Pi)), ThreadWidth, true);
+            var (from, to) = Arc(i);
+            Span(from, to, SootRun.Breathe(i * ArcPhase + ArcPhaseFrom, t));
         }
+        if (_swarm.Bare)
+            for (int orbit = 0; orbit < DroneSwarm.Ring.Count; orbit++)
+            {
+                var ring = DroneSwarm.Ring[orbit];
+                for (int k = 0; k < ring.Count; k++)
+                {
+                    Mote a = _motes[ring[k]], b = _motes[ring[(k + 1) % ring.Count]];
+                    Span(new Vector2(a.X, a.Y), new Vector2(b.X, b.Y), SootRun.Breathe((orbit * ring.Count + k) * RingPhase + RingPhaseFrom, t));
+                }
+            }
+        if (_run.Crackle is { } crackle && crackle.Span < _placed.Length)
+        {
+            var (from, to) = Arc(crackle.Span);
+            float alpha = SootRun.ArcAlpha(crackle.Seed, crackle.Age, _run.Time), core = SootRun.Tune.ArcAlpha * alpha;
+            SootRun.Jag(from.X, from.Y, to.X, to.Y, crackle.Seed, _run.Time, SootRun.Tune.DroneArcAmp, SootRun.Tune.DroneArcBow, _jag);
+            for (int k = 0; k + 1 < _jag.Length; k++)
+            {
+                Vector2 a = new(_jag[k].X, _jag[k].Y), b = new(_jag[k + 1].X, _jag[k + 1].Y);
+                _arcs.Quad(a, b, SootRun.Tune.DroneArcHalo, new Color(Embers, SootRun.Tune.SpanHaloAlpha * core));
+                _arcs.Quad(a, b, SootRun.Tune.DroneArcCore, new Color(EmbersPale, core));
+            }
+            foreach (var end in (ReadOnlySpan<Vector2>)[from, to])
+                _arcs.Fan(end, SootRun.Tune.DroneArcEnd, new Color(Embers, SootRun.Tune.ArcEndAlpha * alpha), new Color(Embers, 0));
+        }
+        _arcs.Flush(_spans.GetCanvasItem());
+    }
+
+    /// <summary>Plate <paramref name="i"/>'s arc: from just off the core's middle toward it, to its middle.</summary>
+    private (Vector2 From, Vector2 To) Arc(int i)
+    {
+        var to = new Vector2(_placed[i].X, _placed[i].Y);
+        float far = to.Length();
+        return (far > SootRun.Tune.DroneArcFrom ? to / far * SootRun.Tune.DroneArcFrom : Vector2.Zero, to);
+    }
+
+    /// <summary>One ember span, <paramref name="alpha"/> strong: its soft halo and its pale core, added.</summary>
+    private void Span(Vector2 from, Vector2 to, float alpha)
+    {
+        _arcs.Quad(from, to, SootRun.Tune.DroneHalo, new Color(Embers, SootRun.Tune.SpanHaloAlpha * alpha));
+        _arcs.Quad(from, to, SootRun.Tune.DroneSpan, new Color(EmbersPale, alpha));
     }
 
     /// <summary>The lens's haze, a glowing plate's halo, the field's light on the soot and the embers' red heat, all added.</summary>
@@ -210,8 +263,10 @@ public partial class LightDrone : Node2D
         }
         var tint = colour.Lerp(Colors.White, 0.35f);
         _sparks.Clear();
-        foreach (var mote in _motes)
+        for (int i = 0; i < _motes.Length; i++)
         {
+            if (!_swarm.Kept(i)) continue;
+            var mote = _motes[i];
             float s = mote.Side, x = mote.X - s / 2, y = mote.Y - s / 2;
             if (mote.Glow > 0.04f) _sparks.Rect(x, y, s, s, new Color(tint, MoteTint * Math.Min(1, mote.Glow)));
             float heat = mote.Heat;
@@ -231,56 +286,5 @@ public partial class LightDrone : Node2D
             points[i] = at + new Vector2(Mathf.Cos(t) * rx, Mathf.Sin(t) * ry).Rotated(angle);
         }
         return points;
-    }
-
-    /// <summary>Coloured triangles gathered for one call: hundreds of motes cost one draw, not one each.</summary>
-    private sealed class Triangles(int points, int indices)
-    {
-        private const int FanSides = 6;
-        private readonly Vector2[] _points = new Vector2[points];
-        private readonly Color[] _colours = new Color[points];
-        private readonly int[] _indices = new int[indices];
-        private int _pointCount, _indexCount;
-
-        public void Clear() => (_pointCount, _indexCount) = (0, 0);
-
-        public void Rect(float x, float y, float w, float h, Color colour)
-        {
-            int at = _pointCount;
-            Point(new Vector2(x, y), colour);
-            Point(new Vector2(x + w, y), colour);
-            Point(new Vector2(x + w, y + h), colour);
-            Point(new Vector2(x, y + h), colour);
-            foreach (int k in (ReadOnlySpan<int>)[0, 1, 2, 0, 2, 3]) _indices[_indexCount++] = at + k;
-        }
-
-        /// <summary>A soft disc: <paramref name="middle"/>'s colour at its middle, fading to <paramref name="rim"/>'s at its edge.</summary>
-        public void Fan(Vector2 at, float radius, Color middle, Color rim)
-        {
-            int centre = _pointCount;
-            Point(at, middle);
-            for (int k = 0; k < FanSides; k++) Point(at + Vector2.FromAngle(Mathf.Tau * k / FanSides) * radius, rim);
-            for (int k = 0; k < FanSides; k++)
-            {
-                _indices[_indexCount++] = centre;
-                _indices[_indexCount++] = centre + 1 + k;
-                _indices[_indexCount++] = centre + 1 + (k + 1) % FanSides;
-            }
-        }
-
-        public void Flush(Rid item)
-        {
-            if (_indexCount == 0) return;
-            RenderingServer.CanvasItemAddTriangleArray(item, new ReadOnlySpan<int>(_indices, 0, _indexCount),
-                new ReadOnlySpan<Vector2>(_points, 0, _pointCount), new ReadOnlySpan<Color>(_colours, 0, _pointCount),
-                ReadOnlySpan<Vector2>.Empty, ReadOnlySpan<int>.Empty, ReadOnlySpan<float>.Empty, default, -1);
-        }
-
-        private void Point(Vector2 at, Color colour)
-        {
-            _points[_pointCount] = at;
-            _colours[_pointCount] = colour;
-            _pointCount++;
-        }
     }
 }

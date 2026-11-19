@@ -176,6 +176,9 @@ public static class ScreenLayers
     /// <summary>The Handbook's window (0066), over the HUD and the bars, under the dev panel and the menu.</summary>
     public const int Handbook = 11;
 
+    /// <summary>The drone's soot framing a drone window (<c>Shared.DroneFrame</c>), over the windows, under the edge's keys.</summary>
+    public const int DroneFrame = 11;
+
     /// <summary>The tablet's top edge and its keys (<c>Shared.TabletEdge</c>), over every tablet, whose top they ride on.</summary>
     public const int TabletEdge = 12;
 

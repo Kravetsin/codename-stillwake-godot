@@ -278,7 +278,70 @@ public class DroneSwarmTests
     }
 
     [Fact]
-    public void ASignOrTheProjectedBagTakesTheSignsShapeOverEitherMode()
+    public void BareKeepsExactlyTheEighteenRingMotes()
+    {
+        var swarm = new DroneSwarm();
+        swarm.Become(SwarmShape.Lamp, 0.4f, 0);
+        Assert.All(Enumerable.Range(0, Motes), i => Assert.True(swarm.Kept(i)));
+        swarm.Become(SwarmShape.Lamp, 0.4f, 3000, bare: true);
+        var kept = Enumerable.Range(0, Motes).Where(swarm.Kept).ToArray();
+        Assert.Equal(18, kept.Length);
+        Assert.Equal(DroneSwarm.Ring.SelectMany(o => o).Order(), kept);
+        // Once re-formed they run the idle orbits, whatever the mode.
+        double done = 3000 + DroneSwarm.DustSettleMs;
+        foreach (int i in kept) Assert.Equal(DroneSwarm.MoteIn(SwarmShape.Idle, i, 0.4f, (float)(done / 1000)), swarm.MoteAt(i, 0.4f, done));
+        // Dressed again, every mote is its own and flows back into the mode's shape.
+        swarm.Become(SwarmShape.Lamp, 0.4f, done);
+        Assert.All(Enumerable.Range(0, Motes), i => Assert.True(swarm.Kept(i)));
+        double back = done + DroneSwarm.DustSettleMs;
+        for (int i = 0; i < Motes; i++) Assert.Equal(DroneSwarm.MoteIn(SwarmShape.Lamp, i, 0.4f, (float)(back / 1000)), swarm.MoteAt(i, 0.4f, back));
+    }
+
+    [Fact]
+    public void RingIsSixOnEachOrbit()
+    {
+        Assert.Equal(3, DroneSwarm.Ring.Count);
+        Assert.Equal(18, DroneSwarm.Ring.SelectMany(o => o).Distinct().Count());
+        for (int o = 0; o < 3; o++)
+        {
+            var ring = DroneSwarm.Ring[o];
+            Assert.Equal(6, ring.Count);
+            Assert.All(ring, i => Assert.Equal(o, i % 3));
+            // In order round the orbit, spread round it: each the next by its phase, none bunched.
+            float tilt = DroneSwarm.Tune.DustTilt + o * DroneSwarm.Tune.DustTiltMore;
+            float AngleOf(int i)
+            {
+                var m = DroneSwarm.MoteIn(SwarmShape.Idle, i, 0, 0);
+                float x = m.X * MathF.Cos(-tilt) - m.Y * MathF.Sin(-tilt), y = m.X * MathF.Sin(-tilt) + m.Y * MathF.Cos(-tilt);
+                float a = MathF.Atan2(y / DroneSwarm.Tune.DustOrbitFlat, x);
+                return a < 0 ? a + MathF.Tau : a;
+            }
+            var angles = ring.Select(AngleOf).ToArray();
+            for (int k = 0; k < 6; k++)
+            {
+                float gap = angles[(k + 1) % 6] - angles[k];
+                if (gap < 0) gap += MathF.Tau;
+                Assert.InRange(gap, 0.3f, 2.2f);
+            }
+        }
+    }
+
+    [Fact]
+    public void BareKeepsTheModesPlates()
+    {
+        foreach (var shape in (SwarmShape[])[SwarmShape.Lamp, SwarmShape.Scan])
+        {
+            var swarm = new DroneSwarm();
+            swarm.Become(shape, 1.1f, 0);
+            swarm.Become(shape, 1.1f, 4000, bare: true);
+            Assert.Equal(shape, swarm.Shape);
+            for (double ms = 4000; ms < 6000; ms += 77)
+                for (int i = 0; i < Plates; i++) Assert.Equal(DroneSwarm.PlateIn(shape, i, 1.1f, (float)(ms / 1000)), swarm.PlateAt(i, 1.1f, ms));
+        }
+    }
+
+    [Fact]
+    public void ASignTakesTheSignsShapeOverEitherMode()
     {
         Assert.Equal(SwarmShape.Sign, DroneSwarm.ShapeOf(signs: true, scanning: false));
         Assert.Equal(SwarmShape.Sign, DroneSwarm.ShapeOf(signs: true, scanning: true));

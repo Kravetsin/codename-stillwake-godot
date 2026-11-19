@@ -69,11 +69,12 @@ public partial class InventoryPanel : CanvasLayer
     /// too (drone-companion). Its look is chosen as it is built, and built again when the pairing changes.
     /// </summary>
     private Control _inventory = null!;
-    /// <summary>The paired bag's hologram, beamed from the drone's lens; none unpaired. Whether the bag was built paired.</summary>
-    private MachineHolo? _bagHolo;
+    /// <summary>Whether the bag was built paired.</summary>
     private bool _builtPaired;
-    /// <summary>The bag's own id in its hologram's motion: never a machine's, and it has a hologram of its own.</summary>
-    private const int BagHolo = -1;
+    /// <summary>How far the paired bag's glass and contents have come out as the drone's soot frames it (drone-frame).</summary>
+    private readonly SootFade _bagFade = new();
+    /// <summary>The paired bag's outline on the screen, handed to the soot every frame.</summary>
+    private readonly (float X, float Y)[] _bagOutline = new (float, float)[4];
     /// <summary>How far the open screens have come on: their content fades in as the build tablet's does (0073).</summary>
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
@@ -238,6 +239,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Whether the inventory or a crate is open: what Esc closes before it opens the menu.</summary>
     public bool Shown => _open || Crate != null;
 
+    /// <summary>Whether the bag shows: while it is open, and the paired bag while its glass fades out after (drone-frame).</summary>
+    private bool BagShown => Shown || (_inventory is HoloWindow && _bagFade.Shown);
+
     /// <summary>
     /// A picked stack whose slot still holds its item, while the panels are open: one emptied meanwhile by another player at
     /// a crate, or holding another item after a sort, is let go.
@@ -254,17 +258,18 @@ public partial class InventoryPanel : CanvasLayer
         AddChild(_over);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         Build();
+        _ui.Soot.Taken += SootTaken;
     }
+
+    public override void _ExitTree() => _ui.Soot.Taken -= SootTaken;
 
     /// <summary>The hotbar, the inventory, the equipment and the stack in hand, at the slot size chosen now.</summary>
     private void Build()
     {
         int size = _ui.Slot;
         _builtPaired = Paired?.Invoke() ?? true;
-        // First: the open machine's hologram and the paired bag's draw over the world and under every panel.
+        // First: the open machine's hologram draws over the world and under every panel.
         _root.AddChild(_holo = new MachineHolo());
-        _bagHolo = null;
-        if (_builtPaired) _root.AddChild(_bagHolo = new MachineHolo());
         var top = Style.Gap(new HBoxContainer(), 8);
         top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i)), keys: true));
         top.AddChild(_creative = new Label
@@ -334,8 +339,8 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The paired bag as the drone projects it (drone-companion): one hologram window <see cref="_bagHolo"/> draws, the bag
-    /// with the trash under its right edge, the sort and stash keys at its right as a crate's sort key is in its header. Its
+    /// The paired bag as the drone projects it (drone-companion): one hologram window the drone's soot frames (drone-frame), the
+    /// bag with the trash under its right edge, the sort and stash keys at its right as a crate's sort key is in its header. Its
     /// margins are a machine window's (<see cref="MachineFrame"/>), so every slot keeps its place.
     /// </summary>
     private void Projected()
@@ -352,8 +357,8 @@ public partial class InventoryPanel : CanvasLayer
         row.AddChild(slots);
         row.AddChild(keys);
         window.AddChild(row);
-        // Its contents come in as its hologram grows.
-        window.Modulate = Colors.White with { A = 0 };
+        // Its glass and contents come in as the soot frames it.
+        window.Glass(0, 0);
         _bagColumn.AddChild(_inventory = window);
     }
 
@@ -388,11 +393,7 @@ public partial class InventoryPanel : CanvasLayer
         bool fresh = _items != items || _client != client;
         (_client, _items, _grid, _hero) = (client, items, grid, hero);
         // A load or a resync: the hologram goes at once.
-        if (fresh)
-        {
-            _holo?.Snap();
-            _bagHolo?.Snap();
-        }
+        if (fresh) _holo?.Snap();
         _sinceRead += elapsedMs;
         if (fresh || _sinceRead >= RefreshMs) Read();
     }
@@ -725,7 +726,8 @@ public partial class InventoryPanel : CanvasLayer
             Build();
         }
         BuildCrate();
-        _shown.Visible = _body.Visible = Shown;
+        _shown.Visible = BagShown;
+        _body.Visible = Shown;
         _creative.Visible = reading.Creative;
         _ui.Chosen.Set(_chosen);
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);

@@ -331,15 +331,20 @@ public sealed class Ui
 
     /// <summary>
     /// A small box round this machine's own drone's lens as drawn this frame, in the world's pixels; null with no drone shown (none
-    /// paired, the hero out, seated or not placed). Set by <c>crew</c> every frame; <c>items</c> beams the bag's hologram from it.
+    /// paired, the hero out, seated or not placed). Set by <c>crew</c> every frame; the soot frame (<c>DroneFrame</c>) flies from it.
     /// </summary>
     public (float X, float Y, float W, float H)? DroneLens { get; set; }
 
     /// <summary>
-    /// The middle of the bag's hologram window on the screen while the drone projects it (drone-companion); null while it does not.
-    /// Set by <c>items</c> every frame; <c>crew</c> turns the drone to it in its sign's shape. Local: friends never see it.
+    /// The drone windows' claims on the drone's soot (drone-frame): each hands its outline every frame, the newest open owns it.
     /// </summary>
-    public (float X, float Y)? BagProjected { get; set; }
+    public SootClaims Soot { get; } = new();
+
+    /// <summary>
+    /// Whether a drone window is open, and how far its soot is out, 0..1 (drone-frame). Set by <c>DroneFrame</c> every frame;
+    /// <c>crew</c> draws the drone bare while either is so. Local: friends never see it.
+    /// </summary>
+    public (bool Open, double Out) DroneWindow { get; set; }
 
     /// <summary>
     /// How far every hologram window trails the hero this frame, in screen pixels (<c>HoloSway</c>, the motion «Отставание»).

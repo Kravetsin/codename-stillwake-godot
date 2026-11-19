@@ -217,20 +217,34 @@ public partial class InventoryPanel
             _frame.Reveal(_holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)));
         else if (Crate != null) _holo.Snap();
         else _holo.Step(delta, null);
-        BagHologram(delta);
+        BagSoot(delta);
     }
 
     /// <summary>
-    /// The paired bag's hologram (drone-companion), as a machine's: beamed from the drone's lens while the bag shows, its controls
-    /// shown as the pens trace it; with no drone shown, no beam. Where its window is goes to <c>crew</c>, for the drone to face.
+    /// The paired bag on the drone's soot (drone-frame, «Угли»): its outline handed to the soot while it shows, its glass and then
+    /// its contents fading in as the soot frames it, out as it flies home. Unpaired, the wrist's bag lets go of any soot it had.
     /// </summary>
-    private void BagHologram(double delta)
+    private void BagSoot(double delta)
     {
-        bool projected = Shown && _bagHolo != null;
-        _ui.BagProjected = projected && _inventory.GetGlobalRect() is { Size: { X: > 0, Y: > 0 } } at ? (at.GetCenter().X, at.GetCenter().Y) : null;
-        if (_bagHolo == null || _inventory is not HoloWindow window) return;
-        var lens = _ui.DroneLens is var (x, y, w, h) ? new Rect2(x, y, w, h) : default;
-        window.Reveal(_bagHolo.Step(delta, projected ? new MachineHolo.Target(BagHolo, window.GetGlobalRect(), lens, HoloTone.Drone) : null));
+        if (_inventory is not HoloWindow window)
+        {
+            if (ReferenceEquals(_ui.Soot.Owner, this) && _ui.Soot.Open) _ui.Soot.Hand(this, _ui.Soot.Outline, false);
+            return;
+        }
+        _bagFade.Step(delta, Shown);
+        if (_shown.Visible != BagShown) _shown.Visible = BagShown;
+        window.Glass(_bagFade.Glass, _bagFade.Contents);
+        // Laid out before it is handed: a window not yet sized has no outline.
+        if (window.GetGlobalRect() is not { Size: { X: > 0, Y: > 0 } } at) return;
+        (_bagOutline[0], _bagOutline[1], _bagOutline[2], _bagOutline[3]) =
+            ((at.Position.X, at.Position.Y), (at.End.X, at.Position.Y), (at.End.X, at.End.Y), (at.Position.X, at.End.Y));
+        _ui.Soot.Hand(this, _bagOutline, Shown);
+    }
+
+    /// <summary>Another drone window took the soot from the bag: it closes, a crate open beside it too.</summary>
+    private void SootTaken(object window)
+    {
+        if (ReferenceEquals(window, this) && Shown) Close();
     }
 
     /// <summary>

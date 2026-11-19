@@ -4,14 +4,17 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// A window drawn as a hologram (<see cref="MachineHolo"/>): a machine's frame or the paired bag. It has no ground of its own;
-/// its owner shows its controls as the hologram reveals them (the grid's wipe from the near edge, their alpha) and carries it
-/// off its place by the sway (<see cref="HoloSway"/>), the controls themselves, so clicks land on what is drawn. Its margins
-/// are the wrist screen's, so every slot keeps its place (0074).
+/// A window drawn as a hologram: a machine's frame (<see cref="MachineHolo"/>, which draws its ground) or the paired bag, framed
+/// by the drone's soot (<see cref="DroneFrame"/>) over a glass of its own (<see cref="Glass"/>). Its owner shows its controls as
+/// the hologram reveals them and carries it off its place by the sway (<see cref="HoloSway"/>), the controls themselves, so clicks
+/// land on what is drawn. Its margins are the wrist screen's, so every slot keeps its place (0074).
 /// </summary>
 public partial class HoloWindow : PanelContainer
 {
+    private static readonly Color Ground = new(HoloLook.Drone.Ground);
     private Container? _sorter;
+    /// <summary>The drone's glass under its controls, its alpha; 0 for a machine's window, whose hologram draws its ground.</summary>
+    private float _glass;
     /// <summary>How far in the wipe has come while it clips, from <see cref="_from"/>; null with the whole window shown.</summary>
     private float? _reach;
     private HoloEdge _from;
@@ -41,6 +44,20 @@ public partial class HoloWindow : PanelContainer
         (_reach, _from) = (reach, reveal.From);
         // A clip renders its children apart: only while the wipe crosses the window.
         ClipChildren = reach == null ? ClipChildrenMode.Disabled : ClipChildrenMode.Only;
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// A drone window's look (drone-frame): its <paramref name="glass"/>, the drone's blue ground, at that alpha, and its controls
+    /// whole at <paramref name="contents"/>'s, each apart, so the glass may show before them.
+    /// </summary>
+    public void Glass(float glass, float contents)
+    {
+        if (Modulate.A != 1) Modulate = Colors.White;
+        for (int i = 0; i < GetChildCount(); i++)
+            if (GetChild(i) is CanvasItem item && item.Modulate.A != contents) item.Modulate = Colors.White with { A = contents };
+        if (glass == _glass) return;
+        _glass = glass;
         QueueRedraw();
     }
 
@@ -86,6 +103,7 @@ public partial class HoloWindow : PanelContainer
 
     public override void _Draw()
     {
+        if (_glass > 0) DrawRect(new Rect2(Vector2.Zero, Size), Ground with { A = HoloLook.GroundAlpha * _glass });
         // The mask its controls are clipped to: the part the wipe has crossed.
         if (_reach is not float reach) return;
         var shown = HoloPen.Band(new HoloRect(0, 0, Size.X, Size.Y), _from, -HoloLook.WipePast, reach, HoloLook.WipePast);
