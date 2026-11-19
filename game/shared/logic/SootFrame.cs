@@ -142,6 +142,26 @@ public sealed class SootSpots
     /// <summary>Span <paramref name="j"/>'s own phase, 0..1.</summary>
     public float Phase(int j) => Phases[j];
 
+    private (float Pace, float From)[]? _embers;
+
+    /// <summary>
+    /// The embers drifting round this outline (<see cref="SootRun.GlowAt"/>): spread evenly with a little scatter, each its own
+    /// pace and way, drawn from the outline's size so a frame keeps its embers while it stands.
+    /// </summary>
+    internal (float Pace, float From)[] EmbersOf()
+    {
+        if (_embers != null) return _embers;
+        int n = Math.Max(SootRun.Tune.EmberLeast, (int)MathF.Round(Perimeter / SootRun.Tune.EmberEvery));
+        var draw = new SootRng((uint)(n * 977 + (int)Perimeter));
+        var embers = new (float Pace, float From)[n];
+        for (int k = 0; k < n; k++)
+        {
+            float pace = SootRun.Tune.EmberSlowest + (SootRun.Tune.EmberFastest - SootRun.Tune.EmberSlowest) * draw.Next();
+            float from = (k + 0.5f * draw.Next()) * Perimeter / n;
+            embers[k] = (draw.Next() < 0.5f ? -pace : pace, from);
+        }
+        return _embers = embers;
+    }
     /// <summary>The point <paramref name="s"/> round the outline from the near corner, in its own order.</summary>
     public (float X, float Y) PointAt(float s)
     {

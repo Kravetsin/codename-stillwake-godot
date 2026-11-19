@@ -16,7 +16,10 @@ public partial class DroneFrame : CanvasLayer
 {
     private static readonly Color Ember = new(SootRun.Tune.Ember), EmberPale = Ember.Lerp(Colors.White, SootRun.Tune.SpanPale);
     private static readonly Color Light = new(HoloLook.Drone.Light), LightPale = Light.Lerp(Colors.White, SootRun.Tune.FilmPale);
-    private static readonly Color Rim = new("16171b"), SootDark = new("4c4f55"), SootLight = new("606369");
+    private static readonly Color Rim = new("16171b"), SootDark = new("4c4f55"), SootLight = new("606369"), FrameDark = new(SootRun.Tune.Frame);
+
+    /// <summary>The embers' light is drawn in pieces at most this long, px, so it drifts smoothly along a span.</summary>
+    private const float LightPiece = 4;
 
     private readonly Ui _ui;
     private readonly SootRun _run = new(window: true, new Random());
@@ -106,10 +109,18 @@ public partial class DroneFrame : CanvasLayer
                 float strength = _run.Strength(j);
                 if (strength <= 0) continue;
                 int next = (j + 1) % _run.Count;
-                // Each end lit by its mote's glow, the colour running between: one line, no stick brighter than its neighbours.
+                // The embers' light along the span, in pieces a few px long so it drifts smoothly between the motes.
                 float flash = SootRun.Tune.BreathFlash * _run.Flash(j), lit = alpha * strength;
-                Span(new Vector2(_run.X(j), _run.Y(j)), new Vector2(_run.X(next), _run.Y(next)), SootRun.Tune.SpanWidth, SootRun.Tune.SpanHalo,
-                    lit * (_run.Glow(j) + flash), lit * (_run.Glow(next) + flash));
+                Vector2 a = new(_run.X(j), _run.Y(j)), b = new(_run.X(next), _run.Y(next));
+                float sa = _spots.Round(j), sb = next == 0 ? _spots.Perimeter : _spots.Round(next);
+                int pieces = Math.Max(1, (int)MathF.Ceiling(a.DistanceTo(b) / LightPiece));
+                float before = lit * Math.Min(1, _run.GlowAt(sa) + flash);
+                for (int k = 1; k <= pieces; k++)
+                {
+                    float u = k / (float)pieces, after = lit * Math.Min(1, _run.GlowAt(sa + (sb - sa) * u) + flash);
+                    Span(a.Lerp(b, (k - 1) / (float)pieces), a.Lerp(b, u), SootRun.Tune.SpanWidth, SootRun.Tune.SpanHalo, before, after);
+                    before = after;
+                }
             }
             if (_run.Crackle is { } crackle && crackle.Span < _run.Count)
             {
@@ -183,6 +194,14 @@ public partial class DroneFrame : CanvasLayer
     {
         _soot.Clear();
         float alpha = _run.Alpha;
+        // The dark frame first, between linked motes: what the embers' light drifts along.
+        for (int j = 0; _run.Shows && j < _run.Count; j++)
+        {
+            float strength = _run.Strength(j);
+            if (strength <= 0) continue;
+            int next = (j + 1) % _run.Count;
+            _soot.Quad(new Vector2(_run.X(j), _run.Y(j)), new Vector2(_run.X(next), _run.Y(next)), SootRun.Tune.FrameWidth, FrameDark with { A = FrameDark.A * strength * alpha });
+        }
         for (int i = 0; _run.Shows && i < _run.Count; i++)
         {
             float side = _run.Size(i), x = _run.X(i) - side / 2, y = _run.Y(i) - side / 2, rim = SootRun.Tune.MoteRim / 2;

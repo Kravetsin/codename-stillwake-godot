@@ -52,14 +52,18 @@ public sealed class SootRun
         public const float BreathLow = 0.14f, BreathSwing = 0.24f, BreathFlash = 0.6f;
 
         /// <summary>
-        /// A window's frame glows whole, <see cref="GlowBase"/> everywhere, and embers' light runs round it: each runner a soft
-        /// swell <see cref="GlowPeak"/> more at its middle, <see cref="GlowWidth"/> px to either side, at its own pace (px a
-        /// second, the sign its way) from its own start (a share of the outline). Played in game 2026-11-19: spans breathing
-        /// each on its own read as loose sticks.
+        /// A window's frame is dark soot, and embers' light drifts along it in soft spots (played 2026-11-19, the user's
+        /// reference a fiery glow running round a dark frame): one ember every <see cref="EmberEvery"/> px of outline, at least
+        /// <see cref="EmberLeast"/>; each a swell to <see cref="EmberPeak"/> at its middle, fading over about
+        /// <see cref="EmberWidth"/> px to either side, drifting its own way at <see cref="EmberSlowest"/> to
+        /// <see cref="EmberFastest"/> px a second.
         /// </summary>
-        public const float GlowBase = 0.45f, GlowPeak = 0.45f, GlowWidth = 200;
-        public static readonly (float Pace, float From)[] Runners = [(42, 0), (-27, 0.37f), (61, 0.69f)];
+        public const float EmberEvery = 220, EmberPeak = 1, EmberWidth = 22, EmberSlowest = 14, EmberFastest = 40;
+        public const int EmberLeast = 3;
 
+        /// <summary>The dark frame under the embers: its width and colour, rgba.</summary>
+        public const float FrameWidth = 1.4f;
+        public const string Frame = "34373cd9";
         /// <summary>A span's core width, its halo's width and alpha, the core's paleness.</summary>
         public const float SpanWidth = 1.6f, SpanHalo = 7f, SpanHaloAlpha = 0.3f, SpanPale = 0.2f;
 
@@ -187,26 +191,25 @@ public sealed class SootRun
     /// <summary>Whether there is anything to draw: soot out or on its way. Once home, nothing; the drone shows its own.</summary>
     public bool Shows => Busy && Count > 0;
 
-    /// <summary>The frame's glow at mote <paramref name="i"/>, its alpha before a flash (<see cref="Glow(SootSpots, int, double)"/>).</summary>
-    public float Glow(int i) => Glow(_spots!, i, _t);
+    /// <summary>The embers' glow <paramref name="s"/> px round the outline from its near corner now (<see cref="GlowAt"/>).</summary>
+    public float GlowAt(float s) => GlowAt(_spots!, s, _t);
 
     /// <summary>
-    /// The frame's glow at spot <paramref name="i"/> of <paramref name="spots"/> at <paramref name="t"/>: the base everywhere and
-    /// the runners' swells passing, so neighbours glow alike and the light runs round the whole frame.
+    /// The embers' glow <paramref name="s"/> px round <paramref name="spots"/>' outline, in its own order, at <paramref name="t"/>:
+    /// 0 on the dark frame, to 1 at an ember's middle. Each ember drifts on from its own start at its own pace.
     /// </summary>
-    public static float Glow(SootSpots spots, int i, double t)
+    public static float GlowAt(SootSpots spots, float s, double t)
     {
-        float p = spots.Perimeter, s = spots.Round(i), glow = Tune.GlowBase;
-        if (p <= 0) return glow;
-        foreach (var (pace, from) in Tune.Runners)
+        float p = spots.Perimeter, glow = 0;
+        if (p <= 0) return 0;
+        foreach (var (pace, from) in spots.EmbersOf())
         {
-            float at = (float)(((from * p + pace * t) % p + p) % p), d = MathF.Abs(s - at);
-            d = MathF.Min(d, p - d) / Tune.GlowWidth;
-            glow += Tune.GlowPeak * MathF.Exp(-d * d);
+            float at = (float)(((from + pace * t) % p + p) % p), d = MathF.Abs(s - at);
+            d = MathF.Min(d, p - d) / Tune.EmberWidth;
+            glow += Tune.EmberPeak * MathF.Exp(-d * d);
         }
-        return glow;
+        return MathF.Min(1, glow);
     }
-
     /// <summary>A span's breath at <paramref name="t"/>, from its own <paramref name="phase"/>, 0..1: each at its own pace.</summary>
     public static float Breathe(float phase, double t)
     {

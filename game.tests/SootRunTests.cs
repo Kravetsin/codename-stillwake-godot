@@ -130,38 +130,63 @@ public class SootRunTests
         Assert.All(Enumerable.Range(0, run.Count), j => Assert.Equal(1, run.Strength(j)));
     }
 
+    /// <summary>Glow sampled every px round the outline at <paramref name="t"/>.</summary>
+    private static float[] Sampled(SootSpots spots, double t) =>
+        [.. Enumerable.Range(0, (int)spots.Perimeter).Select(s => SootRun.GlowAt(spots, s, t))];
+
     [Fact]
-    public void TheWholeFrameGlowsNeverUnderItsBase()
+    public void TheFrameIsDarkBetweenItsEmbers()
+    {
+        // Played 2026-11-19: the frame dark, soft orange light drifting along it in spots; not a line lit all round.
+        foreach (var spots in new[] { Bag, Menu, Shape(1800, 1000) })
+            for (double t = 0; t < 30; t += 0.5)
+            {
+                var glow = Sampled(spots, t);
+                Assert.True(glow.Count(g => g < 0.05f) > glow.Length / 2, $"lit nearly all round at {t}");
+                Assert.True(glow.Max() > 0.6f, $"no ember bright at {t}");
+                Assert.All(glow, g => Assert.InRange(g, 0, 1 + 1e-4f));
+            }
+    }
+
+    [Fact]
+    public void ABiggerFrameHasMoreEmbers()
+    {
+        static int Embers(SootSpots spots)
+        {
+            var glow = Sampled(spots, 3);
+            int n = glow.Length, peaks = 0;
+            for (int s = 0; s < n; s++)
+                if (glow[s] > 0.3f && glow[s] >= glow[(s + n - 1) % n] && glow[s] > glow[(s + 1) % n]) peaks++;
+            return peaks;
+        }
+        int bag = Embers(Bag), board = Embers(Shape(1800, 1000));
+        Assert.True(bag >= 3, $"the bag had {bag}");
+        Assert.True(board > bag * 2, $"the board had {board}, the bag {bag}");
+    }
+
+    [Fact]
+    public void AnEmbersLightIsSoftNeverSteppingAlongTheFrame()
     {
         foreach (var spots in new[] { Bag, Menu })
-            for (double t = 0; t < 30; t += 0.07)
-                for (int i = 0; i < spots.Count; i++)
-                    Assert.InRange(SootRun.Glow(spots, i, t), SootRun.Tune.GlowBase - 1e-4f, SootRun.Tune.GlowBase + SootRun.Tune.GlowPeak * SootRun.Tune.Runners.Length);
+            for (double t = 0; t < 30; t += 0.25)
+            {
+                var glow = Sampled(spots, t);
+                for (int s = 0; s < glow.Length; s++)
+                    // An ember rises at most ~0.04 a px; two crossing add.
+                    Assert.True(MathF.Abs(glow[s] - glow[(s + 1) % glow.Length]) <= 0.08f, $"step at {s} px, {t} s");
+            }
     }
 
     [Fact]
-    public void NeighboursGlowAlikeSoTheFrameReadsAsOneLine()
+    public void TheEmbersDriftRoundTheFrame()
     {
-        // Sticks of their own brightness were seen in game: the glow changes smoothly round the frame, never stepping at a mote.
-        foreach (var spots in new[] { Bag, Menu, Shape(1800, 1000) })
-            for (double t = 0; t < 30; t += 0.07)
-                for (int i = 0; i < spots.Count; i++)
-                {
-                    int next = (i + 1) % spots.Count;
-                    float gap = MathF.Abs(spots.Round(next) - spots.Round(i)), apart = MathF.Min(gap, spots.Perimeter - gap);
-                    float step = MathF.Abs(SootRun.Glow(spots, i, t) - SootRun.Glow(spots, next, t));
-                    Assert.True(step <= 0.006f * apart, $"{i} at {t}: {step} over {apart} px");
-                }
+        int Brightest(double t) => Enumerable.Range(0, (int)Bag.Perimeter).MaxBy(s => SootRun.GlowAt(Bag, s, t));
+        var seen = Enumerable.Range(0, 40).Select(k => Brightest(k * 0.5) / 20).Distinct().Count();
+        Assert.True(seen > 10, $"the light stood in {seen} places only");
+        // Drifting, not jumping: half a second on, the brightest place has moved, but not far.
+        double moved = Enumerable.Range(0, 20).Select(k => SootRun.GlowAt(Bag, Brightest(k), k + 0.05)).Min();
+        Assert.True(moved > 0.5f, $"the light jumped: {moved}");
     }
-
-    [Fact]
-    public void TheEmbersLightRunsRoundTheFrame()
-    {
-        int Brightest(double t) => Enumerable.Range(0, Bag.Count).MaxBy(i => SootRun.Glow(Bag, i, t));
-        var seen = Enumerable.Range(0, 40).Select(k => Brightest(k * 0.5)).Distinct().Count();
-        Assert.True(seen > 10, $"the light stood on {seen} spots only");
-    }
-
     [Fact]
     public void NothingShowsOnceTheSootIsHome()
     {
