@@ -94,7 +94,7 @@ public sealed class DroneSwarm
         public const float Swirl = 2.25f, SwirlFull = 3.5f, Overshoot = 1.45f;
 
         /// <summary>A mote's flow: the share of it spent being drawn into the core, its sideways wander at most, its light mid-flow.</summary>
-        public const float Inflow = 0.4f, Wander = 0.55f, FlowGlow = 0.2f;
+        public const float Inflow = 0.4f, Wander = 0.55f, FlowGlow = 0.04f;
     }
 
     /// <summary>Each plate's phase, radians, and its share of the tumble's extra pace, as the pick's seeds drew them (drone.js).</summary>
