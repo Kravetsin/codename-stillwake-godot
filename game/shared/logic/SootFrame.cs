@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// Where the drone's soot sits round a drone window (drone-frame, the pick «Угли»'s <c>frameOf</c>): spots spread evenly along a
+/// Where the drone's soot sits round a drone window (drone-frame, the picks «Угли»'s <c>frameOf</c> and «Сеть по краю»): spots spread evenly along a
 /// closed rectilinear outline, one in each corner, the gap its length ÷ <see cref="SootRun.Tune.Share"/> held to
 /// <see cref="SootRun.Tune.GapMin"/>–<see cref="SootRun.Tune.GapMax"/> px, however many spots that takes. Screen px. Client only.
 /// </summary>
@@ -31,6 +31,8 @@ public static class SootFrame
         var xs = new List<float>();
         var ys = new List<float>();
         var along = new List<float>();
+        // Each spot's edge, its direction and piece, for its node's place off the outline.
+        var edges = new List<(float Dx, float Dy, float Piece, bool Corner)>();
         float at = 0;
         for (int k = 0; k < m; k++)
         {
@@ -45,10 +47,11 @@ public static class SootFrame
                 xs.Add(a.X + (b.X - a.X) * j / pieces);
                 ys.Add(a.Y + (b.Y - a.Y) * j / pieces);
                 along.Add(at + length * j / pieces);
+                edges.Add(((b.X - a.X) / length, (b.Y - a.Y) / length, length / pieces, j == 0));
             }
             at += length;
         }
-        return new SootSpots([.. xs], [.. ys], [.. along], corners, lengths, perimeter);
+        return new SootSpots([.. xs], [.. ys], [.. along], [.. edges], corners, lengths, perimeter);
     }
 
     /// <summary>The corner of <paramref name="outline"/> nearest <paramref name="drone"/>, screen px: where the soot reaches it first.</summary>
@@ -68,17 +71,19 @@ public static class SootFrame
 /// <summary>
 /// The spots round one outline (<see cref="SootFrame.Spots"/>), in order round it from the near corner, which is spot 0. Each spot
 /// is reached from the near corner the shorter way round: <see cref="Way"/> 1 the outline's own order, -1 back against it.
-/// Span j links spot j to the next. Positions are the outline's own coordinates.
+/// Each spot's mote lands as a node of a net (the pick «Сеть по краю»), a little off the outline (<see cref="Home"/>), and link j
+/// joins two nodes near each other (<see cref="Link"/>). Positions are the outline's own coordinates.
 /// </summary>
 public sealed class SootSpots
 {
-    internal readonly float[] Xs, Ys, Alongs, Phases;
-    internal readonly int[] Ranks, Leads;
+    internal readonly float[] Xs, Ys, Alongs, OffXs, OffYs, Heats, Sizes, Phase1s, Phase2s;
+    internal readonly int[] Ranks, Leads, LinkAs, LinkBs;
     internal readonly sbyte[] Ways;
     private readonly (float X, float Y)[] _corners;
     private readonly float[] _lengths;
 
-    internal SootSpots(float[] xs, float[] ys, float[] along, (float X, float Y)[] corners, float[] lengths, float perimeter)
+    internal SootSpots(float[] xs, float[] ys, float[] along, (float Dx, float Dy, float Piece, bool Corner)[] edges, (float X, float Y)[] corners,
+        float[] lengths, float perimeter)
     {
         (Xs, Ys, _corners, _lengths, Perimeter) = (xs, ys, corners, lengths, perimeter);
         int n = xs.Length;
@@ -100,11 +105,61 @@ public sealed class SootSpots
         }
         (MinX, MinY, MaxX, MaxY) = (float.MaxValue, float.MaxValue, float.MinValue, float.MinValue);
         foreach (var (x, y) in corners) (MinX, MinY, MaxX, MaxY) = (Math.Min(MinX, x), Math.Min(MinY, y), Math.Max(MaxX, x), Math.Max(MaxY, y));
-        // Each span's own phase, as the pick's seeds drew them.
-        Phases = new float[n];
+        // Each node's place off its spot, heat, size and phases, drawn from the outline so a frame keeps its net while it stands.
+        (OffXs, OffYs, Heats, Sizes, Phase1s, Phase2s) = (new float[n], new float[n], new float[n], new float[n], new float[n], new float[n]);
         var draw = new SootRng((uint)(n * 31 + (int)(MaxX - MinX)));
-        for (int j = 0; j < n; j++) Phases[j] = draw.Next();
+        for (int i = 0; i < n; i++)
+        {
+            var e = edges[i];
+            float alongBy = e.Corner ? 0 : (draw.Next() - 0.5f) * 2 * SootRun.Tune.NetScatter * e.Piece;
+            float across = (draw.Next() - 0.5f) * 2 * SootRun.Tune.NetSpread;
+            (OffXs[i], OffYs[i]) = (e.Dx * alongBy - e.Dy * across, e.Dy * alongBy + e.Dx * across);
+            Heats[i] = SootRun.Tune.NodeHeatLeast + SootRun.Tune.NodeHeatMore * draw.Next();
+            Sizes[i] = SootRun.Tune.NodeSizeLeast + draw.Next();
+            (Phase1s[i], Phase2s[i]) = (draw.Next(), draw.Next());
+        }
+        (LinkAs, LinkBs) = Net();
     }
+
+    /// <summary>Each node to its <see cref="SootRun.Tune.NetNearest"/> nearest within <see cref="SootRun.Tune.NetSearch"/>, each pair once, in a fixed order.</summary>
+    private (int[] A, int[] B) Net()
+    {
+        int n = Xs.Length;
+        var a = new List<int>();
+        var b = new List<int>();
+        var seen = new HashSet<long>();
+        var near = new List<(float Far, int J)>();
+        for (int i = 0; i < n; i++)
+        {
+            near.Clear();
+            var hi = Home(i);
+            for (int j = 0; j < n; j++)
+            {
+                if (j == i) continue;
+                var hj = Home(j);
+                float far = MathF.Sqrt((hi.X - hj.X) * (hi.X - hj.X) + (hi.Y - hj.Y) * (hi.Y - hj.Y));
+                if (far < SootRun.Tune.NetSearch) near.Add((far, j));
+            }
+            near.Sort((p, q) => p.Far != q.Far ? p.Far.CompareTo(q.Far) : p.J.CompareTo(q.J));
+            for (int k = 0; k < Math.Min(SootRun.Tune.NetNearest, near.Count); k++)
+            {
+                int lo = Math.Min(i, near[k].J), up = Math.Max(i, near[k].J);
+                if (!seen.Add((long)lo * n + up)) continue;
+                a.Add(lo);
+                b.Add(up);
+            }
+        }
+        return ([.. a], [.. b]);
+    }
+
+    /// <summary>Where spot <paramref name="i"/>'s node rests, off the outline by its own few px.</summary>
+    public (float X, float Y) Home(int i) => (Xs[i] + OffXs[i], Ys[i] + OffYs[i]);
+
+    /// <summary>How many links the net has.</summary>
+    public int Links => LinkAs.Length;
+
+    /// <summary>The two nodes link <paramref name="j"/> joins.</summary>
+    public (int A, int B) Link(int j) => (LinkAs[j], LinkBs[j]);
 
     /// <summary>How many spots there are.</summary>
     public int Count => Xs.Length;
@@ -139,29 +194,6 @@ public sealed class SootSpots
     /// <summary>Spot <paramref name="i"/>'s place in its way's order from the near corner: 0 the nearest.</summary>
     public int Rank(int i) => Ranks[i];
 
-    /// <summary>Span <paramref name="j"/>'s own phase, 0..1.</summary>
-    public float Phase(int j) => Phases[j];
-
-    private (float Pace, float From)[]? _embers;
-
-    /// <summary>
-    /// The embers drifting round this outline (<see cref="SootRun.GlowAt"/>): spread evenly with a little scatter, each its own
-    /// pace and way, drawn from the outline's size so a frame keeps its embers while it stands.
-    /// </summary>
-    internal (float Pace, float From)[] EmbersOf()
-    {
-        if (_embers != null) return _embers;
-        int n = Math.Max(SootRun.Tune.EmberLeast, (int)MathF.Round(Perimeter / SootRun.Tune.EmberEvery));
-        var draw = new SootRng((uint)(n * 977 + (int)Perimeter));
-        var embers = new (float Pace, float From)[n];
-        for (int k = 0; k < n; k++)
-        {
-            float pace = SootRun.Tune.EmberSlowest + (SootRun.Tune.EmberFastest - SootRun.Tune.EmberSlowest) * draw.Next();
-            float from = (k + 0.5f * draw.Next()) * Perimeter / n;
-            embers[k] = (draw.Next() < 0.5f ? -pace : pace, from);
-        }
-        return _embers = embers;
-    }
     /// <summary>The point <paramref name="s"/> round the outline from the near corner, in its own order.</summary>
     public (float X, float Y) PointAt(float s)
     {

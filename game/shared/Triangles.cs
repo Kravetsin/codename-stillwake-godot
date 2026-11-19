@@ -28,18 +28,18 @@ public sealed class Triangles(int points = 64, int indices = 96)
         Quad(at);
     }
 
-    /// <summary>A soft disc: <paramref name="middle"/>'s colour at its middle, fading to <paramref name="rim"/>'s at its edge.</summary>
-    public void Fan(Vector2 at, float radius, Color middle, Color rim)
+    /// <summary>A soft disc of <paramref name="sides"/>: <paramref name="middle"/>'s colour at its middle, fading to <paramref name="rim"/>'s at its edge.</summary>
+    public void Fan(Vector2 at, float radius, Color middle, Color rim, int sides = FanSides)
     {
-        Room(FanSides + 1, FanSides * 3);
+        Room(sides + 1, sides * 3);
         int centre = _pointCount;
         Point(at, middle);
-        for (int k = 0; k < FanSides; k++) Point(at + Vector2.FromAngle(Mathf.Tau * k / FanSides) * radius, rim);
-        for (int k = 0; k < FanSides; k++)
+        for (int k = 0; k < sides; k++) Point(at + Vector2.FromAngle(Mathf.Tau * k / sides) * radius, rim);
+        for (int k = 0; k < sides; k++)
         {
             _indices[_indexCount++] = centre;
             _indices[_indexCount++] = centre + 1 + k;
-            _indices[_indexCount++] = centre + 1 + (k + 1) % FanSides;
+            _indices[_indexCount++] = centre + 1 + (k + 1) % sides;
         }
     }
 

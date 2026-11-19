@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The soot flying to a window's outline and home, its spans and its crackle (drone-frame, the pick «Угли»).</summary>
+/// <summary>The soot flying to a window's outline and home, its net and its crackle (drone-frame, the picks «Угли» and «Сеть по краю»).</summary>
 public class SootRunTests
 {
     private const double Frame = 1 / 60.0;
@@ -29,8 +29,17 @@ public class SootRunTests
         }
     }
 
+    /// <summary>How far a landed node may drift from its home: its two swings together.</summary>
+    private static readonly float Drifts = SootRun.Tune.Drift * 1.29f + 1e-3f;
+
+    private static bool AtHome(SootRun run, SootSpots spots, (float X, float Y) at, int i)
+    {
+        var home = spots.Home(i);
+        return Apart(run.X(i), run.Y(i), at.X + home.X, at.Y + home.Y) <= Drifts;
+    }
+
     [Fact]
-    public void OpeningLandsEveryMoteAndLinksEverySpanWithin0_3s()
+    public void OpeningLandsEveryMoteAndLinksTheNetWithin0_3s()
     {
         var run = New();
         Run(run, 0.2, true, Bag, BagAt);
@@ -39,29 +48,56 @@ public class SootRunTests
         for (int i = 0; i < run.Count; i++)
         {
             Assert.True(run.Landed(i), $"mote {i} still flying");
-            var spot = Bag.Spot(i);
-            Assert.True(Apart(run.X(i), run.Y(i), BagAt.X + spot.X, BagAt.Y + spot.Y) <= 0.5f + 1e-3f, $"mote {i} off its spot");
-            Assert.True(run.Strength(i) > 0, $"span {i} not linked");
+            Assert.True(AtHome(run, Bag, BagAt, i), $"mote {i} off its node's home");
         }
+        Assert.Equal(Bag.Links, run.Links);
+        Assert.All(Enumerable.Range(0, run.Links), j => Assert.True(run.Strength(j) > 0, $"link {j} not linked"));
         Run(run, SootRun.Tune.LinkIn, true, Bag, BagAt);
-        Assert.All(Enumerable.Range(0, run.Count), j => Assert.Equal(1, run.Strength(j)));
+        Assert.All(Enumerable.Range(0, run.Links), j => Assert.Equal(1, run.Strength(j)));
     }
 
     [Fact]
-    public void ASpanLightsOnlyAfterBothEndsLand()
+    public void ALinkLightsOnlyAfterBothEndsLand()
     {
         var run = New();
         bool halfLanded = false;
         Run(run, 0.5, true, Bag, BagAt, () =>
         {
-            for (int j = 0; j < run.Count; j++)
+            for (int j = 0; j < run.Links; j++)
             {
-                bool both = run.Landed(j) && run.Landed((j + 1) % run.Count);
-                if (!both) Assert.Equal(0, run.Strength(j));
-                halfLanded |= run.Landed(j) != run.Landed((j + 1) % run.Count);
+                var (a, b) = Bag.Link(j);
+                if (!(run.Landed(a) && run.Landed(b))) Assert.Equal(0, run.LinkLook(j).Alpha);
+                halfLanded |= run.Landed(a) != run.Landed(b);
             }
         });
-        Assert.True(halfLanded, "no span ever had one end landed alone");
+        Assert.True(halfLanded, "no link ever had one end landed alone");
+    }
+
+    [Fact]
+    public void AMoteKindlesIntoItsNodeOnceLandedAndGoesOutOnAClose()
+    {
+        var run = New();
+        Run(run, 0.1, true, Bag, BagAt, () =>
+        {
+            for (int i = 0; i < run.Count; i++)
+                if (!run.Landed(i)) Assert.Equal(0, run.Kindled(i));
+        });
+        Run(run, 0.5, true, Bag, BagAt);
+        Assert.All(Enumerable.Range(0, run.Count), i => Assert.Equal(1, run.Kindled(i)));
+        Run(run, SootRun.Tune.Douse + Frame, false, Bag, BagAt);
+        Assert.All(Enumerable.Range(0, run.Count), i => Assert.Equal(0, run.Kindled(i)));
+    }
+
+    [Fact]
+    public void AShorterLinkIsHotterAndALongOneGone()
+    {
+        for (double t = 0; t < 10; t += 0.37)
+        {
+            var (near, mid, far) = (SootRun.Look(10, 0.3f, t), SootRun.Look(30, 0.3f, t), SootRun.Look(SootRun.Tune.LinkReach, 0.3f, t));
+            Assert.True(near.Heat > mid.Heat, "a short link no hotter");
+            Assert.True(near.Alpha > 0.3f && mid.Alpha > 0);
+            Assert.Equal(0, far.Alpha);
+        }
     }
 
     [Fact]
@@ -76,7 +112,7 @@ public class SootRunTests
         Assert.Equal(0, run.Out);
         // Home is the drone's orbits: a few world px round its core.
         for (int i = 0; i < run.Count; i++) Assert.True(Apart(run.X(i), run.Y(i), Drone.X, Drone.Y) < 4 * Zoom, $"mote {i} not home");
-        Assert.All(Enumerable.Range(0, run.Count), j => Assert.Equal(0, run.Strength(j)));
+        Assert.All(Enumerable.Range(0, run.Links), j => Assert.Equal(0, run.Strength(j)));
     }
 
     /// <summary>The most any mote moves in one frame of <paramref name="script"/>, counting only motes there both frames.</summary>
@@ -127,66 +163,9 @@ public class SootRunTests
         Assert.All(Enumerable.Range(0, run.Count), i => Assert.True(run.Landed(i)));
         Run(run, 0.1, false, Menu, MenuAt);
         Run(run, 1, true, Menu, MenuAt);
-        Assert.All(Enumerable.Range(0, run.Count), j => Assert.Equal(1, run.Strength(j)));
+        Assert.All(Enumerable.Range(0, run.Links), j => Assert.Equal(1, run.Strength(j)));
     }
 
-    /// <summary>Glow sampled every px round the outline at <paramref name="t"/>.</summary>
-    private static float[] Sampled(SootSpots spots, double t) =>
-        [.. Enumerable.Range(0, (int)spots.Perimeter).Select(s => SootRun.GlowAt(spots, s, t))];
-
-    [Fact]
-    public void TheFrameIsDarkBetweenItsEmbers()
-    {
-        // Played 2026-11-19: the frame dark, soft orange light drifting along it in spots; not a line lit all round.
-        foreach (var spots in new[] { Bag, Menu, Shape(1800, 1000) })
-            for (double t = 0; t < 30; t += 0.5)
-            {
-                var glow = Sampled(spots, t);
-                Assert.True(glow.Count(g => g < 0.05f) > glow.Length / 2, $"lit nearly all round at {t}");
-                Assert.True(glow.Max() > 0.6f, $"no ember bright at {t}");
-                Assert.All(glow, g => Assert.InRange(g, 0, 1 + 1e-4f));
-            }
-    }
-
-    [Fact]
-    public void ABiggerFrameHasMoreEmbers()
-    {
-        static int Embers(SootSpots spots)
-        {
-            var glow = Sampled(spots, 3);
-            int n = glow.Length, peaks = 0;
-            for (int s = 0; s < n; s++)
-                if (glow[s] > 0.3f && glow[s] >= glow[(s + n - 1) % n] && glow[s] > glow[(s + 1) % n]) peaks++;
-            return peaks;
-        }
-        int bag = Embers(Bag), board = Embers(Shape(1800, 1000));
-        Assert.True(bag >= 3, $"the bag had {bag}");
-        Assert.True(board > bag * 2, $"the board had {board}, the bag {bag}");
-    }
-
-    [Fact]
-    public void AnEmbersLightIsSoftNeverSteppingAlongTheFrame()
-    {
-        foreach (var spots in new[] { Bag, Menu })
-            for (double t = 0; t < 30; t += 0.25)
-            {
-                var glow = Sampled(spots, t);
-                for (int s = 0; s < glow.Length; s++)
-                    // An ember rises at most ~0.04 a px; two crossing add.
-                    Assert.True(MathF.Abs(glow[s] - glow[(s + 1) % glow.Length]) <= 0.08f, $"step at {s} px, {t} s");
-            }
-    }
-
-    [Fact]
-    public void TheEmbersDriftRoundTheFrame()
-    {
-        int Brightest(double t) => Enumerable.Range(0, (int)Bag.Perimeter).MaxBy(s => SootRun.GlowAt(Bag, s, t));
-        var seen = Enumerable.Range(0, 40).Select(k => Brightest(k * 0.5) / 20).Distinct().Count();
-        Assert.True(seen > 10, $"the light stood in {seen} places only");
-        // Drifting, not jumping: half a second on, the brightest place has moved, but not far.
-        double moved = Enumerable.Range(0, 20).Select(k => SootRun.GlowAt(Bag, Brightest(k), k + 0.05)).Min();
-        Assert.True(moved > 0.5f, $"the light jumped: {moved}");
-    }
     [Fact]
     public void NothingShowsOnceTheSootIsHome()
     {
@@ -217,7 +196,7 @@ public class SootRunTests
             {
                 Assert.True(open && run.Out >= 1, $"a crackle mid-run at {t:F2} s");
                 Assert.InRange(c.Age, 0, SootRun.Tune.CrackleLife);
-                Assert.InRange(c.Span, 0, run.Count - 1);
+                Assert.InRange(c.Span, 0, run.Links - 1);
                 if (last != (c.Span, c.Seed)) starts.Add(t);
                 last = (c.Span, c.Seed);
             }
@@ -265,11 +244,7 @@ public class SootRunTests
     {
         var run = New();
         run.Step(Frame, true, Bag, BagAt, null, Zoom);
-        for (int i = 0; i < run.Count; i++)
-        {
-            var spot = Bag.Spot(i);
-            Assert.True(Apart(run.X(i), run.Y(i), BagAt.X + spot.X, BagAt.Y + spot.Y) <= 0.5f + 1e-3f);
-        }
+        for (int i = 0; i < run.Count; i++) Assert.True(AtHome(run, Bag, BagAt, i));
         Assert.InRange(run.Alpha, 0, 0.2f);
         Run(run, 0.3, true, Bag, BagAt);
         Assert.Equal(1, run.Alpha);

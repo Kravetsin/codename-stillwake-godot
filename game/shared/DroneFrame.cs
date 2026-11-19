@@ -7,19 +7,16 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The drone's soot framing the open drone window (drone-frame, the pick «Угли»), one per client, over the windows: the motes
-/// flying from the drone to the outline the window handed <see cref="Ui.Soot"/> and home, the ember spans between them, the
-/// crackle and the faint film (<see cref="SootRun"/>). It tells the rest whether a drone window is out (<see cref="Ui.DroneWindow"/>),
+/// The drone's soot framing the open drone window (drone-frame, the picks «Угли» and «Сеть по краю»), one per client, over the
+/// windows: the motes flying from the drone to the outline the window handed <see cref="Ui.Soot"/> and home, kindling into the
+/// nodes of a glowing net along it, the crackle and the faint film (<see cref="SootRun"/>). It tells the rest whether a drone window is out (<see cref="Ui.DroneWindow"/>),
 /// so the drone goes bare. Screen px.
 /// </summary>
 public partial class DroneFrame : CanvasLayer
 {
-    private static readonly Color Ember = new(SootRun.Tune.Ember), EmberPale = Ember.Lerp(Colors.White, SootRun.Tune.SpanPale);
+    private static readonly Color Ember = new(SootRun.Tune.Warm), ArcColour = new(SootRun.Tune.Hot), ArcCore = ArcColour.Lerp(Colors.White, SootRun.Tune.ArcPale);
     private static readonly Color Light = new(HoloLook.Drone.Light), LightPale = Light.Lerp(Colors.White, SootRun.Tune.FilmPale);
-    private static readonly Color Rim = new("16171b"), SootDark = new("4c4f55"), SootLight = new("606369"), FrameDark = new(SootRun.Tune.Frame);
-
-    /// <summary>The embers' light is drawn in pieces at most this long, px, so it drifts smoothly along a span.</summary>
-    private const float LightPiece = 4;
+    private static readonly Color Rim = new("16171b"), SootDark = new("4c4f55"), SootLight = new("606369");
 
     private readonly Ui _ui;
     private readonly SootRun _run = new(window: true, new Random());
@@ -97,6 +94,7 @@ public partial class DroneFrame : CanvasLayer
         _spots = SootFrame.Spots(_shape, near);
     }
 
+    /// <summary>The film, the net's links and its kindled nodes over them, and the crackle, all added.</summary>
     private void DrawLight()
     {
         _lit.Clear();
@@ -104,48 +102,52 @@ public partial class DroneFrame : CanvasLayer
         {
             Film();
             float alpha = _run.Alpha;
-            for (int j = 0; j < _run.Count; j++)
+            for (int j = 0; j < _run.Links; j++)
             {
-                float strength = _run.Strength(j);
-                if (strength <= 0) continue;
-                int next = (j + 1) % _run.Count;
-                // The embers' light along the span, in pieces a few px long so it drifts smoothly between the motes.
-                float flash = SootRun.Tune.BreathFlash * _run.Flash(j), lit = alpha * strength;
-                Vector2 a = new(_run.X(j), _run.Y(j)), b = new(_run.X(next), _run.Y(next));
-                float sa = _spots.Round(j), sb = next == 0 ? _spots.Perimeter : _spots.Round(next);
-                int pieces = Math.Max(1, (int)MathF.Ceiling(a.DistanceTo(b) / LightPiece));
-                float before = lit * Math.Min(1, _run.GlowAt(sa) + flash);
-                for (int k = 1; k <= pieces; k++)
-                {
-                    float u = k / (float)pieces, after = lit * Math.Min(1, _run.GlowAt(sa + (sb - sa) * u) + flash);
-                    Span(a.Lerp(b, (k - 1) / (float)pieces), a.Lerp(b, u), SootRun.Tune.SpanWidth, SootRun.Tune.SpanHalo, before, after);
-                    before = after;
-                }
+                var (a, b) = _spots.Link(j);
+                var (lit, heat) = _run.LinkLook(j);
+                NetLook.Line(_lit, At(a), At(b), alpha * lit, heat);
             }
-            if (_run.Crackle is { } crackle && crackle.Span < _run.Count)
+            for (int i = 0; i < _run.Count; i++)
+                NetLook.Node(_lit, At(i), _run.NodeRadius(i), alpha * SootRun.Tune.NodeAlpha * _run.Kindled(i), _run.NodeHeat(i));
+            if (_run.Crackle is { } crackle && OnLink(crackle.Span, crackle.Seed) is int link)
             {
-                int next = (crackle.Span + 1) % _run.Count;
-                Vector2 from = new(_run.X(crackle.Span), _run.Y(crackle.Span)), to = new(_run.X(next), _run.Y(next));
-                float a = SootRun.ArcAlpha(crackle.Seed, crackle.Age, _run.Time);
+                var (ia, ib) = _spots.Link(link);
+                Vector2 from = At(ia), to = At(ib);
+                float a = SootRun.ArcAlpha(crackle.Seed, crackle.Age, _run.Time) * SootRun.Tune.ArcAlpha;
                 SootRun.Jag(from.X, from.Y, to.X, to.Y, crackle.Seed, _run.Time, SootRun.Tune.ArcAmp, SootRun.Tune.ArcBow, _jag);
                 for (int k = 0; k + 1 < _jag.Length; k++)
-                    Span(new Vector2(_jag[k].X, _jag[k].Y), new Vector2(_jag[k + 1].X, _jag[k + 1].Y), SootRun.Tune.ArcCore, SootRun.Tune.ArcHalo, SootRun.Tune.ArcAlpha * a);
+                {
+                    Vector2 p = new(_jag[k].X, _jag[k].Y), q = new(_jag[k + 1].X, _jag[k + 1].Y);
+                    _lit.Quad(p, q, SootRun.Tune.ArcHalo, new Color(ArcColour, SootRun.Tune.ArcHaloAlpha * a));
+                    _lit.Quad(p, q, SootRun.Tune.ArcCore, new Color(ArcCore, a));
+                }
                 foreach (var end in (ReadOnlySpan<Vector2>)[from, to])
-                    _lit.Fan(end, SootRun.Tune.ArcEnd, new Color(Ember, SootRun.Tune.ArcEndAlpha * a), new Color(Ember, 0));
+                    _lit.Fan(end, SootRun.Tune.ArcEnd, new Color(ArcColour, SootRun.Tune.ArcEndAlpha * a), new Color(ArcColour, 0));
             }
         }
         _lit.Flush(_light.GetCanvasItem());
     }
 
-    /// <summary>One ember span or a piece of a crackle, <paramref name="alpha"/> strong: its soft halo and its pale core.</summary>
-    private void Span(Vector2 from, Vector2 to, float width, float halo, float alpha) => Span(from, to, width, halo, alpha, alpha);
+    private Vector2 At(int i) => new(_run.X(i), _run.Y(i));
 
-    /// <summary>A span lit <paramref name="atFrom"/> at one end and <paramref name="atTo"/> at the other.</summary>
-    private void Span(Vector2 from, Vector2 to, float width, float halo, float atFrom, float atTo)
+    private (int Seed, int Link)? _crackleOn;
+
+    /// <summary>
+    /// The link a crackle drawn at <paramref name="from"/> runs on: the first from there bright enough to carry one, held for the
+    /// crackle's life; none if no link is.
+    /// </summary>
+    private int? OnLink(int from, int seed)
     {
-        if (atFrom <= 0.004f && atTo <= 0.004f) return;
-        _lit.Quad(from, to, halo, new Color(Ember, SootRun.Tune.SpanHaloAlpha * atFrom), new Color(Ember, SootRun.Tune.SpanHaloAlpha * atTo));
-        _lit.Quad(from, to, width, new Color(EmberPale, atFrom), new Color(EmberPale, atTo));
+        if (_crackleOn is { } on && on.Seed == seed) return on.Link < 0 ? null : on.Link;
+        int found = -1;
+        for (int k = 0; k < _run.Links && found < 0; k++)
+        {
+            int j = (from + k) % _run.Links;
+            if (_run.LinkLook(j).Alpha > SootRun.Tune.ArcOn) found = j;
+        }
+        _crackleOn = (seed, found);
+        return found < 0 ? null : found;
     }
 
     /// <summary>
@@ -169,7 +171,9 @@ public partial class DroneFrame : CanvasLayer
                 whole = false;
                 continue;
             }
-            var at = new Vector2(_run.X(i), _run.Y(i));
+            // On the outline itself, not the nodes off it: the film is the window's shape.
+            var spot = spots.Spot(i);
+            var at = new Vector2(_at.X + spot.X, _at.Y + spot.Y);
             float u = across > 0 ? Math.Clamp(((at.X - ox) * gx + (at.Y - oy) * gy) / across, 0, 1) : 0;
             var colour = u < SootRun.Tune.FilmMid
                 ? (LightPale with { A = SootRun.Tune.FilmTop * film }).Lerp(Light with { A = SootRun.Tune.FilmMid * film }, u / SootRun.Tune.FilmMid)
@@ -189,25 +193,18 @@ public partial class DroneFrame : CanvasLayer
         if (cut.Length > 0) _lit.Polygon(CollectionsMarshal.AsSpan(_filmPoints), CollectionsMarshal.AsSpan(_filmColours), cut);
     }
 
-    /// <summary>The motes: each its tone, a dark rim round it while it flies.</summary>
+    /// <summary>The motes in flight: dark soot, each its tone in a dark rim, fading as it kindles into its node.</summary>
     private void DrawMotes()
     {
         _soot.Clear();
         float alpha = _run.Alpha;
-        // The dark frame first, between linked motes: what the embers' light drifts along.
-        for (int j = 0; _run.Shows && j < _run.Count; j++)
-        {
-            float strength = _run.Strength(j);
-            if (strength <= 0) continue;
-            int next = (j + 1) % _run.Count;
-            _soot.Quad(new Vector2(_run.X(j), _run.Y(j)), new Vector2(_run.X(next), _run.Y(next)), SootRun.Tune.FrameWidth, FrameDark with { A = FrameDark.A * strength * alpha });
-        }
         for (int i = 0; _run.Shows && i < _run.Count; i++)
         {
+            float dark = alpha * (1 - _run.Kindled(i));
+            if (dark <= 0.02f) continue;
             float side = _run.Size(i), x = _run.X(i) - side / 2, y = _run.Y(i) - side / 2, rim = SootRun.Tune.MoteRim / 2;
-            // Landed, a mote is a bead on the line: no dark rim to break it.
-            if (!_run.Landed(i)) _soot.Rect(x - rim, y - rim, side + 2 * rim, side + 2 * rim, Rim with { A = alpha });
-            _soot.Rect(x, y, side, side, (_run.Dark(i) ? SootDark : SootLight) with { A = alpha });
+            _soot.Rect(x - rim, y - rim, side + 2 * rim, side + 2 * rim, Rim with { A = dark });
+            _soot.Rect(x, y, side, side, (_run.Dark(i) ? SootDark : SootLight) with { A = dark });
         }
         _soot.Flush(_motes.GetCanvasItem());
     }

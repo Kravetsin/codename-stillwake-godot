@@ -24,9 +24,6 @@ public partial class LightDrone : Node2D
     /// <summary>A glowing plate's halo, its radius and its alpha at the middle.</summary>
     private const float HaloRadius = 1.75f, HaloAlpha = 0.45f;
 
-    /// <summary>The arcs' own phases, the pick's: to each plate, and round each orbit of the ring.</summary>
-    private const float ArcPhase = 0.23f, ArcPhaseFrom = 0.05f, RingPhase = 0.053f, RingPhaseFrom = 0.1f;
-
     /// <summary>The lens's added haze: its radius in world px, its alpha at the glass, its rings (the pick's 14 px, scaled 0.82).</summary>
     private const float LensHaze = 1.9f, LensHazeAlpha = 0.28f;
     private const int LensHazeRings = 10;
@@ -45,7 +42,7 @@ public partial class LightDrone : Node2D
     private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f), Ember = new(1f, 138 / 255f, 58 / 255f);
     /// <summary>Its lens's colour shining and scanning, the mode wheel's too.</summary>
     internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
-    private static readonly Color Holo = new(DroneSign.Tint), Embers = new(SootRun.Tune.Ember), EmbersPale = Embers.Lerp(Colors.White, SootRun.Tune.SpanPale);
+    private static readonly Color Holo = new(DroneSign.Tint), ArcColour = new(SootRun.Tune.Hot), ArcCore = ArcColour.Lerp(Colors.White, SootRun.Tune.ArcPale);
 
     private static Texture2D? _core, _plates;
     private readonly DroneFloat _float = new();
@@ -194,28 +191,35 @@ public partial class LightDrone : Node2D
     }
 
     /// <summary>
-    /// The pick «Угли»'s charge on the drone (its <c>droneLinks</c>): an ember arc from the core to each plate at all times, each
-    /// breathing at its own pace; while bare, the ring's motes linked round each orbit; and the crackle on one arc now and then.
+    /// The drone's own net, drawn as the window's (<see cref="NetLook"/>, the pick «Сеть по краю»'s <c>droneLinks</c>): a line from
+    /// the core to each plate at all times; while bare, the ring's motes linked round each orbit, each a node, the links breathing;
+    /// and the crackle on one plate's line now and then.
     /// </summary>
     private void DrawSpans()
     {
         _arcs.Clear();
-        double t = _timeMs / 1000;
+        float t = (float)(_timeMs / 1000);
         for (int i = 0; i < _placed.Length; i++)
         {
             var (from, to) = Arc(i);
-            Span(from, to, SootRun.Breathe(i * ArcPhase + ArcPhaseFrom, t));
+            NetLook.Line(_arcs, from, to, SootRun.Tune.DronePlateAlpha, SootRun.Tune.DronePlateHeat, SootRun.Tune.DroneLine);
         }
         if (_swarm.Bare)
+        {
+            int j = _placed.Length;
             for (int orbit = 0; orbit < DroneSwarm.Ring.Count; orbit++)
             {
                 var ring = DroneSwarm.Ring[orbit];
-                for (int k = 0; k < ring.Count; k++)
+                for (int k = 0; k < ring.Count; k++, j++)
                 {
                     Mote a = _motes[ring[k]], b = _motes[ring[(k + 1) % ring.Count]];
-                    Span(new Vector2(a.X, a.Y), new Vector2(b.X, b.Y), SootRun.Breathe((orbit * ring.Count + k) * RingPhase + RingPhaseFrom, t));
+                    float w = MathF.Sin(t * SootRun.Tune.DroneRingPace + j * SootRun.Tune.DroneRingStep);
+                    NetLook.Line(_arcs, new Vector2(a.X, a.Y), new Vector2(b.X, b.Y), SootRun.Tune.DroneRingAlpha + SootRun.Tune.DroneRingAlphaSwing * w,
+                        SootRun.Tune.DroneRingHeat + SootRun.Tune.DroneRingHeatSwing * w, SootRun.Tune.DroneLine);
+                    NetLook.Node(_arcs, new Vector2(a.X, a.Y), SootRun.Tune.DroneNodeRadius * SootRun.Tune.DronePx, SootRun.Tune.DroneNodeAlpha, SootRun.Tune.DroneNodeHeat);
                 }
             }
+        }
         if (_run.Crackle is { } crackle && crackle.Span < _placed.Length)
         {
             var (from, to) = Arc(crackle.Span);
@@ -224,11 +228,11 @@ public partial class LightDrone : Node2D
             for (int k = 0; k + 1 < _jag.Length; k++)
             {
                 Vector2 a = new(_jag[k].X, _jag[k].Y), b = new(_jag[k + 1].X, _jag[k + 1].Y);
-                _arcs.Quad(a, b, SootRun.Tune.DroneArcHalo, new Color(Embers, SootRun.Tune.SpanHaloAlpha * core));
-                _arcs.Quad(a, b, SootRun.Tune.DroneArcCore, new Color(EmbersPale, core));
+                _arcs.Quad(a, b, SootRun.Tune.DroneArcHalo, new Color(ArcColour, SootRun.Tune.ArcHaloAlpha * core));
+                _arcs.Quad(a, b, SootRun.Tune.DroneArcCore, new Color(ArcCore, core));
             }
             foreach (var end in (ReadOnlySpan<Vector2>)[from, to])
-                _arcs.Fan(end, SootRun.Tune.DroneArcEnd, new Color(Embers, SootRun.Tune.ArcEndAlpha * alpha), new Color(Embers, 0));
+                _arcs.Fan(end, SootRun.Tune.DroneArcEnd, new Color(ArcColour, SootRun.Tune.ArcEndAlpha * alpha), new Color(ArcColour, 0));
         }
         _arcs.Flush(_spans.GetCanvasItem());
     }
@@ -239,13 +243,6 @@ public partial class LightDrone : Node2D
         var to = new Vector2(_placed[i].X, _placed[i].Y);
         float far = to.Length();
         return (far > SootRun.Tune.DroneArcFrom ? to / far * SootRun.Tune.DroneArcFrom : Vector2.Zero, to);
-    }
-
-    /// <summary>One ember span, <paramref name="alpha"/> strong: its soft halo and its pale core, added.</summary>
-    private void Span(Vector2 from, Vector2 to, float alpha)
-    {
-        _arcs.Quad(from, to, SootRun.Tune.DroneHalo, new Color(Embers, SootRun.Tune.SpanHaloAlpha * alpha));
-        _arcs.Quad(from, to, SootRun.Tune.DroneSpan, new Color(EmbersPale, alpha));
     }
 
     /// <summary>The lens's haze, a glowing plate's halo, the field's light on the soot and the embers' red heat, all added.</summary>

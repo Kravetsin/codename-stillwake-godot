@@ -68,6 +68,57 @@ public class SootFrameTests
         Assert.Equal(spots.Perimeter / 2, Enumerable.Range(0, spots.Count).Max(spots.Along), 2);
     }
 
+    /// <summary>How far <paramref name="p"/> is from the rectangle's outline at nought, <paramref name="w"/> by <paramref name="h"/>.</summary>
+    private static float OffOutline((float X, float Y) p, float w, float h)
+    {
+        float dx = MathF.Max(MathF.Max(-p.X, p.X - w), 0), dy = MathF.Max(MathF.Max(-p.Y, p.Y - h), 0);
+        if (dx > 0 || dy > 0) return MathF.Sqrt(dx * dx + dy * dy);
+        return MathF.Min(MathF.Min(p.X, w - p.X), MathF.Min(p.Y, h - p.Y));
+    }
+
+    [Fact]
+    public void EachNodeRestsInABandAlongTheOutline()
+    {
+        foreach (var (w, h) in Sizes)
+        {
+            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
+            for (int i = 0; i < spots.Count; i++)
+                Assert.True(OffOutline(spots.Home(i), w, h) <= SootRun.Tune.NetSpread + 1e-3f, $"{w}×{h}: node {i} off the band");
+        }
+    }
+
+    [Fact]
+    public void EveryNodeIsLinkedOnceToEachNeighbourNearBy()
+    {
+        foreach (var (w, h) in Sizes)
+        {
+            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
+            var links = Enumerable.Range(0, spots.Links).Select(spots.Link).ToArray();
+            Assert.Equal(links.Length, links.Distinct().Count());
+            Assert.All(links, l => Assert.True(l.A < l.B));
+            Assert.All(links, l => Assert.True(Apart(spots.Home(l.A), spots.Home(l.B)) < SootRun.Tune.NetSearch));
+            for (int i = 0; i < spots.Count; i++) Assert.Contains(links, l => l.A == i || l.B == i);
+        }
+    }
+
+    [Fact]
+    public void TheNetLiesFlatAlongTheOutline()
+    {
+        // Picked 2026-11-19, trimmed for fewer steep lines: 9 in 10 links run within 30° of their edge (the pick's own net, 78 %).
+        foreach (var (w, h) in Sizes.Take(3))
+        {
+            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
+            int flat = 0;
+            for (int j = 0; j < spots.Links; j++)
+            {
+                var (a, b) = (spots.Home(spots.Link(j).A), spots.Home(spots.Link(j).B));
+                float dx = MathF.Abs(a.X - b.X), dy = MathF.Abs(a.Y - b.Y);
+                if (MathF.Min(dx, dy) <= MathF.Tan(MathF.PI / 6) * MathF.Max(dx, dy)) flat++;
+            }
+            Assert.True(flat >= 0.9f * spots.Links, $"{w}×{h}: only {flat} of {spots.Links} links lie flat");
+        }
+    }
+
     [Fact]
     public void ABigBoardTakesMoreThan170Spots()
     {
