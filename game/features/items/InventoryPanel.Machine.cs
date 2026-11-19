@@ -243,8 +243,8 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The hologram windows trailing the hero (the motion «Отставание»): the paired bag's and the open machine's, by the hero's
-    /// velocity on the screen; calmed while the pointer is in one or a stack is carried. The wrist, hotbar and equipment never move.
+    /// The open machine's hologram window trailing the hero (the motion «Отставание»), by the hero's velocity on the screen; calmed
+    /// while the pointer is in one or a stack is carried. The bag, the wrist, the hotbar and the equipment never move.
     /// </summary>
     private void Sway(double delta, bool carrying)
     {
@@ -262,7 +262,6 @@ public partial class InventoryPanel
         _ui.HoloSway = _sway.Offset;
         var offset = new Vector2(_sway.Offset.X, _sway.Offset.Y);
         _frame?.Sway(offset);
-        (_inventory as HoloWindow)?.Sway(offset);
     }
 
     /// <summary>

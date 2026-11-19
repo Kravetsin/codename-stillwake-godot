@@ -178,21 +178,7 @@ public partial class MachineHolo : Node2D
     }
 
     /// <summary>The whole frame, each edge buzzing on its own, at <paramref name="alpha"/>.</summary>
-    private void Buzz(float alpha)
-    {
-        var r = _frame;
-        (float X, float Y) tl = (r.X, r.Y), tr = (r.Right, r.Y), br = (r.Right, r.Bottom), bl = (r.X, r.Bottom);
-        Edge(tr, tl, 0);
-        Edge(tl, bl, 1);
-        Edge(bl, br, 2);
-        Edge(br, tr, 3);
-
-        void Edge((float X, float Y) a, (float X, float Y) b, int i)
-        {
-            float buzz = HoloLook.BuzzLow + HoloLook.BuzzDepth * (float)(0.5 + 0.5 * Math.Sin(_now * 31 + i * 2.1) * Math.Sin(_now * 13.7 + i));
-            Line(V(a), V(b), alpha * buzz);
-        }
-    }
+    private void Buzz(float alpha) => HoloFrame.Buzz(_lit, _frame, _light, _now, alpha);
 
     /// <summary>A pen's path as the frame's line: its soft glow and its pale core.</summary>
     private void Stroke(List<(float X, float Y)> path, float alpha)
@@ -205,11 +191,6 @@ public partial class MachineHolo : Node2D
         _lit.DrawPolyline(points, Pale(HoloLook.FramePale) with { A = HoloLook.FrameCoreAlpha * alpha }, HoloLook.FrameCore, true);
     }
 
-    private void Line(Vector2 a, Vector2 b, float alpha)
-    {
-        _lit.DrawLine(a, b, _light with { A = HoloLook.FrameGlowAlpha * alpha }, HoloLook.FrameGlow, true);
-        _lit.DrawLine(a, b, Pale(HoloLook.FramePale) with { A = HoloLook.FrameCoreAlpha * alpha }, HoloLook.FrameCore, true);
-    }
 
     /// <summary>A thin beam from <paramref name="from"/> to <paramref name="to"/>: a faint glow and a pale core.</summary>
     private void Beam(Vector2 from, Vector2 to, float alpha)
