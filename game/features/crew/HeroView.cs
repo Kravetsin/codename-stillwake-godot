@@ -592,6 +592,8 @@ public partial class HeroView : Node2D
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
         bool holdsPlan = HoldsPlan && !passedOut;
+        // A drone window open, friends see the drone draw the sheet in front of its face (drone-holo).
+        bool sheetOut = (HoldsPlan || _ui.DroneWindow.Open) && !passedOut;
         _clockMs += elapsedMs;
         _beamLeftMs = Math.Max(0, _beamLeftMs - elapsedMs);
         _sendTo = client;
@@ -631,7 +633,6 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(m.Players.HasDrone(client.Id), _droneMode);
-        // A drone window out, the drone is bare: its soot frames the window (drone-frame).
         _figure.DroneWindow = _ui.DroneWindow;
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
@@ -661,7 +662,7 @@ public partial class HeroView : Node2D
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode)), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, sheetOut, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode)), _steps * Hero.StepMs);
         ShowPings(m);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();

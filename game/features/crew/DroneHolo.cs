@@ -73,7 +73,7 @@ public partial class DroneHolo : Node2D
     }
 
     /// <summary>The edge keys' hologram shader, unlit here in the world as the drone is: the same code with <c>unshaded</c> added.</summary>
-    private static ShaderMaterial Holo(bool grey)
+    internal static ShaderMaterial Holo(bool grey)
     {
         if (_shader == null)
         {

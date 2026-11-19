@@ -430,7 +430,6 @@ public partial class Main : Node2D, ITogether
             handbook.Close();
         });
         // The drone's soot framing the open drone window, under the edge's keys (drone-frame).
-        AddChild(new DroneFrame(_hands.Ui));
         // The tablet's top edge along the foot: every tablet rises from it, and its keys float over the one that is up, only those that can be used now.
         Func<bool> inWorld = () => _session != null && _hero != null;
         var edge = _edge = new TabletEdge(_hands.Ui, inWorld);
