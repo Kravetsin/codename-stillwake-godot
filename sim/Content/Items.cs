@@ -260,6 +260,8 @@ public static class Items
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // The drone a hero pairs with once, by a right click in hand (drone-companion): worn nowhere, the item gone as it pairs.
         new("lightDrone", 1, Gear: true, Group: ItemGroup.Tool),
+        // The core the drone is crafted from, in every hero's kit (drone-companion): kept through a death, sold to no one.
+        new("dormantCore", 1, Gear: true, Group: ItemGroup.Tool),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
@@ -314,8 +316,11 @@ public static class Inventory
     /// <summary>How far a stash reaches, in cells from the hero's cell to a crate's nearest, through walls (2026-11-06-quick-stash).</summary>
     public const int StashReach = 12;
 
-    /// <summary>What every hero comes aboard with, into its first slots (0107): the screwdriver that builds. Cables and pipes are laid from the plan (plan modes).</summary>
-    public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
+    /// <summary>
+    /// What every hero comes aboard with, into its first slots (0107): the screwdriver that builds, and the dormant core its drone is
+    /// crafted from (drone-companion). Cables and pipes are laid from the plan (plan modes).
+    /// </summary>
+    public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1), (LightDrone.Core, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
     public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Cape.Slot];

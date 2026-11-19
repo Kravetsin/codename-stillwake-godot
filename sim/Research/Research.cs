@@ -78,12 +78,15 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     /// <summary>The id of every blueprint, then every craft, then every upgrade: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
     public static readonly IReadOnlyList<string> Ids = [.. Every.Select(e => e.Id), .. Content.Upgrades.All.Select(u => u.Id)];
 
-    /// <summary>What the rule walks: every blueprint and craft in <see cref="Every"/>'s order, but what only the market opens. Upgrades are no recipes.</summary>
+    /// <summary>
+    /// What the rule walks: every blueprint and craft in <see cref="Every"/>'s order, but what only the market opens. Upgrades are no recipes.
+    /// A part every hero comes aboard with (<see cref="Content.Inventory.Kit"/>, the drone's core) waits for nothing.
+    /// </summary>
     internal static readonly Walkable[] Walked =
     [
         .. Every.Where(e => Content.Research.Node(e.Id) is not { Tab: Content.Research.Market }).Select(e => new Walkable(
             e.Id,
-            [.. e.Cost.Select(c => c.Item)],
+            [.. e.Cost.Select(c => c.Item).Where(item => !Content.Inventory.Kit.Any(k => k.Item == item))],
             e.Placement != null ? null : [.. Content.Stations.All.Where(s => s.Rows.Any(r => r.Contains(e.Id))).Select(s => s.Machine)])),
     ];
 

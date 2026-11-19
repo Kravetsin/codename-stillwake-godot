@@ -419,7 +419,7 @@ public class MigrationsTests
             """;
         const int Bench = 1;
         var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
-            .GiveItems(0, (Content.LightDrone.Item, 2), ("scrap", 20));
+            .GiveItems(0, (Content.LightDrone.Item, 2), (Content.LightDrone.Core, 2), ("scrapChunk", 2 * Content.LightDrone.Armour));
         w.M.Knowledge.Grant(Content.LightDrone.Item);
         w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
         w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run(Content.Crafts.Get(Content.LightDrone.Item).Ticks * 1000 / Content.Stations.Get("lifepod").Speed + 1);
@@ -458,7 +458,7 @@ public class MigrationsTests
             """;
         const int Bench = 1;
         var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
-            .GiveItems(0, (Content.LightDrone.Item, 3), ("scrap", 10));
+            .GiveItems(0, (Content.LightDrone.Item, 3), (Content.LightDrone.Core, 1), ("scrapChunk", Content.LightDrone.Armour));
         w.M.Knowledge.Grant(Content.LightDrone.Item);
         w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
         w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run(Content.Crafts.Get(Content.LightDrone.Item).Ticks * 1000 / Content.Stations.Get("lifepod").Speed + 1);

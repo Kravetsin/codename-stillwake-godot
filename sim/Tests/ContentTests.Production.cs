@@ -285,7 +285,8 @@ public partial class ContentTests
     [Fact]
     public void EveryItemACostNamesIsCaughtSmeltedOrCrafted()
     {
-        var had = new HashSet<string>(StringComparer.Ordinal);
+        // What every hero comes aboard with, the drone's core among it, besides.
+        var had = new HashSet<string>(Inventory.Kit.Select(k => k.Item), StringComparer.Ordinal);
         // Every zone's: rock, which soil costs, is broken out of the band's asteroids, not the ship's stream.
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds))
         {
@@ -352,7 +353,8 @@ public partial class ContentTests
     /// <summary>The walk of <see cref="Reachable(IReadOnlyList{Station}, bool, string[])"/>; without <paramref name="bought"/>, nothing the market sells is had.</summary>
     private static (HashSet<string> Items, HashSet<string> Known) Walk(IReadOnlyList<Station> stations, bool planet, bool bought, string[] never)
     {
-        var had = new HashSet<string>(WrecksOwn, StringComparer.Ordinal);
+        // And what every hero comes aboard with: the screwdriver, the drone's core.
+        var had = new HashSet<string>(WrecksOwn.Concat(Inventory.Kit.Select(k => k.Item)), StringComparer.Ordinal);
         if (planet)
         {
             var hunted = PlanetTypes.All.SelectMany(t => t.Creatures).SelectMany(h => Content.Creatures.Get(h.Species).Yields).Select(y => (y.Item, 0));
@@ -453,7 +455,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "iceBlock", "contrabandCrate", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "heatedHelmet", "heatHelmet", "regenSuit", "heatSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "iceBlock", "contrabandCrate", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "dormantCore", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "heatedHelmet", "heatHelmet", "regenSuit", "heatSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]

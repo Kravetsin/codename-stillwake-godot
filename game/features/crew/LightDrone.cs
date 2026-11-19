@@ -42,6 +42,8 @@ public partial class LightDrone : Node2D
     private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f), Ember = new(1f, 138 / 255f, 58 / 255f);
     /// <summary>Its lens's colour shining and scanning, the mode wheel's too.</summary>
     internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
+    /// <summary>Its lens with no mode open yet: a dull ember of the lamp's colour.</summary>
+    private static readonly Color Dark = Lamp.Darkened(0.7f);
     private static readonly Color Holo = new(DroneSign.Tint), ArcColour = new(SootRun.Tune.Hot), ArcCore = ArcColour.Lerp(Colors.White, SootRun.Tune.ArcPale);
 
     private static Texture2D? _core, _plates;
@@ -108,11 +110,14 @@ public partial class LightDrone : Node2D
     /// <summary>Whether it scans rather than shines: the scanner worn, not the drone.</summary>
     public bool Scanning { get; set; }
 
+    /// <summary>Whether it neither shines nor scans: no mode of its open yet, its lens dull.</summary>
+    public bool Idle { get; set; }
+
     /// <summary>Whether it projects a drone window over itself (drone-holo): its mode off, its lens the hologram's, its plates fanned to it.</summary>
     public bool Projecting { get; set; }
 
     /// <summary>Its lens's colour: the hologram's projecting, else its mode's.</summary>
-    private Color LensColour => Projecting ? Holo : Scanning ? Scan : Lamp;
+    private Color LensColour => Projecting ? Holo : Scanning ? Scan : Idle ? Dark : Lamp;
 
     /// <summary>
     /// Whether a drone window is <paramref name="open"/> or its soot still out by <paramref name="soot"/>, 0..1 (drone-frame): either
@@ -143,7 +148,7 @@ public partial class LightDrone : Node2D
     }
 
     /// <summary>The field's colour: the hologram's while the plates fan to a sign, else the lens's.</summary>
-    private Color Field => _swarm.Shape == SwarmShape.Sign ? Holo : Scanning ? Scan : Lamp;
+    private Color Field => _swarm.Shape == SwarmShape.Sign ? Holo : Scanning ? Scan : Idle ? Dark : Lamp;
 
     /// <summary>In the pick's order: soot behind, plates behind, the core and its lens, soot before, plates before.</summary>
     public override void _Draw()

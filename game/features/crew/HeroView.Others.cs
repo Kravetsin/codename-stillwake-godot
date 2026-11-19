@@ -95,7 +95,8 @@ public partial class HeroView
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion).
-            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(m.Players.HasDrone(id), seen.Drone, _knows);
+            shown.Figure.Paired = m.Players.HasDrone(id);
+            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
             shown.Figure.DroneWindow = (seen.Projects, 0);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);

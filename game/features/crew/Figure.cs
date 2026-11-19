@@ -720,6 +720,19 @@ public partial class Figure : Node2D
     }
     private string _capePicture = Stillwake.Content.Cape.Item;
 
+    /// <summary>Whether the hero is paired with the drone (drone-companion): it floats by the head, shining or scanning only in a mode it has.</summary>
+    public bool Paired
+    {
+        get => _paired;
+        set
+        {
+            if (value == _paired) return;
+            _paired = value;
+            ShowDrone();
+        }
+    }
+    private bool _paired;
+
     /// <summary>Whether the hero wears the helmet lamp (0077): its light drone floats by the head and shines (light-drone, a try).</summary>
     public bool HeadLamp
     {
@@ -787,8 +800,9 @@ public partial class Figure : Node2D
 
     private void ShowDrone()
     {
-        _drone.Visible = _lampWorn || _scannerWorn;
+        _drone.Visible = _paired || _lampWorn || _scannerWorn;
         _drone.Scanning = _scannerWorn && !_lampWorn;
+        _drone.Idle = !_lampWorn && !_scannerWorn;
     }
 
     /// <summary>The scanner's pictures for the helmet worn, at its mount: each helmet's hugs its dome.</summary>

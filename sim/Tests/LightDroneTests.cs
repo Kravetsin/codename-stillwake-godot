@@ -47,17 +47,40 @@ public class LightDroneTests
         [.. Content.Items.All.Where(i => i.Group == ItemGroup.Material && i.Stack > 1 && i.Id != "scrap").Take(8).Select(i => (i.Id, i.Stack))];
 
     [Fact]
-    public void ThePodMakesOneOfTenScrapAndTheWorkbenchNone()
+    public void ThePodWakesTheKitsCoreInFiveRawChunksAndTheWorkbenchNot()
     {
-        Assert.Equal([("scrap", 10)], Crafts.Get(Drone).Cost);
+        Assert.Equal([(LightDrone.Core, 1), ("scrapChunk", 5)], Crafts.Get(Drone).Cost);
         Assert.Contains(Drone, Stations.Get("lifepod").Rows.SelectMany(r => r));
         Assert.DoesNotContain(Drone, Stations.Get("workbench").Rows.SelectMany(r => r));
-        var w = Aboard(("scrap", 10));
+        var w = Aboard(("scrapChunk", 10));
+        Assert.Equal(1, Carried(w, LightDrone.Core));
         int pod = Pod(w);
         w.Do(new Crafting.Craft(pod, Drone, 1)).Run(Crafts.Get(Drone).Ticks * 1000 / Stations.Get("lifepod").Speed + 1);
         Assert.Empty(w.Refusals);
         Assert.Equal(new Stack(Drone, 1), w.M.Items.Crate(pod)[0]);
-        Assert.Equal(0, Carried(w, "scrap"));
+        Assert.Equal((0, 5), (Carried(w, LightDrone.Core), Carried(w, "scrapChunk")));
+    }
+
+    /// <summary>One core a hero, so one drone: with chunks to spare, a second is refused, and two at once too.</summary>
+    [Fact]
+    public void TheCoreMakesOneDroneNoMore()
+    {
+        var w = Aboard(("scrapChunk", 20));
+        int pod = Pod(w);
+        w.Do(new Crafting.Craft(pod, Drone, 2)).Run();
+        Assert.Equal(["items.notEnough"], w.Refusals.Select(r => r.Reason));
+        w.Do(new Crafting.Craft(pod, Drone, 1)).Run().Do(new Crafting.Craft(pod, Drone, 1)).Run();
+        Assert.Equal(["items.notEnough", "items.notEnough"], w.Refusals.Select(r => r.Reason));
+        Assert.Single(w.M.Crafting.Queue(pod));
+    }
+
+    /// <summary>The core is gear, kept through a death, and sold to no one; the drone's recipe waits for the chunks alone.</summary>
+    [Fact]
+    public void TheCoreIsKeptAtDeathUnsoldAndInEveryKit()
+    {
+        Assert.True(Content.Items.Get(LightDrone.Core).Gear);
+        Assert.Null(Market.PriceOf(LightDrone.Core));
+        Assert.Contains((LightDrone.Core, 1), Inventory.Kit);
     }
 
     [Fact]
@@ -184,13 +207,13 @@ public class LightDroneTests
     [Fact]
     public void AFriendJoiningLaterPaysItsDroneFromTheCrewsCrates()
     {
-        // Peer 0 paired an hour ago; peer 1 wakes bare and pays from the crate (craft-from-crates).
+        // Peer 0 paired an hour ago; peer 1 wakes bare with its own core and pays the chunks from the crate (craft-from-crates).
         var w = new Scenario(Room) { Unpaired = true };
         int pod = Pod(w), crate = w.M.Grid.MachinesOf("crate")[0].Id;
-        w.FillCrate(crate, ("scrap", 30));
+        w.FillCrate(crate, ("scrapChunk", 15));
         w.Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run();
         w.Do(new Crafting.Craft(pod, Drone, 1) { From = 1 }).Run(Crafts.Get(Drone).Ticks * 1000 / Stations.Get("lifepod").Speed + 1);
-        Assert.Equal(new Stack("scrap", 20), w.M.Items.Crate(crate)[0]);
+        Assert.Equal(new Stack("scrapChunk", 10), w.M.Items.Crate(crate)[0]);
         w.Do(new Move(new Items.Place(0, pod), new Target(), 1) { From = 1 }).Run();
         w.Do(new PairDrone { From = 1 }).Run();
         Assert.Empty(w.Refusals);

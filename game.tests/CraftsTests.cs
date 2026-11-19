@@ -142,6 +142,18 @@ public class CraftsTests
         Assert.Equal(5, Crafts.CountFor(shift: true, Crafts.Lines("plate", []), creative: true));
     }
 
+    /// <summary>The drone, a player's only (drone-companion): one a click, shift or creative, and no shift on its card.</summary>
+    [Fact]
+    public void TheDroneIsQueuedOneAtATimeEvenInCreative()
+    {
+        string drone = Content.LightDrone.Item;
+        Assert.Equal(1, Crafts.MostOf(drone));
+        Assert.Equal(Crafts.Many, Crafts.MostOf("plate"));
+        Assert.Equal(1, Crafts.CountFor(shift: true, Crafts.Lines(drone, []), creative: true, Crafts.MostOf(drone)));
+        var block = Crafts.Block(drone, Content.Stations.Get("lifepod"), [], creative: true);
+        Assert.DoesNotContain(block.Keys, k => k.Key == T("key.shift"));
+    }
+
     [Fact]
     public void FillsTheBarOfTheUnitAtWorkFullWhileItWaitsAndSaysWhatItIsDoing()
     {

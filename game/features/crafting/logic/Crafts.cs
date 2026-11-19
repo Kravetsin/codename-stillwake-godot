@@ -44,6 +44,9 @@ public static class Crafts
     /// <summary>The most units a shift-click queues; a plain click queues one.</summary>
     public const int Many = 5;
 
+    /// <summary>The most units of <paramref name="craft"/> a click queues: one drone, a player's only (drone-companion), creative too.</summary>
+    public static int MostOf(string craft) => craft == Content.LightDrone.Item ? 1 : Many;
+
     /// <summary>The recipes' columns.</summary>
     public const int Columns = Content.Stations.RowMost;
 
@@ -121,10 +124,10 @@ public static class Crafts
     /// How many paid units a click queues: one, or with shift as many as the stock pays for, <see cref="Many"/> at most,
     /// so a stock short of five is not refused whole; at least one, which the sim refuses when even that is unpaid.
     /// </summary>
-    public static int CountFor(bool shift, IReadOnlyList<CostLine> lines, bool creative) =>
+    public static int CountFor(bool shift, IReadOnlyList<CostLine> lines, bool creative, int most = Many) =>
         !shift ? 1
-        : creative || lines.Count == 0 ? Many
-        : Math.Clamp(lines.Min(l => l.Have / l.Need), 1, Many);
+        : creative || lines.Count == 0 ? most
+        : Math.Clamp(lines.Min(l => l.Have / l.Need), 1, most);
 
     /// <summary>Work a unit of <paramref name="recipe"/> takes, in thousandths of a tick at full speed: the sim's measure of progress.</summary>
     public static int WorkOf(string recipe) => Content.Crafts.Get(recipe).Ticks * 1000;
@@ -155,7 +158,7 @@ public static class Crafts
         else if (look == Look.Fed) keys.Add(new(T("key.lmb"), T("card.fromInputs")));
         else if (MissingCraft(lines, creative, station) != null) keys.Add(new(T("key.lmb"), T("card.goTo")));
         if (HasInputs(station)) keys.Add(new(T("key.rmb"), T("card.repeatFromInputs")));
-        int many = look == Look.Fed ? Many : CountFor(true, lines, creative);
+        int many = look == Look.Fed ? MostOf(craft) : CountFor(true, lines, creative, MostOf(craft));
         if (look != Look.Short && many > 1) keys.Add(new(T("key.shift"), T("card.many", ("n", many))));
         return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }
