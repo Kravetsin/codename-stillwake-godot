@@ -21,19 +21,34 @@ public sealed class DroneFloat
     /// <summary>The furthest it lags behind its place, pixels; further than <see cref="Lost"/> it jumps there.</summary>
     public const double Leash = 14, Lost = 64;
 
+    /// <summary>How far it is from its place, pixels, as last followed.</summary>
+    public double Off { get; private set; }
+
     /// <summary>Where it is, pixels of the world; none before the first <see cref="Follow"/>.</summary>
     public (double X, double Y)? At { get; private set; }
 
-    /// <summary>Moves it after the neck at <paramref name="neck"/> by <paramref name="elapsedMs"/>, <paramref name="timeMs"/> into its bob.</summary>
-    public (double X, double Y) Follow((double X, double Y) neck, int facing, double elapsedMs, double timeMs)
+    /// <summary>How long after it is sent to another place it flies there unleashed, ms, so the leash never jerks it across, and how fast it eases meanwhile.</summary>
+    public const double FreeMs = 500, SwitchMs = 70;
+
+    private bool _elsewhere;
+    private double _freeMs;
+
+    /// <summary>
+    /// Moves it after the neck at <paramref name="neck"/>, or to <paramref name="instead"/> (projecting a drone window before the
+    /// hero, drone-holo), by <paramref name="elapsedMs"/>, <paramref name="timeMs"/> into its bob.
+    /// </summary>
+    public (double X, double Y) Follow((double X, double Y) neck, int facing, double elapsedMs, double timeMs, (double X, double Y)? instead = null)
     {
-        var place = (X: neck.X - facing * Behind, Y: neck.Y - Above + BobPx * Math.Sin(2 * Math.PI * timeMs / BobMs));
+        double bob = BobPx * Math.Sin(2 * Math.PI * timeMs / BobMs);
+        var place = instead is { } there ? (X: there.X, Y: there.Y + bob) : (X: neck.X - facing * Behind, Y: neck.Y - Above + bob);
+        if (_elsewhere != instead.HasValue) (_elsewhere, _freeMs) = (instead.HasValue, FreeMs);
+        _freeMs = Math.Max(0, _freeMs - elapsedMs);
         var at = At is { } was && Apart(was, place) <= Lost ? was : place;
-        double k = 1 - Math.Exp(-elapsedMs / FollowMs);
+        double k = 1 - Math.Exp(-elapsedMs / (_freeMs > 0 ? SwitchMs : FollowMs));
         at = (at.X + (place.X - at.X) * k, at.Y + (place.Y - at.Y) * k);
         double off = Apart(at, place);
-        if (off > Leash) at = (place.X + (at.X - place.X) * Leash / off, place.Y + (at.Y - place.Y) * Leash / off);
-        At = at;
+        if (off > Leash && _freeMs <= 0) at = (place.X + (at.X - place.X) * Leash / off, place.Y + (at.Y - place.Y) * Leash / off);
+        (At, Off) = (at, Apart(at, place));
         return at;
     }
 

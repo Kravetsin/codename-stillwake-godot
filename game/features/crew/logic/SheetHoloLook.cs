@@ -31,6 +31,16 @@ public static class SheetHoloLook
     /// <summary>How thick it stays at the last moment of going out, a share of its full thickness.</summary>
     public const double FlatAtLast = 0.2;
 
+    /// <summary>
+    /// A drone window projected (not a plan held): the drone before the hero, <see cref="OverAhead"/> past its middle the way it
+    /// faces and <see cref="OverUp"/> over its feet; the band <see cref="OverRise"/> over the drone, arched round a point
+    /// <see cref="OverRadius"/> under its middle.
+    /// </summary>
+    public const double OverAhead = 14, OverUp = 12, OverRise = 16, OverRadius = 14;
+
+    /// <summary>How near its place before the hero the drone is before the band comes on, pixels.</summary>
+    public const double OverArrived = 1.5;
+
     /// <summary>The light it throws on the helmet and what is near, a share of the planner sheet's.</summary>
     public const float Light = 1.2f;
 

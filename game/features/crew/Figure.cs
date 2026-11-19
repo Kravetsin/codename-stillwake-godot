@@ -751,8 +751,8 @@ public partial class Figure : Node2D
     private readonly LightDrone _drone = new();
 
     /// <summary>
-    /// Whether a drone window of its hero's is open, and how far its soot is out, 0..1 (drone-frame): while open, its drone draws
-    /// the sheet in front of its face (<see cref="SheetHolo"/>).
+    /// Whether a drone window of its hero's is open, and how far its soot is out, 0..1 (drone-frame): while open, its drone flies
+    /// before it and projects the window over itself (<see cref="SheetHolo"/>).
     /// </summary>
     public (bool Open, double Out) DroneWindow
     {
@@ -768,7 +768,13 @@ public partial class Figure : Node2D
     private readonly SheetHolo _holo = new();
     private readonly double _holoSeed = Random.Shared.NextDouble() * 100;
     private double _holoIn;
-    private bool _holoComing;
+    private bool _holoComing, _holoOver, _droneThere;
+
+    /// <summary>Whether its drone projects a drone window before it (drone-holo): its lamp and scanner off meanwhile.</summary>
+    public bool Projects { get; private set; }
+
+    /// <summary>Whether its drone shines: the lamp worn, not projecting.</summary>
+    public bool Shines => _lampWorn && !Projects;
 
     /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
     public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
@@ -1508,18 +1514,23 @@ public partial class Figure : Node2D
         // Working a plan the screwdriver takes the front hand; the planner waits till it is done.
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
-        // With its drone by it, the drone draws the sheet as light (drone-holo, «Дуга»), for a drone window too; it goes out as
-        // the hands hold it still, so they let go after.
-        bool projecting = _drone.Visible, sheetOut = (holdsPlan || _droneWindow.Open) && Poses.HoldsIn(pose) && !working;
-        _holoIn = SheetHoloLook.Step(_holoIn, projecting && sheetOut, elapsedMs);
-        _holoComing = projecting && sheetOut;
-        bool holding = projecting ? Poses.HoldsIn(pose) && !working && (sheetOut || _holoIn > 0) : holdsPlan && Poses.HoldsIn(pose) && !working;
+        // With its drone by it, the drone draws the plan held as light (drone-holo, «Дуга»), the far hand holding it, and it goes
+        // out as the hand holds it still. For a drone window the drone flies before the hero, its mode off, and projects the band
+        // up over itself, the hands free.
+        bool projecting = _drone.Visible;
+        bool planOut = projecting && holdsPlan && Poses.HoldsIn(pose) && !working, windowOut = projecting && _droneWindow.Open && !holdsPlan;
+        if (planOut || windowOut) _holoOver = windowOut;
+        // The window's band comes on once the drone is there, never on its way past the face.
+        bool holoOn = planOut || windowOut && _droneThere;
+        _holoIn = SheetHoloLook.Step(_holoIn, holoOn, elapsedMs);
+        _holoComing = holoOn;
+        bool overDrone = windowOut || projecting && _holoOver && _holoIn > 0;
+        Projects = overDrone;
+        bool holding = projecting ? Poses.HoldsIn(pose) && !working && !_holoOver && (planOut || _holoIn > 0) : holdsPlan && Poses.HoldsIn(pose) && !working;
         var item = HeldLook.Of(Wields);
         // Signing, what the near hand held is stowed till the gesture ends (gestures-for-words).
-        // Drawn by the drone for a drone window, only the far hand holds it: the near one keeps what it wields, and strikes with it.
-        bool handHolds = holding && !(projecting && !holdsPlan);
-        bool signing = Gesture != null && !working && !handHolds && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
-        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !handHolds && !signing;
+        bool signing = Gesture != null && !working && !holding && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
+        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding && !signing;
         // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
         var stroke = Strokes.Of(Wields);
         bool chopping = _chop != null && stroke != null && item != null && inHand;
@@ -1738,9 +1749,14 @@ public partial class Figure : Node2D
         _sealBent.Show(_fit.SealBy(_gaze));
         if (_drone.Visible)
         {
-            // Drawing the sheet, its lens turns to it.
+            // Drawing the sheet, its lens turns to it; projecting a window, it floats before the hero's waist, bare as it used to frame it.
             var toward = _holo.Visible ? (_holo.Middle - _drone.GlobalPosition).Normalized() : HeadLampToward;
-            _drone.Follow(_helmet.GlobalPosition, hero.Facing, toward, elapsedMs, _timeMs);
+            var feet = _frame.ToGlobal(Vector2.Zero);
+            Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;
+            _drone.Follow(_helmet.GlobalPosition, hero.Facing, toward, elapsedMs, _timeMs, before);
+            _droneThere = before != null && _drone.Off < SheetHoloLook.OverArrived;
+            _drone.Projecting = overDrone;
+            _drone.Window(overDrone, 0);
             _drone.Sign(signing ? Gesture : null);
         }
         ShowRetch(elapsedMs, feetY);
@@ -1759,7 +1775,12 @@ public partial class Figure : Node2D
             float glow = GlowStrength * (float)(1 + 1.5 * thrust);
             _glow.Colour = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow);
         }
-        if (projecting && holding)
+        if (overDrone)
+        {
+            var middle = _drone.GlobalPosition + new Vector2(0, (float)-SheetHoloLook.OverRise);
+            _holo.Show(_holoIn, _holoComing, middle + new Vector2(0, (float)SheetHoloLook.OverRadius), middle, _drone.LensBox.GetCenter(), 0, _timeMs, _holoSeed);
+        }
+        else if (projecting && holding)
         {
             var lens = _drone.LensBox.GetCenter();
             _holo.Show(_holoIn, _holoComing, Visor, _plan.ToGlobal(SheetMiddle), lens, thrust, _timeMs, _holoSeed);

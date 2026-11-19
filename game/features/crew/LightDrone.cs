@@ -92,7 +92,7 @@ public partial class LightDrone : Node2D
     {
         var toward = Vector2.FromAngle(_angle);
         _sign.Show(gesture, toward * LensAhead, toward, _timeMs);
-        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible, Scanning), _angle, _timeMs, _bare);
+        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible || Projecting, Scanning), _angle, _timeMs, _bare);
         _run.Step(double.IsNaN(_ranMs) ? 0 : Math.Max(0, (_timeMs - _ranMs) / 1000), _bare);
         _ranMs = _timeMs;
         for (int i = 0; i < _placed.Length; i++) _placed[i] = _swarm.PlateAt(i, _angle, _timeMs);
@@ -102,8 +102,17 @@ public partial class LightDrone : Node2D
         _glow.QueueRedraw();
     }
 
+    /// <summary>How far it floats from its place, pixels, as last followed.</summary>
+    public double Off => _float.Off;
+
     /// <summary>Whether it scans rather than shines: the scanner worn, not the drone.</summary>
     public bool Scanning { get; set; }
+
+    /// <summary>Whether it projects a drone window over itself (drone-holo): its mode off, its lens the hologram's, its plates fanned to it.</summary>
+    public bool Projecting { get; set; }
+
+    /// <summary>Its lens's colour: the hologram's projecting, else its mode's.</summary>
+    private Color LensColour => Projecting ? Holo : Scanning ? Scan : Lamp;
 
     /// <summary>
     /// Whether a drone window is <paramref name="open"/> or its soot still out by <paramref name="soot"/>, 0..1 (drone-frame): either
@@ -122,10 +131,10 @@ public partial class LightDrone : Node2D
         }
     }
 
-    /// <summary>Floats it after the neck at <paramref name="neck"/>, its lens turned <paramref name="toward"/>, a unit vector.</summary>
-    public void Follow(Vector2 neck, int facing, Vector2 toward, double elapsedMs, double timeMs)
+    /// <summary>Floats it after the neck at <paramref name="neck"/>, or to <paramref name="instead"/>, its lens turned <paramref name="toward"/>, a unit vector.</summary>
+    public void Follow(Vector2 neck, int facing, Vector2 toward, double elapsedMs, double timeMs, Vector2? instead = null)
     {
-        var (x, y) = _float.Follow((neck.X, neck.Y), facing, elapsedMs, timeMs);
+        var (x, y) = _float.Follow((neck.X, neck.Y), facing, elapsedMs, timeMs, instead is { } place ? (place.X, place.Y) : null);
         GlobalPosition = new Vector2((float)x, (float)y);
         // It turns after the pointer, eased, never snapping across.
         float off = Mathf.Wrap(Mathf.Atan2(toward.Y, toward.X) - _angle, -Mathf.Pi, Mathf.Pi);
@@ -143,7 +152,7 @@ public partial class LightDrone : Node2D
         _plates ??= HiRes.Texture(HiRes.Load("drone_plates") ?? throw new InvalidOperationException("No picture drone_plates"));
         float angle = _angle;
         var toward = Vector2.FromAngle(angle);
-        var colour = Scanning ? Scan : Lamp;
+        var colour = LensColour;
         DrawSoot(front: false);
         for (int i = 0; i < _placed.Length; i++)
             if (!_placed[i].Front) DrawPlate(i);
@@ -251,7 +260,7 @@ public partial class LightDrone : Node2D
         var colour = Field;
         // The lens's haze, added as the pick's halo: ring over ring, the sum fading out from the glass.
         var lens = Vector2.FromAngle(_angle) * LensAhead;
-        var lensColour = Scanning ? Scan : Lamp;
+        var lensColour = LensColour;
         for (int k = LensHazeRings; k >= 1; k--) _glow.DrawCircle(lens, LensHaze * k / LensHazeRings, new Color(lensColour, LensHazeAlpha / LensHazeRings));
         foreach (var plate in _placed)
         {

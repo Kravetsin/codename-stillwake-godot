@@ -254,7 +254,7 @@ public partial class HeroView : Node2D
     private bool DroneOpen(DroneMode mode) => DroneModes.Opened(mode, _knows);
 
     /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
-    public bool Scanning => _figure.Scanner;
+    public bool Scanning => _figure.Scanner && !_figure.Projects;
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
@@ -421,9 +421,9 @@ public partial class HeroView : Node2D
     public IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)> HeadLamps()
     {
         _headLamps.Clear();
-        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward, _figure.HeadAt));
+        if (_figure.Shines && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward, _figure.HeadAt));
         foreach (var (_, shown) in _shownOthers)
-            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward, shown.Figure.HeadAt));
+            if (shown.Figure.Visible && shown.Figure.Shines) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward, shown.Figure.HeadAt));
         return _headLamps;
     }
 
@@ -592,8 +592,8 @@ public partial class HeroView : Node2D
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
         bool holdsPlan = HoldsPlan && !passedOut;
-        // A drone window open, friends see the drone draw the sheet in front of its face (drone-holo).
-        bool sheetOut = (HoldsPlan || _ui.DroneWindow.Open) && !passedOut;
+        // A drone window open, friends see the drone project it before the hero (drone-holo).
+        bool projects = _ui.DroneWindow.Open && !passedOut;
         _clockMs += elapsedMs;
         _beamLeftMs = Math.Max(0, _beamLeftMs - elapsedMs);
         _sendTo = client;
@@ -662,7 +662,7 @@ public partial class HeroView : Node2D
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, sheetOut, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode)), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode), projects), _steps * Hero.StepMs);
         ShowPings(m);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
