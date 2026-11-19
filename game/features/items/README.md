@@ -64,7 +64,7 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
 - **Equipment** (0047, 0058, gear-doll): crew's hero (`Doll`), slots by what they dress (`DollLayout`), lined to
   them, no captions; the screen ends past the last open belt. A carried stack lights slots that would wear it, dims the
   rest, and turns `GearTabs` from **Appearance** to the gear.
-- **Shut bag** (drone-companion): unpaired, rows empty, dimmed (`Hotbar.Shut`).
+- **No bag before the pairing** (drone-companion): unpaired, none of the bag is open and its window is hidden (`Hotbar.InBag`).
 - **Look** (0074): hotbar, bag, equipment in the wrist's metal, content fading in; a machine's window a hologram in
   its station's tone, beamed from it (`MachineHolo`, machine-holograms).
 - **One machine frame** (0058): name, and for a powered one a bolt with its power (`IPowerQueries.Draw`, modules in),

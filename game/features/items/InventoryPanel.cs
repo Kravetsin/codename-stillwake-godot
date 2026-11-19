@@ -221,11 +221,10 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>This player's hero's ticks left before another canister (canister-mark): its slots sweep round while it cools. Set by <c>Main</c>.</summary>
     public Func<int>? CanisterIn { get; set; }
 
-    /// <summary>Whether this player has paired with its drone (drone-companion): before it, its bag rows are drawn shut. Set by <c>Main</c>.</summary>
+    /// <summary>Whether this player has paired with its drone (drone-companion): before it, its bag is not shown. Set by <c>Main</c>.</summary>
     public Func<bool>? Paired { get; set; }
 
-    /// <summary>A bag slot shut till the drone is paired: there, dark, holding nothing.</summary>
-    private static readonly Color ShutLook = new(1, 1, 1, 0.3f);
+
 
     private readonly CanisterCooling _cooling = new();
     private readonly FlatBlink _refused = new();
@@ -729,22 +728,24 @@ public partial class InventoryPanel : CanvasLayer
         var held = Held;
         // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).
         var carried = held is { } inHand ? reading.At(inHand.Place)?.Item : null;
+        bool bagOpen = false;
         foreach (var box in _slots)
         {
             var p = box.Place;
-            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades); the bag rows the drone opens are, shut.
-            bool open = _items!.SlotOpen(_client!.Id, p), shut = Hotbar.Shut(p, open, paired);
-            box.Visible = open || shut;
-            // What a closed slot holds (creative turned off) waits there unseen till the pairing.
-            var stack = shut ? null : reading.At(p);
+            // A slot waiting on an upgrade or the pairing is not there yet (2026-10-30-room-upgrades, drone-companion).
+            bool open = _items!.SlotOpen(_client!.Id, p);
+            box.Visible = open;
+            bagOpen |= open && Hotbar.InBag(p);
+            var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
                 stack == null || p.Crate != null ? SlotMark.None : reading.MarkOf(stack.Item),
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
-            if (shut) box.Modulate = ShutLook;
         }
+        // None of the bag open, before the pairing: no bag at all, the equipment alone.
+        if (_inventory.Visible != bagOpen) _inventory.Visible = bagOpen;
         // The screen ends past the last belt slot open: one more opened widens it.
         int belts = Equipment.Of(Content.Charge.Belt).Count(p => _items!.SlotOpen(_client!.Id, p));
         var stage = new Vector2(_dollLayout.WidthFor(belts), _dollLayout.Height);
