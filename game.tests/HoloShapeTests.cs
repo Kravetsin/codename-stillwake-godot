@@ -88,6 +88,14 @@ public class HoloShapeTests
         Assert.Equal(tone, HoloShape.ToneOf(Machines.Get(kind)));
 
     [Fact]
+    public void TheDronesBagIsInItsOwnBlueAndNoMachineTakesIt()
+    {
+        // The pick's HOLO, rgb(140,196,255) (drone-companion).
+        Assert.Equal("8cc4ff", HoloLook.Of(HoloTone.Drone).Light);
+        Assert.DoesNotContain(Machines.All, spec => HoloShape.ToneOf(spec) == HoloTone.Drone);
+    }
+
+    [Fact]
     public void EveryMachineThatOpensAWindowGetsItsToneByTheRule()
     {
         foreach (var spec in Machines.All)

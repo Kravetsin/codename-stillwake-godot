@@ -330,6 +330,18 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y)> Heroes { get; set; } = [];
 
     /// <summary>
+    /// A small box round this machine's own drone's lens as drawn this frame, in the world's pixels; null with no drone shown (none
+    /// paired, the hero out, seated or not placed). Set by <c>crew</c> every frame; <c>items</c> beams the bag's hologram from it.
+    /// </summary>
+    public (float X, float Y, float W, float H)? DroneLens { get; set; }
+
+    /// <summary>
+    /// The middle of the bag's hologram window on the screen while the drone projects it (drone-companion); null while it does not.
+    /// Set by <c>items</c> every frame; <c>crew</c> turns the drone to it in its sign's shape. Local: friends never see it.
+    /// </summary>
+    public (float X, float Y)? BagProjected { get; set; }
+
+    /// <summary>
     /// The point of every running drill as last drawn, in the world's pixels, and which drill it is. Set by <c>crew</c> every
     /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
     /// </summary>

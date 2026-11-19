@@ -78,6 +78,18 @@ public sealed class OpenScenario : DevScenario
     }
 }
 
+/// <summary>Peer 0 paired with its light drone through the save (drone-companion), so its bag is the drone's hologram.</summary>
+[Dev("--paired", "peer 0 paired with its light drone, the bag its hologram; with --testbed --open=crate, the bag open (drone-companion)")]
+public sealed class PairedScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = System.Text.Json.Nodes.JsonNode.Parse(world.Save())!;
+        root["slices"]!["players"]!["drones"] = new System.Text.Json.Nodes.JsonArray(0);
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+}
+
 [Dev("--near", "with --testbed, the hero starts beside the machine of that kind, opening nothing", Shape = DevShape.Equals, Order = 20)]
 public sealed class NearScenario : DevScenario
 {

@@ -79,13 +79,13 @@ public partial class LightDrone : Node2D
 
     /// <summary>
     /// Shows the gesture playing on its hero as a hologram over it (<see cref="DroneSign"/>), the plates fanned toward it, after
-    /// <see cref="Follow"/> each frame; none hides it and sends the plates back to the mode's shape.
+    /// <see cref="Follow"/> each frame; none hides it and sends the plates back to the mode's shape, unless it <see cref="Projects"/>.
     /// </summary>
     public void Sign((GestureMotion Motion, double Ms, Vector2 At)? gesture)
     {
         var toward = Vector2.FromAngle(_angle);
         _sign.Show(gesture, toward * LensAhead, toward, _timeMs);
-        _swarm.Become(_sign.Visible ? SwarmShape.Sign : Scanning ? SwarmShape.Scan : SwarmShape.Lamp, _angle, _timeMs);
+        _swarm.Become(DroneSwarm.ShapeOf(_sign.Visible || Projects, Scanning), _angle, _timeMs);
         for (int i = 0; i < _placed.Length; i++) _placed[i] = _swarm.PlateAt(i, _angle, _timeMs);
         for (int i = 0; i < _motes.Length; i++) _motes[i] = _swarm.MoteAt(i, _angle, _timeMs);
         QueueRedraw();
@@ -95,6 +95,20 @@ public partial class LightDrone : Node2D
 
     /// <summary>Whether it scans rather than shines: the scanner worn, not the drone.</summary>
     public bool Scanning { get; set; }
+
+    /// <summary>Whether it projects its hero's open bag (drone-companion): in the sign's shape, as for a gesture.</summary>
+    public bool Projects { get; set; }
+
+    /// <summary>The box round its lens as drawn, in pixels of the world: where the bag's hologram beams from.</summary>
+    public Rect2 LensBox
+    {
+        get
+        {
+            var lens = GlobalPosition + Vector2.FromAngle(_angle) * LensAhead;
+            const float Half = BezelY + BezelInk / 2;
+            return new Rect2(lens.X - Half, lens.Y - Half, 2 * Half, 2 * Half);
+        }
+    }
 
     /// <summary>Floats it after the neck at <paramref name="neck"/>, its lens turned <paramref name="toward"/>, a unit vector.</summary>
     public void Follow(Vector2 neck, int facing, Vector2 toward, double elapsedMs, double timeMs)

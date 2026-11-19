@@ -147,6 +147,12 @@ public sealed class DroneSwarm
         (_from, Shape, _changedMs) = (Shape, shape, timeMs);
     }
 
+    /// <summary>
+    /// The shape for a drone that <paramref name="signs"/> (shows a gesture, or projects the bag, drone-companion) or not, and
+    /// <paramref name="scanning"/> or shining: the sign's over either mode's.
+    /// </summary>
+    public static SwarmShape ShapeOf(bool signs, bool scanning) => signs ? SwarmShape.Sign : scanning ? SwarmShape.Scan : SwarmShape.Lamp;
+
     /// <summary>The soot's own shape in <paramref name="shape"/>: the sign's is the idle orbits, since its own lays out the bag's grid.</summary>
     public static SwarmShape DustOf(SwarmShape shape) => shape == SwarmShape.Sign ? SwarmShape.Idle : shape;
 

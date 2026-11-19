@@ -9,6 +9,8 @@ public enum HoloTone
     Warm,
     /// <summary>On the power grid: it makes, draws or stores power.</summary>
     Cold,
+    /// <summary>Not a machine's: the bag the paired drone projects (drone-companion), in its hologram blue.</summary>
+    Drone,
 }
 
 /// <summary>One tone's colours, as hex: the light (ground wash, edge, beam), the ground under the contents, the name, headings and dim words.</summary>
@@ -47,12 +49,15 @@ public static class HoloLook
     public static readonly HoloTint Warm = new("ffac60", "160d08", "ffe2c2", "cf9f74", "8d6c52");
     public static readonly HoloTint Cold = new("b2d0ff", "080d18", "e4ecff", "a2b4d8", "6c7b9b");
     public static readonly HoloTint Neutral = new("ccd2da", "0e1014", "e6e9ee", "a9b0ba", "727a85");
+    /// <summary>The drone's, the bag-as-hologram pick's HOLO, rgb(140,196,255).</summary>
+    public static readonly HoloTint Drone = new("8cc4ff", "07101c", "dcecff", "9cbfe6", "62809f");
 
     /// <summary>The colours of <paramref name="tone"/>.</summary>
     public static HoloTint Of(HoloTone tone) => tone switch
     {
         HoloTone.Warm => Warm,
         HoloTone.Cold => Cold,
+        HoloTone.Drone => Drone,
         _ => Neutral,
     };
 }

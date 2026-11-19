@@ -276,4 +276,13 @@ public class DroneSwarmTests
         Assert.True(first.Dark);
         Assert.False(DroneSwarm.MoteIn(SwarmShape.Idle, 1, 0, 0).Dark);
     }
+
+    [Fact]
+    public void ASignOrTheProjectedBagTakesTheSignsShapeOverEitherMode()
+    {
+        Assert.Equal(SwarmShape.Sign, DroneSwarm.ShapeOf(signs: true, scanning: false));
+        Assert.Equal(SwarmShape.Sign, DroneSwarm.ShapeOf(signs: true, scanning: true));
+        Assert.Equal(SwarmShape.Lamp, DroneSwarm.ShapeOf(signs: false, scanning: false));
+        Assert.Equal(SwarmShape.Scan, DroneSwarm.ShapeOf(signs: false, scanning: true));
+    }
 }

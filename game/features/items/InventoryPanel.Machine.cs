@@ -217,6 +217,21 @@ public partial class InventoryPanel
             _frame.Modulate = Colors.White with { A = _holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)) };
         else if (Crate != null) _holo.Snap();
         else _holo.Step(delta, null);
+        BagHologram(delta);
+    }
+
+    /// <summary>
+    /// The paired bag's hologram (drone-companion), as a machine's: beamed from the drone's lens while the bag shows, its contents
+    /// faded in as it grows; with no drone shown, no beam. Where its window is goes to <c>crew</c>, for the drone to face.
+    /// </summary>
+    private void BagHologram(double delta)
+    {
+        bool projected = Shown && _bagHolo != null;
+        _ui.BagProjected = projected && _inventory.GetGlobalRect() is { Size: { X: > 0, Y: > 0 } } at ? (at.GetCenter().X, at.GetCenter().Y) : null;
+        if (_bagHolo == null) return;
+        var lens = _ui.DroneLens is var (x, y, w, h) ? new Rect2(x, y, w, h) : default;
+        float shown = _bagHolo.Step(delta, projected ? new MachineHolo.Target(BagHolo, _inventory.GetGlobalRect(), lens, HoloTone.Drone) : null);
+        _inventory.Modulate = Colors.White with { A = shown };
     }
 
     /// <summary>
@@ -227,8 +242,9 @@ public partial class InventoryPanel
     {
         _motion.Step(Shown, seconds);
         float power = (float)_motion.Power;
-        _inventory.Lit(power);
-        _trash.Lit(power);
+        // A projected bag has no screen to light: its hologram fades it.
+        (_inventory as WristScreen)?.Lit(power);
+        (_trash as WristScreen)?.Lit(power);
         _body.Lit(power);
         _frame?.Lit(power);
     }

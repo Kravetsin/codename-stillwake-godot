@@ -749,6 +749,16 @@ public partial class Figure : Node2D
 
     private readonly LightDrone _drone = new();
 
+    /// <summary>Whether its drone projects the open bag (drone-companion): turned to <see cref="LampAim"/> in the sign's shape.</summary>
+    public bool DroneProjects
+    {
+        get => _drone.Projects;
+        set => _drone.Projects = value;
+    }
+
+    /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
+    public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
+
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
 

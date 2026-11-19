@@ -15,7 +15,10 @@ namespace Stillwake.Game.Shared;
 /// </summary>
 public partial class MachineHolo : Node2D
 {
-    /// <summary>What an owner shows: the machine open, its window on the screen, its box in world pixels, its tone.</summary>
+    /// <summary>
+    /// What an owner shows: the machine open, its window on the screen, its box in world pixels, its tone. An empty box (the
+    /// drone with no hero to float by) has no beam: the window fades in and out whole where it is.
+    /// </summary>
     public readonly record struct Target(int Machine, Rect2 Window, Rect2 Box, HoloTone Tone);
 
     /// <summary>The beam's sections along its length, each its own shimmer.</summary>
@@ -41,6 +44,8 @@ public partial class MachineHolo : Node2D
     private readonly Color[] _colours = new Color[4];
     private readonly Vector2[] _uvs = new Vector2[4];
     private Rect2 _window, _box;
+    /// <summary>Whether the last box given was empty: no beam, the window faded whole.</summary>
+    private bool _beamless;
     /// <summary>This frame's, from <see cref="Place"/>: the window, the touch point, the emitter and the layer's pixels to the node's.</summary>
     private HoloRect _shownWindow;
     private HoloTouch _touch;
@@ -69,7 +74,7 @@ public partial class MachineHolo : Node2D
         if (open is { } t)
         {
             bool laid = t.Window.Size.X > 0 && t.Window.Size.Y > 0;
-            if (laid) (_window, _box) = (t.Window, t.Box);
+            if (laid) (_window, _box, _beamless) = (t.Window, t.Box, t.Box.Size == Vector2.Zero);
             _motion.Step(t.Machine, laid ? seconds : 0);
             if (laid) Tone(t.Tone);
         }
@@ -86,15 +91,18 @@ public partial class MachineHolo : Node2D
         var canvas = GetViewport().GetCanvasTransform();
         var box = Of(canvas * _box);
         _shownWindow = Of(_window);
+        _toLocal = GetGlobalTransform().AffineInverse();
+        _emitter.Visible = !_beamless;
+        Modulate = Colors.White with { A = _beamless ? (float)_motion.Window : 1 };
+        QueueRedraw();
+        if (_beamless) return;
         _touch = HoloShape.Touch(_shownWindow, box);
         var (ex, ey) = HoloShape.Emitter(box, (_touch.X, _touch.Y), Render.ShipCamera.Cell * canvas.X.Length());
         _from = new Vector2(ex, ey);
         // The glow on the machine, breathing.
-        _toLocal = GetGlobalTransform().AffineInverse();
         float k = (float)((0.5 + 0.5 * _motion.Beam) * (0.88 + 0.12 * Math.Sin(_now * 2.2)));
         _emitter.Position = _toLocal * _from - _emitter.Size / 2;
         _emitter.Modulate = _light with { A = k };
-        QueueRedraw();
     }
 
     /// <summary>Machine <paramref name="machine"/>'s footprint's box in world pixels, where the beam leaves it; empty for one not there.</summary>
@@ -130,18 +138,27 @@ public partial class MachineHolo : Node2D
     {
         // In the canvas layer's pixels, as the window's rectangle and the mapped box are.
         DrawSetTransformMatrix(_toLocal);
+        if (_beamless)
+        {
+            Ground(_shownWindow, null, _shownWindow, true);
+            return;
+        }
         if (HoloShape.Grown(_shownWindow, _touch, _motion.Window) is var (grown, line)) Ground(_shownWindow, _touch, grown, line);
         Beam(_from, _from.Lerp(new Vector2(_touch.X, _touch.Y), (float)_motion.Beam));
         DrawRect(new Rect2(_from.X - 1, _from.Y, 2, 1), Core with { A = 0.85f * (float)(0.5 + 0.5 * _motion.Beam) });
     }
 
-    /// <summary>The window's ground as grown: its colour, its edge and glow, the light's wash from the near edge, and that edge bright.</summary>
-    private void Ground(HoloRect window, HoloTouch touch, HoloRect grown, bool line)
+    /// <summary>
+    /// The window's ground as grown: its colour, its edge and glow, the light's wash from the near edge, and that edge bright;
+    /// with no <paramref name="touched"/> point (no beam), neither the near edge nor the wash.
+    /// </summary>
+    private void Ground(HoloRect window, HoloTouch? touched, HoloRect grown, bool line)
     {
         float x0 = MathF.Round(grown.X), y0 = MathF.Round(grown.Y);
         float x1 = Math.Max(x0 + 1, MathF.Round(grown.Right)), y1 = Math.Max(y0 + 1, MathF.Round(grown.Bottom));
         DrawStyleBox(_glow, new Rect2(x0, y0, x1 - x0, y1 - y0));
         DrawStyleBox(_ground, new Rect2(x0, y0, x1 - x0, y1 - y0));
+        if (touched is not { } touch) return;
         var near = _light with { A = HoloLook.NearEdge };
         switch (touch.Edge)
         {

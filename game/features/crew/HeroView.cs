@@ -631,7 +631,10 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(m.Players.HasDrone(client.Id), _droneMode);
-        _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
+        // Projecting the open bag (drone-companion), the drone turns to its window on the screen, never the pointer.
+        var projected = _ui.BagProjected is var (bx, by) ? GetViewport().GetCanvasTransform().AffineInverse() * new Vector2(bx, by) : (Vector2?)null;
+        _figure.DroneProjects = projected != null;
+        _figure.LampAim = projected ?? (pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null);
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
         // The suit frosts over or scorches with the body, not the place (body-temperature, picks F2 and H3).
@@ -643,6 +646,7 @@ public partial class HeroView : Node2D
         _figure.Ledge = LedgeOf(ship, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         _figure.Visible = seat == null;
+        _ui.DroneLens = _figure.Visible && !passedOut && _figure.DroneLens is { } lens ? (lens.Position.X, lens.Position.Y, lens.Size.X, lens.Size.Y) : null;
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _venting && _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
         var shownHero = drawn;
