@@ -70,13 +70,6 @@ public partial class InventoryPanel
     public override void _Input(InputEvent e)
     {
         if (e is InputEventMouseMotion motion) _mouse = motion.Position;
-        // A press in the paired bag: the hero's finger pokes the drone's hologram where it is (drone-holo).
-        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right } press && Shown
-            && _inventory is HoloWindow window && window.GetGlobalRect() is { Size: { X: > 0, Y: > 0 } } at && at.HasPoint(press.Position))
-        {
-            var spot = (press.Position - at.GetCenter()) / (at.Size / 2);
-            _ui.Poke(spot.Y, spot.X);
-        }
         if (e is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } up) return;
         _mouse = up.Position;
         // Sockets first (0086): a module let go there is fitted; one taken out goes to the bag slot it is let go over.

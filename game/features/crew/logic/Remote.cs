@@ -25,10 +25,9 @@ public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = nu
 
 /// <summary>
 /// What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the
-/// drill running aimed at a point (0054); a sign made in place of words (<see cref="Gestures"/>, gestures-for-words); or the drone's
-/// hologram poked by the near finger (<see cref="SheetPoke"/>), its point then the spot on it in thousandths, down and across.
+/// drill running aimed at a point (0054); or a sign made in place of words (<see cref="Gestures"/>, gestures-for-words).
 /// </summary>
-public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Poke }
+public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No }
 
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
@@ -39,9 +38,6 @@ public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
 {
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
-
-    /// <summary>Whether <paramref name="now"/> is a poke not shown yet: sent while the finger stays up, numbered by its <see cref="Swings"/>.</summary>
-    public static bool PokesAnew(Busy? was, Busy? now) => now is { Work: Handwork.Poke } && now != was;
 
     /// <summary>
     /// The chop to follow another's hero by once <paramref name="now"/> is heard: a new one, else the

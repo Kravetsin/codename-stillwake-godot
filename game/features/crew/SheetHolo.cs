@@ -54,13 +54,6 @@ public partial class SheetHolo : Node2D
         QueueRedraw();
     }
 
-    /// <summary>The spot (<paramref name="along"/>, <paramref name="across"/>) on it as last shown (<see cref="SheetPoke"/>), in the world's pixels; none while it is out.</summary>
-    public Vector2? Spot(double along, double across, int facing) =>
-        Visible ? On(L.AngleOf(_toward, _half, along, facing), _radius + across * _thick) : null;
-
-    /// <summary>How far along it, -1..1, the line from the eyes to <paramref name="at"/> crosses it as last shown.</summary>
-    public double AlongTo(Vector2 at, int facing) => L.AlongTo((_eye.X, _eye.Y), _toward, _half, (at.X, at.Y), facing);
-
     private Vector2 On(double angle, double radius) => _eye + new Vector2((float)(Math.Cos(angle) * radius), (float)(Math.Sin(angle) * radius));
 
     public override void _Draw()

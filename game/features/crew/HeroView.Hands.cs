@@ -218,7 +218,6 @@ public partial class HeroView
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
-            : _pokeLeftMs > 0 && _ui.DroneWindow.Open && !passedOut ? new Busy(Handwork.Poke, _pokeAt, _pokes)
             : (Busy?)null;
         // A gesture plays while nothing else takes the hands: any work, an aimed arm, the plan or the pose cuts it off (gestures-for-words).
         if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated, holdsPlan: !handFree)) _gesture.Stop();

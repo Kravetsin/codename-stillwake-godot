@@ -253,7 +253,7 @@ public static class Poses
         double along = Hold.FarHand * Sheet.Length;
         double turn = SheetTurn(look);
         var far = new Vec(front.X + Math.Cos(turn) * along, front.Y + Math.Sin(turn) * along);
-        // The drone's hologram the far hand holds alone, where the near one held the sheet; the near one is free to poke it (drone-holo).
+        // The drone's hologram the far hand holds alone, where the near one held the sheet; the near one is free (drone-holo).
         if (moment.FarHolds) return landed with { BackArm = Rig.Reach(front, Rig.Arm, 1) };
         // Afloat one hand holds it and the other swims on.
         if (pose == Pose.Float) return landed with { FrontArm = Rig.Reach(front, Rig.Arm, 1) };

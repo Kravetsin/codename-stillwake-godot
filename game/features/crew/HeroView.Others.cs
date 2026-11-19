@@ -92,7 +92,6 @@ public partial class HeroView
             shown.Driver.Step(HeldLook.Drives(running) && seen.Busy is { Work: Handwork.Work }, seen.Busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null,
                 elapsedMs / 1000);
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
-            if (Busy.PokesAnew(shown.Busy, seen.Busy)) shown.Figure.Poke(seen.Busy!.Value.At.X / 1000.0, seen.Busy.Value.At.Y / 1000.0);
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion).
