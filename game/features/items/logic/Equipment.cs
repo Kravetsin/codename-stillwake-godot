@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Items;
 using Spec = Stillwake.Content;
 
@@ -28,19 +30,39 @@ public static class Equipment
     /// <summary>The kind of equipment slot <paramref name="place"/> is (head, back, belt); none for any other slot.</summary>
     public static string? KindOf(Place place) => Is(place) ? Spec.Inventory.Equipment[place.Slot - Spec.Inventory.Slots] : null;
 
-    /// <summary>
-    /// The kinds of equipment slot as the panel lays them out, a row each by where they are worn: the head; the body, the back
-    /// and the cape; the belt. Every kind once.
-    /// </summary>
-    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows =
-        [[Spec.Helmet.Slot], [Spec.Suit.Slot, "back", Spec.Cape.Slot], ["belt"]];
-
     /// <summary>The equipment slots of one <paramref name="kind"/>, in slot order.</summary>
     public static IEnumerable<Place> Of(string kind)
     {
         for (int i = 0; i < Spec.Inventory.Equipment.Count; i++)
             if (Spec.Inventory.Equipment[i] == kind) yield return new Place(Spec.Inventory.Slots + i);
     }
+
+    /// <summary>Every equipment slot, in slot order.</summary>
+    public static IEnumerable<Place> All()
+    {
+        for (int i = 0; i < Spec.Inventory.Equipment.Count; i++) yield return new Place(Spec.Inventory.Slots + i);
+    }
+
+    /// <summary>
+    /// Where equipment slot <paramref name="place"/> is by the doll (gear-tabs): each kind by the part it dresses, the belt's
+    /// slots in a row in slot order.
+    /// </summary>
+    public static DollSpot SpotOf(Place place)
+    {
+        var kind = KindOf(place) ?? throw new System.ArgumentException($"{place} is no equipment slot", nameof(place));
+        if (kind == "belt") return DollSpot.Belt1 + Of(kind).TakeWhile(p => p != place).Count();
+        return kind == Spec.Helmet.Slot ? DollSpot.Head
+            : kind == Spec.Suit.Slot ? DollSpot.Suit
+            : kind == Spec.Cape.Slot ? DollSpot.Cape
+            : kind == "back" ? DollSpot.Back
+            : throw new System.ArgumentException($"No place by the doll for {kind}", nameof(place));
+    }
+
+    /// <summary>
+    /// Whether the equipment's screen shows the Appearance tab (gear-tabs): while it was chosen, until a stack is lifted from any
+    /// slot, which turns it to the gear so a suit is never carried into the cosmetics.
+    /// </summary>
+    public static bool LooksShown(bool chosen, bool carrying) => chosen && !carrying;
 
     /// <summary>
     /// How <paramref name="place"/> shows while <paramref name="carried"/> is in hand or dragged: an equipment

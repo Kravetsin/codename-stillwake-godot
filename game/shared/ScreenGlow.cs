@@ -11,11 +11,7 @@ public static class ScreenGlow
     /// <summary>A soft round light of <paramref name="colour"/>, its alpha whole out to <paramref name="core"/> of its radius, added to what is under it.</summary>
     public static TextureRect Of(Color colour, float core)
     {
-        var gradient = new Gradient
-        {
-            Offsets = [0, core, 0.45f, 1],
-            Colors = [colour, colour, colour with { A = colour.A * 0.45f }, colour with { A = 0 }],
-        };
+        var gradient = new Gradient { Offsets = [0, core, 0.45f, 1], Colors = Colours(colour) };
         return new TextureRect
         {
             Texture = new GradientTexture2D
@@ -34,4 +30,9 @@ public static class ScreenGlow
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
     }
+
+    /// <summary>Turns a light <see cref="Of"/> made to <paramref name="colour"/>, its shape kept.</summary>
+    public static void Recolour(TextureRect glow, Color colour) => ((GradientTexture2D)glow.Texture).Gradient.Colors = Colours(colour);
+
+    private static Color[] Colours(Color colour) => [colour, colour, colour with { A = colour.A * 0.45f }, colour with { A = 0 }];
 }

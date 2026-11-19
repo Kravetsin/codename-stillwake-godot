@@ -73,7 +73,7 @@ public static partial class Ru
         ["research.district.machines"] = "Машины",
         ["research.district.farm"] = "Ферма и еда",
         ["research.district.walls"] = "Стены и постройки",
-        ["research.district.gear"] = "Снаряжение",
+        ["research.district.gear"] = "Инструменты и снаряжение",
         ["research.finds"] = "Находки",
         ["research.finds.readAll"] = "Прочитать всё",
         ["research.finds.none"] = "Пока ничего.",

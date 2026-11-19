@@ -53,6 +53,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 | `logic/Appearance.cs` | tab |
 | `AppearanceView.cs` | shown |
 | `SkinSlot.cs` | slot |
+| `HeroDoll.cs` | doll |
 | `logic/BladeFx.cs` | effects |
 | `logic/FireFx.cs` | fire |
 | `logic/RiftFx.cs` | rift |
@@ -133,10 +134,10 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 ## Guarantees
 
 - Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
-- A step never ends in a wall, shut door, hatch, off the grid; afloat, unjetted, within `Hero.Tether` of its anchor; a
+- A step never ends in a wall, shut door, hatch, off-grid; afloat, unjetted, within `Hero.Tether` of its anchor; a
   shut door pushes it `Hero.PushStep` to fit (0089). Doors go as shown (0014); presses send `SetDoor`, `SetValve`
   (0071), `SetPlatform`.
-- **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop it.
+- **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop.
 - **Jump** (0089): coyote, buffer, short hop; **the figure answers motion** (0090, hero-gait).
 - **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules, gravity the kind's `Fall`; fog glides a seam (fog-edges).
@@ -147,7 +148,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
   along bends (`Wraps`); jetpack unties; Shift vents unless `Hero.Cruising`.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling, red too soon (canister-mark).
 - **Dials** (hud-dials): meals (RMB `Eat`), purge held 3 s (food-tuning), the body.
-- **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; past death a last breath, `Succumb`; `SpeedOf` on foot.
+- **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; dying, a last breath, `Succumb`; `SpeedOf` on foot.
 - **Crew** made at `Spawn`; passed out, lies, no orders (0061). `Enter` when sim's room or side differ,
   each `Crew.ReportEvery` ticks off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on shin, a switched body lit by `SuitOn` (hero-lights); **limbs** one picture, bent
@@ -175,7 +176,7 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 - **Gun** (hold-to-fire): held fires each cooldown, `Charge` on release; kicks (body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs it (`Run`), hits a `Pace`, cutter's by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): H tap points, pings (crew-pings); held, wheel; item stowed. **Drone** (light-drone):
+- **Gestures** (gestures-for-words): H tap pings (crew-pings), held a wheel; item stowed. **Drone** (light-drone):
   RMB in hand pairs; F tap next mode, held a wheel; sent.
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap off; a hatch open
   climbs, shut floors; a short jump mantles.
@@ -184,4 +185,4 @@ This hero and others', client-authoritative (0002): only commands reach the sim.
 
 - Friends marked only while heard, unnamed; markers overlap.
 - A body dressed as its peer now (gone: first colour); it, a seated hero: no suit lights.
-- Others' swings never hold on contact; a friend's gun hangs, unaimed, unrecoiled.
+- Others' swings never hold on contact; a friend's gun hangs unaimed.

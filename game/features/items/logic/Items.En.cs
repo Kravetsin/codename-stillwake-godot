@@ -314,7 +314,7 @@ public static partial class En
         ["items.flat"] = "Batteries flat",
         ["items.notRunning"] = "Not running",
         ["items.creative"] = "creative",
-        ["items.looks"] = "Appearance: skins",
+        ["items.looks"] = "Appearance",
         ["items.gear"] = "Equipment",
     };
 }

@@ -284,6 +284,13 @@ public partial class Main : Node2D, ITogether
             AddChild(_items = new ItemsView(_hands.Ui));
             // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.
             _items.Panel.Appearance = size => new AppearanceView(_hands.Ui, size, () => _skins, _owned.Has, PickSkins);
+            // The equipment is laid round this player's own hero (gear-tabs), crew's doll, dressed whenever the slots are read.
+            HeroDoll? doll = null;
+            _items.Panel.Doll = size => doll = new HeroDoll(size, () => _session is Session s ? (_m.Items, _m.Players, s.Client.Id) : null);
+            _items.Panel.Refreshed += () =>
+            {
+                if (IsInstanceValid(doll)) doll!.Dress();
+            };
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
