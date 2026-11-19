@@ -80,7 +80,7 @@ public static class Clicks
     /// that is worn, takes off what is worn, and sends any other stack to the other side of an open crate, or with none
     /// between the bag and the hotbar (<see cref="Shifted"/>), the stack flying there. A click on the picked
     /// slot puts it back. A right click on a canister of the hero's own, nothing picked, breathes it into
-    /// the suit (0047) rather than picking half.
+    /// the suit (0047) rather than picking half; on a drone of the hero's own, it pairs it (drone-companion).
     /// </summary>
     public static Clicked On(Picked? picked, SlotClick click) => Flying(click.Shift && !click.Right, Click(picked, click), click.Stack?.Item);
 
@@ -145,6 +145,7 @@ public static class Clicks
                 return new Clicked(left > 0 ? p with { Count = left } : null, new Move(p.Place, place, 1));
             }
             if (picked == null && place.Crate == null && stack?.Item == CrewSpec.Canister) return new Clicked(null, Breathes: true);
+            if (picked == null && place.Crate == null && stack?.Item == Stillwake.Content.LightDrone.Item) return new Clicked(null, new Stillwake.Sim.Crew.PairDrone());
             if (picked == null && place.Crate == null && stack is { } food && Stillwake.Content.Foods.Of(food.Item) != null) return new Clicked(null, Eats: food.Item);
             return new Clicked(stack != null ? new Picked(place, (stack.Count + 1) / 2) : null);
         }

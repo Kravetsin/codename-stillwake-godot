@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Items;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Items;
 using Xunit;
 using Spec = Stillwake.Content;
@@ -104,6 +105,15 @@ public class ClickTests
         var rations = new Stack("ration", 3);
         Assert.Equal(new Clicked(null, Eats: "ration"), Clicks.On(null, Click(Inv(4), rations, right: true)));
         Assert.Equal(new Clicked(new Picked(Box(1), 2)), Clicks.On(null, Click(Box(1), rations, right: true)));
+    }
+
+    [Fact]
+    public void PairADroneOfTheHerosOwnWithTheRightButtonNothingPicked()
+    {
+        var drone = new Stack(Spec.LightDrone.Item, 1);
+        Assert.Equal(new Clicked(null, new PairDrone()), Clicks.On(null, Click(Inv(12), drone, right: true)));
+        // In a crate it is picked as any stack.
+        Assert.Equal(new Clicked(new Picked(Box(1), 1)), Clicks.On(null, Click(Box(1), drone, right: true)));
     }
 
     [Fact]
