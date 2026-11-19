@@ -22,28 +22,16 @@ public class TabletPeekTests
     public void ALittleOfTheDarkScreenShowsAboveTheFoot()
     {
         Assert.Equal(714, TabletPeek.ScreenTop(Tall));
-        // Laid past the foot, so no bottom edge of the rim ever shows.
-        Assert.True(TabletPeek.ScreenTop(Tall) + TabletPeek.RimTall > Tall);
+        Assert.Equal(682, TabletPeek.RimArtTop(Tall));
     }
 
+    /// <summary>The keys stay where they stood over the rim (holo windows); a window rests a margin above them, higher as they grow.</summary>
     [Fact]
-    public void ATabletOfAnySizeStartsAsTheRimAndEndsWhereItRests()
+    public void TheKeysStayAtTheFootAndAWindowRestsAboveThem()
     {
-        var rest = (Left: 329f, Top: 516f, Width: 622f);
-        var rim = TabletPeek.Pose(0, rest, Wide, Tall);
-        Assert.Equal(TabletPeek.ScreenLeft(Wide), rim.Left);
-        Assert.Equal(TabletPeek.ScreenTop(Tall), rim.Top);
-        Assert.Equal(TabletPeek.ScreenWidth(Wide), rim.Width);
-        Assert.Equal(rest, TabletPeek.Pose(1, rest, Wide, Tall));
-    }
-
-    [Fact]
-    public void HalfWayUpItIsHalfWayToItsRest()
-    {
-        var at = TabletPeek.Pose(0.5, (329, 516, 622), Wide, Tall);
-        Assert.Equal((TabletPeek.ScreenLeft(Wide) + 329) / 2, at.Left, 0.5f);
-        Assert.Equal((714 + 516) / 2f, at.Top, 0.5f);
-        Assert.Equal((TabletPeek.ScreenWidth(Wide) + 622) / 2, at.Width, 0.5f);
+        Assert.Equal(665, TabletPeek.KeysTop(Tall, 1));
+        Assert.Equal(665 - TabletPeek.Margin, TabletPeek.Floor(Tall, 1));
+        Assert.True(TabletPeek.Floor(Tall, 1.5f) < TabletPeek.Floor(Tall, 1));
     }
 
     [Fact]

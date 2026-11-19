@@ -176,10 +176,9 @@ public partial class HandbookPanel : CanvasLayer
         _tablet.Step(_open, delta);
         if (!_tablet.Shown) return;
         var screen = _tablet.GetViewportRect().Size;
-        // Centred with its bezel, which reaches further above and to the right of the screen than below and to the left.
-        const int s = TabletLayout.ArtScale;
-        var art = new Vector2(_at.Width + TabletLayout.ArtAround * s, _at.Height + TabletLayout.ArtAround * s);
-        var rest = ((screen - art) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
+        // Centred over the keys, never down on them.
+        float floor = TabletPeek.Floor(screen.Y, EdgeRow.Grown(_ui.Slot));
+        var rest = new Vector2(Mathf.Round((screen.X - _at.Width) / 2), Mathf.Max(TabletPeek.Margin, Mathf.Round((floor - _at.Height) / 2)));
         _tablet.Lay(rest.X, rest.Y, _at.Width, _at.Height);
         int height = BodyHeight();
         _scroll = _at.Scrolled(_scroll, 0, height);

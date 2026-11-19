@@ -183,14 +183,13 @@ public partial class ResearchTablet : CanvasLayer
         Read(_world()!);
     }
 
-    /// <summary>The tablet at rest in the middle of the window, as large as its art lets it be, and the strips on its screen.</summary>
+    /// <summary>The window across the screen down to the keys (<see cref="TabletPeek.Floor"/>), a margin round it, and the strips on its screen.</summary>
     private void LayOut()
     {
         var screen = _tablet.GetViewportRect().Size;
-        const int s = TabletLayout.ArtScale, around = TabletLayout.ArtAround * s, pad = TabletLayout.Pad;
-        float width = TabletPeek.ScreenWidth(screen.X), height = Mathf.Floor(screen.Y - around - 2 * TabletPeek.Margin);
-        var rest = ((screen - new Vector2(width + around, height + around)) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
-        _tablet.Lay(rest.X, rest.Y, width, height);
+        const int pad = TabletLayout.Pad, margin = TabletPeek.Margin;
+        float width = screen.X - 2 * margin, height = Mathf.Floor(TabletPeek.Floor(screen.Y, EdgeRow.Grown(_ui.Slot)) - margin);
+        _tablet.Lay(margin, margin, width, height);
         _detail.Position = new Vector2(pad, height - pad - DetailTall);
         _detail.Size = new Vector2(width - 2 * pad, DetailTall);
         _parts.Facts.Position = new Vector2(pad, pad);
