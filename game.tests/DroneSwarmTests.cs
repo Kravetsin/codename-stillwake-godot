@@ -10,8 +10,8 @@ public class DroneSwarmTests
     private static readonly SwarmShape[] Shapes = [SwarmShape.Idle, SwarmShape.Lamp, SwarmShape.Scan, SwarmShape.Sign];
     private static readonly float[] Aims = [0, 1.2f, MathF.PI, -2.5f, -MathF.PI / 2];
 
-    /// <summary>How far from the core anything of it reaches, world px: the comb's teeth at their longest (the pick's 23 canvas px).</summary>
-    private const float Reach = 6;
+    /// <summary>How far from the core anything of it reaches, world px: the spyglass's ring with its draw out (companion-scan's 32 canvas px).</summary>
+    private const float Reach = 8;
 
     private static float Apart(Plate a, Plate b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
     private static float Apart(Mote a, Mote b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
@@ -111,7 +111,7 @@ public class DroneSwarmTests
     {
         var swarm = new DroneSwarm();
         swarm.Become(SwarmShape.Lamp, 0, 0);
-        swarm.Become(SwarmShape.Scan, 0, 5000);
+        swarm.Become(SwarmShape.Sign, 0, 5000);
         for (int i = 0; i < Plates; i++)
         {
             var flips = new List<float>();
@@ -128,8 +128,10 @@ public class DroneSwarmTests
     [Fact]
     public void AShapeHoldsItsPlatesFaceOnAndIdleOnesTumble()
     {
-        foreach (var shape in (SwarmShape[])[SwarmShape.Lamp, SwarmShape.Scan, SwarmShape.Sign])
+        foreach (var shape in (SwarmShape[])[SwarmShape.Lamp, SwarmShape.Sign])
             for (int i = 0; i < Plates; i++) Assert.Equal(1, DroneSwarm.PlateIn(shape, i, 0.3f, 7).Flip);
+        // The spyglass's draws are turned half away, never edge on.
+        for (int i = 0; i < Plates; i++) Assert.InRange(DroneSwarm.PlateIn(SwarmShape.Scan, i, 0.3f, 7).Flip, 0.3f, 0.7f);
         for (int i = 0; i < Plates; i++)
         {
             var flips = Enumerable.Range(0, 400).Select(k => DroneSwarm.PlateIn(SwarmShape.Idle, i, 0, k * 0.1f).Flip).ToArray();
@@ -160,14 +162,27 @@ public class DroneSwarmTests
     }
 
     [Fact]
-    public void TheCombsTeethReachAheadAndGlowMostAtTheTips()
+    public void TheSpyglassLiesAlongTheAimItsFrontDrawSlidingToFocusARingAtItsMouthAHoodBehind()
     {
-        var teeth = Enumerable.Range(0, Motes).Select(i => DroneSwarm.MoteIn(SwarmShape.Scan, i, 0, 2)).ToArray();
-        Assert.All(teeth, m => Assert.True(m.Front && m.X > 1.5f, "the comb stands before the core"));
-        var far = teeth.OrderByDescending(m => m.X).Take(20).ToArray();
-        var near = teeth.OrderBy(m => m.X).Take(20).ToArray();
-        Assert.True(far.Average(m => m.Glow) > near.Average(m => m.Glow) + 0.3f);
-        Assert.True(far.Average(m => m.Side) < near.Average(m => m.Side));
+        foreach (float aim in (float[])[0, MathF.PI, 0.7f, -2.2f])
+        {
+            var (ax, ay) = (MathF.Cos(aim), MathF.Sin(aim));
+            float Ahead(float x, float y) => x * ax + y * ay;
+            var plates = Enumerable.Range(0, Plates).Select(i => DroneSwarm.PlateIn(SwarmShape.Scan, i, aim, 2)).ToArray();
+            Assert.All(plates, p => Assert.True(Ahead(p.X, p.Y) > 1, "the tube is before the core"));
+            Assert.True(Ahead(plates[1].X, plates[1].Y) > Ahead(plates[0].X, plates[0].Y) + 2, "the front draw is further out");
+            var motes = Enumerable.Range(0, Motes).Select(i => DroneSwarm.MoteIn(SwarmShape.Scan, i, aim, 2)).ToArray();
+            var ring = motes.Where(m => m.Glow >= 0.3f).ToArray();
+            var hood = motes.Where(m => !m.Front && m.Glow == 0).ToArray();
+            Assert.True(ring.Length > Motes / 3, "most soot is the ring");
+            Assert.All(ring, m => Assert.True(Ahead(m.X, m.Y) > 5.5f, "the ring is at the mouth"));
+            Assert.True(hood.Length > Motes / 6, "a hood of soot is behind");
+            Assert.All(hood, m => Assert.True(Ahead(m.X, m.Y) < 0, "the hood is behind the core"));
+        }
+        // The front draw slides in and out with time, the back one stays.
+        var reach = Enumerable.Range(0, 100).Select(k => DroneSwarm.PlateIn(SwarmShape.Scan, 1, 0, k * 0.1f).X).ToArray();
+        Assert.True(reach.Max() - reach.Min() > 1, "the front draw focuses");
+        Assert.Equal(DroneSwarm.PlateIn(SwarmShape.Scan, 0, 0, 1).X, DroneSwarm.PlateIn(SwarmShape.Scan, 0, 0, 4).X, 1);
     }
 
     [Fact]

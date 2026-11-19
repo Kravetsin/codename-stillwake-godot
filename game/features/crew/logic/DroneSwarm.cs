@@ -13,7 +13,7 @@ public enum SwarmShape
     /// <summary>A soot mirror behind the core, its inner face lit, the plates in a dish before it, open toward the aim.</summary>
     Lamp,
 
-    /// <summary>A comb of soot teeth before the core, sweeping about the aim, lit at the tips, the plates along its back.</summary>
+    /// <summary>A spyglass on the aim (companion-scan, «Подзорная труба»): the plates its two draws, the front one sliding to focus, a soot ring at its mouth, a soot hood behind the core.</summary>
     Scan,
 
     /// <summary>The plates fanned toward the gesture's hologram above, glowing; the soot keeps its idle orbits.</summary>
@@ -56,8 +56,11 @@ public sealed class DroneSwarm
         /// <summary>The lamp's plates: the dish's half height, how far behind the core its middle is, its curve (depth = half²/this).</summary>
         public const float DishHalf = 3, DishBack = 2.75f, DishCurve = 6;
 
-        /// <summary>The scanner's plates: how far ahead, half the row; the comb's sweep's swing and pace, radians and radians a second; their glow.</summary>
-        public const float CombAhead = 2.375f, CombHalf = 2.5f, Sweep = 0.5f, SweepPace = 3.1f, CombGlow = 0.6f;
+        /// <summary>The spyglass's plates: the back draw's distance ahead and half width, the front draw's, the front's glow; the tremor on the aim and its pace.</summary>
+        public const float BackDraw = 1.5f, BackHalf = 1.1f, FrontDraw = 3.75f, FrontHalf = 0.85f, FrontGlow = 0.2f, Tremor = 0.012f, TremorPace = 6.3f;
+
+        /// <summary>The spyglass focusing: the front draw's least slide out, how much further it goes, its pace; how far the plates are turned (1 face on), the front's swing.</summary>
+        public const float FocusLeast = 0.25f, FocusMore = 1.125f, FocusPace = 1.15f, BackFlip = 0.62f, FrontFlip = 0.5f, FrontFlipSwing = 0.12f;
 
         /// <summary>The sign's fan: its reach, half its spread and its turn off straight up, radians.</summary>
         public const float FanReach = 2.25f, FanSpread = 0.8f, FanOff = -0.15f;
@@ -71,14 +74,14 @@ public sealed class DroneSwarm
         /// <summary>The soot mirror: half its height, how far behind the core its middle is, its curve, its thickness, its shimmer; the share of its lit face and that light.</summary>
         public const float MirrorHalf = 4, MirrorBack = 1.5f, MirrorCurve = 6, MirrorThick = 0.8f, MirrorShimmer = 0.0875f, MirrorLit = 0.22f, MirrorGlow = 0.55f;
 
-        /// <summary>The comb's soot: the share in its back, that back's distance, depth and half height, its light.</summary>
-        public const float CombBack = 0.4f, CombBackAt = 2, CombBackDeep = 0.625f, CombBackHalf = 3.5f, CombBackGlow = 0.15f;
+        /// <summary>The spyglass's soot: the share round the core, its radius, how much wider, its pace, its light.</summary>
+        public const float GlassCore = 0.2f, GlassCoreR = 1, GlassCoreMore = 0.625f, GlassCorePace = 1.1f, GlassCoreGlow = 0.1f;
 
-        /// <summary>The comb's teeth: half the row, where they start, their reach and its flicker, its pace; how much a tip shrinks.</summary>
-        public const float TeethHalf = 3.25f, TeethFrom = 2.625f, TeethReach = 1.5f, TeethFlicker = 0.625f, TeethPace = 7, TipShrink = 0.4f;
+        /// <summary>The hood behind the core: the share up to it (with the core's), its distance back and how much deeper, its radius and more, its pace.</summary>
+        public const float HoodTo = 0.48f, HoodBack = 1.75f, HoodDeep = 0.75f, HoodR = 0.5f, HoodRMore = 0.875f, HoodPace = 0.6f;
 
-        /// <summary>How many teeth the comb has.</summary>
-        public const int Teeth = 10;
+        /// <summary>The ring at the mouth: its distance ahead (plus the focus), its depth and more, its half height, how much the focus narrows it, its pace, its light.</summary>
+        public const float RingAt = 6, RingDeep = 0.35f, RingDeepMore = 0.2f, RingHalf = 1.4f, RingNarrow = 0.45f, RingPace = 2.4f, RingGlow = 0.3f;
 
         /// <summary>A mote's least side and how much more the largest has.</summary>
         public const float MoteSide = 0.225f, MoteSideMore = 0.225f;
@@ -240,9 +243,13 @@ public sealed class DroneSwarm
                 }
             case SwarmShape.Scan:
                 {
-                    float swung = aim + MathF.Sin(t * Tune.SweepPace) * Tune.Sweep;
-                    var (px, py) = Rotate(Tune.CombAhead, w * Tune.CombHalf, swung);
-                    return new Plate(px, py, swung + MathF.PI / 2, true, Tune.CombGlow, 1, 1);
+                    // Two draws, each a plate above and below the line: the back one still, the front one sliding to focus.
+                    float held = aim + MathF.Sin(t * Tune.TremorPace) * Tune.Tremor;
+                    bool front = i % 2 == 1;
+                    float up = i < 2 ? -1 : 1, ext = Focus(t);
+                    var (px, py) = Rotate(front ? Tune.FrontDraw + ext : Tune.BackDraw, up * (front ? Tune.FrontHalf : Tune.BackHalf), held);
+                    float flip = front ? Tune.FrontFlip + Tune.FrontFlipSwing * MathF.Sin(t * Tune.FocusPace + i) : Tune.BackFlip;
+                    return new Plate(px, py, held, true, front ? Tune.FrontGlow : 0, 1, flip);
                 }
             case SwarmShape.Sign:
                 {
@@ -276,17 +283,21 @@ public sealed class DroneSwarm
                 }
             case SwarmShape.Scan:
                 {
-                    float swung = aim + MathF.Sin(t * Tune.SweepPace) * Tune.Sweep;
-                    if (seed.R3 < Tune.CombBack)
+                    if (seed.R3 < Tune.GlassCore)
                     {
-                        var (bx, by) = Rotate(Tune.CombBackAt + seed.R2 * Tune.CombBackDeep, (seed.R1 * 2 - 1) * Tune.CombBackHalf, swung);
-                        return new Mote(bx, by, seed.Size, true, Tune.CombBackGlow, heat, seed.Dark);
+                        float th = seed.Phase + t * Tune.GlassCorePace, r = Tune.GlassCoreR + seed.R1 * Tune.GlassCoreMore;
+                        return new Mote(MathF.Cos(th) * r, MathF.Sin(th) * r * 0.75f, seed.Size, MathF.Sin(th) >= 0, Tune.GlassCoreGlow, heat, seed.Dark);
                     }
-                    int tooth = i % Tune.Teeth;
-                    float along = seed.R1, y = (tooth / (Tune.Teeth - 1f) * 2 - 1) * Tune.TeethHalf;
-                    float x = Tune.TeethFrom + along * (Tune.TeethReach + Tune.TeethFlicker * MathF.Sin(t * Tune.TeethPace + tooth * 1.7f));
-                    var (px, py) = Rotate(x, y, swung);
-                    return new Mote(px, py, seed.Size * (1 - along * Tune.TipShrink), true, 0.25f + 0.75f * along, heat, seed.Dark);
+                    if (seed.R3 < Tune.HoodTo)
+                    {
+                        float a = seed.Phase + t * Tune.HoodPace, rr = Tune.HoodR + seed.R1 * Tune.HoodRMore;
+                        var (hx, hy) = Rotate(-Tune.HoodBack - seed.R2 * Tune.HoodDeep + MathF.Cos(a) * rr * 0.5f, MathF.Sin(a) * rr, aim);
+                        return new Mote(hx, hy, seed.Size, false, 0, heat, seed.Dark);
+                    }
+                    float ext = Focus(t), round = seed.Phase + t * Tune.RingPace;
+                    float half = (Tune.RingHalf - Tune.RingNarrow * ext) * (0.85f + 0.3f * seed.R1);
+                    var (px, py) = Rotate(Tune.RingAt + ext + MathF.Cos(round) * (Tune.RingDeep + seed.R1 * Tune.RingDeepMore), MathF.Sin(round) * half, aim);
+                    return new Mote(px, py, seed.Size, MathF.Cos(round) >= 0, Tune.RingGlow, heat, seed.Dark);
                 }
             default:
                 {
@@ -300,6 +311,9 @@ public sealed class DroneSwarm
                 }
         }
     }
+
+    /// <summary>How far the spyglass's front draw has slid out at <paramref name="t"/>, focusing back and forth.</summary>
+    private static float Focus(float t) => Tune.FocusLeast + Tune.FocusMore * (0.5f + 0.5f * MathF.Sin(t * Tune.FocusPace));
 
     /// <summary>How hot a mote is at <paramref name="t"/>: a flicker round the middle for a hot one, none for the rest.</summary>
     private static float Heat((float Phase, float R1, float R2, float R3, float Size, bool Hot, bool Dark) seed, float t) =>
