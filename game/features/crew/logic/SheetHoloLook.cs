@@ -33,12 +33,11 @@ public static class SheetHoloLook
 
     /// <summary>
     /// A drone window projected (not a plan held): the drone before the hero, <see cref="OverAhead"/> past its middle the way it
-    /// faces and <see cref="OverUp"/> over its feet; the band <see cref="OverRise"/> over the drone, arched round a point
-    /// <see cref="OverRadius"/> under its middle.
+    /// faces and <see cref="OverUp"/> over its feet; its motes' cloud (<see cref="DroneMotesLook"/>) <see cref="OverRise"/> over it.
     /// </summary>
-    public const double OverAhead = 14, OverUp = 12, OverRise = 16, OverRadius = 14;
+    public const double OverAhead = 16, OverUp = 12, OverRise = 9;
 
-    /// <summary>How near its place before the hero the drone is before the band comes on, pixels.</summary>
+    /// <summary>How near its place before the hero the drone first is before the motes come on, pixels; they stay on as it follows after.</summary>
     public const double OverArrived = 1.5;
 
     /// <summary>The light it throws on the helmet and what is near, a share of the planner sheet's.</summary>

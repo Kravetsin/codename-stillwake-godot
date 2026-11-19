@@ -365,6 +365,7 @@ public partial class Figure : Node2D
         // light-drone (a try): the lamp and the scanner float by the head instead, the helmet carrying neither.
         AddChild(_drone);
         AddChild(_holo);
+        AddChild(_motes);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -766,6 +767,7 @@ public partial class Figure : Node2D
     private static readonly Vector2 SheetMiddle = new(9, 0.5f);
 
     private readonly SheetHolo _holo = new();
+    private readonly DroneMotes _motes = new();
     private readonly double _holoSeed = Random.Shared.NextDouble() * 100;
     private double _holoIn;
     private bool _holoComing, _holoOver, _droneThere;
@@ -1749,12 +1751,13 @@ public partial class Figure : Node2D
         _sealBent.Show(_fit.SealBy(_gaze));
         if (_drone.Visible)
         {
-            // Drawing the sheet, its lens turns to it; projecting a window, it floats before the hero's waist, bare as it used to frame it.
-            var toward = _holo.Visible ? (_holo.Middle - _drone.GlobalPosition).Normalized() : HeadLampToward;
+            // Drawing the sheet, its lens turns to it; projecting a window, it floats before the hero's waist, bare as it used to frame it,
+            // its lens up to its motes.
+            var toward = overDrone ? Vector2.Up : _holo.Visible ? (_holo.Middle - _drone.GlobalPosition).Normalized() : HeadLampToward;
             var feet = _frame.ToGlobal(Vector2.Zero);
             Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;
             _drone.Follow(_helmet.GlobalPosition, hero.Facing, toward, elapsedMs, _timeMs, before);
-            _droneThere = before != null && _drone.Off < SheetHoloLook.OverArrived;
+            _droneThere = before != null && (_droneThere || _drone.Off < SheetHoloLook.OverArrived);
             _drone.Projecting = overDrone;
             _drone.Window(overDrone, 0);
             _drone.Sign(signing ? Gesture : null);
@@ -1775,11 +1778,8 @@ public partial class Figure : Node2D
             float glow = GlowStrength * (float)(1 + 1.5 * thrust);
             _glow.Colour = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow);
         }
-        if (overDrone)
-        {
-            var middle = _drone.GlobalPosition + new Vector2(0, (float)-SheetHoloLook.OverRise);
-            _holo.Show(_holoIn, _holoComing, middle + new Vector2(0, (float)SheetHoloLook.OverRadius), middle, _drone.LensBox.GetCenter(), 0, _timeMs, _holoSeed);
-        }
+        _motes.Show(overDrone ? _holoIn : 0, _holoComing, _drone.GlobalPosition + new Vector2(0, (float)-SheetHoloLook.OverRise), _drone.LensBox.GetCenter(), _timeMs, _holoSeed);
+        if (overDrone) _holo.Show(0, false, default, default, default, 0, 0, 0);
         else if (projecting && holding)
         {
             var lens = _drone.LensBox.GetCenter();
