@@ -237,16 +237,18 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The open station's hologram, a frame on: the panel's contents faded in as it grows. A machine the items feature shows
-    /// makes it go at once; shut, it shrinks and pulls back where the panel was.
+    /// The open station's hologram, a frame on: the panel's controls shown as the pens trace it, the panel trailing the hero
+    /// as the items feature's windows do (<c>Ui.HoloSway</c>). A machine the items feature shows makes it go at once;
+    /// shut, it plays back where the panel was.
     /// </summary>
     private void Hologram(double delta)
     {
-        float shown = 0;
+        _panel.Sway(new Vector2(_ui.HoloSway.X, _ui.HoloSway.Y));
+        var shown = HoloReveal.None;
         if (_panel.Visible && Open is var (pod, _)) shown = _holo.Step(delta, new MachineHolo.Target(pod, _panel.GetGlobalRect(), _holoBox, _panel.Tone));
         else if (_ui.OpenCrate.Get() != null) _holo.Snap();
         else _holo.Step(delta, null);
-        _panel.Modulate = Colors.White with { A = shown };
+        _panel.Reveal(shown);
     }
 
     /// <summary>Reads the client's world on a timer, through the current registry: a load or a resync brings new modules.</summary>
@@ -267,7 +269,7 @@ public partial class FabricatorPanel : CanvasLayer
         bool shown = Open != null;
         _panel.Visible = shown;
         // Where the items feature opens every other machine: under the grid, level with its left edge (0058).
-        if (shown && foot is var (left, bottom)) _panel.Position = new Vector2(left, bottom + Gap);
+        if (shown && foot is var (left, bottom)) _panel.Place(new Vector2(left, bottom + Gap));
         if (!shown) _tips.Show(null);
         Read();
     }

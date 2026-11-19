@@ -81,6 +81,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The open machine's hologram under every panel, and the machine's box in world pixels it beams from.</summary>
     private MachineHolo? _holo;
     private Rect2 _holoBox;
+    /// <summary>How far the hologram windows trail the hero, and where the hero was on the last frame, in the world's pixels.</summary>
+    private readonly HoloSway _sway = new();
+    private (float X, float Y)? _heroWas;
     /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
     private GridContainer _bag = null!;
     /// <summary>The trash's own frame (trash-slot), the slot alone inside the paired bag's window, and the column holding the bag with it under the bag's right edge.</summary>
@@ -330,17 +333,13 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The paired bag as the drone projects it (drone-companion): one window on the hologram <see cref="_bagHolo"/> draws, the bag
+    /// The paired bag as the drone projects it (drone-companion): one hologram window <see cref="_bagHolo"/> draws, the bag
     /// with the trash under its right edge, the sort and stash keys at its right as a crate's sort key is in its header. Its
     /// margins are a machine window's (<see cref="MachineFrame"/>), so every slot keeps its place.
     /// </summary>
     private void Projected()
     {
-        var margins = new StyleBoxEmpty();
-        margins.SetContentMarginAll(8);
-        margins.ContentMarginLeft = margins.ContentMarginRight = Slots.ScreenPadding;
-        var window = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin, MouseFilter = Control.MouseFilterEnum.Stop };
-        window.AddThemeStyleboxOverride("panel", margins);
+        var window = new HoloWindow();
         var slots = Style.Gap(new VBoxContainer(), 8);
         slots.AddChild(_bag);
         _trashBox.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
@@ -667,14 +666,18 @@ public partial class InventoryPanel : CanvasLayer
         if (Input.MouseMode != mode) Input.MouseMode = mode;
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
+        Sway(delta, carrying);
         Hologram(delta);
         Cooling(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         // As small as what it shows: the skins' strip closed or the equipment back, it shrinks again.
         if (_body.GetCombinedMinimumSize() is var least && _body.Size != least) _body.Size = least;
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
+        // Where the bag stands, not where it sways to: a station's panel docked under it sways by itself.
+        var still = (_inventory as HoloWindow)?.Offset ?? Vector2.Zero;
         var grid = _inventory.GetGlobalRect();
-        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, _trash.Visible ? Math.Max(grid.End.Y, _trash.GetGlobalRect().End.Y) : grid.End.Y) : null);
+        grid.Position -= still;
+        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, _trash.Visible ? Math.Max(grid.End.Y, _trash.GetGlobalRect().End.Y - still.Y) : grid.End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }

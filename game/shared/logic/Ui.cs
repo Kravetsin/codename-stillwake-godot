@@ -342,6 +342,12 @@ public sealed class Ui
     public (float X, float Y)? BagProjected { get; set; }
 
     /// <summary>
+    /// How far every hologram window trails the hero this frame, in screen pixels (<c>HoloSway</c>, the motion «Отставание»).
+    /// Set by <c>items</c> every frame; <c>crafting</c> carries its station's panel by it.
+    /// </summary>
+    public (float X, float Y) HoloSway { get; set; }
+
+    /// <summary>
     /// The point of every running drill as last drawn, in the world's pixels, and which drill it is. Set by <c>crew</c> every
     /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
     /// </summary>

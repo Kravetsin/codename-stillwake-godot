@@ -207,31 +207,53 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The open machine's hologram, a frame on: its window's contents faded in as it grows. A machine another feature shows (a
-    /// queued station's) makes it go at once; shut, it shrinks and pulls back where the window was.
+    /// The open machine's hologram, a frame on: its window's controls shown as the pens trace it. A machine another feature
+    /// shows (a queued station's) makes it go at once; shut, it plays back where the window was.
     /// </summary>
     private void Hologram(double delta)
     {
         if (_holo == null) return;
         if (_frame != null && Crate is int open)
-            _frame.Modulate = Colors.White with { A = _holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)) };
+            _frame.Reveal(_holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)));
         else if (Crate != null) _holo.Snap();
         else _holo.Step(delta, null);
         BagHologram(delta);
     }
 
     /// <summary>
-    /// The paired bag's hologram (drone-companion), as a machine's: beamed from the drone's lens while the bag shows, its contents
-    /// faded in as it grows; with no drone shown, no beam. Where its window is goes to <c>crew</c>, for the drone to face.
+    /// The paired bag's hologram (drone-companion), as a machine's: beamed from the drone's lens while the bag shows, its controls
+    /// shown as the pens trace it; with no drone shown, no beam. Where its window is goes to <c>crew</c>, for the drone to face.
     /// </summary>
     private void BagHologram(double delta)
     {
         bool projected = Shown && _bagHolo != null;
         _ui.BagProjected = projected && _inventory.GetGlobalRect() is { Size: { X: > 0, Y: > 0 } } at ? (at.GetCenter().X, at.GetCenter().Y) : null;
-        if (_bagHolo == null) return;
+        if (_bagHolo == null || _inventory is not HoloWindow window) return;
         var lens = _ui.DroneLens is var (x, y, w, h) ? new Rect2(x, y, w, h) : default;
-        float shown = _bagHolo.Step(delta, projected ? new MachineHolo.Target(BagHolo, _inventory.GetGlobalRect(), lens, HoloTone.Drone) : null);
-        _inventory.Modulate = Colors.White with { A = shown };
+        window.Reveal(_bagHolo.Step(delta, projected ? new MachineHolo.Target(BagHolo, window.GetGlobalRect(), lens, HoloTone.Drone) : null));
+    }
+
+    /// <summary>
+    /// The hologram windows trailing the hero (the motion «Отставание»): the paired bag's and the open machine's, by the hero's
+    /// velocity on the screen; calmed while the pointer is in one or a stack is carried. The wrist, hotbar and equipment never move.
+    /// </summary>
+    private void Sway(double delta, bool carrying)
+    {
+        (float X, float Y)? hero = _ui.Heroes.Count > 0 ? _ui.Heroes[0] : null;
+        double vx = 0, vy = 0;
+        if (delta > 0 && hero is var (hx, hy) && _heroWas is var (wx, wy))
+        {
+            // The world's pixels to the screen's, as the camera zooms.
+            float zoom = _root.GetViewport().GetCanvasTransform().X.Length();
+            (vx, vy) = ((hx - wx) * zoom / delta, (hy - wy) * zoom / delta);
+        }
+        _heroWas = hero;
+        bool pointed = Shown && HoloWindow.Holds(_root.GetViewport().GuiGetHoveredControl());
+        _sway.Step(delta, vx, vy, pointed || carrying);
+        _ui.HoloSway = _sway.Offset;
+        var offset = new Vector2(_sway.Offset.X, _sway.Offset.Y);
+        _frame?.Sway(offset);
+        (_inventory as HoloWindow)?.Sway(offset);
     }
 
     /// <summary>
