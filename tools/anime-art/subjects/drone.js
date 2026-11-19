@@ -1,14 +1,16 @@
-// The light drone (drone-swarm), the user's pick «Рой»: an iron core holding ten scrap shards by its field. The pick page's own pen
-// and paint, its small swarm (build(0)), drawn straight (no finish), 4 hi-res pixels a world pixel as there. drone_core: the core
-// and its rust, one picture (it is round), CoreBox world px, its middle at the box's. drone_shards: a row per shard, each at Turns
-// angles, ShardBox world px each, its middle at the box's. Where the shards fly, the lens, the field's threads and the glow are the
-// game's (DroneSwarm.cs, LightDrone.cs), since they move or light. items/lightDrone: the swarm idle, its lamp on.
+// The light drone (drone-swarm), the user's pick «Пепел в латах»: an iron core, its body a cloud of soot, four scrap plates riding
+// it as armour. The pick page's own pen and paint, its small level (makeAsh's build(0)), drawn straight (no finish), 4 hi-res pixels
+// a world pixel as there. drone_core: the core and its rust, one picture (it is round), CoreBox world px, its middle at the box's.
+// drone_plates: a row per plate, its face at Turns angles then its rusty back (the pick's flipY by -1) at as many, PlateBox world px
+// each, its middle at the box's; the game squashes one across its long axis as it turns over. The soot, where it all flies, the
+// lens, the field's threads and the glow are the game's (DroneSwarm.cs, LightDrone.cs), since they move or light. items/lightDrone:
+// the drone idle, its lamp on.
 (function () {
 'use strict';
-const Turns = 8, CoreBox = 4, ShardBox = 4, K = 4;
-const INK = '#16171b', LAMP = [255, 212, 150];
+const Turns = 8, CoreBox = 4, PlateBox = 6, K = 4;
+const INK = '#16171b', LAMP = [255, 212, 150], EMBER = [255, 138, 58];
 const STEEL = ['#8b9199', '#61666e', '#3b3f46'], DARK = ['#5b6067', '#42464c', '#2a2d32'], ORANGE = ['#a36c3b', '#7a512f', '#4c331f'];
-const OLIVE = ['#6b745f', '#4e5546', '#30352c'], BRONZE = ['#8d7a5a', '#685a43', '#41382a'];
+const OLIVE = ['#6b745f', '#4e5546', '#30352c'], BRONZE = ['#8d7a5a', '#685a43', '#41382a'], RUSTY = ['#6e5646', '#4f3e33', '#30261f'];
 const css = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
 const pale = (c, k) => [c[0] + (255 - c[0]) * k, c[1] + (255 - c[1]) * k, c[2] + (255 - c[2]) * k];
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
@@ -106,27 +108,58 @@ function piece(c, x, y, a, sh, col, lw = 1.1, rb = null) {
   c.restore();
 }
 
-// The pick's small swarm, drawn from its seeds in its order: each shard's phase and pace are DroneSwarm.cs's Shards.
-const swarm = (() => {
-  const r = rng(101), pal = [STEEL, ORANGE, DARK, STEEL, OLIVE, BRONZE], sh = [];
-  for (let i = 0; i < 10; i++) {
-    const s = shardShape(r, 3.3 + r() * 1.5);
-    s.col = pal[(r() * pal.length) | 0]; s.rb = r() < .45 ? blobAt(r, (r() - .5) * 2, (r() - .5) * 1.5, 1.1) : null;
-    s.ph = r() * 6.283; s.rr = r(); sh.push(s);
+// A plate seen turned about its long axis: k = 1 face on, -1 its back (the pick's flipY).
+function flipY(sh, k) { return { p: sh.p, segs: sh.segs.map(g => [g[0], g[1] * k, g[2], g[3] * k, g[4], g[5] * k, g[6]]), closed: true, cx: sh.cx, cy: sh.cy * k }; }
+
+// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces DroneSwarm.cs's
+// PlateSeeds, the soot its dustSet (seed 530), as DroneSwarm.cs draws it.
+const ash = (() => {
+  const r = rng(501), pal = [STEEL, ORANGE, OLIVE, BRONZE], sh = [];
+  for (let i = 0; i < 4; i++) {
+    const s = shardShape(r, 5.6 + r() * 1.2);
+    s.col = pal[i]; s.rb = r() < .6 ? blobAt(r, (r() - .5) * 4, (r() - .5) * 2, 1.5) : null; s.ph = r() * 6.283; s.rr = r(); sh.push(s);
   }
-  return { sh, core: mk(ell(5.4, 5.4, 22), 111, .3), crust: blobAt(rng(120), -2, 2.5, 1.5) };
+  const d = rng(530), P = [];
+  for (let i = 0; i < 170; i++) P.push({ ph: d() * 6.283, r1: d(), r2: d(), r3: d(), sz: .9 + d() * .9, hot: d() < .07, tn: d() });
+  return { sh, P, core: mk(ell(5.4, 5.4, 22), 111, .3), crust: blobAt(rng(120), -2, 2.5, 1.5) };
 })();
 
 function core(c) {
-  paint(c, swarm.core, 0, DARK, .8, 2.6);
-  rust(c, swarm.crust);
-  ink(c, swarm.core, 0, 1.7);
+  paint(c, ash.core, 0, DARK, .8, 2.6);
+  rust(c, ash.crust);
+  ink(c, ash.core, 0, 1.7);
+}
+function plate(c, x, y, a, s, k) {
+  const kk = Math.abs(k) < .08 ? (k < 0 ? -.08 : .08) : k;
+  piece(c, x, y, a, flipY(s, kk), kk > 0 ? s.col : RUSTY, 1.3, kk > 0 ? s.rb : null);
 }
 
-// The pick's idle shape at <t> seconds, canvas px: shard <s>'s place, turn and side (behind the core below 0).
-function idle(s, t) {
-  const th = s.ph + t * (.45 + s.rr * .45), rr = 12 + s.rr * 6, p = rot(Math.cos(th) * rr, Math.sin(th) * rr * .5, -.25);
-  return [p[0], p[1] + Math.sin(t * 1.3 + s.ph) * 1.5, s.ph + t * (.8 + s.rr), Math.sin(th)];
+// The pick's idle at <t> seconds, canvas px: plate <i>'s place, turn, side (behind the core below 0) and tumble; mote <i>'s place and side.
+function idlePlate(i, t) {
+  const s = ash.sh[i], th = i / 4 * 6.283 + t * .35, p = rot(Math.cos(th) * 16, Math.sin(th) * 16 * .45, -.2);
+  return [p[0], p[1] + Math.sin(t * 1.2 + i) * 1.2, th * 1.3 + i, Math.sin(th), Math.cos(t * (.3 + .4 * s.rr) + s.ph * 3)];
+}
+function idleMote(i, t) {
+  const p = ash.P[i], o = i % 3, tilt = -.3 + o * 1.05, dir = o % 2 ? -1 : 1, th = p.ph + t * (.8 + .25 * o) * dir;
+  const rx = 10 + o * 2.2 + (p.r1 - .5) * 1.6, q = rot(Math.cos(th) * rx, Math.sin(th) * rx * .3, tilt);
+  return [q[0], q[1], Math.sin(th)];
+}
+// The pick's dustPass, idle: two tones and a lit top, the hot motes' embers added.
+function soot(c, D, t, front) {
+  D.forEach((q, i) => {
+    const p = ash.P[i], s = p.sz; if ((q[2] >= 0) !== front) return;
+    c.fillStyle = p.tn < .5 ? '#1a1b1f' : '#26282d'; c.fillRect(q[0] - s / 2 - .35, q[1] - s / 2 - .35, s + .7, s + .7);
+    c.fillStyle = p.tn < .5 ? '#4c4f55' : '#606369'; c.fillRect(q[0] - s / 2, q[1] - s / 2, s, s);
+    if (s > 1.1) { c.fillStyle = 'rgba(170,174,180,.45)'; c.fillRect(q[0] - s / 2, q[1] - s / 2, s, .5); }
+  });
+  c.save(); c.globalCompositeOperation = 'lighter';
+  D.forEach((q, i) => {
+    const p = ash.P[i], s = p.sz; if ((q[2] >= 0) !== front || !p.hot) return;
+    const h = .45 + .4 * Math.sin(t * 11 + p.ph * 7);
+    c.fillStyle = css(pale(EMBER, .25 * h), .95 * h); c.fillRect(q[0] - s / 2, q[1] - s / 2, s, s);
+    if (h > .55) { const gr = c.createRadialGradient(q[0], q[1], 0, q[0], q[1], 3.2); gr.addColorStop(0, css(EMBER, .45 * h)); gr.addColorStop(1, css(EMBER, 0)); c.fillStyle = gr; c.fillRect(q[0] - 3.2, q[1] - 3.2, 6.4, 6.4); }
+  });
+  c.restore();
 }
 
 Subjects.drone = function () {
@@ -137,25 +170,31 @@ Subjects.drone = function () {
   cc.translate(cs / 2, cs / 2); core(cc);
   out('drone_core', coreSheet);
 
-  const side = ShardBox * K, sheet = document.createElement('canvas');
-  [sheet.width, sheet.height] = [side * Turns, side * swarm.sh.length];
+  const side = PlateBox * K, sheet = document.createElement('canvas');
+  [sheet.width, sheet.height] = [side * Turns * 2, side * ash.sh.length];
   const c = sheet.getContext('2d');
   c.grain = grainOf(c);
-  swarm.sh.forEach((s, i) => {
+  ash.sh.forEach((s, i) => {
     const far = Math.max(...s.p.map(q => Math.hypot(q[0], q[1])));
-    if (far + 1.4 > side / 2) throw new Error(`Shard ${i} reaches ${far.toFixed(1)} px, past its box's ${side / 2}`);
-    for (let k = 0; k < Turns; k++) piece(c, side * k + side / 2, side * i + side / 2, k / Turns * Math.PI * 2, s, s.col, 1.1, s.rb);
+    if (far + 1.4 > side / 2) throw new Error(`Plate ${i} reaches ${far.toFixed(1)} px, past its box's ${side / 2}`);
+    for (let k = 0; k < Turns; k++) {
+      const a = k / Turns * Math.PI * 2;
+      plate(c, side * k + side / 2, side * i + side / 2, a, s, 1);
+      plate(c, side * (Turns + k) + side / 2, side * i + side / 2, a, s, -1);
+    }
   });
-  out('drone_shards', sheet);
+  out('drone_plates', sheet);
 
-  // The card: the swarm idle facing right, its lamp on, grown to fill the icon's 64 px.
+  // The card: the drone idle facing right, its lamp on, grown as far as its plates let it in the icon's 64 px.
+  const t = 2, plates = ash.sh.map((s, i) => [s, idlePlate(i, t)]), D = ash.P.map((p, i) => idleMote(i, t));
+  const reach = Math.max(...plates.map(([s, q]) => Math.hypot(q[0], q[1]) + Math.max(...s.p.map(v => Math.hypot(v[0], v[1])))));
   const icon = document.createElement('canvas');
   [icon.width, icon.height] = [64, 64];
   const g = icon.getContext('2d');
   g.grain = grainOf(g);
-  g.translate(32, 32); g.scale(1.25, 1.25);
-  const placed = swarm.sh.map(s => [s, idle(s, 2)]);
-  for (const [s, q] of placed) if (q[3] < 0) piece(g, q[0], q[1], q[2], s, s.col, 1.1, s.rb);
+  g.translate(32, 32); const grow = Math.min(1.25, 31 / reach); g.scale(grow, grow);
+  soot(g, D, t, false);
+  for (const [s, q] of plates) if (q[3] < 0) plate(g, q[0], q[1], q[2], s, q[4]);
   core(g);
   g.save(); g.translate(2.2, 0); g.scale(.82, .82);
   g.fillStyle = DARK[2]; g.beginPath(); g.ellipse(0, 0, 3.1, 4.4, 0, 0, 6.283); g.fill();
@@ -164,7 +203,8 @@ Subjects.drone = function () {
   g.fillStyle = css(pale(LAMP, .8)); g.beginPath(); g.ellipse(.8, 0, .9, 1.7, 0, 0, 6.283); g.fill();
   g.restore();
   halo(g, 2.2, 0, 14 * .82, LAMP, .55);
-  for (const [s, q] of placed) if (q[3] >= 0) piece(g, q[0], q[1], q[2], s, s.col, 1.1, s.rb);
+  soot(g, D, t, true);
+  for (const [s, q] of plates) if (q[3] >= 0) plate(g, q[0], q[1], q[2], s, q[4]);
   out('items/lightDrone', icon);
 };
 })();

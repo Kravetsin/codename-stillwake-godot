@@ -2,147 +2,309 @@ using System;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>A figure the light drone's shards fly into (drone-swarm).</summary>
+/// <summary>A figure the light drone's soot and plates re-form into (drone-swarm).</summary>
 public enum SwarmShape
 {
-    /// <summary>Circling the core lazily, each turning on its own: before its first mode.</summary>
+    /// <summary>The soot running round three tilted orbits, the plates circling wide and tumbling: before its first mode.</summary>
     Idle,
 
-    /// <summary>A dish behind the core, open toward the aim.</summary>
+    /// <summary>A soot mirror behind the core, its inner face lit, the plates in a dish before it, open toward the aim.</summary>
     Lamp,
 
-    /// <summary>A comb before the core, sweeping about the aim, glowing.</summary>
+    /// <summary>A comb of soot teeth before the core, sweeping about the aim, lit at the tips, the plates along its back.</summary>
     Scan,
 
-    /// <summary>A fan toward the gesture's hologram above, glowing.</summary>
+    /// <summary>The plates fanned toward the gesture's hologram above, glowing; the soot keeps its idle orbits.</summary>
     Sign,
 }
 
 /// <summary>
-/// One shard as drawn: its middle from the core's, world px; its turn, radians; whether it is before the core; how much it glows,
-/// 0 to 1; how far along its flight to a new shape, 0 not left, 1 home.
+/// One plate as drawn: its middle from the core's, world px; its turn, radians; whether it is before the core; how much it glows, 0 to
+/// 1; how far along its flight to a new shape, 0 not left, 1 home; how far it is turned about its long axis, 1 face on, 0 edge-on,
+/// below 0 its rusty back.
 /// </summary>
-public readonly record struct Shard(float X, float Y, float Turn, bool Front, float Glow, float Flight);
+public readonly record struct Plate(float X, float Y, float Turn, bool Front, float Glow, float Flight, float Flip);
 
 /// <summary>
-/// The light drone's shards (drone-swarm, the picked «Рой»): ten pieces of scrap the core holds by its field, in a shape per mode. On a
-/// change each leaves late by its index and flies an arc to its new place, overshooting home. The pick page's <c>makeSwarm</c> and
-/// <c>morph</c>, its small swarm, its numbers a quarter of its canvas pixels. Client only.
+/// One mote of soot as drawn: its middle from the core's and its side, world px; whether it is before the core; how much the field
+/// lights it, 0 to 1; how red-hot it is, 0 for a cold one; whether it is of the darker tone.
+/// </summary>
+public readonly record struct Mote(float X, float Y, float Side, bool Front, float Glow, float Heat, bool Dark);
+
+/// <summary>
+/// The light drone's body (drone-swarm, the picked «Пепел в латах»): a cloud of soot the core holds by its field and four big scrap
+/// plates riding it as armour, in a shape per mode. On a change each plate leaves late by its index, flies an arc to its new place,
+/// overshooting home, and turns over once on the way; each mote is drawn into the core along its old thread and out along the new one.
+/// A few motes are red-hot and flicker. The pick page's <c>makeAsh</c>, small level, its numbers a quarter of its canvas pixels. Client only.
 /// </summary>
 public sealed class DroneSwarm
 {
-    /// <summary>The swarm's numbers: world px, radians, seconds of the client's clock as the pick counted them, ms for the flight.</summary>
+    /// <summary>The swarm's numbers: world px, radians, seconds of the client's clock as the pick counted them, ms for the flights.</summary>
     public static class Tune
     {
-        /// <summary>How many shards it holds.</summary>
-        public const int Shards = 10;
+        /// <summary>How many plates and motes it holds.</summary>
+        public const int Plates = 4, Motes = 170;
 
-        /// <summary>Idle: the orbit's least radius and how much more the slowest shard has, how flat it is, its tilt; its bob and the bob's pace.</summary>
-        public const float Orbit = 3, OrbitMore = 1.5f, OrbitFlat = 0.5f, OrbitTilt = -0.25f, Bob = 0.375f, BobPace = 1.3f;
+        /// <summary>Idle plates: their orbit's radius, how flat it is, its tilt, its pace; their bob and its pace; how fast they turn on the orbit.</summary>
+        public const float Orbit = 4, OrbitFlat = 0.45f, OrbitTilt = -0.2f, OrbitPace = 0.35f, Bob = 0.3f, BobPace = 1.2f, Spin = 1.3f;
 
-        /// <summary>Idle: a shard's least pace round the orbit and its own turning's, radians a second; its pace adds as much again at most.</summary>
-        public const float OrbitPace = 0.45f, SpinPace = 0.8f;
+        /// <summary>Idle plates tumble about their long axis: the least pace, how much more the fastest has, radians a second.</summary>
+        public const float Tumble = 0.3f, TumbleMore = 0.4f;
 
-        /// <summary>The lamp's dish: half its height, how far behind the core its middle is, its curve (depth = half²/this).</summary>
-        public const float DishHalf = 3.75f, DishBack = 2, DishCurve = 6.5f;
+        /// <summary>The lamp's plates: the dish's half height, how far behind the core its middle is, its curve (depth = half²/this).</summary>
+        public const float DishHalf = 3, DishBack = 2.75f, DishCurve = 6;
 
-        /// <summary>The scanner's comb: how far ahead, half its height, its sweep's swing and pace, radians and radians a second.</summary>
-        public const float CombAhead = 2.75f, CombHalf = 3.5f, Sweep = 0.5f, SweepPace = 3.1f;
+        /// <summary>The scanner's plates: how far ahead, half the row; the comb's sweep's swing and pace, radians and radians a second; their glow.</summary>
+        public const float CombAhead = 2.375f, CombHalf = 2.5f, Sweep = 0.5f, SweepPace = 3.1f, CombGlow = 0.6f;
 
         /// <summary>The sign's fan: its reach, half its spread and its turn off straight up, radians.</summary>
-        public const float FanReach = 2.5f, FanSpread = 0.85f, FanOff = -0.15f;
+        public const float FanReach = 2.25f, FanSpread = 0.8f, FanOff = -0.15f;
 
-        /// <summary>How late the last shard leaves after the first, and each one's flight, ms.</summary>
-        public const double StaggerMs = 400, FlightMs = 600;
+        /// <summary>The soot's idle orbits: the first's radius, how much wider each next is, a mote's spread, how flat they are, the first's tilt and each next's more.</summary>
+        public const float DustOrbit = 2.5f, DustOrbitMore = 0.55f, DustOrbitSpread = 0.4f, DustOrbitFlat = 0.3f, DustTilt = -0.3f, DustTiltMore = 1.05f;
+
+        /// <summary>The soot's idle pace round the first orbit and each next's more, radians a second.</summary>
+        public const float DustPace = 0.8f, DustPaceMore = 0.25f;
+
+        /// <summary>The soot mirror: half its height, how far behind the core its middle is, its curve, its thickness, its shimmer; the share of its lit face and that light.</summary>
+        public const float MirrorHalf = 4, MirrorBack = 1.5f, MirrorCurve = 6, MirrorThick = 0.8f, MirrorShimmer = 0.0875f, MirrorLit = 0.22f, MirrorGlow = 0.55f;
+
+        /// <summary>The comb's soot: the share in its back, that back's distance, depth and half height, its light.</summary>
+        public const float CombBack = 0.4f, CombBackAt = 2, CombBackDeep = 0.625f, CombBackHalf = 3.5f, CombBackGlow = 0.15f;
+
+        /// <summary>The comb's teeth: half the row, where they start, their reach and its flicker, its pace; how much a tip shrinks.</summary>
+        public const float TeethHalf = 3.25f, TeethFrom = 2.625f, TeethReach = 1.5f, TeethFlicker = 0.625f, TeethPace = 7, TipShrink = 0.4f;
+
+        /// <summary>How many teeth the comb has.</summary>
+        public const int Teeth = 10;
+
+        /// <summary>A mote's least side and how much more the largest has.</summary>
+        public const float MoteSide = 0.225f, MoteSideMore = 0.225f;
+
+        /// <summary>The share of motes that are red-hot, their flicker's middle, swing and pace.</summary>
+        public const float HotShare = 0.07f, HeatMid = 0.45f, HeatSwing = 0.4f, HeatPace = 11;
+
+        /// <summary>How late the last plate leaves after the first, and each one's flight, ms.</summary>
+        public const double StaggerMs = 350, FlightMs = 650;
+
+        /// <summary>How late the latest mote leaves, and each one's flow, ms.</summary>
+        public const double DustLateMs = 450, FlowMs = 850;
 
         /// <summary>A flight's sideways arc, at most, past the length it is full from; its overshoot home (the pick's back-out).</summary>
-        public const float Swirl = 2.5f, SwirlFull = 3.5f, Overshoot = 1.45f;
+        public const float Swirl = 2.25f, SwirlFull = 3.5f, Overshoot = 1.45f;
+
+        /// <summary>A mote's flow: the share of it spent being drawn into the core, its sideways wander at most, its light mid-flow.</summary>
+        public const float Inflow = 0.4f, Wander = 0.55f, FlowGlow = 0.2f;
     }
 
-    /// <summary>Each shard's idle phase, radians, and its share of the extra pace and radius, as the pick's seeds drew them (drone.js).</summary>
-    private static readonly (float Phase, float Pace)[] Seeds =
-    [
-        (6.0784f, 0.2687f), (4.1631f, 0.4900f), (0.8636f, 0.7773f), (2.8170f, 0.5826f), (1.5347f, 0.3682f),
-        (5.5398f, 0.6317f), (6.0030f, 0.5969f), (0.2359f, 0.6172f), (1.3322f, 0.4056f), (1.2653f, 0.6629f),
-    ];
+    /// <summary>Each plate's phase, radians, and its share of the tumble's extra pace, as the pick's seeds drew them (drone.js).</summary>
+    private static readonly (float Phase, float Pace)[] PlateSeeds = [(3.9737f, 0.8855f), (1.1409f, 0.1770f), (4.8644f, 0.6168f), (5.1218f, 0.7379f)];
+
+    /// <summary>Each mote's phase, three shares that place it, its side's share, whether hot, its tone: the pick's <c>dustSet</c>, seed 530.</summary>
+    private static readonly (float Phase, float R1, float R2, float R3, float Size, bool Hot, bool Dark)[] MoteSeeds = DrawMotes(530);
 
     /// <summary>Where the sign stands from the drone: straight above it (<see cref="DroneSign.Place"/>).</summary>
     public const float SignAim = -MathF.PI / 2;
 
-    /// <summary>How long a change takes, ms: the last shard's wait and its flight.</summary>
-    public static double SettleMs => (Tune.Shards - 1) * Tune.StaggerMs / Tune.Shards + Tune.FlightMs;
+    /// <summary>How long a change takes the plates, ms: the last one's wait and its flight.</summary>
+    public static double PlatesSettleMs => (Tune.Plates - 1) * Tune.StaggerMs / Tune.Plates + Tune.FlightMs;
 
-    private SwarmShape _from = SwarmShape.Idle;
-    private double _changedMs = double.NegativeInfinity;
-    private Shard[]? _left;
+    /// <summary>How long a change takes the soot, ms: the latest mote's wait and its flow.</summary>
+    public static double DustSettleMs => Tune.DustLateMs + Tune.FlowMs;
 
-    /// <summary>The shape it is in or flying into.</summary>
+    /// <summary>How long a change takes all of it, ms.</summary>
+    public static double SettleMs => Math.Max(PlatesSettleMs, DustSettleMs);
+
+    private SwarmShape _from = SwarmShape.Idle, _dustFrom = SwarmShape.Idle, _dust = SwarmShape.Idle;
+    private double _changedMs = double.NegativeInfinity, _dustChangedMs = double.NegativeInfinity;
+    private readonly Plate[] _leftPlates = new Plate[Tune.Plates];
+    private readonly Mote[] _leftMotes = new Mote[Tune.Motes];
+    private bool _platesLeftMid, _motesLeftMid;
+
+    /// <summary>The shape it is in or re-forming into.</summary>
     public SwarmShape Shape { get; private set; } = SwarmShape.Idle;
 
     /// <summary>
     /// Sends it into <paramref name="shape"/> at <paramref name="timeMs"/>, aimed <paramref name="aim"/>; the same shape does nothing.
-    /// Mid-flight the shards leave from where they are, so a quick change never jumps.
+    /// Mid-change the plates and motes leave from where they are, so a quick change never jumps.
     /// </summary>
     public void Become(SwarmShape shape, float aim, double timeMs)
     {
         if (shape == Shape) return;
-        if (timeMs - _changedMs < SettleMs)
+        // Each is read where it is before the flag says to start from there.
+        bool platesMid = timeMs - _changedMs < PlatesSettleMs;
+        if (platesMid)
+            for (int i = 0; i < Tune.Plates; i++) _leftPlates[i] = PlateAt(i, aim, timeMs);
+        _platesLeftMid = platesMid;
+        var dust = DustOf(shape);
+        if (dust != _dust)
         {
-            var left = new Shard[Tune.Shards];
-            for (int i = 0; i < left.Length; i++) left[i] = At(i, aim, timeMs);
-            _left = left;
+            bool motesMid = timeMs - _dustChangedMs < DustSettleMs;
+            if (motesMid)
+                for (int i = 0; i < Tune.Motes; i++) _leftMotes[i] = MoteAt(i, aim, timeMs);
+            (_motesLeftMid, _dustFrom, _dust, _dustChangedMs) = (motesMid, _dust, dust, timeMs);
         }
-        else _left = null;
         (_from, Shape, _changedMs) = (Shape, shape, timeMs);
     }
 
-    /// <summary>Shard <paramref name="i"/> at <paramref name="timeMs"/>, the lens aimed <paramref name="aim"/>, radians.</summary>
-    public Shard At(int i, float aim, double timeMs)
+    /// <summary>The soot's own shape in <paramref name="shape"/>: the sign's is the idle orbits, since its own lays out the bag's grid.</summary>
+    public static SwarmShape DustOf(SwarmShape shape) => shape == SwarmShape.Sign ? SwarmShape.Idle : shape;
+
+    /// <summary>Plate <paramref name="i"/> at <paramref name="timeMs"/>, the lens aimed <paramref name="aim"/>, radians: the pick's <c>morph</c> and <c>flipK</c>.</summary>
+    public Plate PlateAt(int i, float aim, double timeMs)
     {
         float t = (float)(timeMs / 1000);
-        var to = In(Shape, i, aim, t);
-        double u = Math.Clamp((timeMs - _changedMs - i * Tune.StaggerMs / Tune.Shards) / Tune.FlightMs, 0, 1);
+        var to = PlateIn(Shape, i, aim, t);
+        double u = Math.Clamp((timeMs - _changedMs - i * Tune.StaggerMs / Tune.Plates) / Tune.FlightMs, 0, 1);
         if (u >= 1) return to;
-        var start = _left is { } left ? left[i] : In(_from, i, aim, t);
+        var start = _platesLeftMid ? _leftPlates[i] : PlateIn(_from, i, aim, t);
         if (u <= 0) return start with { Flight = 0 };
         float k = (float)u, e = BackOut(k), dx = to.X - start.X, dy = to.Y - start.Y, length = MathF.Sqrt(dx * dx + dy * dy);
         if (length == 0) length = 1;
         float side = MathF.Sin(k * MathF.PI) * Tune.Swirl * (i % 2 == 1 ? 1 : -1) * MathF.Min(1, length / Tune.SwirlFull);
-        return new Shard(start.X + dx * e - dy / length * side, start.Y + dy * e + dx / length * side, AngleLerp(start.Turn, to.Turn, e),
-            k < 0.5f ? start.Front : to.Front, start.Glow * (1 - k) + to.Glow * k, k);
+        // A full turn over the flight, from how it was turned to how it rests.
+        float settle = k * k * (3 - 2 * k), flip = MathF.Cos(k * MathF.Tau) * (start.Flip * (1 - settle) + to.Flip * settle);
+        return new Plate(start.X + dx * e - dy / length * side, start.Y + dy * e + dx / length * side, AngleLerp(start.Turn, to.Turn, e),
+            k < 0.5f ? start.Front : to.Front, start.Glow * (1 - k) + to.Glow * k, k, flip);
     }
 
-    /// <summary>Shard <paramref name="i"/> held in <paramref name="shape"/>, <paramref name="t"/> seconds on, aimed <paramref name="aim"/>: the pick's <c>tf</c>.</summary>
-    public static Shard In(SwarmShape shape, int i, float aim, float t)
+    /// <summary>Mote <paramref name="i"/> at <paramref name="timeMs"/>, the lens aimed <paramref name="aim"/>: the pick's <c>flowDust</c>.</summary>
+    public Mote MoteAt(int i, float aim, double timeMs)
     {
-        float w = i / (Tune.Shards - 1f) * 2 - 1;
+        float t = (float)(timeMs / 1000);
+        var to = MoteIn(_dust, i, aim, t);
+        var seed = MoteSeeds[i];
+        double u = Math.Clamp((timeMs - _dustChangedMs - seed.R2 * Tune.DustLateMs) / Tune.FlowMs, 0, 1);
+        if (u >= 1) return to;
+        var start = _motesLeftMid ? _leftMotes[i] : MoteIn(_dustFrom, i, aim, t);
+        if (u <= 0) return start;
+        float k = (float)u, x, y;
+        bool front;
+        if (k < Tune.Inflow)
+        {
+            // Drawn in along its old thread, slow at first.
+            float e = k / Tune.Inflow * (k / Tune.Inflow);
+            (x, y) = Along(start.X, start.Y, 1 - e);
+            front = start.Front;
+        }
+        else
+        {
+            float s = (k - Tune.Inflow) / (1 - Tune.Inflow), e = 1 - (1 - s) * (1 - s);
+            (x, y) = Along(to.X, to.Y, e);
+            front = to.Front;
+        }
+        float length = MathF.Sqrt(x * x + y * y);
+        if (length == 0) length = 1;
+        float wander = MathF.Sin(k * MathF.PI) * (seed.R3 - 0.5f) * 2 * Tune.Wander;
+        return new Mote(x - y / length * wander, y + x / length * wander, seed.Size, front, Tune.FlowGlow * MathF.Sin(k * MathF.PI), Heat(seed, t), seed.Dark);
+    }
+
+    /// <summary>Plate <paramref name="i"/> held in <paramref name="shape"/>, <paramref name="t"/> seconds on, aimed <paramref name="aim"/>: the pick's <c>tf</c>.</summary>
+    public static Plate PlateIn(SwarmShape shape, int i, float aim, float t)
+    {
+        float w = i / (Tune.Plates - 1f) * 2 - 1;
         switch (shape)
         {
             case SwarmShape.Lamp:
                 {
                     float y = w * Tune.DishHalf, x = -Tune.DishBack + y * y / Tune.DishCurve;
                     var (px, py) = Rotate(x, y, aim);
-                    return new Shard(px, py, aim + MathF.Atan2(1, 2 * y / Tune.DishCurve), false, 0, 1);
+                    return new Plate(px, py, aim + MathF.Atan2(1, 2 * y / Tune.DishCurve), false, 0, 1, 1);
                 }
             case SwarmShape.Scan:
                 {
                     float swung = aim + MathF.Sin(t * Tune.SweepPace) * Tune.Sweep;
                     var (px, py) = Rotate(Tune.CombAhead, w * Tune.CombHalf, swung);
-                    return new Shard(px, py, swung + MathF.PI / 2, true, 1, 1);
+                    return new Plate(px, py, swung + MathF.PI / 2, true, Tune.CombGlow, 1, 1);
                 }
             case SwarmShape.Sign:
                 {
                     float at = SignAim + Tune.FanOff + w * Tune.FanSpread;
-                    return new Shard(MathF.Cos(at) * Tune.FanReach, MathF.Sin(at) * Tune.FanReach, at, true, 1, 1);
+                    return new Plate(MathF.Cos(at) * Tune.FanReach, MathF.Sin(at) * Tune.FanReach, at, true, 1, 1, 1);
                 }
             default:
                 {
-                    var (phase, pace) = Seeds[i];
-                    float th = phase + t * Tune.OrbitPace * (1 + pace), r = Tune.Orbit + pace * Tune.OrbitMore;
-                    var (px, py) = Rotate(MathF.Cos(th) * r, MathF.Sin(th) * r * Tune.OrbitFlat, Tune.OrbitTilt);
-                    return new Shard(px, py + MathF.Sin(t * Tune.BobPace + phase) * Tune.Bob, phase + t * (Tune.SpinPace + pace), MathF.Sin(th) >= 0, 0, 1);
+                    var (phase, pace) = PlateSeeds[i];
+                    float th = i / (float)Tune.Plates * MathF.Tau + t * Tune.OrbitPace;
+                    var (px, py) = Rotate(MathF.Cos(th) * Tune.Orbit, MathF.Sin(th) * Tune.Orbit * Tune.OrbitFlat, Tune.OrbitTilt);
+                    float tumble = MathF.Cos(t * (Tune.Tumble + Tune.TumbleMore * pace) + phase * 3);
+                    return new Plate(px, py + MathF.Sin(t * Tune.BobPace + i) * Tune.Bob, th * Tune.Spin + i, MathF.Sin(th) >= 0, 0, 1, tumble);
                 }
         }
+    }
+
+    /// <summary>Mote <paramref name="i"/> held in <paramref name="shape"/>'s soot, <paramref name="t"/> seconds on, aimed <paramref name="aim"/>: the pick's <c>home</c>.</summary>
+    public static Mote MoteIn(SwarmShape shape, int i, float aim, float t)
+    {
+        var seed = MoteSeeds[i];
+        float heat = Heat(seed, t);
+        switch (DustOf(shape))
+        {
+            case SwarmShape.Lamp:
+                {
+                    float y = (seed.R1 * 2 - 1) * Tune.MirrorHalf;
+                    float x = -Tune.MirrorBack + y * y / Tune.MirrorCurve - seed.R2 * Tune.MirrorThick + MathF.Sin(t * 2 + seed.Phase) * Tune.MirrorShimmer;
+                    var (px, py) = Rotate(x, y, aim);
+                    return new Mote(px, py, seed.Size, false, seed.R2 < Tune.MirrorLit ? Tune.MirrorGlow : 0, heat, seed.Dark);
+                }
+            case SwarmShape.Scan:
+                {
+                    float swung = aim + MathF.Sin(t * Tune.SweepPace) * Tune.Sweep;
+                    if (seed.R3 < Tune.CombBack)
+                    {
+                        var (bx, by) = Rotate(Tune.CombBackAt + seed.R2 * Tune.CombBackDeep, (seed.R1 * 2 - 1) * Tune.CombBackHalf, swung);
+                        return new Mote(bx, by, seed.Size, true, Tune.CombBackGlow, heat, seed.Dark);
+                    }
+                    int tooth = i % Tune.Teeth;
+                    float along = seed.R1, y = (tooth / (Tune.Teeth - 1f) * 2 - 1) * Tune.TeethHalf;
+                    float x = Tune.TeethFrom + along * (Tune.TeethReach + Tune.TeethFlicker * MathF.Sin(t * Tune.TeethPace + tooth * 1.7f));
+                    var (px, py) = Rotate(x, y, swung);
+                    return new Mote(px, py, seed.Size * (1 - along * Tune.TipShrink), true, 0.25f + 0.75f * along, heat, seed.Dark);
+                }
+            default:
+                {
+                    // Three tilted orbits, the soot running round each like beads on a wire, the middle one the other way.
+                    int orbit = i % 3;
+                    float tilt = Tune.DustTilt + orbit * Tune.DustTiltMore, way = orbit % 2 == 1 ? -1 : 1;
+                    float th = seed.Phase + t * (Tune.DustPace + Tune.DustPaceMore * orbit) * way;
+                    float r = Tune.DustOrbit + orbit * Tune.DustOrbitMore + (seed.R1 - 0.5f) * Tune.DustOrbitSpread;
+                    var (px, py) = Rotate(MathF.Cos(th) * r, MathF.Sin(th) * r * Tune.DustOrbitFlat, tilt);
+                    return new Mote(px, py, seed.Size, MathF.Sin(th) >= 0, 0, heat, seed.Dark);
+                }
+        }
+    }
+
+    /// <summary>How hot a mote is at <paramref name="t"/>: a flicker round the middle for a hot one, none for the rest.</summary>
+    private static float Heat((float Phase, float R1, float R2, float R3, float Size, bool Hot, bool Dark) seed, float t) =>
+        seed.Hot ? Tune.HeatMid + Tune.HeatSwing * MathF.Sin(t * Tune.HeatPace + seed.Phase * 7) : 0;
+
+    /// <summary>A share <paramref name="s"/> along the field's thread from the core to (<paramref name="x"/>, <paramref name="y"/>), bowed one way as the pick's.</summary>
+    private static (float X, float Y) Along(float x, float y, float s)
+    {
+        float bx = x * 0.5f + y * 0.25f, by = y * 0.5f - x * 0.25f, k = 1 - s;
+        return (2 * k * s * bx + s * s * x, 2 * k * s * by + s * s * y);
+    }
+
+    /// <summary>The pick's <c>dustSet</c>: its xorshift from <paramref name="seed"/>, seven draws a mote in its order.</summary>
+    private static (float, float, float, float, float, bool, bool)[] DrawMotes(int seed)
+    {
+        uint s = unchecked((uint)((ulong)seed * 2654435761UL));
+        if (s == 0) s = 1;
+        float Next()
+        {
+            s ^= s << 13;
+            s ^= s >> 17;
+            s ^= s << 5;
+            return (float)(s / 4294967296.0);
+        }
+        var motes = new (float, float, float, float, float, bool, bool)[Tune.Motes];
+        for (int i = 0; i < motes.Length; i++)
+        {
+            float phase = Next() * 6.283f, r1 = Next(), r2 = Next(), r3 = Next(), size = Tune.MoteSide + Next() * Tune.MoteSideMore;
+            bool hot = Next() < Tune.HotShare, dark = Next() < 0.5f;
+            motes[i] = (phase, r1, r2, r3, size, hot, dark);
+        }
+        return motes;
     }
 
     private static (float X, float Y) Rotate(float x, float y, float a) => (x * MathF.Cos(a) - y * MathF.Sin(a), x * MathF.Sin(a) + y * MathF.Cos(a));
