@@ -400,6 +400,14 @@ public sealed class Ui
     public void Plan(IReadOnlyList<int> cells) => Planned?.Invoke(cells);
 
     /// <summary>
+    /// This player pressed in an open drone window, at a spot of it, each -1..1 from its middle: down it and across it.
+    /// <c>items</c> says so; <c>crew</c> has the near finger poke the drone's hologram there (drone-holo). Told once a press.
+    /// </summary>
+    public event Action<double, double>? Poked;
+
+    public void Poke(double down, double across) => Poked?.Invoke(down, across);
+
+    /// <summary>
     /// This player asked to breathe a canister into the suit (0047): <c>items</c> says so on a right click on
     /// one in the inventory; <c>crew</c> sends it, as it does for one in hand, and the hiss is heard.
     /// </summary>

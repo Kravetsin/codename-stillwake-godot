@@ -91,20 +91,22 @@ public sealed class PairedScenario : DevScenario
     }
 }
 
-[Dev("--drone-window", "with --paired, drone windows opened in turn by their keys on the drone's soot, a comma list of bag, build, handbook, board and market: each at 1 s for 2 s, the next opening over it, the last closing (DroneWindowDemo)", Shape = DevShape.Equals)]
+[Dev("--drone-window", "with --paired, drone windows opened in turn by their keys on the drone's soot, a comma list of bag, build, handbook, board and market: each at 1 s for 2 s, the next opening over it, the last closing; the hero's finger pokes the drone's hologram four times in each (DroneWindowDemo)", Shape = DevShape.Equals)]
 public sealed class DroneWindowScenario : DevScenario
 {
-    public override void Attach(DevContext c) => c.Add(new DroneWindowDemo(Args.Value("--drone-window")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
+    public override void Attach(DevContext c) => c.Add(new DroneWindowDemo(c.Ui, Args.Value("--drone-window")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
 }
 
 /// <summary>
 /// <c>--drone-window</c>'s hands (drone-frame): each window's own key pressed through Godot's input, the first at 1 s, the next 2 s on
-/// while the last is open, so the soot switches; the last key pressed again 2 s on, closing it.
+/// while the last is open, so the soot switches; the last key pressed again 2 s on, closing it. In each a poke at the drone's
+/// hologram from 0.5 s, every 0.3 s, down the window and back (drone-holo).
 /// </summary>
-public sealed partial class DroneWindowDemo(IReadOnlyList<string> windows) : Node
+public sealed partial class DroneWindowDemo(Ui ui, IReadOnlyList<string> windows) : Node
 {
+    private static readonly double[] Pokes = [-0.7, 0.1, 0.8, -0.2];
     private double _t;
-    private int _pressed;
+    private int _pressed, _poked;
 
     private static Bind KeyOf(string window) => window switch
     {
@@ -128,7 +130,13 @@ public sealed partial class DroneWindowDemo(IReadOnlyList<string> windows) : Nod
         while (_pressed <= windows.Count && _t >= 1 + 2 * _pressed)
         {
             TabletHands.Press(BindKeys.KeyOf(KeyOf(windows[Math.Min(_pressed, windows.Count - 1)])));
-            _pressed++;
+            (_pressed, _poked) = (_pressed + 1, 0);
+        }
+        double into = _t - (1 + 2 * (_pressed - 1));
+        if (_pressed <= windows.Count && _poked < Pokes.Length && into >= 0.5 + 0.3 * _poked)
+        {
+            ui.Poke(Pokes[_poked], 0.3 * (_poked % 2 == 0 ? -1 : 1));
+            _poked++;
         }
     }
 }

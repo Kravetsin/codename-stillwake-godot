@@ -41,6 +41,20 @@ public static class SheetHoloLook
         return (radius, Math.Atan2(dy, dx), HalfLength / radius);
     }
 
+    /// <summary>
+    /// The angle round the eyes of the spot <paramref name="along"/> the band (-1 its top, 1 its bottom, <see cref="SheetPoke"/>)
+    /// of one <paramref name="toward"/> with half span <paramref name="half"/>, its hero facing <paramref name="facing"/>.
+    /// </summary>
+    public static double AngleOf(double toward, double half, double along, int facing) => toward + along * half * facing;
+
+    /// <summary>How far along the band, -1..1, the line from <paramref name="eye"/> to <paramref name="at"/> crosses it, or its end nearer.</summary>
+    public static double AlongTo((double X, double Y) eye, double toward, double half, (double X, double Y) at, int facing)
+    {
+        double turn = Math.Atan2(at.Y - eye.Y, at.X - eye.X) - toward;
+        turn = Math.IEEERemainder(turn, 2 * Math.PI);
+        return Math.Clamp(turn / half * facing, -1, 1);
+    }
+
     /// <summary>How far in it is after <paramref name="elapsedMs"/> more, from <paramref name="was"/>, while <paramref name="on"/> or not.</summary>
     public static double Step(double was, bool on, double elapsedMs) =>
         on ? Math.Min(1, was + elapsedMs / OnMs) : Math.Max(0, was - elapsedMs / OffMs);

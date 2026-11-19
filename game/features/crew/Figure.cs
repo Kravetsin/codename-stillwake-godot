@@ -462,7 +462,16 @@ public partial class Figure : Node2D
         _beamTo.Clear();
         for (int i = 0; i < cells.Count && i < BeamsMost; i++) _beamTo.Add(cells[i]);
         _beamMs = BeamMs;
+        // Drawn by the drone, the near finger pokes the band where the line to the first cell crosses it, the beam from there.
+        if (_holo.Visible && cells.Count > 0) _poke.Poke(_holo.AlongTo(cells[0], _facing), 0);
     }
+
+    /// <summary>Has the near finger poke the drone's hologram at (<paramref name="along"/>, <paramref name="across"/>) (<see cref="SheetPoke"/>), if it shows.</summary>
+    public void Poke(double along, double across) => _poke.Poke(along, across);
+
+    private readonly SheetPoke _poke = new();
+    private static readonly GestureMotion Pointing = GestureMotions.Of(Stillwake.Game.Gesture.Point);
+    private int _facing = 1;
 
     /// <summary>A point of the world from the front shoulder, in the arms' own frame: the body as it is placed, turned, lifted and faced.</summary>
     private (double X, double Y) FromShoulder(Vector2 at)
@@ -906,11 +915,11 @@ public partial class Figure : Node2D
     public Vector2 Barrel { get; private set; } = Vector2.Right;
 
     /// <summary>A line of the planner's light from its screen to each cell just planned, fading.</summary>
-    private void ShowBeams(bool holding)
+    private void ShowBeams(bool holding, Vector2? poked)
     {
         float left = (float)(_beamMs / BeamMs);
-        // The middle of its screen.
-        var from = _plan.ToGlobal(new Vector2(6, -4));
+        // The middle of its screen, or where the finger pokes the drone's hologram.
+        var from = poked ?? _plan.ToGlobal(new Vector2(6, -4));
         for (int i = 0; i < _beams.Count; i++)
         {
             var beam = _beams[i];
@@ -1530,7 +1539,9 @@ public partial class Figure : Node2D
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
             _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null,
-            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null));
+            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null, FarHolds: projecting && holding));
+        _facing = hero.Facing;
+        _poke.Step(elapsedMs, projecting && holding && _holo.Visible);
         if (Lean != 0) to = to with { Tilt = to.Tilt + Lean };
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
@@ -1599,7 +1610,8 @@ public partial class Figure : Node2D
         double thrust = holding && _beamMs > 0 ? (t < 0.3 ? t / 0.3 : (1 - t) / 0.7) : 0;
         var frontArm = shown.FrontArm;
         double aim = 0;
-        if (thrust > 0 && _beamTo.Count > 0)
+        // Drawn by the drone the sheet stays still: the finger pokes it instead.
+        if (thrust > 0 && _beamTo.Count > 0 && !projecting)
         {
             // Toward the first cell, from the shoulder.
             var (dx, dy) = FromShoulder(_beamTo[0]);
@@ -1688,6 +1700,13 @@ public partial class Figure : Node2D
             frontArm = Mix(frontArm, arm, signed);
             (signWrist, _signNod) = (wristTurn * signed, nod * signed);
         }
+        // The near finger up at the drone's hologram, jabbing it (drone-holo): the hand at the spot less the finger, the point's hand.
+        if (projecting && holding && _poke.Weight > 0 && _holo.Spot(_poke.Along, _poke.Across, _facing) is { } spot)
+        {
+            var (hx, hy) = _poke.HandFor(FromShoulder(spot));
+            frontArm = Mix(frontArm, Rig.Reach(new Vec(hx, hy), Rig.Arm, 1), _poke.Weight);
+            if (signed < _poke.Weight) (signed, motion, signWrist) = (_poke.Weight, Pointing, 0);
+        }
         if (_frontHand != null && _frontWrist != null)
         {
             bool shaped = signed > 0.5 && motion != null;
@@ -1747,10 +1766,11 @@ public partial class Figure : Node2D
         _plan.Visible = holding && !projecting;
         if (holding)
         {
-            var hand = Rig.EndOf(frontArm, Rig.Arm);
+            // Drawn by the drone, it stands where the far hand holds it, still as the near one pokes.
+            var hand = Rig.EndOf(projecting ? backArm : frontArm, Rig.Arm);
             _plan.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
             double turn = Poses.SheetTurn(_head);
-            _plan.Rotation = (float)(turn + Poses.Apart(turn, aim) * thrust);
+            _plan.Rotation = (float)(turn + (projecting ? 0 : Poses.Apart(turn, aim) * thrust));
             _screen.Modulate = new Color(1, 1, 1) * (float)(1 + 0.8 * thrust);
             float glow = GlowStrength * (float)(1 + 1.5 * thrust);
             _glow.Colour = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow);
@@ -1851,7 +1871,7 @@ public partial class Figure : Node2D
         _fx.Follow(skinned != null ? EffectSkin : null, elapsedMs, skinned != null ? FxHeld(skinned) : null, trails && skinned != null ? _edge : null);
         Helix = zone is { Disc: false } bit ? HelixOf(bit) : null;
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
-        ShowBeams(holding);
+        ShowBeams(holding, projecting ? _holo.Spot(_poke.Along, _poke.Across, _facing) : null);
         // A drill crackles as it spins; a gun held to charge, as it fills.
         bool charging = item?.Charged != null && Charge > 0;
         var crackling = inHand && item != null && (drill || charging) ? PartsOf(item) : null;

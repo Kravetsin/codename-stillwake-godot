@@ -102,6 +102,10 @@ public partial class HeroView : Node2D
     /// <summary>The first cell the planner last beamed in, and how long the beam has left to fade: sent while it does.</summary>
     private Point _beamAt;
     private double _beamLeftMs;
+    /// <summary>The spot of the latest poke at the drone's hologram, in thousandths, how long it is sent for still, and how many there were.</summary>
+    private Point _pokeAt;
+    private double _pokeLeftMs;
+    private int _pokes;
     private Client? _sendTo;
     private Hero _previous, _current;
     private bool _placed, _wasOut, _jump, _use;
@@ -288,6 +292,13 @@ public partial class HeroView : Node2D
         {
             _figure.Beam(cells.Select(c => Pixels(Middle(c))).ToList());
             (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
+        };
+        // A press in a drone window: the near finger pokes the drone's hologram there, and the others see it poke (drone-holo).
+        _ui.Poked += (down, across) =>
+        {
+            _figure.Poke(down, across);
+            (_pokeAt, _pokeLeftMs) = (new Point((int)Math.Round(down * 1000), (int)Math.Round(across * 1000)), SheetPoke.HoldMs);
+            _pokes++;
         };
         _ui.Breathed += () => _breathe = true;
         _ui.Ate += food => _eat = food;
@@ -596,6 +607,7 @@ public partial class HeroView : Node2D
         bool sheetOut = (HoldsPlan || _ui.DroneWindow.Open) && !passedOut;
         _clockMs += elapsedMs;
         _beamLeftMs = Math.Max(0, _beamLeftMs - elapsedMs);
+        _pokeLeftMs = Math.Max(0, _pokeLeftMs - elapsedMs);
         _sendTo = client;
         foreach (var message in heard)
             if (SentHero.Decode(message.State) is { } sent)
