@@ -265,6 +265,8 @@ public partial class Main : Node2D, ITogether
         Shimmer.Enabled = Settings.Shimmer();
         // The screen as kept; a dev run keeps the window its command line made, so a frame or a recording is its size.
         if (_dev.None) Settings.Apply(Settings.Screen());
+        // --smoothing=4: a frame recorded smoothed, whatever is kept.
+        Settings.Apply(_dev.Value("--smoothing") is { } smoothing ? Smoothings.Named(smoothing) : Settings.Smoothing());
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());

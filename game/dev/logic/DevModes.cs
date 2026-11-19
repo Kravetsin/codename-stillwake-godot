@@ -102,6 +102,7 @@ public static class DevModes
         new("--creatures-trace", DevShape.Either, "logs the creatures' strides a second, =frames every frame"),
         // The camera and measuring.
         new("--zoom", DevShape.Next, "the camera held at that zoom"),
+        new("--smoothing", DevShape.Equals, "drawn edges smoothed: =2, 4 or 8 samples, or off, whatever the settings keep"),
         new("--view", DevShape.Next, "X,Y[,ZOOM]: where the camera looks"),
         new("--snap", DevShape.Next, "the screen saved to that PNG once the world has played --snap-at seconds, then quits"),
         new("--snap-at", DevShape.Next, "with --snap, the seconds; 6 by default"),
