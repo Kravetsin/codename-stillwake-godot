@@ -139,6 +139,13 @@ public sealed class MarketPage : ITabletPage
         if (playing || _reveal.Playing) Repaint();
     }
 
+    /// <summary>Its tiles and their pictures made as a surface loads, not on the tablet's first opening.</summary>
+    public void Warm(Registry m)
+    {
+        _research = m.Research;
+        if (_tiles.Count == 0) Build();
+    }
+
     public void Read(Registry m)
     {
         var research = m.Research;

@@ -42,35 +42,25 @@ public static class DroneMotesLook
     public static (double X, double Y) GridSpotOf(int i) =>
         ((i % Columns - (Columns - 1) / 2.0) * ColumnStep, (i / Columns - (Rows - 1) / 2.0) * RowStep);
 
-    /// <summary>A mote sent to a plan placed: how long it flies, and how long its flash at the plan lasts and how big it grows.</summary>
-    public const double FlyMs = 260, FlashMs = 180, FlashSide = 2.6;
+    /// <summary>How long the motes take to go from the cloud to the grid and back, ms.</summary>
+    public const double ReshapeMs = 350;
 
-    /// <summary>
-    /// Where a mote sent from <paramref name="from"/> to <paramref name="to"/> is <paramref name="ms"/> after, its side and its alpha,
-    /// of the hologram's: flying fast then slowing onto the plan, then a flash there, growing and fading; none once done.
-    /// </summary>
-    public static ((double X, double Y) At, double Side, double Alpha)? Sent((double X, double Y) from, (double X, double Y) to, double ms)
-    {
-        if (ms < 0 || ms >= FlyMs + FlashMs) return null;
-        if (ms < FlyMs)
-        {
-            double t = ms / FlyMs, eased = 1 - (1 - t) * (1 - t);
-            return ((from.X + (to.X - from.X) * eased, from.Y + (to.Y - from.Y) * eased), Side, 1);
-        }
-        double f = (ms - FlyMs) / FlashMs;
-        return (to, Side + (FlashSide - Side) * f, 1 - f);
-    }
-
+    /// <summary>How far from the cloud to the grid the motes are after <paramref name="elapsedMs"/> more, from <paramref name="was"/>, heading to the grid or not.</summary>
+    public static double Reshape(double was, bool grid, double elapsedMs) =>
+        grid ? Math.Min(1, was + elapsedMs / ReshapeMs) : Math.Max(0, was - elapsedMs / ReshapeMs);
     /// <summary>
     /// Where mote <paramref name="i"/> is from the cloud's middle at <paramref name="timeMs"/>, <paramref name="shown"/> in: on its
-    /// drifting spot when whole, on the way from the lens at <paramref name="lens"/> (from the middle too) before that; laid out as the
-    /// plans' grid if <paramref name="grid"/>.
+    /// drifting spot when whole, on the way from the lens at <paramref name="lens"/> (from the middle too) before that; <paramref name="grid"/>
+    /// of the way from the cloud to the plans' grid, eased.
     /// </summary>
-    public static (double X, double Y) At(int i, double shown, double timeMs, double seed, (double X, double Y) lens, bool grid = false)
+    public static (double X, double Y) At(int i, double shown, double timeMs, double seed, (double X, double Y) lens, double grid = 0)
     {
-        var (x, y) = grid ? GridSpotOf(i) : SpotOf(i);
+        double g = grid * grid * (3 - 2 * grid);
+        var (cx, cy) = SpotOf(i);
+        var (gx, gy) = GridSpotOf(i);
+        double x = cx + (gx - cx) * g, y = cy + (gy - cy) * g;
         double phase = seed + i * 1.7, ms = QuickMs + (SlowMs - QuickMs) * ((i * 7 % Count) / (double)Count);
-        double t = 2 * Math.PI * timeMs / ms, drift = grid ? GridDrift : Drift;
+        double t = 2 * Math.PI * timeMs / ms, drift = Drift + (GridDrift - Drift) * g;
         x += drift * Math.Sin(t + phase);
         y += drift * 0.8 * Math.Cos(t * 1.3 + phase * 0.6);
         // Each rises a little after the last, so the cloud swells from its middle out.

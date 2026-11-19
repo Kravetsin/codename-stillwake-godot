@@ -391,6 +391,8 @@ public partial class Main : Node2D, ITogether
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         // The tablet: put away and putting away as the computer's window.
         var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0, () => _session?.Client.World);
+        // A world shown before the tablet was made, as a dev run's is: warmed now, as ShowWorld warms it otherwise.
+        if (_session != null) tech.Warm(_m);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
@@ -621,13 +623,18 @@ public partial class Main : Node2D, ITogether
         }
         double grid = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - views;
         SyncLight();
+        // The windows' pictures made in the load's pause: first made on opening, the build menu's cards froze it 140 ms, the board 300.
+        long warmFrom = System.Diagnostics.Stopwatch.GetTimestamp();
+        Features.Building.BuildMenu.Warm();
+        _tablet?.Warm(_m);
+        double warm = System.Diagnostics.Stopwatch.GetElapsedTime(warmFrom).TotalMilliseconds;
         // What a first look at a world or a surface costs (0077: a planet is built in nearly every cell).
         double all = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;
         // What the load left behind collected now, in the pause the load already makes: else the first few collections in play
         // find it alive and copy it, 4 to 7 ms each (GcPace).
         GC.Collect();
         double collected = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - all;
-        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid - warm:F0} the light, {warm:F0} the windows; {collected:F0} ms collecting");
     }
 
     private void AimCamera(Layout? layout)

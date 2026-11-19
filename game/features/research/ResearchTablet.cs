@@ -202,6 +202,13 @@ public partial class ResearchTablet : CanvasLayer
         _market.Body.Size = new Vector2(width, height);
     }
 
+    /// <summary>The board and the market made for <paramref name="m"/>'s world as a surface loads, not on the first opening.</summary>
+    public void Warm(Registry m)
+    {
+        _board.Warm(m);
+        _market.Warm(m);
+    }
+
     /// <summary>Every page: each restyles only what has changed.</summary>
     private void Read(Registry m)
     {

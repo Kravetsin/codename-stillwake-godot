@@ -462,10 +462,9 @@ public partial class Figure : Node2D
         _beamTo.Clear();
         for (int i = 0; i < cells.Count && i < BeamsMost; i++) _beamTo.Add(cells[i]);
         _beamMs = BeamMs;
-        // With its drone by it, the near hand points at the first and a mote flies from the drone to each (drone-holo).
+        // With its drone by it, the near hand points the drone at the first (drone-holo).
         if (!_drone.Visible || cells.Count == 0) return;
         _point.Placed((cells[0].X, cells[0].Y));
-        for (int i = 0; i < cells.Count && i < BeamsMost; i++) _motes.Send(cells[i]);
     }
 
     /// <summary>A point of the world from the front shoulder, in the arms' own frame: the body as it is placed, turned, lifted and faced.</summary>
@@ -770,7 +769,9 @@ public partial class Figure : Node2D
     private readonly PlanPoint _point = new();
     private readonly double _holoSeed = Random.Shared.NextDouble() * 100;
     private double _holoIn;
-    private bool _holoComing, _holoGrid, _droneThere;
+    private bool _holoComing, _droneThere;
+    /// <summary>How far its motes are from a window's cloud to the plans' grid, 0..1.</summary>
+    private double _holoGrid;
 
     /// <summary>Whether its drone projects a drone window before it (drone-holo): its lamp and scanner off meanwhile.</summary>
     public bool Projects { get; private set; }
@@ -1521,7 +1522,8 @@ public partial class Figure : Node2D
         // the near hand and flown to by a mote. Without one, the plan is the paper sheet in hand.
         bool projecting = _drone.Visible;
         bool planOut = projecting && holdsPlan, windowOut = projecting && _droneWindow.Open && !holdsPlan;
-        if (planOut || windowOut) _holoGrid = planOut;
+        // Out of sight they take the shape at once; shown, they ease from one to the other.
+        if (planOut || windowOut) _holoGrid = _holoIn > 0 ? DroneMotesLook.Reshape(_holoGrid, planOut, elapsedMs) : planOut ? 1 : 0;
         // The motes come on once the drone is there, never on its way past the face, and stay on as it follows.
         bool holoOn = (planOut || windowOut) && _droneThere;
         _holoIn = SheetHoloLook.Step(_holoIn, holoOn, elapsedMs);

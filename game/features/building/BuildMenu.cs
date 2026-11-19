@@ -285,6 +285,12 @@ public partial class BuildMenu : CanvasLayer
         _ => BlueprintArt.Thumbnail(((PlaceTool)tool).Placement),
     };
 
+    /// <summary>Every card's picture made, as a surface loads: made on the first opening, they froze it some 140 ms.</summary>
+    public static void Warm()
+    {
+        foreach (var tool in Tools.All) ThumbOf(tool);
+    }
+
     /// <summary>Whether the menu shows the wiring's or the piping's cards (0110): the plan out in that mode, aboard.</summary>
     private bool ToolMenu => _hand.ToolCards.Count > 0;
 

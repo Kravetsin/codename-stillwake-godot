@@ -400,6 +400,16 @@ public sealed class BoardPage : ITabletPage
         if (!_framed) Frame();
     }
 
+    /// <summary>
+    /// Its frames and their pictures made as a surface loads: made on the first opening, they froze it some 200 ms. Before the
+    /// first read, which the world's knowledge may not be ready for yet.
+    /// </summary>
+    public void Warm(Registry m)
+    {
+        _strip.Learn(m.Research);
+        if (!_built) BuildFrames();
+    }
+
     /// <summary>Another world, loaded or resynced: its board read afresh.</summary>
     private void Forget(Registry m)
     {

@@ -29,4 +29,18 @@ public class DroneMotesLookTests
         Assert.NotEqual(lens, first);
         Assert.Equal(lens, last);
     }
+
+    [Fact]
+    public void WithThePlanOutTheyEaseFromTheCloudIntoTheGrid()
+    {
+        Assert.Equal(0.5, DroneMotesLook.Reshape(0, true, DroneMotesLook.ReshapeMs / 2), 9);
+        Assert.Equal(0, DroneMotesLook.Reshape(0.2, false, DroneMotesLook.ReshapeMs));
+        var lens = (0.0, 9.0);
+        var cloud = DroneMotesLook.At(5, 1, 0, 0, lens, 0);
+        var grid = DroneMotesLook.At(5, 1, 0, 0, lens, 1);
+        var midway = DroneMotesLook.At(5, 1, 0, 0, lens, 0.5);
+        Assert.InRange(midway.X, System.Math.Min(cloud.X, grid.X) - 0.7, System.Math.Max(cloud.X, grid.X) + 0.7);
+        Assert.NotEqual(cloud, midway);
+        Assert.NotEqual(grid, midway);
+    }
 }
