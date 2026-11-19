@@ -21,6 +21,10 @@ public partial class LightDrone : Node2D
     /// <summary>A glowing shard's halo, its radius and its alpha at the middle; a thread's width and its alpha mid-flight.</summary>
     private const float HaloRadius = 1.375f, HaloAlpha = 0.45f, ThreadWidth = 0.175f, ThreadAlpha = 0.6f;
 
+    /// <summary>The lens's added haze: its radius in world px, its alpha at the glass, its rings (the pick's 14 px, scaled 0.82).</summary>
+    private const float LensHaze = 1.9f, LensHazeAlpha = 0.28f;
+    private const int LensHazeRings = 10;
+
     private static readonly Color Ink = new("16171b"), Bezel = new("2a2d32");
     /// <summary>Its lens's colour shining and scanning, the mode wheel's too.</summary>
     internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
@@ -100,7 +104,6 @@ public partial class LightDrone : Node2D
             if (!_placed[i].Front) DrawShard(i);
         DrawTextureRect(_core, new Rect2(-CoreBox / 2f, -CoreBox / 2f, CoreBox, CoreBox), false);
         var lens = toward * LensAhead;
-        for (int i = 4; i >= 1; i--) DrawCircle(lens, 0.9f * i, new Color(colour, 0.09f));
         DrawColoredPolygon(Ellipse(lens, BezelX + BezelInk / 2, BezelY + BezelInk / 2, angle), Ink);
         DrawColoredPolygon(Ellipse(lens, BezelX - BezelInk / 2, BezelY - BezelInk / 2, angle), Bezel);
         DrawColoredPolygon(Ellipse(lens + toward * 0.06f, GlassX, GlassY, angle), colour.Lerp(Colors.White, 0.3f));
@@ -141,6 +144,10 @@ public partial class LightDrone : Node2D
     private void DrawGlow()
     {
         var colour = Field;
+        // The lens's haze, added as the pick's halo: ring over ring, the sum fading out from the glass.
+        var lens = Vector2.FromAngle(_angle) * LensAhead;
+        var lensColour = Scanning ? Scan : Lamp;
+        for (int k = LensHazeRings; k >= 1; k--) _glow.DrawCircle(lens, LensHaze * k / LensHazeRings, new Color(lensColour, LensHazeAlpha / LensHazeRings));
         foreach (var shard in _placed)
         {
             if (shard.Glow <= 0.05f) continue;
