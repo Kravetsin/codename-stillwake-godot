@@ -6,6 +6,8 @@ const [pageArg, outArg] = process.argv.slice(2).filter(a => !a.startsWith('--'))
 const bi = process.argv.indexOf('--break'), brk = bi > 0 ? process.argv[bi + 1] : null;
 if (!pageArg || !outArg) { console.log('usage: node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>]'); process.exit(2); }
 const page = require(path.resolve(pageArg));
+// A db doc's path has an even number of segments ('picks/x'); an odd one is a collection, and the pick is never saved.
+if (page.pick.doc.split('/').length % 2) { console.log(`pick.doc '${page.pick.doc}' is not a doc path: use 'picks/<name>'`); process.exit(1); }
 const kit = fs.readFileSync(path.join(__dirname, 'kit.js'), 'utf8');
 const items = path.join(__dirname, '..', '..', 'game', 'art', 'hd', 'items');
 
@@ -17,7 +19,9 @@ const span = t => `<span class="seg" id="${t.id}">${t.label ? `<span class="lbl"
 const bar = ts => ts.length ? `<div class="bar">\n  ${ts.map(span).join('\n  ')}\n</div>\n` : '';
 const own = n => page.toggles.filter(t => (t.bar || 2) === n);
 const fn = page.page.toString(), expr = /^(async\s+)?(function\b|\(|[\w$]+\s*=>)/.test(fn) ? fn : 'function ' + fn;
-const data = { toggles: page.toggles, pick: page.pick };
+const data = { toggles: page.toggles, pick: page.pick, kitBars: page.kitBars, tile: page.tile };
+const [TW, TH] = page.tile || [1000, 540];
+const kitBar = id => !page.kitBars || page.kitBars.includes(id);
 const script = `(() => {\n'use strict';\nconst ICON_SRC = ${JSON.stringify(icons)};\nconst PAGE = ${JSON.stringify(data)};\n${kit}\nstartPage((${expr})());\n})();\n`;
 const html = `<title>${page.title}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -48,8 +52,8 @@ button.on{border-color:var(--accent);color:var(--accent)}
 .tag{font-size:12px;color:var(--mute);font-family:ui-monospace,Consolas,monospace}
 .idea{margin:0;color:var(--mute);font-size:14px}
 .idea.time{font-size:13px;color:#c9b27a}
-canvas.view{display:block;width:100%;height:auto;aspect-ratio:1000/540;border-radius:6px;background:var(--stage);touch-action:none}
-.cand.wide canvas.view{max-width:1000px}
+canvas.view{display:block;width:100%;height:auto;aspect-ratio:${TW}/${TH};border-radius:6px;background:var(--stage);touch-action:none}
+.cand.wide canvas.view{max-width:${TW}px}
 .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pick{font-size:14px;padding:6px 14px}
 .cand.chosen .pick{border-color:var(--pick);color:var(--pick)}
@@ -59,7 +63,7 @@ canvas.view{display:block;width:100%;height:auto;aspect-ratio:1000/540;border-ra
 <main>
 <h1>${page.heading}</h1>
 ${page.lead.trim()}
-${bar([{ id: 'openMode' }, ...own(1), { id: 'heroMode' }, { id: 'speedMode' }, { id: 'playMode' }])}${bar(own(2))}<p id="status">Загрузка…</p>
+${bar([...['openMode'].filter(kitBar).map(id => ({ id })), ...own(1), ...['heroMode', 'speedMode', 'playMode'].filter(kitBar).map(id => ({ id }))])}${bar(own(2))}<p id="status">Загрузка…</p>
 <div class="grid" id="cands"></div>
 <div class="foot">
   <button id="copy" type="button">Скопировать выбор</button>

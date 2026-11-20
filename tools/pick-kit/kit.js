@@ -7,7 +7,7 @@ for (const k in ICON_SRC) { const im = new Image(); im.onload = dirtyAll; im.src
 const ready = im => !!im && im.complete && im.naturalWidth > 0;
 
 // ---------- constants ----------
-const LW = 1000, LH = 540, FLOOR_Y = 470, HOME_X = 700, MAR = 28;
+const LW = PAGE.tile ? PAGE.tile[0] : 1000, LH = PAGE.tile ? PAGE.tile[1] : 540, FLOOR_Y = 470, HOME_X = 700, MAR = 28;
 const INK = '#16171b';
 const STEEL = ['#8b9199', '#61666e', '#3b3f46'];
 const DARK = ['#5b6067', '#42464c', '#2a2d32'];
@@ -507,6 +507,7 @@ function frameTile(T, dt) {
   if (!OPT.playing) dt = 0; else if (OPT.slow) dt *= .25;
   T.time += dt;
   if (T.bufS !== T.S) { T.bufS = T.S; T.cache = {}; hook('onScale', T); }
+  if (CFG.scene) { CFG.scene(T, dt); return; }   // a page drawing its whole scene: no floor, hero loop, drone or window
   stepHero(T, dt);
   stepTimeline(T, dt);
   hook('step', T, dt);
@@ -540,7 +541,7 @@ function makeTile(host, cand, num) {
   sec.innerHTML = `<div class="head"><span class="name">${num} · ${cand.name}</span><span class="tag">${cand.id}</span></div>
     <p class="idea">${cand.idea}</p>
     <p class="idea time">${cand.time}</p>
-    <canvas class="view" width="1000" height="540"></canvas>
+    <canvas class="view" width="${LW}" height="${LH}"></canvas>
     <div class="acts"><button class="pick" type="button">Выбрать этот</button><button class="big" type="button">Крупно 1:1</button></div>`;
   host.appendChild(sec);
   const cv = sec.querySelector('canvas');
@@ -548,7 +549,7 @@ function makeTile(host, cand, num) {
   newState(T); hook('init', T);
   T.resize = () => {
     const cssW = cv.clientWidth || 600, d = Math.min(2, window.devicePixelRatio || 1);
-    const bw = Math.round(Math.max(300, Math.min(1400, cssW * d)));
+    const bw = Math.round(Math.max(300, Math.min(LW * 1.4, cssW * d)));
     if (bw === cv.width && T.S === bw / LW) return;
     cv.width = bw; cv.height = Math.round(LH * bw / LW); T.S = bw / LW; T.dirty = true;
   };
@@ -670,7 +671,7 @@ function startPage(cfg) {
     const io = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.cv === e.target); if (t) { t.visible = e.isIntersecting; t.dirty = true; } }), { rootMargin: '120px' });
     tiles.forEach(t => io.observe(t.cv));
   }
-  for (const id in STANDARD) toggle({ id, ...STANDARD[id] });
+  for (const id in STANDARD) if (!PAGE.kitBars || PAGE.kitBars.includes(id)) toggle({ id, ...STANDARD[id] });
   PAGE.toggles.forEach(toggle);
   if (window.__pickCheck) window.__pickCheck({ tiles, OPT, X: cfg.expose || {} });
   requestAnimationFrame(loop);
