@@ -30,7 +30,7 @@ public class WreckScrapTests
     {
         var m = new Scenario(World).M;
         var dressed = Dressed().ToHashSet();
-        Assert.Equal(17, dressed.Count(c => Wreck.Dress[c.Y][c.X] == 'T'));
+        Assert.Equal(27, dressed.Count(c => Wreck.Dress[c.Y][c.X] == 'T'));
         Assert.All(dressed, c => Assert.Equal('#', Wreck.Rows[c.Y][c.X]));
         for (int y = 0; y < Wreck.Height; y++)
             for (int x = 0; x < Wreck.Width; x++)

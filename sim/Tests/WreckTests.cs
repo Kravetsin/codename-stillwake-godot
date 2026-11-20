@@ -120,18 +120,19 @@ public class WreckTests
         Assert.All(walls, c => Assert.Equal("scrap", m.Grid.BackAt(c)?.Id));
     }
 
+    /// <summary>Nothing of it floats free: every wall and door holds on the rest, through walls, doors or a back wall (the roof the core holed hangs on its back wall).</summary>
     [Fact]
     public void IsOnePieceOfWallsAndDoors()
     {
         var rows = Registry.WreckMap.Rows;
-        bool Solid(int x, int y) => y >= 0 && y < rows.Count && x >= 0 && x < rows[y].Length && rows[y][x] is '#' or 'D';
-        var all = (from y in Enumerable.Range(0, rows.Count) from x in Enumerable.Range(0, rows[y].Length) where Solid(x, y) select (x, y)).ToHashSet();
+        char At(int x, int y) => y >= 0 && y < rows.Count && x >= 0 && x < rows[y].Length ? rows[y][x] : ' ';
+        var all = (from y in Enumerable.Range(0, rows.Count) from x in Enumerable.Range(0, rows[y].Length) where At(x, y) is '#' or 'D' select (x, y)).ToHashSet();
         var seen = new HashSet<(int x, int y)> { all.First() };
         var open = new Stack<(int x, int y)>(seen);
         while (open.TryPop(out var c))
             foreach (var n in new[] { (c.x + 1, c.y), (c.x - 1, c.y), (c.x, c.y + 1), (c.x, c.y - 1) })
-                if (all.Contains(n) && seen.Add(n)) open.Push(n);
-        Assert.Equal(all.Count, seen.Count);
+                if (At(n.Item1, n.Item2) != ' ' && seen.Add(n)) open.Push(n);
+        Assert.Equal(all.Count, all.Count(seen.Contains));
     }
 
     [Fact]
