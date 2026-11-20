@@ -70,12 +70,6 @@ public static class BodyFit
     /// <summary>The middle of the basic helmet's rubber seal (rows 10 to 13.5): it bends there, the ball nodding on it.</summary>
     public const double SealY = 11.75;
 
-    /// <summary>
-    /// The middle of the heavy bell's rubber gasket where it shows under its brass neck ring (tools/anime-art helmets.js,
-    /// <c>GASKET</c>), and the band it bends in: the dome and ring nod whole above it, the shoulder piece stays below.
-    /// </summary>
-    public const double GasketY = 11.8, GasketBand = 1.4;
-
     /// <summary>The head's middle (hero_head.png): a bolted helmet's head turns about it inside (<see cref="HelmetTurn.Bolted"/>), not out through the shell.</summary>
     private const double HeadX = 5.5, HeadY = 6.5;
 
@@ -114,9 +108,8 @@ public static class BodyFit
         ["paradeHelmet"] = Shell,
         // The hood's last roll, under its plate, bends; its bottom fades into the suit rather than end in a line across it.
         [Stillwake.Content.Helmet.Quilted] = Hood with { Fade = (13.6, 14.6) },
-        // The dome nods whole with its brass ring on its rubber gasket, which bends, as the basic helmet's ball on its seal; its
-        // shoulder piece stays, over the arm, its straight edge, cut by its reference, fading out.
-        [Stillwake.Content.Helmet.Heavy] = new(HelmetTurn.Ring, NeckX, GasketY, Cut: null, Fade: (13.8, 15), Band: GasketBand, Sealed: true),
+        // The bell turns whole on its rubber gasket as the skins do on theirs, with no shoulder piece: it met no suit well.
+        [Stillwake.Content.Helmet.Heavy] = Shell,
         ["catcherHood"] = Hood,
         ["catcherCap"] = Hood,
         ["catcherBeak"] = Hood,

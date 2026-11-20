@@ -8,7 +8,10 @@ using JetpackSpec = Stillwake.Content.Jetpack;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The field round the build zone, and the cold past it that drains the suit (0050), in crew.</summary>
+/// <summary>
+/// The field round the build zone (0048) and its degrees (body-temperature): the hull's by the ship, colder across the field to
+/// space's at its line, falling to the deep's at the world's edge; the cold there moves the body, never the air.
+/// </summary>
 public class FieldTests
 {
     /// <summary>A lifepod in a room with no air, centred in a world of <c>Content.World</c>'s size, as a new world's wreck is.</summary>
@@ -22,6 +25,7 @@ public class FieldTests
         """;
 
     private const int Width = Content.World.Width, Height = Content.World.Height;
+    private const int Hull = Content.Temperature.Hull, Space = Content.Temperature.Space, Deep = Content.Temperature.Deep;
     /// <summary>The field's edges, the zone grown by <c>Field.Margin</c>: 384 cells from the grid's left and right, 128 from its top and bottom.</summary>
     private const int Left = (Width - Content.World.ZoneWidth) / 2 - FieldSpec.Margin, Right = Width - 1 - Left;
     private const int Top = (Height - Content.World.ZoneHeight) / 2 - FieldSpec.Margin, Bottom = Height - 1 - Top;
@@ -34,11 +38,12 @@ public class FieldTests
 
     /// <summary>One world, never stepped, for the queries alone.</summary>
     private static readonly Lazy<Scenario> Still = new(World);
-    private static int Cost(int cell) => Still.Value.M.Crew.EdgeCost(cell);
+    private static int Degrees(int cell) => Still.Value.M.Crew.TemperatureAt(cell);
+    private static int Degrees(int x, int y) => Degrees(At(x, y));
 
     private static Hero HeroOf(Scenario w, int id = 0) => w.M.Crew.HeroOf(id)!;
 
-    /// <summary>A world with hero 0 brought in at <paramref name="cell"/> on the tick after a breath: <see cref="Breaths"/> counts from there.</summary>
+    /// <summary>A world with hero 0, suited, brought in at <paramref name="cell"/> on the tick after a breath: <see cref="Breaths"/> counts from there.</summary>
     private static Scenario BroughtIn(int cell)
     {
         var w = ToBreath(World()).Run();
@@ -53,7 +58,8 @@ public class FieldTests
     }
 
     /// <summary>Runs whole breaths from just after one.</summary>
-    private static Scenario Breaths(Scenario w, int count) => w.Run(count * Content.Crew.BreathEvery);
+    private static Scenario Breaths(Scenario w, int count) =>
+        w.Run(count * Content.Crew.BreathEvery - w.Crew().Clock % Content.Crew.BreathEvery);
 
     [Fact]
     public void GrowsTheWorldsZoneByTheMarginIntoTheField()
@@ -65,147 +71,95 @@ public class FieldTests
     [Fact]
     public void SpaceIsTheHullsByTheShipColderAcrossTheFieldByTheFartherAxisAndSpacesFromItsLineOn()
     {
-        // The user's ask: the farther from the ship, the colder (2026-11-14-temperature-in-degrees).
+        // The user's ask: the farther from the ship, the colder (2026-11-14-temperature-in-degrees), −100° to −200° (body-temperature).
         var zone = Still.Value.M.Grid.Zone;
-        int Degrees(int x, int y) => Still.Value.M.Crew.TemperatureAt(At(x, y));
-        Assert.Equal((Content.Temperature.Hull, Content.Temperature.Hull), (Degrees(zone.Left, MidY), Degrees(MidX, zone.Top)));
-        // One cell out, 20° × 1/128 rounded toward the warmer; half way, 64 of 128 cells by the farther axis, half of it.
-        Assert.Equal(-20, Degrees(zone.Left - 1, MidY));
-        Assert.Equal((-30, -30), (Degrees(zone.Left - FieldSpec.Margin / 2, MidY), Degrees(zone.Left - FieldSpec.Margin / 2, zone.Top - 10)));
-        Assert.Equal((-30, -30), (Degrees(MidX, zone.Bottom + FieldSpec.Margin / 2), Degrees(zone.Right + FieldSpec.Margin / 2, MidY)));
-        Assert.Equal((-40, -40, -40), (Degrees(Left, MidY), Degrees(Right + 1, Bottom + 1), Degrees(0, 0)));
-        for (int x = zone.Left; x > 0; x--)
+        Assert.Equal((Hull, Hull), (Degrees(zone.Left, MidY), Degrees(MidX, zone.Top)));
+        // One cell out, 100° × 1/128 rounded toward the warmer; half way, 64 of 128 cells by the farther axis, half of it.
+        Assert.Equal(-100, Degrees(zone.Left - 1, MidY));
+        Assert.Equal(-101, Degrees(zone.Left - 2, MidY));
+        Assert.Equal((-150, -150), (Degrees(zone.Left - FieldSpec.Margin / 2, MidY), Degrees(zone.Left - FieldSpec.Margin / 2, zone.Top - 10)));
+        Assert.Equal((-150, -150), (Degrees(MidX, zone.Bottom + FieldSpec.Margin / 2), Degrees(zone.Right + FieldSpec.Margin / 2, MidY)));
+        Assert.Equal(Space, Degrees(Left, MidY));
+        for (int x = zone.Left; x > Left; x--)
             Assert.InRange(Degrees(x, MidY) - Degrees(x - 1, MidY), 0, 1);
     }
 
     [Fact]
-    public void BreathesInsideTheFieldAsBeforeEvenOnItsEdgeAndOutsideTheZone()
+    public void PastTheFieldsLineFallsStraightToTheDeepsAtTheWorldsEdgeByTheDeeperAxis()
     {
+        // The edge stays out of reach (body-temperature): every way, from space's on the line to the deep's at the grid's end.
         foreach (int cell in new[] { At(Left, MidY), At(Right, MidY), At(MidX, Top), At(MidX, Bottom), At(Left, Top), At(Right, Bottom) })
-        {
-            Assert.Equal(0, Cost(cell));
-            var w = BroughtIn(cell);
-            Breaths(w, 5);
-            Assert.Equal(Scenario.Full - 5, HeroOf(w).Air);
-        }
-    }
-
-    [Fact]
-    public void ChargesAUnitMoreOneCellPastTheFieldEveryWay()
-    {
-        foreach (int cell in new[] { At(Left - 1, MidY), At(Right + 1, MidY), At(MidX, Top - 1), At(MidX, Bottom + 1), At(Left - 1, Top - 1) })
-        {
-            Assert.Equal(1, Cost(cell));
-            var w = Breaths(BroughtIn(cell), 1);
-            Assert.Equal(Scenario.Full - 2, HeroOf(w).Air);
-        }
-    }
-
-    [Fact]
-    public void ABareHeroPastTheFieldPaysItsOwnColdAndTheEdgesBoth()
-    {
-        var w = ToBreath(new Scenario(Layout.Parse(PodRoom).Doubled().InWorld()) { Bare = true }).Run();
-        w.Do(new Enter(At(Left - 1, MidY)) { From = 0 }).Run();
-        HeroOf(w).Air = Content.Crew.Lungs;
-        // Five breaths: each a unit and the edge's unit, and space's −40° on a bare 0°, 40 felt, four units (2026-11-14-temperature-in-degrees).
-        Breaths(w, 5);
-        Assert.Equal(Content.Crew.Lungs - 5 * 2 - 4, HeroOf(w).Air);
-        Assert.Equal((1, 40), (w.M.Crew.EdgeCost(HeroOf(w).Cell), w.M.Crew.Felt(0, HeroOf(w).Cell)));
-    }
-
-    [Fact]
-    public void ACapeSparesNoneOfTheEdgesColdWhichIsNoWeather()
-    {
-        // Half way to the edge, 12 a breath, caped or not; a suit feels nothing of space's −40° (2026-11-14-temperature-in-degrees).
-        var w = ToBreath(World().Wear(0, Content.Cape.Item)).Run();
-        w.Do(new Enter(At(Left / 2, MidY)) { From = 0 }).Run();
-        Breaths(w, 1);
-        Assert.Equal((Scenario.Full - 1 - 12, 0), (HeroOf(w).Air, HeroOf(w).Spared));
-        Breaths(w, 1);
-        Assert.Equal((Scenario.Full - 2 - 24, 0), (HeroOf(w).Air, HeroOf(w).Spared));
-        Assert.Equal((12, 0), (w.M.Crew.EdgeCost(HeroOf(w).Cell), w.M.Crew.Felt(0, HeroOf(w).Cell)));
-    }
-
-    [Fact]
-    public void ChargesTwelveMoreHalfWayToTheEdgeByTheDeeperAxis()
-    {
-        // 192 of 384 cells sideways, 64 of 128 up or down: 500 thousandths, 45 × ¼ rounded up.
+            Assert.Equal(Space, Degrees(cell));
+        int half = (Space + Deep) / 2;
         foreach (int cell in new[] { At(Left / 2, MidY), At(Right + Left / 2, MidY), At(MidX, Top / 2), At(MidX, Bottom + Top / 2), At(Left / 2, Top - 10) })
+            Assert.Equal(half, Degrees(cell));
+        foreach (int cell in new[] { At(0, MidY), At(Width - 1, MidY), At(MidX, 0), At(Width - 1, Height - 1) })
+            Assert.Equal(Deep, Degrees(cell));
+        Assert.Equal((Deep, Deep), (Degrees(-1), Degrees(Width * Height)));
+        for (int x = Left; x > 0; x--)
+            Assert.True(Degrees(x - 1, MidY) <= Degrees(x, MidY), $"{x}");
+    }
+
+    [Fact]
+    public void ABasicSuitFeelsNothingInTheZoneAndBreathesThereAsAnywhere()
+    {
+        var w = Breaths(BroughtIn(At(Left + FieldSpec.Margin, MidY)), 5);
+        Assert.Equal((Scenario.Full - 5, 0), (HeroOf(w).Air, w.M.Crew.Felt(0, HeroOf(w).Cell)));
+    }
+
+    [Fact]
+    public void PastTheFieldTheColdCostsNoAirAndIsFeltNinetyPastABasicSuitOnItsLineDeeperOut()
+    {
+        // Space's −200° on a basic suit's −110°: 90 felt on the line, 1890 at the edge, for the client's body to cool by; the air
+        // pays the breath alone.
+        foreach (var (cell, felt) in new[] { (At(Left, MidY), 90), (At(0, MidY), 1890), (At(MidX, 0), 1890), (-5, 1890) })
         {
-            Assert.Equal(12, Cost(cell));
-            var w = Breaths(BroughtIn(cell), 1);
-            Assert.Equal(Scenario.Full - 13, HeroOf(w).Air);
+            var w = Breaths(BroughtIn(cell), 3);
+            Assert.Equal((Scenario.Full - 3, 0, 0, felt), (HeroOf(w).Air, HeroOf(w).Out, HeroOf(w).Gasp, w.M.Crew.Felt(0, cell)));
         }
     }
 
     [Fact]
-    public void EmptiesAFullSuitInOneBreathAtTheEdgeAndTheHeroWakesAtThePod()
+    public void ACellsColdIsFeltFromTheTickTheReportFromItLands()
     {
-        foreach (int cell in new[] { At(0, MidY), At(Width - 1, MidY), At(MidX, 0), At(Width - 1, Height - 1) })
-            Assert.Equal(FieldSpec.EdgeCost, Cost(cell));
-        var w = World().Do(new Enter(At(0, MidY)) { From = 0 }).Run();
-        ToBreath(w).Run();
-        // The cold cuts no last breath: ten seconds to turn back.
-        Assert.Equal((0, Content.Crew.LastBreath, 0), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out));
-        w.Run(Content.Crew.LastBreath);
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
-        w.Run(Content.Crew.PassOut);
-        Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0), (HeroOf(w).Cell, HeroOf(w).Air, HeroOf(w).Out));
-        Assert.True(w.M.Crew.ByPod(HeroOf(w).Cell));
+        // Half way across the field, −150° on −110°: 40 felt; back in the zone, nothing, on the tick the report lands.
+        var w = Breaths(BroughtIn(At(Left + FieldSpec.Margin / 2, MidY)), 1);
+        Assert.Equal((40, Scenario.Full - 1), (w.M.Crew.Felt(0, HeroOf(w).Cell), HeroOf(w).Air));
+        ToBreath(w).Do(new Enter(At(Left + FieldSpec.Margin + 10, MidY)) { From = 0 }).Run();
+        Assert.Equal((0, Scenario.Full - 2), (w.M.Crew.Felt(0, HeroOf(w).Cell), HeroOf(w).Air));
     }
 
     [Fact]
-    public void StopsDrainingOnTheTickTheReportFromInsideLands()
-    {
-        var w = Breaths(BroughtIn(At(Left / 2, MidY)), 1);
-        Assert.Equal(Scenario.Full - 13, HeroOf(w).Air);
-        ToBreath(w).Do(new Enter(At(Left + 10, MidY)) { From = 0 }).Run();
-        Assert.Equal(Scenario.Full - 14, HeroOf(w).Air);
-    }
-
-    [Fact]
-    public void AddsTheColdToWhatThrustVents()
+    public void ThrustVentsOnlyItsOwnPastTheField()
     {
         var w = ToBreath(World().Wear(0, JetpackSpec.Item)).Run();
-        int cell = At(Left / 2, MidY);
+        int cell = At(Left + FieldSpec.Margin / 2, MidY);
         w.Do(new Enter(cell) { From = 0 }).Do(new Enter(cell) { From = 1 }).Do(new Thrust(true) { From = 0 }).Run();
         Breaths(w, 1);
-        // Hero 1 breathes and freezes; hero 0 too, and vents 20 ticks of thrust on top.
-        Assert.Equal(Scenario.Full - 13, HeroOf(w, 1).Air);
-        Assert.Equal(Scenario.Full - 13 - Content.Crew.BreathEvery / JetpackSpec.TicksPerUnit, HeroOf(w, 0).Air);
+        // Hero 1 breathes; hero 0 too, and vents 20 ticks of thrust on top; the cold takes neither's air, felt by both alike.
+        Assert.Equal(Scenario.Full - 1, HeroOf(w, 1).Air);
+        Assert.Equal(Scenario.Full - 1 - Content.Crew.BreathEvery / JetpackSpec.TicksPerUnit, HeroOf(w, 0).Air);
+        Assert.Equal((40, 40), (w.M.Crew.Felt(0, cell), w.M.Crew.Felt(1, cell)));
     }
 
     [Fact]
-    public void DrainsACanisterBreathedPastTheField()
+    public void ACanisterBreathedPastTheFieldPaysOnlyTheBreath()
     {
         var w = BroughtIn(At(Left / 2, MidY)).GiveItems(0, (Content.Crew.Canister, 1));
         HeroOf(w).Air = 2;
         w.Do(new Refill { From = 0 }).Run();
         Assert.Equal(2 + Content.Crew.CanisterRefill, HeroOf(w).Air);
         ToBreath(w).Run();
-        Assert.Equal(2 + Content.Crew.CanisterRefill - 13, HeroOf(w).Air);
+        Assert.Equal(2 + Content.Crew.CanisterRefill - 1, HeroOf(w).Air);
     }
 
     [Fact]
-    public void ChargesAWholeSuitOffTheGrid()
-    {
-        Assert.Equal(FieldSpec.OffGrid, Cost(-1));
-        Assert.Equal(FieldSpec.OffGrid, Cost(Width * Height));
-        var w = World().Do(new Enter(-5) { From = 0 }).Run();
-        ToBreath(w).Run();
-        Assert.Equal((0, Content.Crew.LastBreath), (HeroOf(w).Air, HeroOf(w).Gasp));
-        w.Run(Content.Crew.LastBreath);
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
-    }
-
-    [Fact]
-    public void CostsNothingAnywhereOnAMapThatSetsNoZoneAndAWholeSuitOffIt()
+    public void IsTheHullsAnywhereOnAMapThatSetsNoZoneAndTheDeepsOffIt()
     {
         // A test map's zone is the whole map, so its field reaches past the grid every way.
         var w = new Scenario(PodRoom);
-        Assert.All(Enumerable.Range(0, w.Layout.Width * w.Layout.Height), cell => Assert.Equal(0, w.M.Crew.EdgeCost(cell)));
-        Assert.Equal(FieldSpec.OffGrid, w.M.Crew.EdgeCost(-1));
-        Assert.Equal(FieldSpec.OffGrid, w.M.Crew.EdgeCost(w.Layout.Width * w.Layout.Height));
+        Assert.All(Enumerable.Range(0, w.Layout.Width * w.Layout.Height), cell => Assert.Equal(Hull, w.M.Crew.TemperatureAt(cell)));
+        Assert.Equal((Deep, Deep), (w.M.Crew.TemperatureAt(-1), w.M.Crew.TemperatureAt(w.Layout.Width * w.Layout.Height)));
     }
 
     // Invariants.
@@ -214,19 +168,21 @@ public class FieldTests
         from x in Gen.Choose(0, Width - 1) from y in Gen.Choose(0, Height - 1) select (x, y);
 
     [Property(MaxTest = 500)]
-    public Property CostsNothingInsideTheFieldNeverMoreThanTheEdgeAndNeverLessFartherOut()
+    public Property TheDegreesAreTheHullsInTheZoneSpacesOrColderPastTheFieldAndNeverWarmerFartherOut()
     {
+        var zone = Still.Value.M.Grid.Zone;
         return Prop.ForAll(Cells.ToArbitrary(), c =>
         {
-            int cost = Cost(At(c.X, c.Y));
-            bool inside = c.X >= Left && c.X <= Right && c.Y >= Top && c.Y <= Bottom;
-            if (inside && cost != 0) return false.Label($"{cost} inside the field");
-            if (!inside && cost == 0) return false.Label("nothing past the field");
-            if (cost < 0 || cost > FieldSpec.EdgeCost) return false.Label($"{cost}");
-            // A cell farther from the middle on either axis costs no less.
+            int degrees = Degrees(c.X, c.Y);
+            bool inZone = c.X >= zone.Left && c.X <= zone.Right && c.Y >= zone.Top && c.Y <= zone.Bottom;
+            bool inside = c.X > Left && c.X < Right && c.Y > Top && c.Y < Bottom;
+            if (inZone && degrees != Hull) return false.Label($"{degrees} in the zone");
+            if (!inside && (degrees > Space || degrees < Deep)) return false.Label($"{degrees} past the field");
+            if (degrees < Deep || degrees > Hull) return false.Label($"{degrees}");
+            // A cell farther from the middle on either axis is no warmer.
             int outX = c.X < MidX ? c.X - 1 : c.X + 1, outY = c.Y < MidY ? c.Y - 1 : c.Y + 1;
-            if (outX >= 0 && outX < Width && Cost(At(outX, c.Y)) < cost) return false.Label("less farther out sideways");
-            if (outY >= 0 && outY < Height && Cost(At(c.X, outY)) < cost) return false.Label("less farther out up or down");
+            if (outX >= 0 && outX < Width && Degrees(outX, c.Y) > degrees) return false.Label("warmer farther out sideways");
+            if (outY >= 0 && outY < Height && Degrees(c.X, outY) > degrees) return false.Label("warmer farther out up or down");
             return true.ToProperty();
         });
     }

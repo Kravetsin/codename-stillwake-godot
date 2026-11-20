@@ -36,22 +36,22 @@ public class SkyTests
     private static int Beat => Strip.ThinAir!.Value * Content.Crew.BreathEvery;
 
     /// <summary>
-    /// The air the night's cold under the open sky takes from a suit over <paramref name="beats"/> beats, <paramref name="warmth"/>
-    /// degrees lower with a cape: the degrees felt past the suit's limit at <c>Bite</c> a breath (2026-11-14-temperature-in-degrees), whole.
+    /// The degrees the night under the open sky is felt past the limit of a hero with no suit, <paramref name="warmth"/> fewer with a
+    /// cape: what draws its body, which its client keeps (body-temperature).
     /// </summary>
-    private static int NightCold(int beats = 1, int warmth = 0)
-    {
-        int felt = Content.Items.Get(Content.Suit.Basic).Low!.Value - warmth - (Strip.Temperatures[0] - Day.Chill);
-        int thousandths = beats * felt * Content.Temperature.Bite * Strip.ThinAir!.Value;
-        Assert.Equal(0, thousandths % 1000);
-        return thousandths / 1000;
-    }
+    private static int NightFelt(int warmth = 0) => Content.Temperature.BareLow - warmth - (Strip.Temperatures[0] - Day.Chill);
 
-    /// <summary>The ship with the strip opened and hero 0 beamed down to it, wearing the cape when <paramref name="caped"/>.</summary>
+    private static int FeltOf(Scenario w) => w.On(1).Crew.Felt(0, w.On(1).Crew.HeroOf(0)!.Cell);
+
+    /// <summary>
+    /// The ship with the strip opened and hero 0 beamed down to it in a helmet and no suit, wearing the cape when <paramref name="caped"/>:
+    /// the strip's mild night is felt only past a bare body's limit (2026-11-17-mild-climate).
+    /// </summary>
     private static Scenario Down(bool caped = false)
     {
-        var w = new Scenario(Ship);
+        var w = new Scenario(Ship) { Bare = true };
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
+        w.Wear(0, Content.Helmet.Basic);
         if (caped) w.Wear(0, Content.Cape.Item);
         return w.Do(new Transfer(1)).Run();
     }
@@ -135,14 +135,29 @@ public class SkyTests
     }
 
     [Fact]
-    public void AtNightAHeroUnderTheOpenSkyPaysTheChillOnTopOfThinAir()
+    public void AtNightAHeroUnderTheOpenSkyFeelsTheColdAndPaysOnlyThinAir()
     {
-        Assert.True(NightCold() > 0);
-        Assert.Equal(1, Lost(Down(), Open, 0));
-        Assert.Equal(1 + NightCold(), Lost(Down(), Open, NightAt));
-        Assert.Equal(3 * (1 + NightCold()), Lost(Down(), Open, NightAt, beats: 3));
-        // Late in the night, a beat before dawn, it still bites.
-        Assert.Equal(1 + NightCold(), Lost(Down(), Open, Day.Length - 2 * Beat));
+        // 8 degrees felt settle a bare body at 35.4° within five beats, its air paying thin air alone (body-temperature).
+        Assert.Equal(8, NightFelt());
+        var day = Down();
+        Assert.Equal((5, 0), (Lost(day, Open, 0, beats: 5), FeltOf(day)));
+        var night = Down();
+        Assert.Equal((5, NightFelt()), (Lost(night, Open, NightAt, beats: 5), FeltOf(night)));
+        var longer = Down();
+        Assert.Equal((10, NightFelt()), (Lost(longer, Open, NightAt, beats: 10), FeltOf(longer)));
+        // Late in the night, five beats before dawn, it still bites.
+        var late = Down();
+        Assert.Equal((5, NightFelt()), (Lost(late, Open, Day.Length - 6 * Beat, beats: 5), FeltOf(late)));
+    }
+
+    [Fact]
+    public void ABasicSuitFeelsNothingOfTheMildNight()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        Assert.Equal(5, Lost(w, Open, NightAt, beats: 5));
+        Assert.Equal(0, w.On(1).Crew.Felt(0, Open));
     }
 
     [Fact]
@@ -151,7 +166,7 @@ public class SkyTests
         var w = Down();
         var crew = w.On(1).Crew;
         w.Do(new Enter(Open)).Do(new SetTime(NightAt)).Run();
-        Assert.Equal((Strip.Temperatures[0] - Day.Chill, 10), (crew.TemperatureAt(Open), crew.Felt(0, Open)));
+        Assert.Equal((Strip.Temperatures[0] - Day.Chill, 8), (crew.TemperatureAt(Open), crew.Felt(0, Open)));
         w.Do(new SetTime(0)).Run();
         Assert.Equal((Strip.Temperatures[0], 0), (crew.TemperatureAt(Open), crew.Felt(0, Open)));
     }
@@ -163,11 +178,11 @@ public class SkyTests
         // The shelter cut into the cliff's foot, where heroes beam down: its back the rock.
         int shelter = w.On(1).Crew.Spawn;
         Assert.NotNull(w.On(1).Grid.BackAt(shelter));
-        Assert.Equal(1, Lost(w, shelter, NightAt));
+        Assert.Equal((1, 0), (Lost(w, shelter, NightAt), FeltOf(w)));
         // A back wall put up over a cell of the open flat shelters it as well.
         var v = Down();
         v.On(1).Grid.Place(Open, Placement.BackWall());
-        Assert.Equal(1, Lost(v, Open, NightAt));
+        Assert.Equal((1, 0), (Lost(v, Open, NightAt), FeltOf(v)));
     }
 
     [Fact]
@@ -182,16 +197,17 @@ public class SkyTests
                 if (y == top || x == left || x == right) m.Grid.Place(Cell(x, y), Placement.Wall());
         int inside = Cell(left + 2, floor - 1);
         Assert.Null(m.Grid.BackAt(inside));
-        Assert.Equal(1 + NightCold(), Lost(w, inside, NightAt));
+        Assert.Equal((5, NightFelt()), (Lost(w, inside, NightAt, beats: 5), FeltOf(w)));
     }
 
     [Fact]
     public void TheCapesDegreesLeaveLessOfTheNightsCold()
     {
-        // Over two beats the cape's degrees are whole units of cold: 5 of 10 felt (2026-11-14-temperature-in-degrees).
-        const int beats = 2;
-        Assert.True(NightCold(beats, Content.Cape.Warmth) < NightCold(beats));
-        Assert.Equal(beats + NightCold(beats, Content.Cape.Warmth), Lost(Down(caped: true), Open, NightAt, beats));
+        // 3 of 8 felt with the cape (2026-11-14-temperature-in-degrees): its body settles at 36.4°, its air paying thin air alone.
+        const int beats = 10;
+        Assert.Equal(3, NightFelt(Content.Cape.Warmth));
+        var w = Down(caped: true);
+        Assert.Equal((beats, NightFelt(Content.Cape.Warmth)), (Lost(w, Open, NightAt, beats), FeltOf(w)));
     }
 
     [Fact]

@@ -634,6 +634,18 @@ public class AimTests
         Assert.True(drill.Due(5, true, pace));
     }
 
+    [Fact]
+    public void ABodyWorkingAtHalfDrillsAtHalfThePaceRoundedUpToAWholeTick()
+    {
+        // Pace × 1000 / WorkOf, rounded up (body-temperature): 2 ticks become 4 at 500‰, 3 become 4 at 999‰.
+        Assert.Equal(4, DrillPace.Slowed(2, 500));
+        Assert.Equal(2, DrillPace.Slowed(2, 1000));
+        Assert.Equal(4, DrillPace.Slowed(3, 999));
+        var drill = new DrillPace();
+        var due = Enumerable.Range(10, 12).Where(t => drill.Due(t, true, DrillPace.Slowed(2, 500))).ToList();
+        Assert.Equal([10, 14, 18], due);
+    }
+
 
     [Fact]
     public void ASwingAtAirBeginsStrikesOnceAndSendsNothing()

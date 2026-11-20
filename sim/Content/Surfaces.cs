@@ -116,8 +116,8 @@ public static class Surfaces
         ThinAir = PlanetTypes.First.ThinAir,
         Sky = PlanetTypes.First.Sky,
         Cycle = PlanetTypes.First.Cycle,
-        // Its surface's band only: it has no depth bands.
-        Temperatures = [PlanetTypes.First.Temperatures[0]],
+        // Its surface's air only: it has no depth bands.
+        Temperatures = [PlanetTypes.First.Air ?? PlanetTypes.First.Temperatures[0]],
         Debris = PlanetTypes.First.Debris,
         Builds = PlanetTypes.First.Builds,
         ToolsBreak = PlanetTypes.First.ToolsBreak,

@@ -103,6 +103,8 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(_calm = Style.Button("calm", () => Send(new SetCalm(!_modules().Hazards.Calm))));
         // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
         buttons.AddChild(Style.Button("dusk", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? day.Length - day.Night - Daylight.Dusk : 0))));
+        // The sun at its highest (Daylight.Sun): halfway between its rise in the dawn and its set in the dusk.
+        buttons.AddChild(Style.Button("noon", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? (day.Length - day.Night - (Daylight.Dusk + Daylight.Dawn) / 2) / 2 : 0))));
         buttons.AddChild(Style.Button("day", () => Send(new Sim.Sky.SetTime(0))));
         // A place on the radar at once (2026-11-08-radar-contacts): a vessel of a random class, where places draws it on the orbit.
         buttons.AddChild(Style.Button("radar place", () => Send(new Find(Content.Vessels.Classes[(int)(GD.Randi() % (uint)Content.Vessels.Classes.Count)].Id))));

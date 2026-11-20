@@ -50,6 +50,16 @@ public sealed class CanisterCooling
     /// <summary>How much of the cooldown has passed, 0 as a canister is breathed to 1 as another may be.</summary>
     public double Passed => Math.Clamp(1 - _left / CrewSpec.CanisterCooldown, 0, 1);
 
+    /// <summary>
+    /// The ring split at the sweep's head, in radians clockwise from the top as the screen's y runs down: what has cooled, kept
+    /// sky, and what is left to cool, which blinks red when a canister is asked for too soon.
+    /// </summary>
+    public static ((float From, float To) Swept, (float From, float To) Left) Arcs(double passed)
+    {
+        float top = -MathF.PI / 2, head = top + 2 * MathF.PI * (float)Math.Clamp(passed, 0, 1);
+        return ((top, head), (head, top + 2 * MathF.PI));
+    }
+
     /// <summary>The ready glow, 1 as the cooldown runs out, easing to 0 over <see cref="ReadyS"/>.</summary>
     public double Ready => _ready < 0 ? 0 : Math.Pow(1 - _ready / ReadyS, 2);
 }

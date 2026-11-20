@@ -143,8 +143,8 @@ survive with its progress. Machines in the box are only the whitelist's, so noth
   widen to the vessel. Pieces pass through it as through the hull (0006).
 - **Hazards:** a meteor's targets skip the reserved box, so a vessel ahead never shields the ship. The streak may pass
   over the vessel: nothing collides.
-- **Crew:** `EdgeCost` is 0 inside the reserved box as inside the field, so the cold stays off a vessel that reaches
-  past the field's 128 cells. The README's "never less farther out" becomes "outside the field and the box".
+- **Crew:** the degrees afloat are `Temperature.Hull` inside the reserved box as inside the zone, so the cold stays off a
+  vessel that reaches past the field's 128 cells (body-temperature).
 - **Building:** `Hew` on the ship's surface strikes only cells inside the reserved box: each ray is judged per struck
   cell, and stops at the box's edge, so a fan from the gap never breaks the ship. Elsewhere aboard it is refused
   `building.notHere` as today; `HewProblem` and `Struck` follow the same rule. Shots (`Hit`) are unchanged. The client

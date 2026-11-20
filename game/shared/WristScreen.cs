@@ -17,8 +17,11 @@ public partial class WristScreen : PanelContainer
     private static readonly Vector2 Reach = new(320, 200);
 
     private readonly NinePatchRect _art;
-    private readonly Color _screen;
+    private readonly Color _ownScreen;
+    private Color _screen;
     private readonly TextureRect? _light, _led;
+    /// <summary>The lamp's own colour over the art's green while tinted (<see cref="Tint"/>).</summary>
+    private Control? _lamp;
     private readonly List<(Control Part, Func<Vector2, Vector2> At)> _mounts = [];
     private readonly WristPiece _piece;
     private float _power = 1;
@@ -32,7 +35,7 @@ public partial class WristScreen : PanelContainer
     public WristScreen(WristPiece piece, Color screen, int padding, bool lit = false, int? across = null)
     {
         _piece = piece;
-        _screen = screen;
+        _screen = _ownScreen = screen;
         MouseFilter = MouseFilterEnum.Stop;
         var box = new StyleBoxEmpty();
         box.SetContentMarginAll(padding);
@@ -93,6 +96,28 @@ public partial class WristScreen : PanelContainer
         if (_blink <= 0) SetProcess(false);
     }
 
+    /// <summary>
+    /// Tints the screen <paramref name="screen"/>, its light and lamp <paramref name="glow"/>; none, back to its own: the
+    /// equipment's turns warm amber on its Appearance tab (gear-tabs).
+    /// </summary>
+    public void Tint(Color? screen, Color? glow)
+    {
+        _screen = screen ?? _ownScreen;
+        QueueRedraw();
+        if (_light != null) ScreenGlow.Recolour(_light, glow is { } light ? light with { A = Light.A } : Light);
+        if (_led == null) return;
+        ScreenGlow.Recolour(_led, glow is { } led ? led with { A = LedLight.A * 1.4f } : LedLight);
+        if (glow is { } lamp)
+        {
+            var dot = new StyleBoxFlat { BgColor = lamp.Lightened(0.2f), ShadowColor = lamp with { A = 0.6f }, ShadowSize = 2 };
+            dot.SetCornerRadiusAll(3);
+            if (_lamp == null) AddChild(_lamp = new Panel { MouseFilter = MouseFilterEnum.Ignore });
+            _lamp.AddThemeStyleboxOverride("panel", dot);
+            QueueSort();
+        }
+        if (_lamp != null) _lamp.Visible = glow != null;
+    }
+
     /// <summary>What the screen shows, and its light, at <paramref name="power"/> of lit: 0 dark, 1 on (<see cref="TabletMotion.Power"/>).</summary>
     public void Lit(float power)
     {
@@ -123,6 +148,11 @@ public partial class WristScreen : PanelContainer
             _led.Size = new Vector2(18, 18);
             _led.PivotOffset = _led.Size / 2;
             _led.Position = new Vector2(Size.X + (_piece.Window.Right - fromRight) * s, (down - _piece.Window.Top) * s) - _led.Size / 2;
+            if (_lamp != null)
+            {
+                _lamp.Size = new Vector2(5, 5);
+                _lamp.Position = _led.Position + (_led.Size - _lamp.Size) / 2;
+            }
         }
     }
 

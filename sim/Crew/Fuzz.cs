@@ -23,6 +23,7 @@ public sealed partial class CrewModule
         // One draw past the foods purges instead: refused with nothing eaten.
         if (rng.Below(12) == 0) return rng.Below((ulong)Edible.Length + 1) is var e && e < Edible.Length ? new Eat(Edible[e]) { From = from } : new Purge { From = from };
         if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
+        if (rng.Below(60) == 0) return new Succumb { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };
         if (rng.Below(5) == 0) return new PickColour((int)rng.Below(Content.Crew.Colours + 1)) { From = from };
         if (rng.Below(10) == 0)

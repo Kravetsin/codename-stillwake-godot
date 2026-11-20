@@ -202,53 +202,29 @@ public class ReportTests
         Assert.True(Lag(threatened: false, trip: 4) >= 25, "once a second, a sprint is some 26 cells ahead of the sim");
     }
 
+
     [Fact]
-    public void DrawsTheEdgesWholeFrostOnAHeroInACapeForTheCapeSparesNoneOfIt()
+    public void DrawsTheBodysFrostAndHazeByItsShareOfTheWayToEachDeathEasedOut()
     {
-        // At the grid's corner the edge's whole cold, caped or not; the cape's degrees leave a bare hero by the hull past its limit too
-        // (2026-11-14-temperature-in-degrees).
-        var w = new TestWorld(Layout.Parse(["S"]).InWorld());
-        int spawn = w.M.Crew.Spawn, cape = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Cape.Slot);
-        w.Step(new Enter(spawn) { From = 0 });
-        Assert.Equal(1f, Report.Cold(w.M.Crew, 0, 0));
-        w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Cape.Item, 1) { From = 0 });
-        int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Stillwake.Content.Cape.Item);
-        w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(bag), new Stillwake.Sim.Items.Target(cape), 1) { From = 0 });
-        Assert.Equal(1f, Report.Cold(w.M.Crew, 0, 0));
-        Assert.Equal(15, w.M.Crew.Felt(0, spawn));
-        Assert.Equal(0.75f, Report.Cold(w.M.Crew, 0, spawn), 3);
+        // (Normal − body)/(Normal − ColdDeath) and (body − Normal)/(HeatDeath − Normal), each eased out (body-temperature).
+        Assert.Equal((0f, 0f), (Report.ColdOf(37), Report.HeatOf(37)));
+        Assert.Equal((0.75f, 0f), (Report.ColdOf(32.5f), Report.HeatOf(32.5f)));
+        Assert.Equal((1f, 0f), (Report.ColdOf(28), Report.HeatOf(28)));
+        Assert.Equal((1f, 0f), (Report.ColdOf(10), Report.HeatOf(10)));
+        Assert.Equal((0f, 0.75f), (Report.ColdOf(39.5f), Report.HeatOf(39.5f)));
+        Assert.Equal((0f, 1f), (Report.ColdOf(42), Report.HeatOf(42)));
+        for (float body = 37; body > 28; body -= 0.1f) Assert.True(Report.ColdOf(body - 0.1f) >= Report.ColdOf(body), $"{body}");
     }
 
     [Fact]
-    public void DrawsFrostOnAHeroWithNoBodyInSpaceByTheDegreesItFeelsAndNoneOnceItWearsOne()
+    public void DrawsTheScreensFrostAndHazeAtTheDegreesFeltAtOnceWholeAtThirty()
     {
-        var w = new TestWorld(Layout.Parse(["S"]).InWorld());
-        int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Suit.Slot);
-        w.Step(new Enter(spawn) { From = 0 });
-        // The hull's −20° on a bare 0°: 20 felt, two thirds of the 30 that draw it full, eased out.
-        Assert.Equal(20, w.M.Crew.Felt(0, spawn));
-        Assert.Equal(0.889f, Report.Cold(w.M.Crew, 0, spawn), 3);
-        w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Suit.Basic, 1) { From = 0 });
-        int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Stillwake.Content.Suit.Basic);
-        w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(bag), new Stillwake.Sim.Items.Target(suit), 1) { From = 0 });
-        Assert.Equal(0, Report.Cold(w.M.Crew, 0, spawn));
+        // The place's verdict, not the body's: shown the moment it is felt (body-temperature).
+        Assert.Equal((0f, 0f), (Report.Cold(0), Report.Heat(0)));
+        Assert.Equal(0.75f, Report.Cold(Report.FeltFull / 2), 3);
+        Assert.Equal(1f, Report.Cold(Report.FeltFull));
+        Assert.Equal(1f, Report.Cold(1890));
+        Assert.Equal(0.75f, Report.Heat(Report.FeltFull / 2), 3);
     }
 
-    [Fact]
-    public void DrawsNoFrostInsideTheFieldAndFullFrostAtTheEdgeEasedOutBetween()
-    {
-        var m = new Registry();
-        World.Create(1, Layout.Parse(["S"]).InWorld(), m.All);
-        int width = m.Grid.Width, midY = m.Grid.Height / 2;
-        // The field's left edge is 384 cells from the grid's: the zone's 512 less the field's 128.
-        float Cold(int x) => Report.Cold(m.Crew, 0, midY * width + x);
-        Assert.Equal(0, Cold(384));
-        Assert.Equal(0, Cold(width / 2));
-        Assert.Equal(1, Cold(0));
-        Assert.Equal(1, Report.Cold(m.Crew, 0, -1));
-        // A unit of 45 a breath, eased out, shows a little; 12 of 45 at half depth nearly half.
-        Assert.InRange(Cold(383), 0.04f, 0.05f);
-        Assert.InRange(Cold(192), 0.45f, 0.47f);
-        for (int x = 383; x > 0; x--) Assert.True(Cold(x - 1) >= Cold(x), $"{x}");
-    }
 }

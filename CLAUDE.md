@@ -219,7 +219,7 @@ publishes them. A pick goes into its ADR.
   from a button through Web Audio. Say what is unheard. Once picked: cut, level and credit them as `CREDITS.md` says.
 - **Art:** drawn in code on a canvas at the game's scale (a cell 8 px, the hero beside it), moving through every state it has.
   Once picked: exported by the code that drew it, through `tools/`. The game is drawn in ink and watercolour ([no more pixels](docs/decisions/2026-11-03-pixels-unsupported.md)): a new picture follows
-  `tools/anime-art/README.md`.
+  `tools/anime-art/README.md`. A pick page is one page file on `tools/pick-kit` (its README), built and checked by its `build.js`.
 
 ## Commands
 

@@ -127,7 +127,7 @@ screen keeps what scrolls into view as it would have been.
   built (measure `--perf --size 2048x1024 --built 192x96` before and after).
 - **Slice (b) ✅ — the report, the cold, the frost** (0050): the client also sends `Enter` every
   `Crew.ReportEvery` ticks while its hero's body is in another cell than the sim's; crew's `EdgeCost`
-  drains the suit past the field (the zone grown by `Field.Margin`), 1 a breath just past it to 45 at the
+  (since replaced by the degrees and the body, body-temperature) drained the suit past the field (the zone grown by `Field.Margin`), 1 a breath just past it to 45 at the
   edge; a frost shader over the world shows it. `--edge=N` starts the hero N cells past the field.
 - Slice (c): the build-mode zone frame.
 

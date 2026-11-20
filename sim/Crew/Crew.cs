@@ -60,6 +60,12 @@ public sealed record Eat(string Item) : Command;
 public sealed record Purge : Command;
 
 /// <summary>
+/// The sender's hero passes out of its body's cold or heat (body-temperature): its client keeps the body, from the degrees the sim
+/// says it feels, and sends this as it reaches <c>Temperature.ColdDeath</c> or <c>HeatDeath</c>.
+/// </summary>
+public sealed record Succumb : Command;
+
+/// <summary>
 /// The sender's hero switches its suit's mode on (<c>On</c>) or off: V, or its key on the tablet's edge; on only in a body
 /// with <c>Switch</c> (2026-11-03-the-regen-suit).
 /// </summary>
@@ -79,15 +85,10 @@ public interface ICrewQueries
     /// <summary>Whether a hero in <paramref name="cell"/> draws the lifepod's air: within <c>Crew.PodReach</c> of it.</summary>
     bool ByPod(int cell);
     /// <summary>
-    /// What the cold past the field takes from a hero's air a breath in <paramref name="cell"/>: nothing inside the field, the
-    /// build zone grown by <c>Field.Margin</c>; past it more the deeper out, up to <c>Field.EdgeCost</c>
-    /// at the world's edge and <c>Field.OffGrid</c> off the grid (0050). No weather: no gear spares it (2026-11-14-temperature-in-degrees).
-    /// </summary>
-    int EdgeCost(int cell);
-    /// <summary>
-    /// <paramref name="cell"/>'s temperature in degrees (2026-11-14-temperature-in-degrees): <c>Temperature.Space</c> off the grid,
-    /// <c>Temperature.Room</c> aired; afloat <c>Temperature.Hull</c> by the ship to space's at the field's line; on a planet its
-    /// depth's (<c>Terrain.TemperatureOf</c>), the top band <c>SkyNow.Chill</c> colder where the cell has no back wall.
+    /// <paramref name="cell"/>'s temperature in degrees (2026-11-14-temperature-in-degrees): <c>Temperature.Deep</c> off the grid,
+    /// <c>Temperature.Room</c> aired; afloat <c>Temperature.Hull</c> by the ship, falling to space's at the field's line and on
+    /// to the deep's at the world's edge (body-temperature); on a planet its depth's (<c>Terrain.TemperatureOf</c>), the top band <c>SkyNow.Chill</c> colder
+    /// where the cell has no back wall. What moves a hero's body, which its client keeps.
     /// </summary>
     int TemperatureAt(int cell);
     /// <summary>
@@ -107,7 +108,7 @@ public interface ICrewQueries
     int LowOf(int peer);
     /// <summary>
     /// The degrees <paramref name="cell"/> is colder than hero <paramref name="peer"/> withstands (<see cref="LowOf"/>), 0 within
-    /// it, and 0 with no hero: each costs its air <c>Temperature.Bite</c> thousandths of a unit a breath. What the frost reads.
+    /// it, and 0 with no hero: each draws its body, kept by its client, <c>Temperature.Sway</c> hundredths under <c>Temperature.Normal</c> (body-temperature).
     /// </summary>
     int Felt(int peer, int cell);
     /// <summary>
@@ -117,9 +118,12 @@ public interface ICrewQueries
     int HighOf(int peer);
     /// <summary>
     /// The degrees <paramref name="cell"/> is hotter than hero <paramref name="peer"/> withstands (<see cref="HighOf"/>), 0 within
-    /// it, and 0 with no hero: paid as <see cref="Felt"/> is, never both at once. What the haze reads.
+    /// it, and 0 with no hero: each draws its body, kept by its client, <c>Temperature.Sway</c> hundredths over <c>Temperature.Normal</c>, never felt
+    /// with <see cref="Felt"/> at once (body-temperature).
     /// </summary>
     int Heat(int peer, int cell);
+    /// <summary>Why hero <paramref name="peer"/> cannot succumb to its body's cold or heat now (<see cref="Succumb"/>); null when it can.</summary>
+    string? SuccumbProblem(int peer);
     /// <summary>Hero <paramref name="id"/>, played by that peer; null while the sim has none (TypeScript's <c>hero</c>).</summary>
     Hero? HeroOf(int id);
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
@@ -156,7 +160,7 @@ public interface ICrewQueries
 public interface ICrewOps
 {
     /// <summary>
-    /// Hero <paramref name="peer"/>'s air pays <paramref name="units"/> at once, as the cold and the lava take it:
+    /// Hero <paramref name="peer"/>'s air pays <paramref name="units"/> at once, as the lava takes it:
     /// a ruin's resonator zapping it (0091). Air run dry starts its last breath, which the rest cuts; nothing in creative mode, nor for a hero out or none.
     /// Counted as a hurt of <paramref name="harm"/> (2026-11-08-hurts-are-shown).
     /// </summary>
@@ -275,6 +279,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             hero.Eaten.Clear();
             hero.Purges += 1;
         });
+        Handles<Succumb>(c => SuccumbProblem(c.From), c => PassOut(HeroOf(c.From)!));
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
@@ -352,17 +357,16 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 // Off the beat a breath owes only where air made it: in vacuum the shares move on the beat alone, or they would pile
                 // up off it and every beat would pay whole.
                 if (beat || covered && (_air.AiredAt(hero.Cell) || ByPod(hero.Cell))) hero.Owed = owed % 1000;
-                // The regen suit gives back what the breath took, paid from the belt after any tool's draw; never the cold.
+                // The regen suit gives back what the breath took, paid from the belt after any tool's draw; never the grit.
                 if (net < 0 && SuitOn(hero.Id) && _items.WornIn(hero.Id, Content.Suit.Slot) == Content.Suit.Regen)
                 {
                     int made = Math.Min(Content.Suit.RegenMost, -net);
                     if (_itemsOps.Drain(hero.Id, made * Content.Suit.RegenCost)) net += made;
                     covered = net >= 0;
                 }
-                // The cold and the heat (2026-11-14-temperature-in-degrees, 2026-11-14-heat-limits): the degrees felt past either limit, on
-                // their own schedule, thin air or not; the edge's besides.
-                int felt = Felt(hero.Id, hero.Cell) + Heat(hero.Id, hero.Cell);
-                int cold = Chills(felt) + EdgeCost(hero.Cell);
+                // A storm's grit grinds out the suit's own air, thin air or not; the cold and the heat move the body, not the air
+                // (body-temperature).
+                int cold = GritAt(hero.Cell);
                 int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
                 if (burn > 0) Hurt(hero, Harm.Burn);
                 int left = hero.Air + net - cold;
@@ -372,9 +376,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     hero.Gasp = 0;
                     continue;
                 }
-                // With no air of its own, a breath air made ends the last breath where nothing is felt (a breath the cold's
-                // schedule skips still feels it); one short of it, or the cold, starts it; the lava past what the air held cuts it.
-                if (covered && felt == 0 && cold == 0 && burn == 0) hero.Gasp = 0;
+                // With no air of its own, a breath air made ends the last breath where no grit grinds; one short of it, or the
+                // grit, starts it; the lava past what the air held cuts it.
+                if (covered && cold == 0 && burn == 0) hero.Gasp = 0;
                 else if (net < 0 || cold > 0 || burn > 0) Gasps(hero, burn - Math.Max(0, left));
             }
         });
@@ -401,7 +405,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     /// <summary>Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.</summary>
     private void PassOut(Hero hero)
     {
-        hero.Gasp = 0;
+        // Out of the cold with air left, it holds none while out: a part swapped then never holds more than it may.
+        (hero.Air, hero.Gasp) = (0, 0);
         hero.Out = Content.Crew.PassOut;
         // The pod prints a new person: what the body ate and was waiting on goes with it.
         hero.CanisterIn = 0;
@@ -500,6 +505,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     }
 
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>
+    // A creative hero never freezes: its client keeps its body well, so one sent anyway is a stale one.
+    public string? SuccumbProblem(int peer) => HeroOf(peer) is not { Out: 0 } || _items.Creative(peer) ? "crew.noHero" : null;
+
     public string? PurgeProblem(int peer)
     {
         if (HeroOf(peer) is not { Out: 0 } hero) return "crew.noHero";
@@ -538,25 +546,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     }
 
     /// <summary>
-    /// How deep past the field <paramref name="cell"/> is, in thousandths of the way to the world's edge, by
-    /// the deeper axis (a box, no root); squared and scaled to <c>Field.EdgeCost</c>, rounded up so a cell
-    /// just past the line costs a unit. A world whose field reaches past the grid, as every test map's, costs nothing on it.
-    /// </summary>
-    public int EdgeCost(int cell)
-    {
-        int width = _grid.Width, height = _grid.Height;
-        if (cell < 0 || cell >= width * height) return Content.Field.OffGrid;
-        var zone = _grid.Zone;
-        int margin = Content.Field.Margin;
-        int left = zone.Left - margin, right = zone.Right + margin, top = zone.Top - margin, bottom = zone.Bottom + margin;
-        int x = cell % width, y = cell / width;
-        int depth = Math.Min(1000, Math.Max(
-            Math.Max(Depth(left - x, left), Depth(x - right, width - 1 - right)),
-            Math.Max(Depth(top - y, top), Depth(y - bottom, height - 1 - bottom))));
-        return (Content.Field.EdgeCost * depth * depth + 999_999) / 1_000_000;
-    }
-
-    /// <summary>
     /// Whether a hero reported at <paramref name="cell"/> touches lava: a wall of it there or up to <c>Lava.Reach</c> rows under
     /// it, where the feet of a hero standing on it are. Off the grid nothing burns.
     /// </summary>
@@ -569,16 +558,10 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         return false;
     }
 
-    /// <summary>
-    /// <paramref name="beyond"/> cells past the field of the <paramref name="span"/> from it to the grid's
-    /// edge, in thousandths, rounded down; none inside. A cell on the grid is never past its edge, so the span holds it.
-    /// </summary>
-    private static int Depth(int beyond, int span) => beyond <= 0 ? 0 : beyond * 1000 / span;
-
     public int TemperatureAt(int cell)
     {
         int width = _grid.Width;
-        if (cell < 0 || cell >= width * _grid.Height) return Content.Temperature.Space;
+        if (cell < 0 || cell >= width * _grid.Height) return Content.Temperature.Deep;
         if (_air.AiredAt(cell)) return Content.Temperature.Room;
         int row = cell / width;
         int degrees = Rules is Content.PlanetType planet ? Terrain.TemperatureOf(planet, row) : Rules.Floats ? Afloat(cell) : Rules.Temperatures[0];
@@ -588,29 +571,42 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int PaceAt(int cell) =>
         cell < 0 || cell >= _grid.Width * _grid.Height || _air.AiredAt(cell) || !OpenSky(cell) ? 1000 : _sky.Now.Pace;
 
+    /// <summary>Units of a hero's own air a breath the running storm's grit grinds out at <paramref name="cell"/>: under the open sky, unaired; 0 elsewhere.</summary>
+    public int GritAt(int cell) =>
+        cell < 0 || cell >= _grid.Width * _grid.Height || _air.AiredAt(cell) || !OpenSky(cell) ? 0 : _sky.Now.Grit;
+
     public bool OpenSky(int cell) =>
         cell >= 0 && cell < _grid.Width * _grid.Height
         && (Rules is not Content.PlanetType deep || Terrain.BandOf(deep, cell / _grid.Width) == 0) && _grid.BackAt(cell) == null;
 
     /// <summary>
     /// An airless cell's degrees afloat: <c>Temperature.Hull</c> in the zone and a vessel's box, falling straight to the kind's own
-    /// (space's −40°) at the field's line, <c>Field.Margin</c> cells out by the farther axis, and holding past it; rounded toward the
-    /// warmer. Past the line the edge's cold (<see cref="EdgeCost"/>) is what bites a suited hero, not the degrees.
+    /// (space's, <c>Temperature.Space</c>) at the field's line, <c>Field.Margin</c> cells out by the farther axis; past it on to
+    /// <c>Temperature.Deep</c> at the world's edge, by the deeper axis's share of the way there (body-temperature). Rounded toward
+    /// the warmer. A field reaching past the grid, as a test map's, has no deep.
     /// </summary>
     private int Afloat(int cell)
     {
-        int width = _grid.Width, x = cell % width, y = cell / width;
+        int width = _grid.Width, height = _grid.Height, x = cell % width, y = cell / width;
         var zone = _grid.Zone;
         int beyond = Math.Max(Math.Max(zone.Left - x, x - zone.Right), Math.Max(zone.Top - y, y - zone.Bottom));
-        int far = Rules.Temperatures[0], near = Content.Temperature.Hull;
-        return near + (far - near) * Math.Clamp(beyond, 0, Content.Field.Margin) / Content.Field.Margin;
+        int far = Rules.Temperatures[0], near = Content.Temperature.Hull, margin = Content.Field.Margin;
+        if (beyond <= margin) return near + (far - near) * Math.Max(0, beyond) / margin;
+        int left = zone.Left - margin, right = zone.Right + margin, top = zone.Top - margin, bottom = zone.Bottom + margin;
+        int deep = Math.Max(Math.Max(Share(left - x, left), Share(x - right, width - 1 - right)),
+            Math.Max(Share(top - y, top), Share(y - bottom, height - 1 - bottom)));
+        return far + (Content.Temperature.Deep - far) * deep / 1000;
     }
 
-    public int LowOf(int peer) => Caped(peer, BodyOf(peer)?.Low ?? Content.Temperature.BareLow);
+    /// <summary><paramref name="beyond"/> cells past the field's line of the <paramref name="span"/> from it to the grid's edge, in thousandths, rounded down; none inside.</summary>
+    private static int Share(int beyond, int span) => beyond <= 0 || span <= 0 ? 0 : Math.Min(1000, beyond * 1000 / span);
 
-    public int HighOf(int peer) => Caped(peer, BodyOf(peer)?.High ?? Content.Temperature.BareHigh);
+    public int LowOf(int peer) => Caped(peer, SuitOf(peer)?.Low ?? Content.Temperature.BareLow);
 
-    private Content.ItemSpec? BodyOf(int peer) => _items.WornIn(peer, Content.Suit.Slot) is { } body ? Content.Items.Get(body) : null;
+    public int HighOf(int peer) => Caped(peer, SuitOf(peer)?.High ?? Content.Temperature.BareHigh);
+
+    /// <summary>The body slot's item hero <paramref name="peer"/> wears, its suit; null bare.</summary>
+    private Content.ItemSpec? SuitOf(int peer) => _items.WornIn(peer, Content.Suit.Slot) is { } body ? Content.Items.Get(body) : null;
 
     /// <summary>A limit with the cape's warmth taken off it, cold's or heat's alike (2026-11-14-heat-limits).</summary>
     private int Caped(int peer, int limit) => _items.Equipped(peer, Content.Cape.Item) ? limit - Content.Cape.Warmth : limit;
@@ -618,16 +614,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int Felt(int peer, int cell) => HeroOf(peer) == null ? 0 : Math.Max(0, LowOf(peer) - TemperatureAt(cell));
 
     public int Heat(int peer, int cell) => HeroOf(peer) == null ? 0 : Math.Max(0, TemperatureAt(cell) - HighOf(peer));
-
-    /// <summary>
-    /// The whole units <paramref name="felt"/> degrees cost this breath: <c>Temperature.Bite</c> thousandths each, owed by the
-    /// breaths counted on this surface's clock and paid as they pass whole units, so nothing is kept between breaths.
-    /// </summary>
-    private int Chills(int felt)
-    {
-        long rate = (long)felt * Content.Temperature.Bite, n = State.Clock / Content.Crew.BreathEvery;
-        return (int)((n + 1) * rate / 1000 - n * rate / 1000);
-    }
 
     private string? ColourProblem(int peer, int colour)
     {
