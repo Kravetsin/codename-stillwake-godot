@@ -206,5 +206,31 @@ Subjects.drone = function () {
   soot(g, D, t, true);
   for (const [s, q] of plates) if (q[3] >= 0) plate(g, q[0], q[1], q[2], s, q[4]);
   out('items/lightDrone', icon);
+
+  // machine_alienCore: the core as it lies in the wreck before it wakes, its own size, sunk in a heap of its cold soot, the lens dull,
+  // an ember or two; 2 cells square, the heap reaching the bottom (MachineFootTests).
+  const lying = document.createElement('canvas');
+  [lying.width, lying.height] = [64, 64];
+  const l = lying.getContext('2d');
+  l.grain = grainOf(l);
+  const hr = rng(707), heap = [];
+  for (let i = 0; i < 90; i++) {
+    const x = (hr() * 2 - 1) * 15, top = 7.5 * (1 - (x / 15) ** 2), s = 1.3 + hr() * 1.5;
+    heap.push({ x: 32 + x, y: 64 - s / 2 - hr() ** 1.6 * top, s, tn: hr(), hot: hr() < .08, ph: hr() * 6.283 });
+  }
+  const mote = (p) => {
+    l.fillStyle = p.tn < .5 ? '#1a1b1f' : '#26282d'; l.fillRect(p.x - p.s / 2 - .35, p.y - p.s / 2 - .35, p.s + .7, p.s + .7);
+    l.fillStyle = p.hot ? css(EMBER, .9) : p.tn < .5 ? '#4c4f55' : '#606369'; l.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+  };
+  heap.filter(p => p.y < 60).forEach(mote);
+  l.save(); l.translate(32, 57.5); core(l);
+  l.translate(2.2, 0); l.scale(.82, .82);
+  l.fillStyle = DARK[2]; l.beginPath(); l.ellipse(0, 0, 3.1, 4.4, 0, 0, 6.283); l.fill();
+  l.strokeStyle = INK; l.lineWidth = 1.3; l.stroke();
+  l.fillStyle = css(pale([77, 64, 45], .1)); l.beginPath(); l.ellipse(.3, 0, 2.1, 3.3, 0, 0, 6.283); l.fill();
+  l.restore();
+  heap.filter(p => p.y >= 60).forEach(mote);
+  for (const p of heap) if (p.hot) halo(l, p.x, p.y, 3, EMBER, .3);
+  out('machine_alienCore', lying);
 };
 })();
