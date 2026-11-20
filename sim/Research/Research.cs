@@ -34,32 +34,28 @@ public sealed class ResearchState;
 /// <summary>What any module may read of the research.</summary>
 public interface IResearchQueries
 {
-    /// <summary>Whether the world knows <paramref name="placement"/>'s blueprint, whoever is in creative mode.</summary>
-    bool Knows(Placement placement);
-    /// <summary>Whether the world knows the blueprint or craft <paramref name="id"/>, whoever is in creative mode.</summary>
-    bool Knows(string id);
-    /// <summary>Whether <paramref name="peer"/> may use <paramref name="placement"/>'s blueprint: known, or every one in its creative mode.</summary>
+    /// <summary>Whether any player knows the blueprint, craft or upgrade <paramref name="id"/>: what the ship's machines and the world's events go by.</summary>
+    bool KnowsAny(string id);
+    /// <summary>Whether <paramref name="peer"/> may use <paramref name="placement"/>'s blueprint: known to them, or every one in its creative mode.</summary>
     bool Knows(int peer, Placement placement);
-    /// <summary>Whether <paramref name="peer"/> may use the blueprint or craft <paramref name="id"/>: known, or every one in its creative mode.</summary>
+    /// <summary>Whether <paramref name="peer"/> may use the blueprint or craft <paramref name="id"/>: known to them, or every one in its creative mode.</summary>
     bool Knows(int peer, string id);
-    /// <summary>Every blueprint, then every craft, as the world knows it now; creative mode aside.</summary>
-    IReadOnlyList<Recipe> Recipes();
+    /// <summary>Every blueprint, then every craft, as <paramref name="peer"/> knows it now.</summary>
+    IReadOnlyList<Recipe> Recipes(int peer);
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
     /// <summary>
-    /// Whether <paramref name="node"/> is done: a block bought, all it opens known or on its way (2026-11-08-mafia-deliveries); a gate its level
-    /// reached. Never gear or the confiscated container, sold again and again.
+    /// Whether <paramref name="node"/> is done for <paramref name="peer"/>: a block they bought, all it opens known or on its way
+    /// (2026-11-08-mafia-deliveries); a gate the crew's level reached; every one in their creative mode. Never gear or the confiscated container.
     /// </summary>
-    bool Done(TechNode node);
-    /// <summary>Whether <paramref name="node"/> is done as <paramref name="peer"/> sees it: every one in its creative mode.</summary>
     bool Done(int peer, TechNode node);
-    /// <summary>Whether all <paramref name="node"/> needs are done.</summary>
-    bool Reached(TechNode node);
+    /// <summary>Whether all <paramref name="node"/> needs are bought by <paramref name="peer"/>, creative mode aside.</summary>
+    bool Reached(int peer, TechNode node);
     /// <summary>Where the mafia's reputation stands: the next level, what it wants and how far it is.</summary>
     Standing Standing();
 
-    /// <summary>Why block <paramref name="block"/> cannot be bought now, leaving the machine aside; null when it can.</summary>
-    string? BuyProblem(TechNode block);
+    /// <summary>Why <paramref name="peer"/> cannot buy block <paramref name="block"/> now; null when they can.</summary>
+    string? BuyProblem(int peer, TechNode block);
 }
 
 /// <summary>
@@ -128,8 +124,14 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     {
         Rise();
         if (_knowledge.Version == _knowledgeSeen && _grid.Version == _gridSeen) return;
-        for (int i = 0; i < Walked.Length; i++)
-            if (!_knowledge.Granted(Walked[i].Id) && Understood(Walked[i])) _knowledgeOps.Grant(Walked[i].Id);
+        // Each player understands from what they have held (own-knowledge); a grant moves the version, so the next tick walks once more, finding nothing.
+        var learners = _knowledge.Learners;
+        for (int p = 0; p < learners.Count; p++)
+        {
+            int peer = learners[p];
+            for (int i = 0; i < Walked.Length; i++)
+                if (!_knowledge.Knows(peer, Walked[i].Id) && Understood(peer, Walked[i])) _knowledgeOps.Grant(peer, Walked[i].Id);
+        }
         _knowledgeSeen = _knowledge.Version;
         _gridSeen = _grid.Version;
     }
@@ -177,11 +179,11 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return points + Math.Max(0, _knowledge.SoldWorth - _knowledge.BaseWorth - wanted);
     }
 
-    /// <summary>Whether each part of <paramref name="thing"/> was ever obtained and, for a craft, a machine that makes it stands on this surface.</summary>
-    private bool Understood(Walkable thing)
+    /// <summary>Whether <paramref name="peer"/> has held each part of <paramref name="thing"/> and, for a craft, a machine that makes it stands on this surface.</summary>
+    private bool Understood(int peer, Walkable thing)
     {
         for (int i = 0; i < thing.Parts.Length; i++)
-            if (_knowledge.ObtainedOf(thing.Parts[i]) == 0) return false;
+            if (!_knowledge.HasFound(peer, thing.Parts[i])) return false;
         if (thing.Stations is not { } stations) return true;
         for (int i = 0; i < stations.Length; i++)
             if (_grid.MachinesOf(stations[i]).Count > 0) return true;
@@ -190,30 +192,29 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     // Queries.
 
-    public bool Knows(Placement placement) => Knows(Research.Blueprints.Of(placement));
+    public bool KnowsAny(string id) => _knowledge.KnowsAny(id);
 
-    public bool Knows(string id) => _knowledge.Granted(id);
+    public bool Knows(int peer, Placement placement) => Knows(peer, Research.Blueprints.Of(placement));
 
-    public bool Knows(int peer, Placement placement) => _items.Creative(peer) || Knows(placement);
+    public bool Knows(int peer, string id) => _items.Creative(peer) || _knowledge.Knows(peer, id);
 
-    public bool Knows(int peer, string id) => _items.Creative(peer) || Knows(id);
-
-    public IReadOnlyList<Recipe> Recipes() => Every.Select(e => new Recipe(e.Id, e.Placement, e.Cost, _knowledge.Granted(e.Id))).ToList();
+    public IReadOnlyList<Recipe> Recipes(int peer) => Every.Select(e => new Recipe(e.Id, e.Placement, e.Cost, Knows(peer, e.Id))).ToList();
 
     public int Credits => _knowledge.Credits;
 
-    public bool Done(int peer, TechNode node) => _items.Creative(peer) || Done(node);
+    public bool Done(int peer, TechNode node) => _items.Creative(peer) || Bought(peer, node);
 
-    public bool Done(TechNode node) =>
-        node.Gate ? node.Ring <= _knowledge.Level : !Repeats(node.Id) && (_knowledge.Granted(node.Id) || _knowledge.InFlight(node.Id));
+    /// <summary>Done for <paramref name="peer"/>, creative mode aside: a gate is the crew's level, a block the peer's own purchase.</summary>
+    private bool Bought(int peer, TechNode node) =>
+        node.Gate ? node.Ring <= _knowledge.Level : !Repeats(node.Id) && (_knowledge.Knows(peer, node.Id) || _knowledge.InFlight(peer, node.Id));
 
     /// <summary>Whether <paramref name="good"/> is sold again and again: gear, one to a hero, and the confiscated container.</summary>
     public static bool Repeats(string good) => good == Content.Research.Confiscated || Content.Research.GearSold.Contains(good, StringComparer.Ordinal);
 
-    public bool Reached(TechNode node)
+    public bool Reached(int peer, TechNode node)
     {
         foreach (string need in node.Needs)
-            if (!Done(Content.Research.Node(need)!)) return false;
+            if (!Bought(peer, Content.Research.Node(need)!)) return false;
         return true;
     }
 
@@ -224,24 +225,24 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return new Standing(next, wanted, Points(next), Target(next));
     }
 
-    public string? BuyProblem(TechNode block)
+    public string? BuyProblem(int peer, TechNode block)
     {
-        if (Done(block)) return "research.bought";
+        if (Bought(peer, block)) return "research.bought";
         if (block.Gate) return "research.locked";
-        if (!Reached(block)) return "research.reputation";
+        if (!Reached(peer, block)) return "research.reputation";
         return Prices.Of(block) > _knowledge.Credits ? "research.noCredits" : null;
     }
 
     // Commands.
 
-    private string? BuyProblem(BuyBlock c) => Content.Research.Node(c.Block) is { } block ? BuyProblem(block) : "research.locked";
+    private string? BuyProblem(BuyBlock c) => Content.Research.Node(c.Block) is { } block ? BuyProblem(c.From, block) : "research.locked";
 
     private void Apply(BuyBlock c)
     {
         var block = Content.Research.Node(c.Block)!;
         _knowledgeOps.Spend(Prices.Of(block));
-        // Granted only when its piece is caught or broken: it comes as debris along a trade station's row (2026-11-08-mafia-deliveries).
-        _knowledgeOps.Deliver(block.Id);
+        // Granted only when its piece is caught or broken (2026-11-08-mafia-deliveries), and to its buyer alone, from the ship's credits (own-knowledge).
+        _knowledgeOps.Deliver(block.Id, c.From);
     }
 
     /// <summary>Buys by hand, refused ones too, at any node.</summary>

@@ -192,18 +192,21 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
 
     /// <summary>
     /// Delivery <paramref name="piece"/>, caught or broken by <paramref name="peer"/>, gone from the queue and given (2026-11-08-mafia-deliveries):
-    /// an upgrade or blueprint known to the crew, shown to that peer as loot where the piece was; gear falling under the piece as a
+    /// an upgrade or blueprint known to its buyer, shown to them as loot where the piece was; gear falling under the piece as a
     /// wreck's loot does, anyone's. Recorded as found by no one: it is a purchase, not salvage.
     /// </summary>
     private void Unpack(Piece piece, int peer)
     {
-        var good = _knowledge.Deliveries.FirstOrDefault(d => d.Id == piece.Delivery)?.Good;
+        var delivery = _knowledge.Deliveries.FirstOrDefault(d => d.Id == piece.Delivery);
         _knowledgeOps.Delivered(piece.Delivery);
-        if (good == null) return;
+        if (delivery is not { Good: var good }) return;
         if (!Content.Research.GearSold.Contains(good, StringComparer.Ordinal))
         {
-            _knowledgeOps.Grant(good);
-            if (_crew.HeroOf(peer) != null) _items.NoteDelivered(peer, good, CellOf(piece.X, piece.Y, _grid.Width));
+            // The buyer's alone, whoever caught it (own-knowledge); one bought before purchases were a buyer's, everyone's.
+            if (delivery.For is { } buyer) _knowledgeOps.Grant(buyer, good);
+            else _knowledgeOps.Grant(good);
+            int noted = delivery.For ?? peer;
+            if (_crew.HeroOf(noted) != null) _items.NoteDelivered(noted, good, CellOf(piece.X, piece.Y, _grid.Width));
             return;
         }
         _items.DropAt(FloorStack.Nobody, [(good, 1)], CellOf(piece.X, piece.Y, _grid.Width));

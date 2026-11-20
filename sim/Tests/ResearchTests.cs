@@ -48,15 +48,15 @@ public class ResearchTests
     {
         var bag = Node("bag1");
         var w = SetUp(credits: Prices.Of(bag) + 2);
-        Assert.False(w.M.Research.Knows("bag1"));
+        Assert.False(w.M.Research.Knows(0, "bag1"));
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(2, w.M.Research.Credits);
-        Assert.True(w.M.Research.Done(bag));
-        Assert.False(w.M.Research.Knows("bag1"));
+        Assert.True(w.M.Research.Done(0, bag));
+        Assert.False(w.M.Research.Knows(0, "bag1"));
         Mafia.Receive(w);
-        Assert.True(w.M.Research.Knows("bag1"));
-        Assert.False(w.M.Research.Knows("bag2"));
+        Assert.True(w.M.Research.Knows(0, "bag1"));
+        Assert.False(w.M.Research.Knows(0, "bag2"));
     }
 
     /// <summary>The user's prices (2026-11-03-the-heavy-helmet): a craft's block priced by its worth, as a blueprint's.</summary>
@@ -74,10 +74,10 @@ public class ResearchTests
         Assert.Equal(5000, Prices.Of(Node("heavyHelmet")));
         var w = SetUp(credits: 100_000);
         Mafia.Reach(w, Node("heavyHelmet").Ring);
-        Assert.False(w.M.Research.Knows("heavyHelmet"));
+        Assert.False(w.M.Research.Knows(0, "heavyHelmet"));
         w.Do(new BuyBlock("heavyHelmet")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Knowledge.InFlight("heavyHelmet"));
+        Assert.True(w.M.Knowledge.InFlight(0, "heavyHelmet"));
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
@@ -92,16 +92,16 @@ public class ResearchTests
         Assert.Equal(1, Node(scanner).Ring);
         Assert.Equal(1500, Prices.Of(Node(scanner)));
         var w = SetUp(credits: 100_000);
-        Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node(scanner)));
+        Assert.Equal("research.reputation", w.M.Research.BuyProblem(0, Node(scanner)));
         Mafia.Reach(w, Node(scanner).Ring);
         w.Do(new BuyBlock(scanner)).Run().Do(new BuyBlock(scanner)).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
-        Assert.True(w.M.Research.Done(Node(scanner)));
+        Assert.True(w.M.Research.Done(0, Node(scanner)));
         Assert.Equal([scanner], w.M.Knowledge.Deliveries.Select(d => d.Good));
         Assert.Equal(100_000 - Prices.Of(Node(scanner)), w.M.Research.Credits);
-        Assert.False(w.M.Research.Knows(scanner));
+        Assert.False(w.M.Research.Knows(0, scanner));
         Mafia.Receive(w);
-        Assert.True(w.M.Research.Knows(scanner));
+        Assert.True(w.M.Research.Knows(0, scanner));
         Assert.False(Content.Items.TryGet(scanner, out _));
     }
 
@@ -112,13 +112,13 @@ public class ResearchTests
         string lamp = LightDrone.LampMode;
         Assert.Equal(0, Node(lamp).Ring);
         var w = SetUp(credits: 100_000);
-        Assert.Null(w.M.Research.BuyProblem(Node(lamp)));
+        Assert.Null(w.M.Research.BuyProblem(0, Node(lamp)));
         w.Do(new BuyBlock(lamp)).Run().Do(new BuyBlock(lamp)).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
         Assert.Equal([lamp], w.M.Knowledge.Deliveries.Select(d => d.Good));
-        Assert.False(w.M.Research.Knows(lamp));
+        Assert.False(w.M.Research.Knows(0, lamp));
         Mafia.Receive(w);
-        Assert.True(w.M.Research.Knows(lamp));
+        Assert.True(w.M.Research.Knows(0, lamp));
     }
 
     /// <summary>Gear (2026-11-08-mafia-deliveries): the power driver, sold again and again, each bought one delivered.</summary>
@@ -129,7 +129,7 @@ public class ResearchTests
         Mafia.Reach(w, Node("powerDriver").Ring);
         w.Do(new BuyBlock("powerDriver")).Run().Do(new BuyBlock("powerDriver")).Run();
         Assert.Empty(w.Refusals);
-        Assert.False(w.M.Research.Done(Node("powerDriver")));
+        Assert.False(w.M.Research.Done(0, Node("powerDriver")));
         Assert.Equal(["powerDriver", "powerDriver"], w.M.Knowledge.Deliveries.Select(d => d.Good));
         Assert.Equal(100_000 - 2 * Prices.Of(Node("powerDriver")), w.M.Research.Credits);
     }
@@ -156,7 +156,7 @@ public class ResearchTests
         w.M.Knowledge.Earn(100_000);
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Knowledge.InFlight("bag1"));
+        Assert.True(w.M.Knowledge.InFlight(0, "bag1"));
     }
 
     /// <summary>What a map grants may lie behind what is not done: bought, not locked, and nothing is charged for it.</summary>
@@ -197,7 +197,7 @@ public class ResearchTests
         var w = SetUp(credits: 100_000);
         w.Do(new BuyBlock("furnace")).Run();
         Assert.Equal(["research.locked"], w.Refusals.Select(r => r.Reason));
-        Assert.False(w.M.Research.Knows("furnace"));
+        Assert.False(w.M.Research.Knows(0, "furnace"));
         Assert.Equal(100_000, w.M.Research.Credits);
     }
 
@@ -209,7 +209,7 @@ public class ResearchTests
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Equal(["research.noCredits"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(price - 1, w.M.Research.Credits);
-        Assert.False(w.M.Research.Knows("bag1"));
+        Assert.False(w.M.Research.Knows(0, "bag1"));
     }
 
     [Fact]
@@ -219,9 +219,9 @@ public class ResearchTests
         w.Do(new SetCreative(true)).Run();
         Assert.True(w.M.Research.Knows(0, "engine"));
         Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(0, n), n.Id));
-        Assert.False(w.M.Research.Knows("engine"));
+        Assert.False(w.M.Research.KnowsAny("engine"));
         Assert.False(w.M.Research.Knows(1, "engine"));
-        Assert.Contains(ResearchSpec.Nodes, n => !w.M.Research.Done(n) && !w.M.Research.Done(1, n));
+        Assert.Contains(ResearchSpec.Nodes, n => !w.M.Research.Done(1, n));
         Assert.Equal(3, w.M.Research.Credits);
     }
 
@@ -230,11 +230,11 @@ public class ResearchTests
     {
         string[] known = ["fireAxe", "tradeStation"];
         var w = SetUp(known: known);
-        Assert.True(w.M.Research.Knows("fireAxe"));
-        Assert.True(w.M.Research.Knows(new Placement("machine", "tradeStation")));
-        Assert.False(w.M.Research.Knows("wire"));
-        Assert.False(w.M.Research.Knows(new Placement("machine", "furnace")));
-        Assert.Equal(known.Order(StringComparer.Ordinal), w.M.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
+        Assert.True(w.M.Research.Knows(0, "fireAxe"));
+        Assert.True(w.M.Research.Knows(0, new Placement("machine", "tradeStation")));
+        Assert.False(w.M.Research.Knows(0, "wire"));
+        Assert.False(w.M.Research.Knows(0, new Placement("machine", "furnace")));
+        Assert.Equal(known.Order(StringComparer.Ordinal), w.M.Research.Recipes(0).Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -244,13 +244,13 @@ public class ResearchTests
         var w = new Scenario(Layout.Parse(["PPP       ", "          "], null) with { Known = ResearchSpec.StartKnown }, doubled: true);
         var panel = new Placement("machine", "solarPanel");
         var cost = Content.Machines.Get("solarPanel").Cost;
-        Assert.False(w.M.Research.Knows(panel));
+        Assert.False(w.M.Research.Knows(0, panel));
         w.Do(new Deconstruct(At(0, 0), "machine")).Run();
         int mark = w.M.Building.Plans.Single().Id;
         for (int t = 0; t < 400 && w.M.Grid.MachineAt(At(0, 0)) != null; t++) w.Do(new Work(mark)).Run();
         Assert.Null(w.M.Grid.MachineAt(At(0, 0)));
         Assert.All(cost, c => Assert.Equal(c.Count, w.M.Items.Inventory(0).Where(s => s?.Item == c.Item).Sum(s => s!.Count)));
-        Assert.False(w.M.Research.Knows(panel));
+        Assert.False(w.M.Research.Knows(0, panel));
         w.Do(new PlacePlan(At(0, 0), panel)).Run();
         Assert.Equal(["building.unknown"], w.Refusals.Select(r => r.Reason));
         w.Refusals.Clear();
@@ -262,7 +262,7 @@ public class ResearchTests
     public void ListsEveryBlueprintThenEveryCraftWithItsCost()
     {
         var w = SetUp();
-        var recipes = w.M.Research.Recipes();
+        var recipes = w.M.Research.Recipes(0);
         Assert.Equal(Blueprints.All.Count + Content.Crafts.All.Count, recipes.Count);
         var coil = recipes.Single(r => r.Id == "coil");
         Assert.Null(coil.Placement);
@@ -273,8 +273,8 @@ public class ResearchTests
     public void KnowsEveryBlueprintAndCraftOnAMapThatNamesNone()
     {
         var w = new Scenario(Map(null), doubled: true);
-        Assert.All(w.M.Research.Recipes().Where(r => ResearchSpec.Node(r.Id) != null), r => Assert.True(r.Known, r.Id));
-        Assert.True(w.M.Research.Knows(new Placement("machine", "solarPanel")));
+        Assert.All(w.M.Research.Recipes(0).Where(r => ResearchSpec.Node(r.Id) != null), r => Assert.True(r.Known, r.Id));
+        Assert.True(w.M.Research.Knows(0, new Placement("machine", "solarPanel")));
     }
 
     [Fact]
@@ -300,13 +300,13 @@ public class ResearchTests
         Assert.Equal("backWallScrap", Blueprints.Of(Placement.BackWall("scrap")));
         Assert.Equal("floor", Blueprints.Of(new Placement("structure", "floor")));
         Assert.Equal("furnace", Blueprints.Of(new Placement("machine", "furnace")));
-        Assert.True(w.M.Research.Knows(Placement.Wall("scrap")));
-        Assert.False(w.M.Research.Knows(Placement.Wall("iron")));
+        Assert.True(w.M.Research.Knows(0, Placement.Wall("scrap")));
+        Assert.False(w.M.Research.Knows(0, Placement.Wall("iron")));
         w.Do(new SetCreative(true)).Run();
         Assert.True(w.M.Research.Knows(0, Placement.Wall("iron")));
         Assert.True(w.M.Research.Knows(0, "rotor"));
         // The world knows no more for it, nor does another peer.
-        Assert.False(w.M.Research.Knows(Placement.Wall("iron")));
+        Assert.False(w.M.Research.KnowsAny("wallIron"));
         Assert.False(w.M.Research.Knows(1, "rotor"));
     }
 
@@ -357,7 +357,7 @@ public class ResearchTests
                     credits += Market.PriceOf(s.Sold)!.Value;
                 }
                 else if (s.Block != null) Buy(s.Block);
-                else if (ResearchSpec.Nodes.FirstOrDefault(n => !n.Gate && !w.M.Research.Done(n)) is { } next)
+                else if (ResearchSpec.Nodes.FirstOrDefault(n => !n.Gate && !w.M.Research.Done(0, n)) is { } next)
                 {
                     w.M.Knowledge.Earn(Prices.Of(next));
                     credits += Prices.Of(next);
@@ -380,8 +380,8 @@ public class ResearchTests
             else w.Do(new BuyBlock(node.Id)).Run();
         }
         Assert.Empty(w.Refusals);
-        Assert.All(ResearchSpec.Nodes.Where(n => !ResearchModule.Repeats(n.Id)), n => Assert.True(w.M.Research.Done(n), n.Id));
+        Assert.All(ResearchSpec.Nodes.Where(n => !ResearchModule.Repeats(n.Id)), n => Assert.True(w.M.Research.Done(0, n), n.Id));
         Mafia.Receive(w);
-        Assert.All(Upgrades.All, u => Assert.True(w.M.Research.Knows(u.Id), u.Id));
+        Assert.All(Upgrades.All, u => Assert.True(w.M.Research.Knows(0, u.Id), u.Id));
     }
 }

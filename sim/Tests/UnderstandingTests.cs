@@ -19,13 +19,13 @@ public class UnderstandingTests
     private static Scenario Room(string row = "#........#", bool tall = false) =>
         new(Layout.Parse(["##########", .. Enumerable.Repeat(row, tall ? 3 : 1), "##########"], null) with { Known = Content.Research.StartKnown }, doubled: true);
 
-    private static IReadOnlyList<(string Item, int Count)> CostOf(Scenario w, string id) => w.M.Research.Recipes().Single(r => r.Id == id).Cost;
+    private static IReadOnlyList<(string Item, int Count)> CostOf(Scenario w, string id) => w.M.Research.Recipes(0).Single(r => r.Id == id).Cost;
 
     /// <summary>One of each part of <paramref name="id"/> obtained, or all but the last <paramref name="withoutLast"/>.</summary>
     private static Scenario Have(Scenario w, string id, bool withoutLast = false)
     {
         var cost = CostOf(w, id);
-        for (int i = 0; i < cost.Count - (withoutLast ? 1 : 0); i++) w.M.Knowledge.Obtain(cost[i].Item, 1);
+        for (int i = 0; i < cost.Count - (withoutLast ? 1 : 0); i++) w.M.Knowledge.Find(0, cost[i].Item);
         return w;
     }
 
@@ -33,19 +33,21 @@ public class UnderstandingTests
     public void AWreckKnowsNothingButWhatItsPodMakesForNothingAndItsFirstWallsComeAtTheFirstChunk()
     {
         var w = new Scenario(Registry.Wreck).Run();
-        Assert.Equal(["helmet", "screwdriver", "suit"], w.M.Knowledge.GrantedIds.Order(StringComparer.Ordinal));
-        Assert.False(w.Run(5).M.Research.Knows(Placement.Wall("scrap")));
-        w.M.Knowledge.Obtain("scrapChunk", 1);
-        Assert.True(w.Run().M.Research.Knows(Placement.Wall("scrap")));
-        Assert.True(w.M.Research.Knows(Placement.BackWall("scrap")));
-        Assert.False(w.M.Research.Knows(new Placement("machine", "tradeStation")));
+        Assert.Empty(w.M.Knowledge.KnownIds(0));
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        Assert.Equal(["helmet", "screwdriver", "suit"], w.M.Knowledge.KnownIds(0).Order(StringComparer.Ordinal));
+        Assert.False(w.Run(5).M.Research.Knows(0, Placement.Wall("scrap")));
+        w.M.Knowledge.Find(0, "scrapChunk");
+        Assert.True(w.Run().M.Research.Knows(0, Placement.Wall("scrap")));
+        Assert.True(w.M.Research.Knows(0, Placement.BackWall("scrap")));
+        Assert.False(w.M.Research.Knows(0, new Placement("machine", "tradeStation")));
     }
 
     [Fact]
     public void ABlueprintIsUnderstoodAtOneOfEachPartForNothing()
     {
         var w = Have(Room(), "furnace").Run();
-        Assert.True(w.M.Research.Knows("furnace"));
+        Assert.True(w.M.Research.Knows(0, "furnace"));
         Assert.Equal(0, w.M.Research.Credits);
     }
 
@@ -53,9 +55,9 @@ public class UnderstandingTests
     public void OnePartNeverObtainedIsNot()
     {
         var w = Have(Room(), "furnace", withoutLast: true).Run(5);
-        Assert.False(w.M.Research.Knows("furnace"));
-        w.M.Knowledge.Obtain(CostOf(w, "furnace")[^1].Item, 1);
-        Assert.True(w.Run().M.Research.Knows("furnace"));
+        Assert.False(w.M.Research.Knows(0, "furnace"));
+        w.M.Knowledge.Find(0, CostOf(w, "furnace")[^1].Item);
+        Assert.True(w.Run().M.Research.Knows(0, "furnace"));
     }
 
     /// <summary>The electrolyser's electrodes are a planet's copper (industrial-oxygen): every other part found is not enough.</summary>
@@ -64,10 +66,10 @@ public class UnderstandingTests
     {
         var w = Room();
         foreach (var (item, _) in CostOf(w, "electrolyser").Where(p => p.Item != "copper"))
-            w.M.Knowledge.Obtain(item, 1);
-        Assert.False(w.Run(5).M.Research.Knows("electrolyser"));
-        w.M.Knowledge.Obtain("copper", 1);
-        Assert.True(w.Run().M.Research.Knows("electrolyser"));
+            w.M.Knowledge.Find(0, item);
+        Assert.False(w.Run(5).M.Research.Knows(0, "electrolyser"));
+        w.M.Knowledge.Find(0, "copper");
+        Assert.True(w.Run().M.Research.Knows(0, "electrolyser"));
     }
 
     /// <summary>A single scrap, though wire takes two of it, with the workbench standing.</summary>
@@ -77,8 +79,8 @@ public class UnderstandingTests
         var w = Room("#II......#", tall: true);
         Assert.Equal([("scrap", 2)], CostOf(w, "wire"));
         Have(w, "wire").Run();
-        Assert.Equal(1, w.M.Knowledge.ObtainedOf("scrap"));
-        Assert.True(w.M.Research.Knows("wire"));
+        Assert.True(w.M.Knowledge.HasFound(0, "scrap"));
+        Assert.True(w.M.Research.Knows(0, "wire"));
     }
 
     /// <summary>One of each part with no machine making it is not enough, however many more come; standing one up is.</summary>
@@ -86,20 +88,20 @@ public class UnderstandingTests
     public void ACraftWaitsForAMachineThatMakesIt()
     {
         var w = Have(Room(tall: true), "wire").Run(5);
-        Assert.False(w.M.Research.Knows("wire"));
-        w.M.Knowledge.Obtain("scrap", 50);
-        Assert.False(w.Run(5).M.Research.Knows("wire"));
+        Assert.False(w.M.Research.Knows(0, "wire"));
+        w.M.Knowledge.Find(0, "scrap");
+        Assert.False(w.Run(5).M.Research.Knows(0, "wire"));
         // Five cells tall, standing on the floor: its top a cell under the room's top block.
         w.Do(new Place(w.At(1, 1) + w.M.Grid.Width, Bench)).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Knows("wire"));
+        Assert.True(w.M.Research.Knows(0, "wire"));
     }
 
     [Fact]
     public void AMachineThatMakesSomethingElseIsNoReason()
     {
         var w = Have(Room("#KK......#"), "wire").Run(5);
-        Assert.False(w.M.Research.Knows("wire"));
+        Assert.False(w.M.Research.Knows(0, "wire"));
     }
 
     [Fact]
@@ -112,18 +114,18 @@ public class UnderstandingTests
         there.Grid.Place(cell, Bench);
         Have(w, "wire").Run();
         Assert.Empty(w.M.Grid.MachinesOf("workbench"));
-        Assert.True(w.M.Research.Knows("wire"));
-        Assert.True(there.Research.Knows("wire"));
+        Assert.True(w.M.Research.Knows(0, "wire"));
+        Assert.True(there.Research.Knows(0, "wire"));
     }
 
     [Fact]
     public void AMachineGoneKeepsWhatItTaught()
     {
         var w = Have(Room("#II......#", tall: true), "wire").Run();
-        Assert.True(w.M.Research.Knows("wire"));
+        Assert.True(w.M.Research.Knows(0, "wire"));
         w.Do(new ClearAt(w.At(1, 3), "machine")).Run(3);
         Assert.Empty(w.M.Grid.MachinesOf("workbench"));
-        Assert.True(w.M.Research.Knows("wire"));
+        Assert.True(w.M.Research.Knows(0, "wire"));
     }
 
     /// <summary>A blueprint the market sells, the workbench standing; the market's gear is no craft at all (2026-11-08-mafia-deliveries).</summary>
@@ -133,7 +135,7 @@ public class UnderstandingTests
     {
         var w = Have(Room(), id);
         w.Do(new Place(w.At(1, 1), Bench)).Run(3);
-        Assert.False(w.M.Research.Knows(id));
+        Assert.False(w.M.Research.Knows(0, id));
         Assert.DoesNotContain(ResearchModule.Walked, t => t.Id == id);
     }
 
@@ -144,9 +146,9 @@ public class UnderstandingTests
         var loaded = Have(Room("#II......#", tall: true), "wire").Reload();
         live.Run();
         loaded.Run();
-        Assert.True(loaded.M.Research.Knows("wire"));
+        Assert.True(loaded.M.Research.Knows(0, "wire"));
         Assert.Equal(live.World.Hash(), loaded.World.Hash());
-        Assert.True(loaded.Reload().Run().M.Research.Knows("wire"));
+        Assert.True(loaded.Reload().Run().M.Research.Knows(0, "wire"));
         Assert.Equal(live.Run().World.Hash(), loaded.World.Hash());
     }
 
@@ -157,7 +159,7 @@ public class UnderstandingTests
         int FlareIn() => ((HazardsState)w.M.Hazards.Slice).FlareIn;
         Assert.Equal(0, FlareIn());
         Have(w, "generator").Run(2);
-        Assert.True(w.M.Research.Knows("generator"));
+        Assert.True(w.M.Research.Knows(0, "generator"));
         Assert.True(FlareIn() > 0, "no flare drawn");
     }
 
@@ -185,7 +187,7 @@ public class UnderstandingTests
     {
         if (Content.Research.Node(recipe.Id) is { Tab: Content.Research.Market }) return false;
         // A part every hero comes aboard with, the drone's core, waits for nothing.
-        if (recipe.Cost.Any(c => w.M.Knowledge.ObtainedOf(c.Item) == 0 && !Inventory.Kit.Any(k => k.Item == c.Item))) return false;
+        if (recipe.Cost.Any(c => !w.M.Knowledge.HasFound(0, c.Item) && !Inventory.Kit.Any(k => k.Item == c.Item))) return false;
         return blueprints.Contains(recipe.Id) || Stations.All.Any(s => s.Rows.Any(r => r.Contains(recipe.Id)) && w.M.Grid.MachinesOf(s.Machine).Count > 0);
     }
 
@@ -197,7 +199,7 @@ public class UnderstandingTests
         string[] rows = [new string('#', 80), .. Enumerable.Repeat("#" + new string('.', 78) + "#", 8), new string('#', 80)];
         var w = new Scenario(Layout.Parse(rows, null) with { Known = Content.Research.StartKnown });
         var blueprints = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
-        var recipes = w.M.Research.Recipes();
+        var recipes = w.M.Research.Recipes(0);
         var ever = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
         for (int step = 0; step < 60; step++)
         {
@@ -206,13 +208,14 @@ public class UnderstandingTests
             if (Below(3) == 0) w.Do(w.M.Grid.MachineAt(cell) != null ? new ClearAt(cell, "machine") : new Place(cell, new Placement("machine", maker)));
             var pick = recipes[Below(recipes.Count)];
             foreach (var (item, _) in pick.Cost)
-                if (Below(4) != 0) w.M.Knowledge.Obtain(item, 1 + Below(3));
+                if (Below(4) != 0) w.M.Knowledge.Find(0, item);
             w.Run();
             Assert.Empty(w.Refusals);
-            foreach (var recipe in recipes.Where(r => Allowed(w, r, blueprints))) ever.Add(recipe.Id);
-            var missed = ever.Where(id => !w.M.Knowledge.Granted(id)).ToList();
+            // The rule walks a player once they have found anything: a hero always has, from their kit.
+            foreach (var recipe in recipes.Where(r => w.M.Knowledge.Learners.Contains(0) && Allowed(w, r, blueprints))) ever.Add(recipe.Id);
+            var missed = ever.Where(id => !w.M.Knowledge.Knows(0, id)).ToList();
             Assert.True(missed.Count == 0, $"allowed and not granted: {string.Join(", ", missed)}");
-            var stray = w.M.Knowledge.GrantedIds.Where(id => !ever.Contains(id)).ToList();
+            var stray = w.M.Knowledge.KnownIds(0).Where(id => !ever.Contains(id)).ToList();
             Assert.True(stray.Count == 0, $"granted and not allowed: {string.Join(", ", stray)}");
         }
     });

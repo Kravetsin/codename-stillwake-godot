@@ -43,7 +43,8 @@ public partial class ResearchTablet : CanvasLayer
     /// <param name="send">Sends a command to the session.</param>
     /// <param name="worldId">Which world is played, on every machine: what the board is kept under.</param>
     /// <param name="surfaces">The world played, all its surfaces, for a machine standing on any; null with none played.</param>
-    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId, Func<World?> surfaces)
+    /// <param name="me">The peer playing here: whose board and purchases the tablet shows (own-knowledge).</param>
+    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId, Func<World?> surfaces, Func<int> me)
     {
         (_ui, _inWorld, _world) = (ui, inWorld, world);
         _tips = new TipSpots(ui.Tip);
@@ -53,9 +54,9 @@ public partial class ResearchTablet : CanvasLayer
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
         root.AddChild(_tablet);
-        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, surfaces, _keep));
+        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, surfaces, me, _keep));
         var tab = Content.Research.Tabs.Single(t => t.Id == Content.Research.Market);
-        _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen));
+        _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen, me));
         _page = _board;
         _view.GuiInput += e => _page.Pointer(e);
         _detail.AddChild(_parts.Facts);
@@ -75,7 +76,7 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_market.Body, _view, _detail]) _tablet.OnScreen(part);
         PaintDetail();
         _page.Show(true);
-        _key = new TabletKey(world, surfaces, worldId, _keep, Flash, Toggle, () => Shown && _page == _board);
+        _key = new TabletKey(world, surfaces, worldId, me, _keep, Flash, Toggle, () => Shown && _page == _board);
         MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _key.Affordable);
         AddChild(_key);
     }

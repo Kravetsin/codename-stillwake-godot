@@ -40,7 +40,7 @@ public class ReputationTests
         }
         Assert.Empty(w.Refusals);
         Assert.Equal(1, w.M.Knowledge.Level);
-        Assert.True(w.M.Research.Done(Gate("order1")));
+        Assert.True(w.M.Research.Done(0, Gate("order1")));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class ReputationTests
         w.Do(new BuyBlock("bag3")).Run();
         Assert.Equal(1, w.M.Knowledge.Level);
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Done(Tree.Node("bag3")!));
+        Assert.True(w.M.Research.Done(0, Tree.Node("bag3")!));
     }
 
     /// <summary>Contraband (docs/decisions/2026-11-15-stretches-of-space.md): wanted at every level, with no count, all at full worth; only what was sold since the level opened.</summary>
@@ -182,7 +182,7 @@ public class ReputationTests
         Mafia.Reach(w, 4);
         w.Do(new BuyBlock("solarPanel")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Done(Tree.Node("solarPanel")!));
+        Assert.True(w.M.Research.Done(0, Tree.Node("solarPanel")!));
     }
 
     [Fact]

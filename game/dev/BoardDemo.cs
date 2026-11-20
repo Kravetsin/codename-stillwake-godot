@@ -74,18 +74,18 @@ public partial class BoardDemo(Func<Registry> m, Func<World?> world, string? val
     private string? First(BoardState state)
     {
         if (world() is not { } w) return null;
-        var read = BoardRead.Of(w);
+        var read = BoardRead.Of(w, 0);
         return BoardThings.Ids.FirstOrDefault(id => BoardView.StateOf(id, read) == state);
     }
 
     /// <summary>Things new found, for the key to light for: what the seed had not got to.</summary>
     private void Find() => FindOn(m().Knowledge, Finds(value));
 
-    /// <summary><paramref name="count"/> things new found in <paramref name="knowledge"/>; none in a world that found nothing yet.</summary>
+    /// <summary><paramref name="count"/> things new found by the first peer in <paramref name="knowledge"/>; none in a world where they found nothing yet.</summary>
     public static void FindOn(Sim.Knowledge.KnowledgeModule knowledge, int count)
     {
-        if (knowledge.Obtained.Count == 0) return;
-        foreach (string item in InSpace.Where(i => knowledge.ObtainedOf(i) == 0).Take(count)) knowledge.Obtain(item, 1);
+        if (knowledge.Found(0).Count == 0) return;
+        foreach (string item in InSpace.Where(i => !knowledge.HasFound(0, i)).Take(count)) knowledge.Find(0, item);
     }
 
     private void Click(string? id)

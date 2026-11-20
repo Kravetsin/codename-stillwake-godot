@@ -348,7 +348,7 @@ public partial class FabricatorPanel : CanvasLayer
         var places = Crafts.Places(station, _paired);
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
-        _opened.Text = T("crafts.opened", ("n", crafts.Count(_research!.Knows)), ("all", crafts.Count));
+        _opened.Text = T("crafts.opened", ("n", crafts.Count(c => _research!.Knows(_client!.Id, c))), ("all", crafts.Count));
         LendInputs(pod, station, outputs);
         for (int i = 0; i < station.QueueMost; i++)
             _queue.AddChild(i < queue.Count ? EntrySlot(pod, queue[i], i == 0, i == 0 ? lacks : []) : EmptySlot());

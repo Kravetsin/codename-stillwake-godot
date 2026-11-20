@@ -40,10 +40,10 @@ public class HeatSuitTests
         var w = new Scenario(Layout.Parse(Room) with { Known = Content.Research.StartKnown }, doubled: true);
         Assert.DoesNotContain(Heat, Content.Research.GearSold);
         var cost = Crafts.Get(Heat).Cost;
-        foreach (var (item, _) in cost.SkipLast(1)) w.M.Knowledge.Obtain(item, 1);
-        Assert.False(w.Run(5).M.Research.Knows(Heat));
-        w.M.Knowledge.Obtain(cost[^1].Item, 1);
-        Assert.True(w.Run(5).M.Research.Knows(Heat));
+        foreach (var (item, _) in cost.SkipLast(1)) w.M.Knowledge.Find(0, item);
+        Assert.False(w.Run(5).M.Research.Knows(0, Heat));
+        w.M.Knowledge.Find(0, cost[^1].Item);
+        Assert.True(w.Run(5).M.Research.Knows(0, Heat));
     }
 
     [Fact]

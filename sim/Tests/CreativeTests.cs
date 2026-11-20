@@ -90,7 +90,7 @@ public class CreativeTests
         Assert.Equal(new[] { "building.unknown" }, Reasons(w));
         w.Do(new PlacePlan(At(1, 1), wall) { From = A }).Run();
         Assert.Single(w.M.Building.Plans);
-        Assert.False(w.M.Research.Knows(Research.Blueprints.Of(wall)));
+        Assert.False(w.M.Research.Knows(0, Research.Blueprints.Of(wall)));
     }
 
     [Fact]

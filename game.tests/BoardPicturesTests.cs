@@ -13,7 +13,7 @@ public class BoardPicturesTests
     {
         var m = new Registry();
         World.Create(1, HeroTests.Wreck, m.All);
-        var recipes = m.Research.Recipes();
+        var recipes = m.Research.Recipes(0);
         var tools = recipes.Where(r => HeldLook.Of(r.Id) != null).ToList();
         Assert.NotEmpty(tools);
         // A craft's recipe names it with no placement: the board looks a tool up by that recipe.

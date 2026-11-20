@@ -79,6 +79,8 @@ public sealed class BoardPage : ITabletPage
     private readonly Action _readSoon;
     private readonly Func<uint> _worldId;
     private readonly Func<World?> _world;
+    /// <summary>The peer playing here: whose board it is (own-knowledge).</summary>
+    private readonly Func<int> _me;
     private readonly BoardKeep _keep;
     private readonly BoardLayout _layout = BoardLayout.Main;
     private readonly TechCamera _camera = new() { Floor = 0.12 };
@@ -131,9 +133,9 @@ public sealed class BoardPage : ITabletPage
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
     /// <param name="world">The world played, all its surfaces: a machine on any counts; null with none.</param>
     /// <param name="keep">What is kept of the board, shared with the tablet's key.</param>
-    public BoardPage(Control view, StripParts strip, Action readSoon, Func<uint> worldId, Func<World?> world, BoardKeep keep)
+    public BoardPage(Control view, StripParts strip, Action readSoon, Func<uint> worldId, Func<World?> world, Func<int> me, BoardKeep keep)
     {
-        (_view, _strip, _readSoon, _worldId, _world, _keep) = (view, strip, readSoon, worldId, world, keep);
+        (_view, _strip, _readSoon, _worldId, _world, _me, _keep) = (view, strip, readSoon, worldId, world, me, keep);
         _back.Draw += DrawBack;
         _board.AddChild(_back);
         _board.AddChild(_frames);
@@ -384,10 +386,10 @@ public sealed class BoardPage : ITabletPage
     {
         if (!_out || _world() is not { } world) return;
         if (!ReferenceEquals(m.Knowledge, _knowledge)) Forget(m);
-        string key = BoardRead.KeyOf(world);
+        string key = BoardRead.KeyOf(world, _me());
         if (_key == key) return;
         _key = key;
-        var read = _read = BoardRead.Of(world);
+        var read = _read = BoardRead.Of(world, _me());
         _keep.Seen.Read(read);
         if (_keep.Pinned is { } pinned && read.Knows(pinned)) _keep.Pinned = null;
         _side.Visible = _legend.Visible = true;
@@ -406,7 +408,7 @@ public sealed class BoardPage : ITabletPage
     /// </summary>
     public void Warm(Registry m)
     {
-        _strip.Learn(m.Research);
+        _strip.Learn();
         if (!_built) BuildFrames();
     }
 
@@ -415,7 +417,7 @@ public sealed class BoardPage : ITabletPage
     {
         _knowledge = m.Knowledge;
         _keep.Of(_worldId());
-        _strip.Learn(m.Research);
+        _strip.Learn();
         if (!_built) BuildFrames();
         (_picked, _hover, _key, _rowsFor, _unreadFor, _goalFor) = (null, null, null, -1, -1, null);
         _framed = false;

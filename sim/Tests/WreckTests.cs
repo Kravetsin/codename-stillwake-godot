@@ -93,7 +93,7 @@ public class WreckTests
         World.Create(1, Wreck, m.All);
         Assert.Equal(["emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap"], m.Grid.Machines.Select(x => x.Kind).Order(StringComparer.Ordinal));
         Assert.Equal([Pod], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Fixed).Select(x => x.Cell));
-        Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
+        Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes(0).Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         // Four doors, each two cells by six.
         Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 4 * 12), Wreck.CellsOf('D').Select(m.Grid.StructureAt));

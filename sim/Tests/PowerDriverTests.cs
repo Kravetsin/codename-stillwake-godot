@@ -46,7 +46,7 @@ public class PowerDriverTests
         Mafia.Reach(w, 2);
         w.Do(new BuyBlock(Driver)).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Knowledge.InFlight(Driver));
+        Assert.True(w.M.Knowledge.InFlight(0, Driver));
         Mafia.Receive(w);
         Assert.Contains(w.M.Items.Inventory(0), s => s?.Item == Driver);
     }
