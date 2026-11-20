@@ -58,6 +58,11 @@ public sealed class Hero
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int CanisterIn { get; internal set; }
     /// <summary>
+    /// Ticks left of its drone's meeting (drone-meeting), 0 with none: meanwhile nothing drains or harms it (<c>Crew.MeetingTicks</c>).
+    /// Ticks left, as <see cref="CanisterIn"/>, so it carries across surfaces.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Meets { get; internal set; }
+    /// <summary>
     /// Thousandths of a unit its breaths have cost short of a whole one, 0 to 999, kept for the next (food-and-the-body): a calm
     /// breath costs a share of a unit, paid whole as the shares add up.
     /// </summary>

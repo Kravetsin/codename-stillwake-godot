@@ -149,6 +149,8 @@ public interface ICrewQueries
     Rates RatesOf(int peer);
     /// <summary>Whether hero <paramref name="peer"/> is hungry: awake, every meal gone, not creative; its running costs <c>Diet.HungrySprint</c>.</summary>
     bool Hungry(int peer);
+    /// <summary>Whether hero <paramref name="peer"/> is spared all harm and drain now, its drone's meeting playing (drone-meeting).</summary>
+    bool Spared(int peer);
     /// <summary>
     /// Whether hero <paramref name="peer"/>'s suit's mode works: switched on, in a body with <c>Switch</c>; false with no hero
     /// (2026-11-03-the-regen-suit).
@@ -199,7 +201,7 @@ public interface ICrewOps
 }
 
 /// <summary>
-/// Heroes inside the sim: where each one is, as its client says, and how it breathes — room air in a
+/// Heroes inside the sim: where each one is, as its client says, and how it breathes вЂ” room air in a
 /// cell holding it, its own air anywhere else (the suit's, or its lungs bare), passing out when that runs dry
 /// (packages/sim/src/modules/crew).
 /// </summary>
@@ -279,7 +281,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             if (Content.Items.Get(c.Item).Byproducts is { } kept && Loots.Roll(kept, Random) is { Count: > 0 } back)
                 _itemsOps.GiveOrDrop(c.From, back, hero.Cell);
         });
-        Handles<PairDrone>(c => PairProblem(c.From, c.Core), c => _playersOps.Pair(c.From));
+        Handles<PairDrone>(c => PairProblem(c.From, c.Core), c =>
+        {
+            _playersOps.Pair(c.From);
+            HeroOf(c.From)!.Meets = Content.Crew.MeetingTicks;
+        });
         Handles<Purge>(c => PurgeProblem(c.From), c =>
         {
             var hero = HeroOf(c.From)!;
@@ -300,6 +306,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 // The core broken loose, its shards find every hero still without one (drone-companion).
                 if (coreLost && !_players.HasDrone(hero.Id)) _playersOps.Pair(hero.Id);
                 if (hero.CanisterIn > 0) hero.CanisterIn -= 1;
+                // Its drone's meeting playing, nothing drains or harms it, its meals waiting too (drone-meeting).
+                if (hero.Meets > 0)
+                {
+                    hero.Meets -= 1;
+                    hero.Thrusting = false;
+                    continue;
+                }
                 for (int i = hero.Eaten.Count - 1; i >= 0; i--)
                     if (--hero.Eaten[i].Left <= 0) hero.Eaten.RemoveAt(i);
                 if (hero.Out > 0)
@@ -433,7 +446,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Shock(int peer, int units, Harm harm)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0, Meets: 0 } hero || _items.Creative(peer) || units <= 0) return;
         Hurt(hero, harm);
         // The air pays what it holds; the last breath, what it falls short by.
         int beyond = units - hero.Air;
@@ -443,7 +456,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Blow(int peer, int units, Harm harm)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0, Meets: 0 } hero || _items.Creative(peer) || units <= 0) return;
         Shock(peer, Soften(hero, units, Content.Cape.Guard), harm);
     }
 
@@ -544,7 +557,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>
     // A creative hero never freezes: its client keeps its body well, so one sent anyway is a stale one.
-    public string? SuccumbProblem(int peer) => HeroOf(peer) is not { Out: 0 } || _items.Creative(peer) ? "crew.noHero" : null;
+    // Nor in its drone's meeting, which spares it (drone-meeting).
+    public string? SuccumbProblem(int peer) => HeroOf(peer) is not { Out: 0, Meets: 0 } || _items.Creative(peer) ? "crew.noHero" : null;
 
     public string? PurgeProblem(int peer)
     {
@@ -807,6 +821,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int RefillOf(int peer) => Content.Crew.CanisterRefill + RatesOf(peer).Deep;
 
     public Rates RatesOf(int peer) => HeroOf(peer) is { } hero ? RatesOf(hero) : default;
+
+    public bool Spared(int peer) => HeroOf(peer) is { Meets: > 0 };
 
     public bool Hungry(int peer) => HeroOf(peer) is { Out: 0, Eaten.Count: 0 } && !_items.Creative(peer);
 
