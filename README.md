@@ -1,4 +1,4 @@
-# Stillwake
+# Castoff (codename Stillwake)
 
 A 2D side-view space game in Godot 4.7 and C#: an always-moving ship salvages debris and turns it into
 automated production, in co-op for 4+ players. What the game is: [docs/concept.md](docs/concept.md).
@@ -16,10 +16,10 @@ Microsoft.DotNet.SDK.8` brings the newest) and Godot 4.7 (.NET build); the scrip
 
 - `play.cmd` — builds the C# and starts the game; arguments go to the game: `play.cmd --host`,
   `play.cmd --join=192.168.1.5`, `play.cmd --debris`.
-- `export.cmd` — the Windows build, `build\windows\Stillwake.exe`, zipped as `build\Stillwake-windows.zip`,
+- `export.cmd` — the Windows build, `build\windows\Castoff.exe`, zipped as `build\Castoff-windows.zip`,
   with `host.cmd` and `join.cmd` beside it: co-op across networks through the playtest server's relay
   (ADR 0012), each asking for a session name and the playtest password. By hand:
-  `Stillwake.exe -- --relay --host=name` and `Stillwake.exe -- --relay --join=name`, the password in
+  `Castoff.exe -- --relay --host=name` and `Castoff.exe -- --relay --join=name`, the password in
   `STILLWAKE_PASSWORD` or `--password=...`; `--relay=ws://...` names another relay.
 - `dotnet test Stillwake.sln` — every test. The budget tests' bounds are a desk's; `STILLWAKE_BUDGET_SLACK=2`
   multiplies them on a slower machine, as CI does. CI builds and tests with `-c Release`: add it to run them as CI does.
