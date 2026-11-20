@@ -38,6 +38,28 @@ public class WreckScrapTests
     }
 
     [Fact]
+    public void TheCoresPathIsOpenAndRunsBetweenPlates()
+    {
+        var m = new Scenario(World).M;
+        Assert.NotEmpty(Wreck.CorePath);
+        foreach (var (row, first, last) in Wreck.CorePath)
+        {
+            Assert.True(first <= last);
+            for (int x = first; x <= last; x++)
+            {
+                var (px, py) = (x + Wreck.Left, row + Wreck.Top);
+                Assert.Equal('.', Wreck.Rows[py][px]);
+                Assert.Null(m.Grid.WallAt(Cell(px, py)));
+            }
+            // Each row of it is held between the plates it tore through.
+            Assert.Equal("wreckScrap", m.Grid.WallAt(Cell(first - 1 + Wreck.Left, row + Wreck.Top))?.Id);
+            Assert.Equal("wreckScrap", m.Grid.WallAt(Cell(last + 1 + Wreck.Left, row + Wreck.Top))?.Id);
+            Assert.Equal('T', Wreck.Dress[row + Wreck.Top][first - 1 + Wreck.Left]);
+            Assert.Equal('T', Wreck.Dress[row + Wreck.Top][last + 1 + Wreck.Left]);
+        }
+    }
+
+    [Fact]
     public void TheDressHoldsOnlyItsFourLooks() =>
         Assert.All(Dressed(), c => Assert.Contains(Wreck.Dress[c.Y][c.X], "RrHT"));
 
