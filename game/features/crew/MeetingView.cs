@@ -75,6 +75,7 @@ public partial class MeetingView : Node2D
     }
 
     private bool Lifted => _f.U >= Meeting.Times.LiftFrom;
+    private bool Forms => Meeting.FormsDrone(_f.U);
 
     /// <summary>The plates still out among the debris.</summary>
     private void DrawAway()
@@ -116,7 +117,7 @@ public partial class MeetingView : Node2D
     /// <summary>Over the hero: the core lifted with its soot rising round it and its plates home, the drops before it, the plates in flight.</summary>
     private void DrawOver()
     {
-        if (Lifted)
+        if (Forms)
         {
             _tri.Clear();
             Motes(front: false);
@@ -144,7 +145,7 @@ public partial class MeetingView : Node2D
     {
         _tri.Clear();
         double u = _f.U;
-        if (Lifted)
+        if (Forms)
         {
             Cracks(_f.Drone);
             var (on, glow) = Meeting.Lens(u);

@@ -115,6 +115,9 @@ public static class Meeting
     /// <summary>Whether the meeting draws the drone, the hero's own hidden: till it rises to the head.</summary>
     public static bool DrawsDrone(double u) => u < Times.RiseFrom;
 
+    /// <summary>Whether the meeting draws the lifted core as the drone forming, its soot and plates on it: till the hero's own takes over.</summary>
+    public static bool FormsDrone(double u) => u >= Times.LiftFrom && DrawsDrone(u);
+
     /// <summary>
     /// Whether the lying core's picture is gone for this player: the core lost, or this player paired or <paramref name="taken"/> it in
     /// their own meeting, while no meeting still shows it lying (<paramref name="held"/>).

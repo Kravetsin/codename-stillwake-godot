@@ -105,6 +105,17 @@ public class MeetingTests
     }
 
     [Fact]
+    public void OneDroneAtATimeTheMeetingsTillItRisesTheHerosAfter()
+    {
+        foreach (double u in Sweep(0))
+        {
+            bool meeting = Meeting.FormsDrone(u), own = !Meeting.DrawsDrone(u);
+            Assert.False(meeting && own, $"two drones at {u:F3} s");
+            if (u >= Meeting.Times.LiftFrom) Assert.True(meeting || own, $"no drone at {u:F3} s");
+        }
+    }
+
+    [Fact]
     public void TheHeadSwimsAsAWeakerLastBreathNeverReachingTheInk()
     {
         double most = 0;
