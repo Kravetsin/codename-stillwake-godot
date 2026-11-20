@@ -44,6 +44,14 @@ namespace Stillwake.Game;
 /// </summary>
 public partial class Main : Node2D, ITogether
 {
+    // Before any field below reads the user folder: the worlds and settings kept under the game's old name move in.
+    static Main()
+    {
+        string to = ProjectSettings.GlobalizePath("user://").TrimEnd('/', '\\');
+        var moved = UserFolder.Adopt(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(to)!, UserFolder.OldName), to);
+        if (moved.Count > 0) GD.Print($"[platform] moved from the {UserFolder.OldName} folder: {string.Join(", ", moved)}");
+    }
+
     private const int Port = 24600;
     private static readonly string Build =
         typeof(Main).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
@@ -215,7 +223,7 @@ public partial class Main : Node2D, ITogether
     public override void _Ready()
     {
         // A friend's log arrives without context: its first line says which build and system wrote it.
-        GD.Print($"Stillwake {Build} on {OS.GetName()} {OS.GetVersion()}");
+        GD.Print($"Castoff {Build} on {OS.GetName()} {OS.GetVersion()}");
         _dev = new Dev.DevArgs(OS.GetCmdlineUserArgs(), DevScenarios.Modes);
         _scenarios = DevScenarios.Active(_dev);
         _playerKey = Profile.Key(_dev.All);
