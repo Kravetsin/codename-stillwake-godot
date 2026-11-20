@@ -1,6 +1,6 @@
 # The title is a drawn scene of despair
 
-- Status: accepted; amends [0031](0031-worlds-the-title-and-migrations.md)'s title
+- Status: accepted; amends [0031](0031-worlds-the-title-and-migrations.md)'s title; the scene (plate, hero, drifters) superseded by [tether-title](2026-11-21-tether-title.md)
 - Date: 2026-10-25
 
 ## Context

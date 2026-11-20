@@ -2,9 +2,8 @@
 
 The title the game opens on and the game menu on Esc (0031); not in the TypeScript game.
 
-- **The title scene** (2026-10-25-title-scene, `TitleBackdrop`), none of it the game's world: the game's stars and a torn
-  chunk of hull drifting right (`logic/PlateArt`), its hero hunched on it in despair, tethered, a red lamp blinking;
-  shards and now and then a limp astronaut going by behind it (`logic/TitleScene`).
+- **The title scene** (2026-11-21-tether-title, `TitleBackdrop`): a tiny limp hero on a tether, a silhouette rimmed by a
+  small distant sun; no ship. Its numbers are the pick page's (`tools/pick-kit/pages/title-tether.js`).
 - **The title** (`TitleScreen`): the scene alone for a moment, then the name and the choices fading in, words over the
   darkened left (`TitleItem`) — Continue (the last world played; New game on a first run), Worlds, Play together,
   Settings, Quit; any key or click brings them at once. A choice slides its panel out beside it; choosing
@@ -52,7 +51,7 @@ The title the game opens on and the game menu on Esc (0031); not in the TypeScri
 | `GameMenu.cs` | the menu, its pages and buttons, and Esc for the whole game                    | yes   |
 | `TitleScreen.cs` | the title: its name and choices fading in, the panel slid out, the update notice | yes |
 | `TitleItem.cs` | a title choice: words that light and slide, a line under them | yes |
-| `TitleBackdrop.cs` | the title scene: the stars, the plate, its hero and lamp, what drifts by | yes |
+| `TitleBackdrop.cs` | the title scene: stars, sun, the hero lit against it, its tether | yes |
 | `SettingsView.cs` | Settings, the title's and the game menu's: the categories as tabs, their rows, the volume sliders | yes |
 | `BindRows.cs` | Settings' Controls: a key an action, waiting, swapped, refused, reset | yes |
 | `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
@@ -62,9 +61,11 @@ The title the game opens on and the game menu on Esc (0031); not in the TypeScri
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
 | `logic/Together.cs` | playing together as the menu shows it: the mode, the code, the suits aboard; `HostKey` | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint, to tell a friend or a bug report | yes |
-| `logic/TitleScene.cs` | the title scene's arithmetic: the plate's sway, what drifts past, when and how | no |
-| `logic/PlateArt.cs` | the title's plate: its size, the hero's seat, lamp and ring | no |
-| `Dither.cs` | the title's shade and glow, blended with noise on the final colour so no bands show | yes |
+| `logic/TitleScene.cs` | the scene's arithmetic: drift, turn, light, the sun's falloff, the lamp | no |
+| `logic/TitleHero.cs` | the hero from the front: pose, joints, outline | no |
+| `logic/TitleTether.cs` | the tether: a verlet chain pinned off the frame | no |
+| `logic/TitleStars.cs` | the stars | no |
+| `Dither.cs` | the title's shade and the sun, with noise on the final colour so no bands show | yes |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Volume.cs` | a volume slider's step: its gain in dB, muted at 0 | no |
 | `logic/SettingsCategories.cs` | Settings' categories in order, the hero's in a world only | no |

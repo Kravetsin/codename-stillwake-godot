@@ -126,7 +126,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted | melee-edge (in part) |
 | [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted | fuel-liquid (in part) |
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted | planet-variety (in part) |
-| [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
+| [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted | tether-title (in part) |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted | ore-pockets (in part) |
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
@@ -410,3 +410,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
 | [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |
 | [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |
+| [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |

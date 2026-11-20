@@ -11,6 +11,7 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | `check.js` | the stub check: a stub DOM and a canvas that throws on a non-finite number, a bad colour or a source rectangle outside its image; the plan of clicks and forced turns |
 | `build.js` | `node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>]`: writes `<out-dir>/index.html`, then checks it |
 | `pages/drone-holo.js` | the worked example: the drone's hologram in the planner sheet's place |
+| `pages/title-tether.js` | a whole-scene page (`scene`): the title screen's scene, a limp hero on a tether |
 
 ## Rules
 
@@ -35,6 +36,8 @@ the kit's names (`rr`, `css`, `halo`, `SIGN`, `drawDrone`, `plateIdle`, `newHero
 | `lead` | HTML: `<p class="lead">` paragraphs, then `<p class="miss">` saying what the page does not show |
 | `toggles` | `{ id, key, opts: [[label, value], …], label?, bar?, saved?, short? }`: buttons setting `OPT[key]`, its first value the default; `bar: 1` sits beside the kit's own (open mode, hero, speed, pause), others on a second bar; a `saved` one goes into the pick under `key`, named `short` in its text |
 | `pick` | `{ doc, subject, what: [accusative, instrumental] }`: the db doc, the copy text's subject, the candidate's word in the hints |
+| `tile` | `[w, h]`: the tile's logical size, `[1000, 540]` when left out; «Крупно 1:1» shows it `w` wide |
+| `kitBars` | the kit's own toggles shown (`openMode`, `heroMode`, `speedMode`, `playMode`); all when left out |
 | `page()` | returns `{ cands, expose?, …hooks }` |
 | `breaks` | `{ name: [[from, to], …] }`: text swaps that break one rule, to see the check fail (`--break name`) |
 | `check(K)` | plans the run, runs it, prints its lines, returns whether its own rules held |
@@ -56,6 +59,7 @@ Each is optional; the kit calls it with the tile `T` (`T.c` the canvas, `T.S` de
 | `platesAway(T, h)` | true when the drone's plates are away and the page draws them |
 | `overDrone(T, h)` | drawn over a hero's drone |
 | `hud(T)` | the line of text beside the Tab key |
+| `scene(T, dt)` | each frame, in place of the kit's world (floor, hero loop, drone, window, Tab key): the page draws its whole tile |
 
 ## Build and check
 

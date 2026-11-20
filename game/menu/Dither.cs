@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Linq;
 using Godot;
 
 namespace Stillwake.Game.Menu;
@@ -29,19 +31,28 @@ public static class Dither
             """,
     };
 
-    private static readonly Shader GlowShader = new()
+    private static string F(double v) => v.ToString("0.0#####", CultureInfo.InvariantCulture);
+
+    /// <summary>The soft light's falloff as a shader's sum: each stop's span added straight between its strengths.</summary>
+    private static string Falloff() => string.Join("\n", TitleScene.Falloff.Zip(TitleScene.Falloff.Skip(1), (a, b) =>
+        $"    if (u >= {F(a.At)} && u < {F(b.At)}) a = mix({F(a.Alpha)}, {F(b.Alpha)}, (u - {F(a.At)}) / {F(b.At - a.At)});"));
+
+    private static readonly Shader SunShader = new()
     {
         Code = $$"""
             shader_type canvas_item;
-            render_mode blend_add;
+            render_mode blend_premul_alpha;
             {{Noise}}
-            uniform vec4 tint : source_color = vec4(1.0);
-            uniform float strength = 1.0;
-            // A soft disc, brightest at its middle, the tint added to what is under it.
+            // The sun (TitleScene): its warm soft falloff over the dark, its small hard disc on it; noise on the final colour.
             void fragment() {
-                float d = clamp(1.0 - distance(UV, vec2(0.5)) * 2.0, 0.0, 1.0);
-                float a = d * d * strength;
-                COLOR = vec4(tint.rgb * a + noise(FRAGCOORD.xy) * 2.0 / 255.0, 1.0);
+                float d = distance(UV, vec2(0.5)) * {{F(2 * TitleScene.GlowR)}};
+                float u = d / {{F(TitleScene.GlowR)}};
+                float a = 0.0;
+            {{Falloff()}}
+                float core = clamp(({{F(TitleScene.CoreR)}} - d) / max(fwidth(d), 1e-4) + 0.5, 0.0, 1.0);
+                vec3 rgb = vec3(1.0, 228.0 / 255.0, 190.0 / 255.0) * a * (1.0 - core) + vec3(1.0, 247.0 / 255.0, 230.0 / 255.0) * core;
+                float alpha = a * (1.0 - core) + core;
+                COLOR = vec4(rgb + vec3(noise(FRAGCOORD.xy) * 2.0 / 255.0) * min(alpha * 12.0, 1.0), alpha);
             }
             """,
     };
@@ -54,14 +65,16 @@ public static class Dither
         return shade;
     }
 
-    /// <summary>A soft glow of <paramref name="tint"/> added to what is under it, <paramref name="size"/> pixels across; its strength set by <see cref="Shine"/>.</summary>
-    public static ColorRect Glow(Color tint, float size)
+    /// <summary>The title's sun and its soft light, in the scene's pixels about <see cref="TitleScene.Sun"/>.</summary>
+    public static ColorRect Sun()
     {
-        var material = new ShaderMaterial { Shader = GlowShader };
-        material.SetShaderParameter("tint", tint);
-        return new ColorRect { Material = material, Size = new Vector2(size, size), Position = -new Vector2(size, size) / 2, MouseFilter = Control.MouseFilterEnum.Ignore };
+        float r = (float)TitleScene.GlowR;
+        return new ColorRect
+        {
+            Material = new ShaderMaterial { Shader = SunShader },
+            Size = new Vector2(2 * r, 2 * r),
+            Position = new Vector2((float)TitleScene.Sun.X - r, (float)TitleScene.Sun.Y - r),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
     }
-
-    /// <summary>How strongly a <see cref="Glow"/> shines now, 0 to 1.</summary>
-    public static void Shine(ColorRect glow, float strength) => ((ShaderMaterial)glow.Material).SetShaderParameter("strength", strength);
 }
