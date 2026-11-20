@@ -7,8 +7,8 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// A cutscene played for this player, its drone's meeting (drone-meeting): a grim, muted grade over all the scene shows, eased in
-/// and out as the scene says, and the HUD and the bars hidden meanwhile, those that showed put back as it ends. One full-screen quad
-/// reading the screen under it; hidden with no cutscene.
+/// and out as the scene says, and everything read on the screen moved off it meanwhile (the HUD, the bars, the tablet's edge and its
+/// keys, the words by the pointer), put back as it ends. One full-screen quad reading the screen under it; hidden with no cutscene.
 /// </summary>
 public partial class CutsceneView : CanvasLayer
 {
@@ -37,7 +37,12 @@ public partial class CutsceneView : CanvasLayer
     private readonly Func<(double Grade, double Hud)> _read;
     private readonly ColorRect _screen = new();
     private readonly ShaderMaterial _material = new() { Shader = new Shader { Code = Shader } };
-    private readonly List<CanvasLayer> _hidden = [];
+    private readonly Dictionary<CanvasLayer, Vector2> _moved = [];
+    private double _sinceLook;
+
+    /// <summary>Where what is read goes while the scene plays: far off the screen; how often new layers are looked for, seconds.</summary>
+    private static readonly Vector2 Away = new(100000, 100000);
+    private const double LookEveryS = 0.25;
 
     /// <param name="read">This player's cutscene's grade, 0..1, and how much of its HUD shows, 0..1; (0, 1) with none.</param>
     public CutsceneView(Func<(double Grade, double Hud)> read)
@@ -57,30 +62,40 @@ public partial class CutsceneView : CanvasLayer
         _screen.Visible = grade > 0.002;
         if (_screen.Visible) _material.SetShaderParameter(Grading, (float)grade);
         // The HUD goes as the pick fades it out, and comes back as it fades in: at half.
-        bool hide = hud < 0.5;
-        if (hide == _hidden.Count > 0) return;
-        if (!hide)
+        if (hud < 0.5)
         {
-            foreach (var layer in _hidden)
-                if (IsInstanceValid(layer)) layer.Visible = true;
-            _hidden.Clear();
+            _sinceLook -= delta;
+            // Looked for again now and then: a panel made meanwhile goes too.
+            if (_sinceLook <= 0)
+            {
+                MoveAway(GetTree().Root);
+                _sinceLook = LookEveryS;
+            }
             return;
         }
-        HideIn(GetTree().Root);
-        // Nothing shown to hide still counts as hidden, so it is not looked for again each frame.
-        if (_hidden.Count == 0) _hidden.Add(this);
+        foreach (var (layer, offset) in _moved)
+            if (IsInstanceValid(layer)) layer.Offset = offset;
+        _moved.Clear();
+        _sinceLook = 0;
     }
 
-    private void HideIn(Node node)
+    /// <summary>
+    /// Moves every layer that is read off the screen, under <paramref name="node"/>: offset, not hidden, since many set their own
+    /// visibility each frame; what each was offset by is kept to put it back.
+    /// </summary>
+    private void MoveAway(Node node)
     {
         foreach (var child in node.GetChildren())
         {
-            if (child is CanvasLayer { Layer: ScreenLayers.Hud or ScreenLayers.Bars, Visible: true } layer)
+            if (child is CanvasLayer layer && layer != this && Read(layer.Layer) && !_moved.ContainsKey(layer))
             {
-                layer.Visible = false;
-                _hidden.Add(layer);
+                _moved[layer] = layer.Offset;
+                layer.Offset = Away;
             }
-            HideIn(child);
+            MoveAway(child);
         }
     }
+
+    /// <summary>Whether a canvas layer at <paramref name="layer"/> is read rather than the scene: the HUD, the bars, a window or the drone's frame, the tablet's edge and its keys, the words by the pointer.</summary>
+    private static bool Read(int layer) => layer is ScreenLayers.Hud or ScreenLayers.Bars or ScreenLayers.Handbook or ScreenLayers.TabletEdge or ScreenLayers.Tips;
 }

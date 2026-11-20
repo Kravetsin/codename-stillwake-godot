@@ -43,7 +43,7 @@ public class MeetingTests
         double lifts = FirstWhen(u => !Meeting.CoreLies(u));
         double crumbles = FirstWhen(u => MeetingFlakes.Crumbled(u) > 0);
         double vision = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Vision);
-        double bleeds = FirstWhen(u => Drops(s, u) > 0);
+        double bleeds = FirstWhen(u => Threads(s, u) > 0);
         double black = FirstWhen(u => MeetingScene.BlackOf(0, u) > 0);
         double eye = FirstWhen(u => Meeting.LensOn(u) > 0);
         double back = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Back);
@@ -85,7 +85,7 @@ public class MeetingTests
             for (int i = 0; i < MeetingScene.Drops; i++)
             {
                 Assert.InRange(s.Arrives(i), begins[i % 3], begins[i % 3] + 4);
-                Assert.Null(s.DropAt(i, s.Arrives(i) - Meeting.Times.Fly - Step, Palm(s, 0), s.CoreAt(s.Arrives(i), Idle(s), 0)));
+                Assert.Null(s.DropAt(i, s.Arrives(i) - Step, s.CoreAt(s.Arrives(i), Idle(s), 0)));
             }
         }
     }
@@ -98,8 +98,8 @@ public class MeetingTests
         {
             Assert.Equal(0, MeetingScene.BlackOf(i, Meeting.Times.BlackFrom));
             Assert.Equal(1, MeetingScene.BlackOf(i, Meeting.Times.BlackTo));
-            var red = s.DropAt(i, 11, Palm(s, 11), s.CoreAt(11, Idle(s), 0))!.Value;
-            var dark = s.DropAt(i, 14, Palm(s, 14), s.CoreAt(14, Idle(s), 0))!.Value;
+            var red = s.DropAt(i, 11.55, s.CoreAt(11.55, Idle(s), 0))!.Value;
+            var dark = s.DropAt(i, 14, s.CoreAt(14, Idle(s), 0))!.Value;
             Assert.Equal(Meeting.Blood, red.Fill);
             Assert.Equal(Meeting.Black, dark.Fill);
             Assert.Equal(0, red.Ember);
@@ -107,7 +107,7 @@ public class MeetingTests
         // Some keep an ember once black, none while red.
         int embers = 0;
         for (int i = 0; i < MeetingScene.Drops; i++)
-            if (s.DropAt(i, 15, Palm(s, 15), s.CoreAt(15, Idle(s), 0))!.Value.Ember > 0) embers++;
+            if (s.DropAt(i, 15, s.CoreAt(15, Idle(s), 0))!.Value.Ember > 0) embers++;
         Assert.InRange(embers, 1, MeetingScene.Drops / 2);
     }
 
@@ -228,16 +228,16 @@ public class MeetingTests
                 var (drinking, embers) = s.VoidGlow(u, core.R);
                 var (breathing, waking) = Meeting.SmallHalos(u, Meeting.Breath(u), core.R);
                 Finite(u, core.At.X, core.At.Y, core.R, core.Angle, hero.Feet.X, hero.Feet.Y, hero.Scale, hero.Turn, hero.Kneel, hero.Lean, hero.Reach,
-                    face.Cracks, face.CrackAlpha, face.Soak, face.Lens, face.Glow, drinking, embers, breathing, waking, Meeting.Hud(u), Meeting.Grade(u),
+                    face.Soak, face.Lens, face.Glow, drinking, embers, breathing, waking, Meeting.Hud(u), Meeting.Grade(u),
                     Meeting.Dizzy(u), Meeting.Halo(u, Meeting.Breath(u)), Meeting.LensShift(u), Meeting.DebrisIn(u), Meeting.Rings(u), Meeting.Spread(u));
                 for (int i = 0; i < MeetingScene.Drops; i++)
-                    if (s.DropAt(i, u, Palm(s, u), core) is { } d) Finite(u, d.At.X, d.At.Y, d.Tail.X, d.Tail.Y, d.Mid.X, d.Mid.Y, d.Radius, d.Ember, d.Lit, d.SheenAlpha);
-                for (int k = 0; k < Meeting.CrackCount; k++)
                 {
-                    int n = Meeting.CrackAt(k, face.Cracks, points);
-                    for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
-                    n = Meeting.CrackAt(k, face.Cracks, points, twig: true);
-                    for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
+                    if (s.DropAt(i, u, core) is { } d) Finite(u, d.At.X, d.At.Y, d.Tail.X, d.Tail.Y, d.Mid.X, d.Mid.Y, d.Radius, d.Ember, d.Lit, d.SheenAlpha);
+                    for (int strand = 0; strand < MeetingScene.Strands; strand++)
+                    {
+                        int n = s.ThreadAt(i, strand, u, Palm(s, u), core, points);
+                        for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
+                    }
                 }
                 for (int i = 0; i < Meeting.Plates; i++)
                 {
@@ -283,13 +283,65 @@ public class MeetingTests
         Assert.False(Poses.HoldsIn(Pose.Kneel));
     }
 
-    private static int Drops(MeetingScene s, double u)
+    [Fact]
+    public void EachThreadJoinsItsRingAlongTheOrbitWithNoCorner()
+    {
+        Span<Vec> points = stackalloc Vec[MeetingScene.ThreadPoints];
+        foreach (int side in (int[])[1, -1])
+        {
+            var s = Scene(side);
+            double sharpest = 0, worstJoin = 0;
+            for (int i = 0; i < MeetingScene.Drops; i++)
+            {
+                double arrives = s.Arrives(i);
+                var core = s.CoreAt(arrives, Idle(s), 0);
+                int n = s.ThreadAt(i, 0, arrives - 1e-6, Palm(s, arrives), core, points);
+                Assert.Equal(MeetingScene.ThreadPoints, n);
+                // The head lands on the drop, heading the way the drop then winds.
+                var drop = s.DropAt(i, arrives, core)!.Value.At;
+                var on = s.DropAt(i, arrives + 0.01, s.CoreAt(arrives + 0.01, Idle(s), 0))!.Value.At;
+                Assert.True(Apart(points[n - 1], drop) < 0.3, $"drop {i}'s thread ends {Apart(points[n - 1], drop):F2} px off it");
+                worstJoin = Math.Max(worstJoin, Turn(points[n - 2], points[n - 1], on));
+                for (double u = arrives - Meeting.Times.Fly; u < arrives + Meeting.Times.Fly; u += 0.05)
+                    for (int strand = 0; strand < MeetingScene.Strands; strand++)
+                    {
+                        n = s.ThreadAt(i, strand, u, Palm(s, u), s.CoreAt(u, Idle(s), 0), points);
+                        for (int j = 2; j < n; j++) sharpest = Math.Max(sharpest, Turn(points[j - 2], points[j - 1], points[j]));
+                    }
+            }
+            Assert.True(worstJoin < 20, $"a thread meets its ring {worstJoin:F1} degrees off the orbit");
+            Assert.True(sharpest < 30, $"a thread turns {sharpest:F1} degrees between two of its segments");
+        }
+    }
+
+    [Fact]
+    public void TheBloodFliesAsManyThreadsEachFinerThanTheArm()
+    {
+        Assert.True(MeetingScene.Thread < 0.5 * Rig.Arm.Width * Meeting.VoidScale, $"a thread {MeetingScene.Thread:F2} px wide");
+        var s = Scene();
+        int most = 0;
+        foreach (double u in Sweep(Meeting.Times.Ring0 - Meeting.Times.Fly, Meeting.Times.BlackFrom)) most = Math.Max(most, Threads(s, u));
+        Assert.True(most >= 30, $"at most {most} threads in the air at once");
+    }
+
+    private static int Threads(MeetingScene s, double u)
     {
         int n = 0;
+        Span<Vec> points = stackalloc Vec[MeetingScene.ThreadPoints];
         var core = s.CoreAt(u, Idle(s), 0);
         for (int i = 0; i < MeetingScene.Drops; i++)
-            if (s.DropAt(i, u, Palm(s, u), core) is not null) n++;
+            for (int strand = 0; strand < MeetingScene.Strands; strand++)
+                if (s.ThreadAt(i, strand, u, Palm(s, u), core, points) > 0) n++;
         return n;
+    }
+
+    private static double Apart(Vec a, Vec b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+
+    /// <summary>How many degrees the way from a to b turns to go on to c.</summary>
+    private static double Turn(Vec a, Vec b, Vec c)
+    {
+        double ux = b.X - a.X, uy = b.Y - a.Y, vx = c.X - b.X, vy = c.Y - b.Y;
+        return Math.Abs(Math.Atan2(ux * vy - uy * vx, ux * vx + uy * vy)) * 180 / Math.PI;
     }
 
     private static void Finite(double u, params double[] numbers)

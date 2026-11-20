@@ -1,6 +1,6 @@
 // The light drone (drone-swarm), the user's pick «Пепел в латах»: an iron core, its body a cloud of soot, four scrap plates riding
 // it as armour. The pick page's own pen and paint, its small level (makeAsh's build(0)), drawn straight (no finish), 4 hi-res pixels
-// a world pixel as there. drone_core: the core and its rust, one picture (it is round), CoreBox world px, its middle at the box's.
+// a world pixel as there. drone_core: the core, clean, one picture (it is round), CoreBox world px, its middle at the box's.
 // drone_plates: a row per plate, its face at Turns angles then its rusty back (the pick's flipY by -1) at as many, PlateBox world px
 // each, its middle at the box's; the game squashes one across its long axis as it turns over. The soot, where it all flies, the
 // lens, the field's threads and the glow are the game's (DroneSwarm.cs, LightDrone.cs), since they move or light. items/lightDrone:
@@ -19,6 +19,8 @@ const rot = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y
 // A polygon's edges sampled densely, so the pen keeps its corners sharp.
 function polyPts(v) { const p = []; for (let i = 0; i < v.length; i++) { const a = v[i], b = v[(i + 1) % v.length]; for (const t of [0, .2, .5, .8]) p.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); } return p; }
 
+// A clean shape: its points as given, the pen's pressure even all round, no gaps.
+function smooth(pts) { const s = mk(pts, 1, 0); s.w = s.w.map(() => 1); for (const g of s.segs) g[6] = 1; return s; }
 // A hand-drawn shape: jittered points and the pen's pressure per segment.
 function mk(pts, seed, jit = 0.6, closed = true) {
   const r = rng(seed);
@@ -121,12 +123,12 @@ const ash = (() => {
   }
   const d = rng(530), P = [];
   for (let i = 0; i < 170; i++) P.push({ ph: d() * 6.283, r1: d(), r2: d(), r3: d(), sz: .9 + d() * .9, hot: d() < .07, tn: d() });
-  return { sh, P, core: mk(ell(5.4, 5.4, 22), 111, .3), crust: blobAt(rng(120), -2, 2.5, 1.5) };
+  return { sh, P, core: smooth(ell(5.4, 5.4, 48)) };
 })();
 
+// The core is alien and clean (drone-meeting): no rust and no cracks, its outline one even line; only its plates are scrap.
 function core(c) {
   paint(c, ash.core, 0, DARK, .8, 2.6);
-  rust(c, ash.crust);
   ink(c, ash.core, 0, 1.7);
 }
 function plate(c, x, y, a, s, k) {
@@ -235,8 +237,8 @@ Subjects.drone = function () {
 
   // The giant core of the drone's meeting (drone-meeting), the vision page's (drone-vision.js gCore) at its giant size, 2x its 27 px a
   // unit, its pens' caps doubled with it: drawn by the game at any size, never stretched past this. Four pictures on one frame, the core's
-  // middle at the frame's: its body with the light from straight above and its ink (drone_giant, never turned); its pits, hairlines and
-  // rust (drone_giant_skin), its dull lens (drone_giant_lens) and that lens lit (drone_giant_lit), all three turned with the lens.
+  // middle at the frame's: its body with the light from straight above and its ink (drone_giant, never turned); its pits
+  // (drone_giant_skin), its dull lens (drone_giant_lens) and that lens lit (drone_giant_lit), all three turned with the lens.
   for (const [name, draw] of [['drone_giant', giantBody], ['drone_giant_skin', giantSkin], ['drone_giant_lens', giantLens], ['drone_giant_lit', giantLit]]) {
     const cv = document.createElement('canvas');
     [cv.width, cv.height] = [GiantBox, GiantBox];
@@ -252,8 +254,6 @@ const GiantR = 54, GiantBox = 672;
 const cap = (x, m) => x / Math.sqrt(1 + (x / m) * (x / m));
 const pen = (R, w, m) => cap(w * R, 2 * m) / R;
 const PITS = [[-2.9, -2.4, .34], [-1.1, -3.7, .2], [1.5, -3.2, .26], [-3.9, .2, .28], [-.9, 1.4, .17], [2.6, 2.9, .3], [.6, 4.1, .22], [-2.3, 3.5, .19], [-4.2, -1.5, .16], [3.6, -1.9, .18], [-1.7, -.6, .13], [-3.1, 2.1, .12]];
-const HAIR = [[[-3.2, -1.2], [-2.6, -.9], [-2.4, -.2]], [[1.1, -4.3], [1.5, -3.7], [2.2, -3.6]], [[-1.6, 2.2], [-1.0, 2.6], [-1.1, 3.1]], [[3.3, 1.2], [3.9, 1.6]], [[-4.6, 1.6], [-4.0, 2.2], [-4.1, 2.8]], [[-.4, -4.6], [-.1, -4.1]]];
-const RUSTE = (() => { const r = rng(121), o = []; for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283 + r() * .4, d = 1.5 + r() * .7; o.push(blobAt(r, -2 + Math.cos(a) * d, 2.5 + Math.sin(a) * d * .9, .14 + r() * .18)); } return o; })();
 // The giant's watercolour, in device px: pooling with a darker tide line, grain, a few fibres; it tiles.
 function paper(g) {
   const N = 320, cv = document.createElement('canvas'); cv.width = cv.height = N;
@@ -295,11 +295,7 @@ function giantSkin(c) {
     c.strokeStyle = 'rgba(205,210,218,.4)'; c.lineWidth = pen(R, .07, 1.3); c.beginPath(); c.ellipse(x, y + r * .08, r * .86, r * .68, 0, .4, 2.75); c.stroke();
     c.strokeStyle = 'rgba(10,10,12,.6)'; c.lineWidth = pen(R, .09, 1.6); c.beginPath(); c.ellipse(x, y, r * 1.05, r * .86, 0, 3.6, 5.9); c.stroke();
   }
-  c.strokeStyle = 'rgba(12,13,16,.7)'; c.lineWidth = pen(R, .08, 1.2);
-  for (const h of HAIR) { c.beginPath(); c.moveTo(h[0][0], h[0][1]); for (let i = 1; i < h.length; i++) c.lineTo(h[i][0], h[i][1]); c.stroke(); }
   c.restore();
-  rust(c, ash.crust);
-  c.fillStyle = 'rgba(96,52,30,.8)'; for (const b of RUSTE) { trace(c, b.s); c.fill(); }
 }
 function giantLens(c) {
   const R = GiantR * .82;

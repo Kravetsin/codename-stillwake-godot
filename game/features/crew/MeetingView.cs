@@ -21,8 +21,7 @@ public readonly record struct MeetingFrame(double U, double ClockS, double Swarm
 /// </summary>
 public partial class MeetingView : Node2D
 {
-    /// <summary>The pick's widths, its pixels: a crack's glow and line on the giant (their caps), an arc's glow and line, a landing's flash, a pit ember's halo.</summary>
-    private const double CrackGlow = 1.7, CrackGlowMost = 7, CrackLine = 0.55, CrackLineMost = 2.6;
+    /// <summary>The pick's widths, its pixels: an arc's glow and line, a landing's flash, a pit ember's halo.</summary>
     private const float ArcGlow = 3.4f, ArcLine = 0.9f, Flash = 9, PitEmber = 3;
     /// <summary>The giant's pictures' frame, its units (drone.js's <c>GiantBox</c> over <c>GiantR</c>); the soaked disc's radius, units.</summary>
     private const float GiantFrame = 672f / 54, SoakRadius = 5.1f;
@@ -202,14 +201,12 @@ public partial class MeetingView : Node2D
                 LightDrone.DrawPlate(_over, i, new Plate(0, 0, (float)plate.Turn, plate.Front, 0, 1, (float)plate.Flip), W(plate.At));
     }
 
-    /// <summary>The light in the wreck: the cracks lit as the core wakes, its halos, its lens's once back, its cloud's embers, the arcs and the landings.</summary>
+    /// <summary>The light in the wreck: the small core's ember halos as it wakes, its lens's once back, its cloud's embers, the arcs and the landings.</summary>
     private void DrawOverAdd()
     {
         if (!Meeting.DrawsDrone(_f.U) || InVision) return;
         _tri.Clear();
         double u = _f.U;
-        // Lying, its cracks light over its picture; lifted, on it.
-        Cracks(_core, light: true);
         if (SmallCore)
         {
             var at = W(_core.At);
@@ -352,7 +349,7 @@ public partial class MeetingView : Node2D
         _tri.Flush(_glow.GetCanvasItem());
     }
 
-    /// <summary>The giant core: its body lit from above, the blood soaked into it, its pits and rust and cracks turned with its lens, the lens and its light.</summary>
+    /// <summary>The giant core: its body lit from above, the blood soaked into it, its pits turned with its lens, the lens and its light.</summary>
     private void DrawGiant()
     {
         LoadGiant();
@@ -364,24 +361,15 @@ public partial class MeetingView : Node2D
         if (_face.Soak > 0.003) _giant.DrawCircle(Vector2.Zero, SoakRadius * unit, new Color(Rgb(Meeting.Soaked), (float)_face.Soak));
         _giant.DrawSetTransform(at, angle);
         _giant.DrawTextureRect(_skin!, box, false);
-        _giant.DrawSetTransform(Vector2.Zero, 0);
-        if (Big)
-        {
-            _tri.Clear();
-            Cracks(_core, light: false);
-            _tri.Flush(_giant.GetCanvasItem());
-        }
-        _giant.DrawSetTransform(at, angle);
         _giant.DrawTextureRect(_lens!, box, false);
         if (_face.Lens > 0.002) _giant.DrawTextureRect(_lensLit!, box, false, new Color(1, 1, 1, (float)_face.Lens));
         _giant.DrawSetTransform(Vector2.Zero, 0);
     }
 
-    /// <summary>The giant's light: its cracks while small (the light added), its lens's halo.</summary>
+    /// <summary>The giant's light: its lens's halo.</summary>
     private void DrawGiantLight()
     {
         _tri.Clear();
-        if (!Big) Cracks(_core, light: true);
         if (_face.Lens > 0.002)
         {
             double big = Meeting.Ss(_core.R, 2, 20);
@@ -391,18 +379,15 @@ public partial class MeetingView : Node2D
         _tri.Flush(_giantAdd.GetCanvasItem());
     }
 
-    /// <summary>Whether the core is big enough that its cracks are painted on its pale skin rather than added as light (the pick's <c>big &gt; .5</c>).</summary>
-    private bool Big => Meeting.Ss(_core.R, 3, 12) > 0.5;
-
     /// <summary>The blood's drops on one side of the core: a tail, a darker rim, the drop, its sheen and lit top; or, <paramref name="light"/>, their embers.</summary>
     private void Drops(Node2D on, bool front, bool light)
     {
         _tri.Clear();
-        var palm = V(_f.Palm);
+        if (front && !light) Threads();
         double glows = Meeting.Ss(_core.R, 3, 10);
         for (int i = 0; i < MeetingScene.Drops; i++)
         {
-            if (_scene.DropAt(i, _f.U, palm, _core) is not { } drop || drop.Front != front) continue;
+            if (_scene.DropAt(i, _f.U, _core) is not { } drop || drop.Front != front) continue;
             float r = (float)drop.Radius;
             Vector2 at = W(drop.At), tail = W(drop.Tail), mid = W(drop.Mid);
             if (light)
@@ -430,39 +415,23 @@ public partial class MeetingView : Node2D
         _tri.Flush(on.GetCanvasItem());
     }
 
+    /// <summary>The blood's threads in flight, before the core: each a fine strand, far thinner than the arm it leaves, with a bead at its head.</summary>
+    private void Threads()
+    {
+        var palm = V(_f.Palm);
+        var colour = Rgb(Meeting.Blood);
+        float width = (float)MeetingScene.Thread;
+        Span<Vec> points = stackalloc Vec[MeetingScene.ThreadPoints];
+        for (int i = 0; i < MeetingScene.Drops; i++)
+            for (int strand = 0; strand < MeetingScene.Strands; strand++)
+            {
+                int n = _scene.ThreadAt(i, strand, _f.U, palm, _core, points);
+                for (int j = 0; j + 1 < n; j++) Line(W(points[j]), W(points[j + 1]), width, new Color(colour, 0.9f));
+                if (n > 0) Disc(W(points[n - 1]), width * 0.8f, colour);
+            }
+    }
+
     // ---------- both ----------
-
-    /// <summary>
-    /// The cracks open over <paramref name="core"/>, turned with its lens: a wide glow, then a line; added as light while it is small
-    /// (<paramref name="light"/>, the line paled), painted on the giant's skin, a twig off each.
-    /// </summary>
-    private void Cracks(MeetingCore core, bool light)
-    {
-        if (_face.CrackAlpha <= 0.003 || _face.Cracks <= 0) return;
-        var colour = Rgb(_face.CrackColour);
-        var line = light ? colour.Lerp(Colors.White, 0.35f) : colour;
-        float alpha = (float)_face.CrackAlpha, glowW = (float)(Meeting.Pen(core.R, CrackGlow, CrackGlowMost) * Meeting.Px);
-        float lineW = (float)(Meeting.Pen(core.R, CrackLine, CrackLineMost) * Meeting.Px);
-        Span<Vec> points = stackalloc Vec[Meeting.CrackPoints];
-        for (int k = 0; k < Meeting.CrackCount; k++)
-        {
-            int n = Meeting.CrackAt(k, _face.Cracks, points);
-            for (int j = 0; j + 1 < n; j++) Line(OnCore(core, points[j]), OnCore(core, points[j + 1]), glowW, new Color(colour, 0.28f * alpha));
-            for (int j = 0; j + 1 < n; j++) Line(OnCore(core, points[j]), OnCore(core, points[j + 1]), lineW, new Color(line, 0.95f * alpha));
-            if (light) continue;
-            n = Meeting.CrackAt(k, _face.Cracks, points, twig: true);
-            for (int j = 0; j + 1 < n; j++) Line(OnCore(core, points[j]), OnCore(core, points[j + 1]), lineW * 0.7f, new Color(colour.Lerp(Colors.White, 0.2f), 0.75f * alpha));
-        }
-    }
-
-
-    /// <summary>A point <paramref name="p"/> in core units on <paramref name="core"/>, turned with its lens, in world pixels.</summary>
-    private static Vector2 OnCore(MeetingCore core, Vec p)
-    {
-        var q = Meeting.Rot(p.X, p.Y, core.Angle);
-        double unit = core.R * Meeting.Px;
-        return new Vector2((float)(core.At.X + q.X * unit), (float)(core.At.Y + q.Y * unit));
-    }
 
     /// <summary>A flickering ember arc: a wide glow, then a pale line.</summary>
     private void Arc(Vec from, Vec to, int seed, float alpha)

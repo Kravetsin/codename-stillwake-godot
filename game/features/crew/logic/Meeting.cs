@@ -29,8 +29,8 @@ public readonly record struct MeetingHero(Vec Feet, double Scale, double Turn, d
 public readonly record struct BloodDrop(Vec At, Vec Tail, Vec Mid, bool Front, double Radius, (double R, double G, double B) Fill,
     (double R, double G, double B) Rim, (double R, double G, double B) Sheen, double SheenAlpha, double Lit, double Ember);
 
-/// <summary>What the core's face shows: how far its cracks have spread and their colour and alpha, the blood soaked into it, its lens lit and its glow.</summary>
-public readonly record struct CoreFace(double Cracks, (double R, double G, double B) CrackColour, double CrackAlpha, double Soak, double Lens, double Glow);
+/// <summary>What the core's face shows: the blood soaked into it, its lens lit and its glow.</summary>
+public readonly record struct CoreFace(double Soak, double Lens, double Glow);
 
 /// <summary>
 /// The light drone's first meeting with its hero (drone-meeting) as the vision the user picked («Стена», pick page drone-vision.js): E
@@ -79,8 +79,8 @@ public static class Meeting
     public static readonly (double R, double G, double B) Blood = (138, 18, 22), BloodLight = (196, 64, 60), BloodDark = (44, 5, 8);
     public static readonly (double R, double G, double B) Black = (22, 21, 24), BlackLight = (120, 118, 126), BlackDark = (6, 6, 8);
 
-    /// <summary>The soaked crust's blood (<c>BL</c>), the cracks' first red, the drone's ember, the lens lit (<c>SIGN</c>), the red glow as it drinks.</summary>
-    public static readonly (double R, double G, double B) Soaked = (84, 10, 14), CrackRed = (160, 26, 22), Ember = (255, 138, 58);
+    /// <summary>The soaked blood (<c>BL</c>), the drone's ember, the lens lit (<c>SIGN</c>), the red glow as it drinks.</summary>
+    public static readonly (double R, double G, double B) Soaked = (84, 10, 14), Ember = (255, 138, 58);
     public static readonly (double R, double G, double B) Sign = (168, 238, 255), Drinking = (150, 20, 18);
 
     /// <summary>The cloud's soot, as the drone draws it (<c>LightDrone</c>): dark and light, each with its rim.</summary>
@@ -118,7 +118,7 @@ public static class Meeting
     /// <summary>How far into the last breath the screen swims at <paramref name="u"/>: while the blood is drawn and turns; never ink.</summary>
     public static double Dizzy(double u) => Level * Ss(u, Times.DizzyFrom, Times.DizzyFull) * (1 - Ss(u, Times.DizzyEase, Times.DizzyGone));
 
-    /// <summary>How lit the core's cracks are as it wakes in the wreck, 0..1, dimming as the wreck crumbles.</summary>
+    /// <summary>How brightly the core's ember halo wakes in the wreck, 0..1, dimming as the wreck crumbles.</summary>
     public static double Light(double u) => Ss(u, Times.LightFrom, Times.LightTo) * (1 - Ss(u, Times.DimFrom, Times.DimTo));
 
     /// <summary>How lit the lens is, 0..1: dead till the blood turns, open from then on.</summary>
@@ -183,36 +183,6 @@ public static class Meeting
         return (0.55 * breath * fade * Lerp(1, 0.07, big), 0.5 * Light(u) * Lerp(1, 0.1, big));
     }
 
-    /// <summary>The pick's pen at any size: a line <paramref name="w"/> units wide at <paramref name="r"/> px a unit, at most <paramref name="most"/> px, in px.</summary>
-    public static double Pen(double r, double w, double most)
-    {
-        double x = w * r;
-        return x / Math.Sqrt(1 + x / most * (x / most));
-    }
-
-    // ---------- the cracks ----------
-
-    private readonly record struct CrackSeed(Vec[] Points, Vec[] Twig, double At);
-
-    private static readonly CrackSeed[] Cracks = CracksOf();
-
-    /// <summary>How many cracks open over the core; how many points a crack's drawn part has at most.</summary>
-    public static int CrackCount => Cracks.Length;
-    public const int CrackPoints = 4;
-
-    /// <summary>
-    /// The part of crack <paramref name="k"/> open once the cracks have spread <paramref name="grown"/> (0..1), the nearer the palm's touch the
-    /// sooner, in core units, written into <paramref name="into"/>; how many points. <paramref name="twig"/> takes its twig's instead.
-    /// </summary>
-    public static int CrackAt(int k, double grown, Span<Vec> into, bool twig = false)
-    {
-        var crack = Cracks[k];
-        double q = C01((grown - crack.At) / 0.35);
-        if (q <= 0) return 0;
-        if (!twig) return Part(crack.Points, q, into);
-        return q > 0.6 ? Part(crack.Twig, C01((q - 0.6) / 0.4), into) : 0;
-    }
-
     // ---------- the heap ----------
 
     private static readonly HeapMote[] Heap = HeapOf();
@@ -274,44 +244,6 @@ public static class Meeting
 
     // ---------- the pick's seeds ----------
 
-    /// <summary>The pick's cracks over the crust, core units, seed 91, each opening the later the further from the palm's touch; their twigs, seed 93.</summary>
-    private static CrackSeed[] CracksOf()
-    {
-        var r = new Xorshift(91);
-        double contact = Math.Atan2(-6.7, 4);
-        var points = new Vec[9][];
-        var at = new double[9];
-        for (int i = 0; i < points.Length; i++)
-        {
-            double a = r.Next() * 6.283, d = 1 + r.Next() * 3.4, x = Math.Cos(a) * d, y = Math.Sin(a) * d, dir = r.Next() * 6.283;
-            points[i] = new Vec[CrackPoints];
-            points[i][0] = new Vec(x, y);
-            for (int j = 1; j < CrackPoints; j++)
-            {
-                dir += (r.Next() - 0.5) * 1.4;
-                double length = 0.8 + r.Next() * 1.2;
-                x += Math.Cos(dir) * length;
-                y += Math.Sin(dir) * length;
-                double m = Math.Sqrt(x * x + y * y);
-                if (m > 4.9) (x, y) = (x * 4.9 / m, y * 4.9 / m);
-                points[i][j] = new Vec(x, y);
-            }
-            double apart = Math.Abs(a - contact) % 6.283;
-            if (apart > Math.PI) apart = 6.283 - apart;
-            at[i] = 0.65 * apart / Math.PI;
-        }
-        var t = new Xorshift(93);
-        var cracks = new CrackSeed[points.Length];
-        for (int i = 0; i < cracks.Length; i++)
-        {
-            var p = points[i][2];
-            double o = Math.Atan2(p.Y, p.X) + (t.Next() - 0.5) * 2, length = 0.6 + t.Next() * 0.7;
-            Vec[] twig = [p, new(p.X + Math.Cos(o) * length * 0.5, p.Y + Math.Sin(o) * length * 0.5), new(p.X + Math.Cos(o + 0.4) * length, p.Y + Math.Sin(o + 0.4) * length)];
-            cracks[i] = new CrackSeed(points[i], twig, at[i]);
-        }
-        return cracks;
-    }
-
     /// <summary>The heap of cold soot the core lies in: drone.js's for <c>machine_alienCore</c>, seed 707, in its 64-px picture, here in world px.</summary>
     private static HeapMote[] HeapOf()
     {
@@ -328,27 +260,6 @@ public static class Meeting
         return heap;
     }
 
-    /// <summary>The pick's <c>sub</c>: the polyline <paramref name="points"/> from its start to <paramref name="share"/> of its length.</summary>
-    private static int Part(Vec[] points, double share, Span<Vec> into)
-    {
-        Span<double> lengths = stackalloc double[points.Length];
-        lengths[0] = 0;
-        for (int i = 1; i < points.Length; i++)
-            lengths[i] = lengths[i - 1] + Math.Sqrt((points[i].X - points[i - 1].X) * (points[i].X - points[i - 1].X) + (points[i].Y - points[i - 1].Y) * (points[i].Y - points[i - 1].Y));
-        double total = lengths[^1] > 0 ? lengths[^1] : 1, b = share * total;
-        if (b <= 0) return 0;
-        int n = 0;
-        into[n++] = points[0];
-        for (int i = 1; i < points.Length - 1; i++)
-            if (lengths[i] > 0 && lengths[i] < b) into[n++] = points[i];
-        int k = 1;
-        while (k < points.Length - 1 && lengths[k] < b) k++;
-        double seg = lengths[k] - lengths[k - 1];
-        into[n++] = Lerp(points[k - 1], points[k], Math.Clamp((b - lengths[k - 1]) / (seg > 0 ? seg : 1), 0, 1));
-        return n;
-    }
-
-    /// <summary>The pick kit's xorshift: the same draws from the same seed as its pages and drone.js.</summary>
     internal sealed class Xorshift(int seed)
     {
         private uint _s = unchecked((uint)((ulong)seed * 2654435761UL)) is var s && s != 0 ? s : 1;
@@ -572,14 +483,12 @@ public sealed class MeetingScene
         }
     }
 
-    /// <summary>The core's face at <paramref name="u"/>: lit cracks in the wreck as it wakes, dull in the void till it drinks, its eye open as the blood turns.</summary>
+    /// <summary>The core's face at <paramref name="u"/>: dull till it drinks, the blood soaked into it while red, its eye open as the blood turns.</summary>
     public CoreFace FaceOf(double u)
     {
-        var phase = Meeting.PhaseOf(u);
-        if (phase is MeetingPhase.Wreck or MeetingPhase.Into) return new CoreFace(1, Meeting.Ember, 0.9 * Meeting.Light(u), 0, 0, 0);
+        if (Meeting.PhaseOf(u) is MeetingPhase.Wreck or MeetingPhase.Into) return new CoreFace(0, 0, 0);
         double drink = Meeting.Ss(u, Meeting.Times.Ring0, _full[2]), black = Meeting.Blackened(u);
-        double fade = phase == MeetingPhase.Back ? Meeting.Ss(Meeting.Out(u), 0, 0.6) : phase == MeetingPhase.Home ? 1 : 0;
-        return new CoreFace(drink, Meeting.Mix(Meeting.CrackRed, Meeting.Ember, black), 0.5 * (1 - fade), 0.3 * drink * (1 - black), Meeting.LensOn(u), Meeting.LensGlow(u));
+        return new CoreFace(0.3 * drink * (1 - black), Meeting.LensOn(u), Meeting.LensGlow(u));
     }
 
     /// <summary>The glow round the core in the vision as it drinks, red, then ember as the blood turns; alphas.</summary>
@@ -595,41 +504,60 @@ public sealed class MeetingScene
 
     // ---------- the blood ----------
 
+    /// <summary>How many fine threads each drop leaves the palm as, one after another; how many points draw one.</summary>
+    public const int Strands = 3, ThreadPoints = 9;
+
+    /// <summary>A thread's width, world px: under a third of the floating hero's forearm, so the blood reads as a spray of strands.</summary>
+    public static readonly double Thread = Rig.Arm.Width * Meeting.VoidScale * 0.3;
+
+    /// <summary>A thread's length, a share of its flight; how far behind the one before each strand leaves; how far apart they fan mid-flight, world px.</summary>
+    private const double ThreadLength = 0.45, StrandLag = 0.12, StrandSpread = 1.4;
+
     /// <summary>
-    /// Drop <paramref name="i"/> at <paramref name="u"/> about the core <paramref name="core"/>: flying fast from the palm at
-    /// <paramref name="palm"/> to its ring, then winding on it; red, then black with embers, the cloud's own soot as the core shrinks
-    /// back. None before it leaves the palm, nor outside the vision and the way back.
+    /// Strand <paramref name="strand"/> of drop <paramref name="i"/>'s thread at <paramref name="u"/>, flying from the palm at
+    /// <paramref name="palm"/> to its ring about <paramref name="core"/>, written into <paramref name="into"/> from its tail to its head;
+    /// how many points, none while it is not in the air. It curves from the hand and meets the ring along the ring's own way round, so
+    /// it spirals in with no corner, the strands fanned apart between and together at both ends.
     /// </summary>
-    public BloodDrop? DropAt(int i, double u, Vec palm, MeetingCore core)
+    public int ThreadAt(int i, int strand, double u, Vec palm, MeetingCore core, Span<Vec> into)
+    {
+        if (Meeting.PhaseOf(u) is not (MeetingPhase.Vision or MeetingPhase.Back)) return 0;
+        double e = (u - (_arrives[i] - Meeting.Times.Fly)) / Meeting.Times.Fly - strand * StrandLag;
+        if (e <= 0 || e - ThreadLength >= 1) return 0;
+        var (p0, p1, p2, p3) = Flight(i, u, palm, core);
+        double from = Math.Max(0, e - ThreadLength), to = Math.Min(1, e);
+        double spread = (strand - (Strands - 1) / 2.0) * StrandSpread * (0.6 + 0.8 * DroneSwarm.SeedOf(i).R1);
+        for (int j = 0; j < ThreadPoints; j++)
+        {
+            double s = Meeting.Lerp(from, to, j / (double)(ThreadPoints - 1)), k = 1 - s;
+            double x = k * k * k * p0.X + 3 * k * k * s * p1.X + 3 * k * s * s * p2.X + s * s * s * p3.X;
+            double y = k * k * k * p0.Y + 3 * k * k * s * p1.Y + 3 * k * s * s * p2.Y + s * s * s * p3.Y;
+            double dx = 3 * k * k * (p1.X - p0.X) + 6 * k * s * (p2.X - p1.X) + 3 * s * s * (p3.X - p2.X);
+            double dy = 3 * k * k * (p1.Y - p0.Y) + 6 * k * s * (p2.Y - p1.Y) + 3 * s * s * (p3.Y - p2.Y);
+            double length = Math.Sqrt(dx * dx + dy * dy), sine = Math.Sin(Math.PI * s);
+            // Fanned by the square of a sine: apart mid-flight, together at both ends, leaving the curve's way unbent there.
+            double off = length > 0 ? spread * sine * sine / length : 0;
+            into[j] = new Vec(x - dy * off, y + dx * off);
+        }
+        return ThreadPoints;
+    }
+
+    /// <summary>
+    /// Drop <paramref name="i"/> on its ring at <paramref name="u"/> about the core <paramref name="core"/>, winding on it once its
+    /// threads have reached it, swelling as they feed it; red, then black with embers, the cloud's own soot as the core shrinks back.
+    /// None before it reaches its ring, nor outside the vision and the way back.
+    /// </summary>
+    public BloodDrop? DropAt(int i, double u, MeetingCore core)
     {
         var phase = Meeting.PhaseOf(u);
-        double t0 = _arrives[i] - Meeting.Times.Fly;
-        if (phase is not (MeetingPhase.Vision or MeetingPhase.Back) || u < t0) return null;
+        double arrives = _arrives[i];
+        if (phase is not (MeetingPhase.Vision or MeetingPhase.Back) || u < arrives) return null;
         var seed = DroneSwarm.SeedOf(i);
         int o = i % 3, dir = o % 2 == 1 ? -1 : 1;
         double size = 1.4 + 1.2 * (seed.Size - DroneSwarm.Tune.MoteSide) / DroneSwarm.Tune.MoteSideMore;
-        double r = size * Math.Max(0.5, 1.6 * Math.Sqrt(core.R / Meeting.VoidR));
-        double rx = 10 + o * 2.2 + (seed.R1 - 0.5) * 1.6 * Meeting.Spread(u), k = Meeting.Rings(u), scale = core.R * Meeting.Px;
-        Vec At(double a)
-        {
-            var q = RingPoint(o, a, rx, k);
-            return new Vec(core.At.X + q.X * scale, core.At.Y + q.Y * scale);
-        }
-        Vec head, tail, mid;
-        bool front;
-        if (u < _arrives[i])
-        {
-            double e = (u - t0) / Meeting.Times.Fly;
-            var end = At(_entry[o]);
-            var bend = new Vec(Meeting.Lerp(palm.X, end.X, 0.45), Math.Min(palm.Y, end.Y) - 40 * (0.5 + seed.R1) * Meeting.Px);
-            (head, tail, mid, front) = (Meeting.Bez(palm, bend, end, e), Meeting.Bez(palm, bend, end, Math.Max(0, e - 0.3)), Meeting.Bez(palm, bend, end, Math.Max(0, e - 0.15)), true);
-            r *= Meeting.Lerp(0.55, 1, e);
-        }
-        else
-        {
-            double th = seed.Phase + dir * Phi(o, u), d = Math.Clamp(0.06 * Pace(o, u), 0.08, 0.3);
-            (head, tail, mid, front) = (At(th), At(th - dir * d), At(th - dir * d * 0.5), Math.Sin(th) >= 0);
-        }
+        double r = size * Math.Max(0.5, 1.6 * Math.Sqrt(core.R / Meeting.VoidR)) * Meeting.Lerp(0.3, 1, Meeting.Ss(u, arrives, arrives + 0.35));
+        double th = seed.Phase + dir * Phi(o, u), d = Math.Clamp(0.06 * Pace(o, u), 0.08, 0.3);
+        var (head, tail, mid) = (RingAt(i, th, u, core), RingAt(i, th - dir * d, u, core), RingAt(i, th - dir * d * 0.5, u, core));
         double black = BlackOf(i, u), soot = phase == MeetingPhase.Back ? Meeting.Ss(core.R, 4, 1.05) : 0;
         var (sootFill, sootRim) = Meeting.Soot(seed.Dark);
         // Back in the wreck it is a mote of the cloud, its side the drone's.
@@ -637,9 +565,34 @@ public sealed class MeetingScene
         double heat = 0.45 + 0.4 * Math.Sin((u + Shift) * 11 + seed.Phase * 7);
         bool smoulders = seed.Hot || seed.R1 > 0.86;
         double keep = seed.Hot ? 1 : smoulders ? 1 - (phase == MeetingPhase.Back ? Meeting.Ss(Meeting.Out(u), 0.2, 0.8) : 0) : 0;
-        return new BloodDrop(head, tail, mid, front, r * Meeting.Px,
+        return new BloodDrop(head, tail, mid, Math.Sin(th) >= 0, r * Meeting.Px,
             Meeting.Mix(Meeting.Mix(Meeting.Blood, Meeting.Black, black), sootFill, soot), Meeting.Mix(Meeting.Mix(Meeting.BloodDark, Meeting.BlackDark, black), sootRim, soot),
             Meeting.Mix(Meeting.BloodLight, Meeting.BlackLight, black), 0.8 * (1 - soot), 0.32 * black * (1 - soot), black * keep * heat);
+    }
+
+    /// <summary>Where drop <paramref name="i"/> is, <paramref name="a"/> round its ring about <paramref name="core"/> at <paramref name="u"/>, world px.</summary>
+    private Vec RingAt(int i, double a, double u, MeetingCore core)
+    {
+        int o = i % 3;
+        double rx = 10 + o * 2.2 + (DroneSwarm.SeedOf(i).R1 - 0.5) * 1.6 * Meeting.Spread(u), scale = core.R * Meeting.Px;
+        var q = RingPoint(o, a, rx, Meeting.Rings(u));
+        return new Vec(core.At.X + q.X * scale, core.At.Y + q.Y * scale);
+    }
+
+    /// <summary>
+    /// Drop <paramref name="i"/>'s flight, a cubic curve: from the palm, bowed up or down, to where it meets its ring, coming in along
+    /// the ring's way round there, so the thread turns into the orbit with no corner.
+    /// </summary>
+    private (Vec, Vec, Vec, Vec) Flight(int i, double u, Vec palm, MeetingCore core)
+    {
+        int o = i % 3, dir = o % 2 == 1 ? -1 : 1;
+        double a = _entry[o], rx = 10 + o * 2.2;
+        var end = RingAt(i, a, u, core);
+        var way = Meeting.Rot(-Math.Sin(a) * rx * dir, Math.Cos(a) * rx * 0.3 * dir, -0.3 + o * 1.05);
+        double wayLength = Math.Sqrt(way.X * way.X + way.Y * way.Y), apart = Math.Sqrt((end.X - palm.X) * (end.X - palm.X) + (end.Y - palm.Y) * (end.Y - palm.Y));
+        double reach = 0.4 * apart / wayLength, lift = 40 * (0.5 + DroneSwarm.SeedOf(i).R1) * Meeting.Px;
+        var bend = new Vec(Meeting.Lerp(palm.X, end.X, 0.45), way.Y >= 0 ? Math.Min(palm.Y, end.Y) - lift : Math.Max(palm.Y, end.Y) + lift);
+        return (palm, bend, new Vec(end.X - way.X * reach, end.Y - way.Y * reach), end);
     }
 
     /// <summary>A point of ring <paramref name="o"/>, <paramref name="a"/> round it, <paramref name="rx"/> units wide, at <paramref name="k"/> of its size: the cloud's orbit.</summary>
