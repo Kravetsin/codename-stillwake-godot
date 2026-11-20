@@ -687,7 +687,7 @@ public class DesyncTests(ITestOutputHelper output)
                 var knowledge = game.Module<Sim.Knowledge.KnowledgeModule>(first.World);
                 earned = Math.Max(earned, knowledge.Credits);
                 // A block bought is on its way first (2026-11-08-mafia-deliveries): queued in the welcome too.
-                bought = Math.Max(bought, blocks.Count(b => knowledge.Granted(b) || knowledge.InFlight(0, b)));
+                bought = Math.Max(bought, blocks.Count(b => knowledge.Granted(b) || knowledge.InFlight(b)));
                 if (tick <= 503 || tick % 40 != 25) return;
                 foreach (string block in blocks) first.Send(new Sim.Research.BuyBlock(block));
             });

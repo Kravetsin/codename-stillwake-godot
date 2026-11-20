@@ -34,7 +34,7 @@ public partial class TabletKey : Node
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="surfaces">The world played, all its surfaces; null with none.</param>
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
-    /// <param name="me">The peer playing here: whose board and purchases are read (own-knowledge).</param>
+    /// <param name="me">The peer playing here: whose board is read (own-knowledge), and whose creative mode marks the market done.</param>
     /// <param name="keep">What is kept of the board, shared with the page.</param>
     /// <param name="flash">The flash along the edge, told what is new.</param>
     /// <param name="press">Takes the tablet out on the board or puts it away.</param>
@@ -79,7 +79,7 @@ public partial class TabletKey : Node
         _keep.Seen.ReadOrders(Orders.Count(n => m.Research.Done(me, n)));
         Credits = m.Research.Credits;
         MarketShows = Credits > 0 || Market.Any(n => m.Research.Done(me, n));
-        Affordable = Market.Any(n => m.Research.BuyProblem(me, n) == null);
+        Affordable = Market.Any(n => m.Research.BuyProblem(n) == null);
         _unread = _keep.Seen.UnreadBatches;
         _flash.Read(_keep.Seen, _unread, _keep.Seen.Open);
     }

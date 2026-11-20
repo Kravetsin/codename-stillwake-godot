@@ -61,16 +61,14 @@ public class OwnKnowledgeTests
     }
 
     [Fact]
-    public void ABagUpgradeOpensItsBuyersRowsAndATradeSlotTheStationForAll()
+    public void ABagUpgradeTheCrewBoughtOpensEveryonesRows()
     {
         var w = Two();
-        w.M.Knowledge.Grant(0, "bag1");
-        w.M.Knowledge.Grant(1, "tradeSlots1");
         var first = new Items.Place(Inventory.Start);
-        Assert.True(w.M.Items.SlotOpen(0, first));
         Assert.False(w.M.Items.SlotOpen(1, first));
-        Assert.True(w.M.Knowledge.KnowsAny("tradeSlots1"));
-        Assert.False(w.M.Knowledge.Knows(0, "tradeSlots1"));
+        w.M.Knowledge.Grant("bag1");
+        Assert.True(w.M.Items.SlotOpen(0, first));
+        Assert.True(w.M.Items.SlotOpen(1, first));
     }
 
     [Fact]

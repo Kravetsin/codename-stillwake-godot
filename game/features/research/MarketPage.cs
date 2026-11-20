@@ -156,7 +156,7 @@ public sealed class MarketPage : ITabletPage
         if (_tiles.Count == 0) Build();
         _met = _orders.Count(n => research.Done(_me(), n));
         if (_out) _reveal.Play(_seen().SeeOrders(_met), _met);
-        foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, n => research.Done(_me(), n), n => research.Reached(_me(), n), n => research.BuyProblem(_me(), n));
+        foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, n => research.Done(_me(), n), n => research.Reached(n), n => research.BuyProblem(n));
         _standing = research.Standing();
         _order = _standing.Next;
         string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|' + _met + '|' + _station + '|'
@@ -245,16 +245,16 @@ public sealed class MarketPage : ITabletPage
     {
         if (_research is not { } research) return;
         _shownAll = _tiles;
-        _inView = [.. MarketGoods.Sorted(_goods, n => research.Reached(_me(), n), _shelf).Select(g => _tiles.First(t => t.Good == g))];
+        _inView = [.. MarketGoods.Sorted(_goods, n => research.Reached(n), _shelf).Select(g => _tiles.First(t => t.Good == g))];
         int fresh = 0;
         foreach (var tile in _inView)
         {
-            tile.Fresh = MarketGoods.FreshOf(tile.Good, n => research.Reached(_me(), n), _reveal.Plays);
+            tile.Fresh = MarketGoods.FreshOf(tile.Good, n => research.Reached(n), _reveal.Plays);
             if (tile.Fresh != MarketFresh.None) fresh++;
         }
         int index = 0;
         foreach (var tile in _inView.Where(t => t.Fresh != MarketFresh.None))
-            tile.Opening = (tile.Good.Steps.Where(s => research.Reached(_me(), s) && _reveal.Plays(s.Ring)).Max(s => s.Ring), index++, fresh);
+            tile.Opening = (tile.Good.Steps.Where(s => research.Reached(s) && _reveal.Plays(s.Ring)).Max(s => s.Ring), index++, fresh);
         LayTiles();
         foreach (var tile in _tiles)
         {
@@ -413,7 +413,7 @@ public sealed class MarketPage : ITabletPage
         word.Text = state.Tile switch
         {
             MarketTile.Affordable => T("research.buy"),
-            MarketTile.Dear => T(research.BuyProblem(_me(), state.Next!) ?? "research.noCredits"),
+            MarketTile.Dear => T(research.BuyProblem(state.Next!) ?? "research.noCredits"),
             MarketTile.Locked => T("research.reputation"),
             _ => T(tile.Ladder ? "research.market.boughtOut" : "research.bought"),
         };
@@ -430,7 +430,7 @@ public sealed class MarketPage : ITabletPage
     private void Act()
     {
         if (_research is not { } research || Current?.State.Next is not { } next) return;
-        if (research.BuyProblem(_me(), next) == null) _send(new BuyBlock(next.Id));
+        if (research.BuyProblem(next) == null) _send(new BuyBlock(next.Id));
         _readSoon();
     }
 
@@ -454,7 +454,7 @@ public sealed class MarketPage : ITabletPage
         if (_strip.PlacementOf(id) is not { } placement) return new Tip(_strip.NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
         if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));
-        if (Content.Research.Node(id) is { } node && _research?.BuyProblem(_me(), node) is { } why && why != "research.bought") lines.Add(new TipLine(T(why), Tone.Unknown));
+        if (Content.Research.Node(id) is { } node && _research?.BuyProblem(node) is { } why && why != "research.bought") lines.Add(new TipLine(T(why), Tone.Unknown));
         return new Tip(_strip.NameOf(id), lines) { Picture = placement };
     }
 
@@ -605,7 +605,7 @@ public sealed class MarketPage : ITabletPage
         if (tile.Ladder)
         {
             float x = WordsAt + Caps(card, T("research.market.boughtOf", ("n", tile.State.Bought), ("m", tile.State.Opened)), WordsAt, 88, Dim) + 14;
-            foreach (var step in tile.Good.Steps.Where(s => research.Reached(_me(), s)))
+            foreach (var step in tile.Good.Steps.Where(s => research.Reached(s)))
             {
                 bool had = research.Done(_me(), step);
                 string price = Prices.Of(step).ToString();

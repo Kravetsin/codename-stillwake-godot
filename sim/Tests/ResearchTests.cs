@@ -77,7 +77,7 @@ public class ResearchTests
         Assert.False(w.M.Research.Knows(0, "heavyHelmet"));
         w.Do(new BuyBlock("heavyHelmet")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Knowledge.InFlight(0, "heavyHelmet"));
+        Assert.True(w.M.Knowledge.InFlight("heavyHelmet"));
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
@@ -92,7 +92,7 @@ public class ResearchTests
         Assert.Equal(1, Node(scanner).Ring);
         Assert.Equal(1500, Prices.Of(Node(scanner)));
         var w = SetUp(credits: 100_000);
-        Assert.Equal("research.reputation", w.M.Research.BuyProblem(0, Node(scanner)));
+        Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node(scanner)));
         Mafia.Reach(w, Node(scanner).Ring);
         w.Do(new BuyBlock(scanner)).Run().Do(new BuyBlock(scanner)).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
@@ -112,7 +112,7 @@ public class ResearchTests
         string lamp = LightDrone.LampMode;
         Assert.Equal(0, Node(lamp).Ring);
         var w = SetUp(credits: 100_000);
-        Assert.Null(w.M.Research.BuyProblem(0, Node(lamp)));
+        Assert.Null(w.M.Research.BuyProblem(Node(lamp)));
         w.Do(new BuyBlock(lamp)).Run().Do(new BuyBlock(lamp)).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
         Assert.Equal([lamp], w.M.Knowledge.Deliveries.Select(d => d.Good));
@@ -156,7 +156,7 @@ public class ResearchTests
         w.M.Knowledge.Earn(100_000);
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Knowledge.InFlight(0, "bag1"));
+        Assert.True(w.M.Knowledge.InFlight("bag1"));
     }
 
     /// <summary>What a map grants may lie behind what is not done: bought, not locked, and nothing is charged for it.</summary>

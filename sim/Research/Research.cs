@@ -45,17 +45,17 @@ public interface IResearchQueries
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
     /// <summary>
-    /// Whether <paramref name="node"/> is done for <paramref name="peer"/>: a block they bought, all it opens known or on its way
+    /// Whether <paramref name="node"/> is done for <paramref name="peer"/>: a block the crew bought, all it opens known or on its way
     /// (2026-11-08-mafia-deliveries); a gate the crew's level reached; every one in their creative mode. Never gear or the confiscated container.
     /// </summary>
     bool Done(int peer, TechNode node);
-    /// <summary>Whether all <paramref name="node"/> needs are bought by <paramref name="peer"/>, creative mode aside.</summary>
-    bool Reached(int peer, TechNode node);
+    /// <summary>Whether all <paramref name="node"/> needs are bought by the crew, creative mode aside.</summary>
+    bool Reached(TechNode node);
     /// <summary>Where the mafia's reputation stands: the next level, what it wants and how far it is.</summary>
     Standing Standing();
 
-    /// <summary>Why <paramref name="peer"/> cannot buy block <paramref name="block"/> now; null when they can.</summary>
-    string? BuyProblem(int peer, TechNode block);
+    /// <summary>Why block <paramref name="block"/> cannot be bought now; null when it can.</summary>
+    string? BuyProblem(TechNode block);
 }
 
 /// <summary>
@@ -202,19 +202,19 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public int Credits => _knowledge.Credits;
 
-    public bool Done(int peer, TechNode node) => _items.Creative(peer) || Bought(peer, node);
+    public bool Done(int peer, TechNode node) => _items.Creative(peer) || Bought(node);
 
-    /// <summary>Done for <paramref name="peer"/>, creative mode aside: a gate is the crew's level, a block the peer's own purchase.</summary>
-    private bool Bought(int peer, TechNode node) =>
-        node.Gate ? node.Ring <= _knowledge.Level : !Repeats(node.Id) && (_knowledge.Knows(peer, node.Id) || _knowledge.InFlight(peer, node.Id));
+    /// <summary>Done, creative mode aside: a gate is the crew's level, a block the crew's purchase, known to everyone or on its way.</summary>
+    private bool Bought(TechNode node) =>
+        node.Gate ? node.Ring <= _knowledge.Level : !Repeats(node.Id) && (_knowledge.Granted(node.Id) || _knowledge.InFlight(node.Id));
 
     /// <summary>Whether <paramref name="good"/> is sold again and again: gear, one to a hero, and the confiscated container.</summary>
     public static bool Repeats(string good) => good == Content.Research.Confiscated || Content.Research.GearSold.Contains(good, StringComparer.Ordinal);
 
-    public bool Reached(int peer, TechNode node)
+    public bool Reached(TechNode node)
     {
         foreach (string need in node.Needs)
-            if (!Bought(peer, Content.Research.Node(need)!)) return false;
+            if (!Bought(Content.Research.Node(need)!)) return false;
         return true;
     }
 
@@ -225,24 +225,24 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return new Standing(next, wanted, Points(next), Target(next));
     }
 
-    public string? BuyProblem(int peer, TechNode block)
+    public string? BuyProblem(TechNode block)
     {
-        if (Bought(peer, block)) return "research.bought";
+        if (Bought(block)) return "research.bought";
         if (block.Gate) return "research.locked";
-        if (!Reached(peer, block)) return "research.reputation";
+        if (!Reached(block)) return "research.reputation";
         return Prices.Of(block) > _knowledge.Credits ? "research.noCredits" : null;
     }
 
     // Commands.
 
-    private string? BuyProblem(BuyBlock c) => Content.Research.Node(c.Block) is { } block ? BuyProblem(c.From, block) : "research.locked";
+    private string? BuyProblem(BuyBlock c) => Content.Research.Node(c.Block) is { } block ? BuyProblem(block) : "research.locked";
 
     private void Apply(BuyBlock c)
     {
         var block = Content.Research.Node(c.Block)!;
         _knowledgeOps.Spend(Prices.Of(block));
-        // Granted only when its piece is caught or broken (2026-11-08-mafia-deliveries), and to its buyer alone, from the ship's credits (own-knowledge).
-        _knowledgeOps.Deliver(block.Id, c.From);
+        // Granted to the crew only when its piece is caught or broken (2026-11-08-mafia-deliveries).
+        _knowledgeOps.Deliver(block.Id);
     }
 
     /// <summary>Buys by hand, refused ones too, at any node.</summary>

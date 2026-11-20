@@ -16,13 +16,10 @@ public sealed record Reputation(int Level, IReadOnlyList<Tally> Base, long BaseW
     public static readonly Reputation None = new(0, [], 0);
 }
 
-/// <summary>
-/// A purchase from the mafia on its way (2026-11-08-mafia-deliveries): <c>Good</c> the market node it is for, <c>Id</c> its own, never reused;
-/// <c>For</c> the peer who bought it (own-knowledge), null for one bought before purchases were a buyer's: known to every player.
-/// </summary>
-public sealed record Delivery(int Id, string Good, int? For = null);
+/// <summary>A purchase from the mafia on its way (2026-11-08-mafia-deliveries): <c>Good</c> the market node it is for, <c>Id</c> its own, never reused.</summary>
+public sealed record Delivery(int Id, string Good);
 
-/// <summary>What one player has learned for themself (own-knowledge): the items held, in the order first held; what is known past the start, sorted ordinally.</summary>
+/// <summary>What one player has learned for themself (own-knowledge): the items held, in the order first held; what they understood from them, sorted ordinally.</summary>
 public sealed class Learner
 {
     [JsonInclude] internal int Peer { get; set; }
@@ -35,7 +32,7 @@ public sealed class Learner
 /// <summary>The knowledge's slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class KnowledgeState
 {
-    /// <summary>The blueprints, crafts and upgrades every player knows: the map's start, sorted ordinally (own-knowledge).</summary>
+    /// <summary>The blueprints, crafts and upgrades every player knows: the map's start and what the crew bought, sorted ordinally (own-knowledge).</summary>
     [JsonInclude] internal List<string> Granted { get; set; } = [];
     /// <summary>What each player has learned for themself, by peer.</summary>
     [JsonIgnore] internal List<Learner> Learners { get; set; } = [];
@@ -72,9 +69,9 @@ public sealed class KnowledgeState
 /// <summary>What research and trade read of what the crew knows and has earned.</summary>
 public interface IKnowledgeQueries
 {
-    /// <summary>Whether every player knows the blueprint, craft or upgrade <paramref name="id"/>: the map's start.</summary>
+    /// <summary>Whether every player knows the blueprint, craft or upgrade <paramref name="id"/>: the map's start, or bought by the crew.</summary>
     bool Granted(string id);
-    /// <summary>Whether <paramref name="peer"/> knows <paramref name="id"/>: the start's, or learned or bought by them.</summary>
+    /// <summary>Whether <paramref name="peer"/> knows <paramref name="id"/>: everyone's, or understood from what they held.</summary>
     bool Knows(int peer, string id);
     /// <summary>Whether any player knows <paramref name="id"/>: what the ship's machines and the world's events go by.</summary>
     bool KnowsAny(string id);
@@ -106,8 +103,8 @@ public interface IKnowledgeQueries
     long BaseWorth { get; }
     /// <summary>The purchases on their way, in the order bought.</summary>
     IReadOnlyList<Delivery> Deliveries { get; }
-    /// <summary>Whether a purchase of <paramref name="good"/> for <paramref name="peer"/> is on its way.</summary>
-    bool InFlight(int peer, string good);
+    /// <summary>Whether a purchase of <paramref name="good"/> is on its way.</summary>
+    bool InFlight(string good);
     /// <summary>How many deliveries drifted past the ship since this world was loaded: never saved, for the marker that turns red.</summary>
     int Lost { get; }
     /// <summary>Moves whenever something is obtained or granted: never saved, for a reader to notice a change by.</summary>
@@ -121,9 +118,9 @@ public interface IKnowledgeOps
     void Earn(int credits);
     /// <summary>Takes <paramref name="credits"/> from the ship's; the caller checks they are there.</summary>
     void Spend(int credits);
-    /// <summary>Every player knows <paramref name="id"/>: kept once, in order. The start's, a test's or a dev run's.</summary>
+    /// <summary>Every player knows <paramref name="id"/>: kept once, in order. The start's, a purchase's, a test's or a dev run's.</summary>
     void Grant(string id);
-    /// <summary><paramref name="peer"/> knows <paramref name="id"/>, learned or bought: kept once, in order.</summary>
+    /// <summary><paramref name="peer"/> has understood <paramref name="id"/>: kept once, in order.</summary>
     void Grant(int peer, string id);
     /// <summary><paramref name="peer"/> holds <paramref name="item"/>: found once, in the order first held.</summary>
     void Find(int peer, string item);
@@ -136,8 +133,8 @@ public interface IKnowledgeOps
     /// level after the current one, so each surface's research may call it on a tick and the world rises once.
     /// </summary>
     void Open(int level, IReadOnlyList<Tally> start, long startWorth);
-    /// <summary>A purchase of <paramref name="good"/> by <paramref name="peer"/> is on its way: queued under a new id.</summary>
-    void Deliver(string good, int peer);
+    /// <summary>A purchase of <paramref name="good"/> is on its way: queued under a new id.</summary>
+    void Deliver(string good);
     /// <summary>Delivery <paramref name="id"/> is caught or broken, or <paramref name="lost"/> past the ship; an id not on its way is let be.</summary>
     void Delivered(int id, bool lost = false);
 }
@@ -254,10 +251,10 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
 
     public IReadOnlyList<Delivery> Deliveries => State.Deliveries;
 
-    public bool InFlight(int peer, string good)
+    public bool InFlight(string good)
     {
         foreach (var d in State.Deliveries)
-            if (d.Good == good && (d.For == null || d.For == peer)) return true;
+            if (d.Good == good) return true;
         return false;
     }
 
@@ -329,9 +326,9 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
         sold.Insert(at, new Tally(item, count));
     }
 
-    public void Deliver(string good, int peer)
+    public void Deliver(string good)
     {
-        State.Deliveries.Add(new Delivery(State.NextDelivery++, good, peer));
+        State.Deliveries.Add(new Delivery(State.NextDelivery++, good));
         Version++;
     }
 

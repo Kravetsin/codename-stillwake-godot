@@ -92,7 +92,7 @@ public class DeliveriesTests
         var w = Buy(World([.. Rows.Select(r => r.Replace('$', '.'))]), "bag1");
         w.Run(100);
         Assert.Empty(Sent(w));
-        Assert.True(w.M.Knowledge.InFlight(0, "bag1"));
+        Assert.True(w.M.Knowledge.InFlight("bag1"));
     }
 
     [Fact]
@@ -175,9 +175,9 @@ public class DeliveriesTests
         Assert.Empty(w.M.Knowledge.Deliveries);
     }
 
-    /// <summary>The scanner is the light drone's mode (light-drone): its crate broken by anyone, its buyer alone knows it (own-knowledge), no item falls, and it is not sold to them again.</summary>
+    /// <summary>The scanner is the light drone's mode (light-drone): its crate broken by anyone, the crew knows it, no item falls, and it is not sold again.</summary>
     [Fact]
-    public void TheScannersCrateBrokenByAFriendGrantsTheModeToItsBuyerOnce()
+    public void TheScannersCrateBrokenGrantsTheModeCrewWideOnce()
     {
         string scanner = Content.LightDrone.ScannerMode;
         var w = World();
@@ -186,9 +186,9 @@ public class DeliveriesTests
         Break(w, Sent(w).Single(), peer: 2);
         Assert.Empty(w.Refusals);
         Assert.True(w.M.Research.Knows(0, scanner));
-        Assert.False(w.M.Research.Knows(2, scanner));
+        Assert.True(w.M.Research.Knows(2, scanner));
         Assert.Empty(w.M.Items.Floor);
-        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 0, Item: "scanner", Count: 1 });
+        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 2, Item: "scanner", Count: 1 });
         Buy(w, scanner);
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
     }
@@ -238,7 +238,7 @@ public class DeliveriesTests
         Assert.Empty(w.M.Knowledge.Deliveries);
         Assert.Equal(1, w.M.Knowledge.Lost);
         Assert.False(w.M.Research.Knows(0, "bag1"));
-        Assert.Null(w.M.Research.BuyProblem(0, Tree.Node("bag1")!));
+        Assert.Null(w.M.Research.BuyProblem(Tree.Node("bag1")!));
     }
 
     [Fact]
