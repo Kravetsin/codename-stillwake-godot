@@ -409,3 +409,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hud-dials](2026-11-18-hud-dials.md) | The vitals as a row of dials over a long air bar | accepted |  |
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
 | [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |
+| [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |

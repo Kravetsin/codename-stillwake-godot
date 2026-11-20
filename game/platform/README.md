@@ -17,6 +17,7 @@ disk, the logs, updates.
 | `logic/Saves.cs` | save files in a folder, one a slot | no |
 | `logic/Roster.cs` | who is who in a world: each player's key and seat | no |
 | `logic/Updates.cs` | which build this is, and whether a newer one is out | no |
+| `logic/UserFolder.cs` | the worlds and settings kept under the old name, Stillwake, moved into Castoff's folder once (`Main`'s static constructor) | no |
 | `logic/GcPace.cs` | when the game collects its youngest garbage itself | no |
 | `logic/Owned.cs` | which skins this player owns: free, debug, DLC | no |
 | `logic/Platform.En.cs` | its player text | no |
