@@ -24,7 +24,7 @@ public static class Testbed
     /// Every item a hero can carry but the kit it comes aboard with (0107) and suits' helmets and bodies, free at the pod: wreckage is an item only
     /// to drift and burst, never held (0041); the mafia's parcel too, caught for what it brings (2026-11-08-mafia-deliveries).
     /// </summary>
-    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Debris.DeliveryKinds.Contains(i.Id) && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Equip != Suit.Slot && i.Equip != Helmet.Slot);
+    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Debris.DeliveryKinds.Contains(i.Id) && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Id != LightDrone.Item && i.Equip != Suit.Slot && i.Equip != Helmet.Slot);
 
     /// <summary>The farm's items (0060), in the second crate by the grow capsule with the crusher's and planks: the first is full.</summary>
     public static readonly IReadOnlyList<string> Farm = ["seed", "fruit", "glowberry", "soil", "biomass", "biofuel"];
@@ -52,7 +52,7 @@ public static class Testbed
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails and the blasting charges, <see cref="Cooking"/> rations and canned meat for the galley, a fridge, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [LightDrone.Item, Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
+    public static IEnumerable<string> InSupply => [Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
@@ -126,8 +126,8 @@ public static class Testbed
             "  #################################################" + "..^^^^^^^^^^^^.L#",
             "  ##KK...LUUUII###!!TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#" + "..^^^^^^^^^^^^..#",
             "  #.OOOQQ.UUUIIRRD!!TT..kk.cc.ccggGG.yy...$$&&DZZ.D" + "..^^^^^^^^^^^^..D",
-            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
-            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
+            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D" + "..^^^^^^^^^^^^??D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D" + "..^^^^^^^^^^^^??D",
             "  #o#########www###############################__##" + "##____________###",
             "  #XXXL.uuqqqwww#n",
             "  #XXX..uuqqqwww#n",

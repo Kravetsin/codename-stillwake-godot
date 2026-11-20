@@ -106,7 +106,7 @@ public partial class FabricatorPanel : CanvasLayer
     private IReadOnlyList<(string Item, int Count)> _carried = [];
     /// <summary>What the open station's inputs hold, null at one without them: a recipe they cover lights up (<see cref="Look.Fed"/>).</summary>
     private IReadOnlyList<(string Item, int Count)>? _fed;
-    private bool _creative, _paired;
+    private bool _creative;
     private double _sinceRead = RefreshMs;
     /// <summary>What the slots were built from: rebuilt only when it changes.</summary>
     private string? _shownKey;
@@ -152,8 +152,6 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A galley's fire as its panel shows it (0023): the furnace module's <c>At</c>. Set by <c>Main</c>.</summary>
     public Func<int, Sim.Furnace.Smelting>? Fire { get; set; }
 
-    /// <summary>Whether this player has paired with its drone (drone-companion): the pod then hides the drone's card. Set by <c>Main</c>.</summary>
-    public Func<bool>? Paired { get; set; }
 
     /// <summary>The queued station open under the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
     private (int Id, Content.Station Station)? Open =>
@@ -281,7 +279,6 @@ public partial class FabricatorPanel : CanvasLayer
         int peer = _client.Id;
         _carried = _items.StockTotals(peer);
         _creative = _items.Creative(peer);
-        _paired = Paired?.Invoke() ?? false;
         var queue = _crafting.Queue(pod);
         int progress = _crafting.Progress(pod);
         // The outputs as this peer's own takes in flight leave them, so a stack goes on the click (0014).
@@ -289,7 +286,7 @@ public partial class FabricatorPanel : CanvasLayer
         var outputs = _items.AfterMoves(peer, moves).Crates.Where(c => c.Crate == pod).Select(c => c.Slots).FirstOrDefault() ?? _items.Crate(pod);
         _fed = Crafts.HasInputs(station) ? Crafts.InputsHeld(outputs, Inputs(station)) : null;
         var lacks = _crafting.Lacks(pod);
-        string key = $"{pod}|{_paired}|" + string.Join(",", Content.Crafts.All.Select(c => (int)LookOf(c.Item)))
+        string key = $"{pod}|" + string.Join(",", Content.Crafts.All.Select(c => (int)LookOf(c.Item)))
             + "|" + string.Join(";", queue.Select(e => $"{e.Id}:{e.Recipe}:{e.Count}:{e.By}:{e.FromInputs}:{e.Endless}"))
             + "|" + string.Join(";", lacks.Select(l => $"{l.Item}:{l.Count}"))
             + "|" + string.Join(";", outputs.Select(s => s == null ? "" : $"{s.Item}:{s.Count}"));
@@ -345,7 +342,7 @@ public partial class FabricatorPanel : CanvasLayer
         _panel.Describe(T($"station.{station.Machine}"), Content.Machines.Get(station.Machine).Draws);
         _panel.Tone = HoloShape.ToneOf(Content.Machines.Get(station.Machine));
         _holoBox = MachineHolo.BoxOf(_grid, pod);
-        var places = Crafts.Places(station, _paired);
+        var places = Crafts.Places(station);
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
         _opened.Text = T("crafts.opened", ("n", crafts.Count(c => _research!.Knows(_client!.Id, c))), ("all", crafts.Count));
@@ -428,11 +425,11 @@ public partial class FabricatorPanel : CanvasLayer
             switch (LookOf(craft))
             {
                 case Look.Ready:
-                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed, Crafts.Lines(craft, _carried), _creative, Crafts.MostOf(craft))));
+                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed, Crafts.Lines(craft, _carried), _creative, Crafts.Many)));
                     break;
                 case Look.Fed:
                     // Paid per unit as it begins: shift queues all five, waiting for what the inputs lack.
-                    Send(new Craft(pod, craft, press.ShiftPressed ? Crafts.MostOf(craft) : 1, FromInputs: true));
+                    Send(new Craft(pod, craft, press.ShiftPressed ? Crafts.Many : 1, FromInputs: true));
                     break;
                 case Look.Short when Crafts.MissingCraft(Crafts.Lines(craft, _carried), _creative, station) is { } missing:
                     _pulse = (missing, 0);

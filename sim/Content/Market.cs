@@ -71,7 +71,7 @@ public static class Market
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's. Food sells (2026-11-14-food-and-gear-cards).</summary>
     private static readonly HashSet<string> Unsold = new(StringComparer.Ordinal)
     {
-        "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "dormantCore", "scanner", "droneLamp", "battery", "accumulator", "helmet", "heavyHelmet", "heatedHelmet", "heatHelmet", "suit", "regenSuit", "heatSuit", "cape",
+        "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "scanner", "droneLamp", "battery", "accumulator", "helmet", "heavyHelmet", "heatedHelmet", "heatHelmet", "suit", "regenSuit", "heatSuit", "cape",
     };
 
     private static readonly Dictionary<string, int> Worths = Worked();

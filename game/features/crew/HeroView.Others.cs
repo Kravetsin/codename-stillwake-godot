@@ -183,14 +183,6 @@ public partial class HeroView
         _eats.Play();
     }
 
-    /// <summary>Pairs with the light drone in hand (drone-companion): sent when the sim would take it now and no pairing is in flight.</summary>
-    private void Pair(Client client, Registry m)
-    {
-        if (Report.PairOf(m.Crew.PairProblem(client.Id), client.InFlight) is not { } pair) return;
-        client.Send(pair);
-        _ui.Click();
-    }
-
     /// <summary>This player's hero breathes room air again: a few pale motes off its visor (0081).</summary>
     public void BreathesAgain() => _air.Puff(_figure.Visor);
 

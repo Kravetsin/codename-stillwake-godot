@@ -37,13 +37,17 @@ public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = 
 /// </summary>
 public static class SurfaceViews
 {
+    /// <summary>Whether the alien core is gone for this player (drone-companion): they have their drone, or it broke loose.</summary>
+    private static bool CoreGone(SurfaceContext c) => c.M.Players.HasDrone(c.Peer()) || c.M.Crew.CoreLost();
+
     public static readonly IReadOnlyList<SurfaceView> All =
     [
         new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null,
             Render.VesselDress.For(c.M.Rules, c.Seed))
         {
-            HeldBack = c.Arrivals.Holds,
-            HeldBackVersion = () => c.Arrivals.Version,
+            // The alien core is gone for a player who has their drone, and for all once it broke loose (drone-companion).
+            HeldBack = id => c.Arrivals.Holds(id) || c.M.Grid.MachineById(id) is { } core && Content.Machines.Is(core.Kind, Content.MachineTrait.Wakes) && CoreGone(c),
+            HeldBackVersion = () => c.Arrivals.Version * 2 + (CoreGone(c) ? 1 : 0),
             Tint = PlanetLooks.Of.TryGetValue(c.M.Rules.Id, out var look) ? new Color(look.Ground.R, look.Ground.G, look.Ground.B) : Colors.White,
         }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).

@@ -34,9 +34,8 @@ public static class Stations
 {
     public static readonly IReadOnlyList<Station> All =
     [
-        // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046); and the
-        // drone it pairs with (drone-companion), its card shown only to a hero not paired yet.
-        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"], ["lightDrone"]]),
+        // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046).
+        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"]]),
         // The workbench, of raw salvage: the basic parts by hand, and everything assembled rather than stamped: the tools, the
         // jetpack, the drill, the cape and the quilted helmet; and the battery, so the drill's power comes with it
         // (battery-workbench). At the pod's speed and with no power.

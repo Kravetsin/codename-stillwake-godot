@@ -145,7 +145,6 @@ public static class Clicks
                 return new Clicked(left > 0 ? p with { Count = left } : null, new Move(p.Place, place, 1));
             }
             if (picked == null && place.Crate == null && stack?.Item == CrewSpec.Canister) return new Clicked(null, Breathes: true);
-            if (picked == null && place.Crate == null && stack?.Item == Stillwake.Content.LightDrone.Item) return new Clicked(null, new Stillwake.Sim.Crew.PairDrone());
             if (picked == null && place.Crate == null && stack is { } food && Stillwake.Content.Foods.Of(food.Item) != null) return new Clicked(null, Eats: food.Item);
             return new Clicked(stack != null ? new Picked(place, (stack.Count + 1) / 2) : null);
         }

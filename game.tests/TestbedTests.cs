@@ -75,7 +75,6 @@ public class TestbedTests
         Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id) && !Testbed.InTools.Contains(i.Id) && !Testbed.InBay.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
         // A drill with the arc fitted (0098), in the supply crate by the door: no bench fits one yet.
         Assert.Contains(new Stack(Spec.Weapons.Drill.Item, 1, Module: Spec.Modules.Arc.Item), m.Items.Crate(CrateAt(m, Testbed.Supply)));
-        Assert.Contains(new Stack(Spec.LightDrone.Item, 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));
         // An arc module for each machine and tool it fits (0086, 0098, 0100), the dev's way to one before the ruins give its shard,
         // beside the salvage tools on the pod.
         var tools = m.Items.Crate(CrateAt(m, Testbed.Tools));

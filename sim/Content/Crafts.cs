@@ -40,8 +40,6 @@ public static class Crafts
         new("cape", [("cloth", 2), ("hide", 2)], Ticks: 60),
         new("jetpack", [("frame", 1), ("tube", 3), ("coil", 2), ("gear", 2), ("canister", 1), ("wire", 4)], Ticks: 240),
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
-        // The hero's own drone (drone-companion), at the pod from the start: its kit's dormant core in raw scrap, so the bag it gives comes early.
-        new("lightDrone", [(LightDrone.Core, 1), ("scrapChunk", LightDrone.Armour)], Ticks: 60),
         // The basic helmet plated over and wound in heating coils (gear-roles): space parts only, so it is made before a landing.
         new(Helmet.Heated, [("helmet", 1), ("coil", 2), ("wire", 2), ("plate", 2)], Ticks: 120),
         // Mica for its weave and the planet's alloy for its seams (2026-11-14-heat-limits): so after a landing.

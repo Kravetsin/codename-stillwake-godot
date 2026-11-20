@@ -189,8 +189,8 @@ public class ItemCardTests
         Assert.False(lamp.Tool);
         Assert.Empty(lamp.Rows);
         Assert.Null(lamp.Draw);
-        // Paired by a right click in hand (drone-companion).
-        Assert.Equal("RMB", lamp.Use?.Key);
+        // Never in hand: paired at the alien core (drone-companion), so no key on it.
+        Assert.Null(lamp.Use);
         // A battery's number is its charge, set per stack: no rows.
         Assert.True(ItemCards.Of("battery").Worn);
         Assert.Empty(ItemCards.Of("battery").Rows);

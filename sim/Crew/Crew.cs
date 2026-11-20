@@ -60,10 +60,10 @@ public sealed record Eat(string Item) : Command;
 public sealed record Purge : Command;
 
 /// <summary>
-/// The sender's hero pairs with a light drone it carries (drone-companion), a right click with it in hand: the item taken, the
-/// pairing its player's for good, its bag rows open.
+/// The sender's hero touches the alien core <paramref name="Core"/> with E (drone-companion): a shard of it becomes the hero's drone,
+/// the pairing its player's for good, its bag rows open. The core stays for the next hero.
 /// </summary>
-public sealed record PairDrone : Command;
+public sealed record PairDrone(int Core) : Command;
 
 /// <summary>
 /// The sender's hero passes out of its body's cold or heat (body-temperature): its client keeps the body, from the degrees the sim
@@ -216,7 +216,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private readonly ISkyQueries _sky;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
-    private static readonly IReadOnlyList<(string Item, int Count)> Drone = [(Content.LightDrone.Item, 1)];
 
     public CrewModule(
         IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
@@ -280,11 +279,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             if (Content.Items.Get(c.Item).Byproducts is { } kept && Loots.Roll(kept, Random) is { Count: > 0 } back)
                 _itemsOps.GiveOrDrop(c.From, back, hero.Cell);
         });
-        Handles<PairDrone>(c => PairProblem(c.From), c =>
-        {
-            _itemsOps.Take(c.From, Drone);
-            _playersOps.Pair(c.From);
-        });
+        Handles<PairDrone>(c => PairProblem(c.From, c.Core), c => _playersOps.Pair(c.From));
         Handles<Purge>(c => PurgeProblem(c.From), c =>
         {
             var hero = HeroOf(c.From)!;
@@ -299,8 +294,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         {
             State.Clock += 1;
             bool breath = State.Clock % Content.Crew.BreathEvery == 0;
+            bool coreLost = CoreLost();
             foreach (var hero in State.Heroes)
             {
+                // The core broken loose, its shards find every hero still without one (drone-companion).
+                if (coreLost && !_players.HasDrone(hero.Id)) _playersOps.Pair(hero.Id);
                 if (hero.CanisterIn > 0) hero.CanisterIn -= 1;
                 for (int i = hero.Eaten.Count - 1; i >= 0; i--)
                     if (--hero.Eaten[i].Left <= 0) hero.Eaten.RemoveAt(i);
@@ -517,14 +515,31 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     }
 
     /// <summary>
-    /// Why hero <paramref name="peer"/> could not pair with a light drone now: none or passed out (<c>crew.noHero</c>), its player
-    /// paired already (<c>crew.hasDrone</c>), or no drone carried (<c>items.notEnough</c>, never in creative). Null when it could.
+    /// Why hero <paramref name="peer"/> could not pair with a drone at machine <paramref name="core"/> now: none or passed out
+    /// (<c>crew.noHero</c>), its player paired already (<c>crew.hasDrone</c>), or no alien core there (<c>crew.noCore</c>). Null when it could.
     /// </summary>
-    public string? PairProblem(int peer)
+    public string? PairProblem(int peer, int core)
     {
         if (HeroOf(peer) is not { Out: 0 }) return "crew.noHero";
         if (_players.HasDrone(peer)) return "crew.hasDrone";
-        return _items.ShortOf(peer, Drone);
+        return _grid.MachineById(core) is { } m && Content.Machines.Is(m.Kind, Content.MachineTrait.Wakes) && !CoreLost() ? null : "crew.noCore";
+    }
+
+    /// <summary>
+    /// Whether the map's alien core broke loose (drone-companion): it has one, and a cell of the floor under it is broken. Then the
+    /// core is gone, and every hero here without a drone is given one as it stands. A map with no core never loses it.
+    /// </summary>
+    public bool CoreLost()
+    {
+        int width = _grid.Width;
+        foreach (var core in _grid.MachinesWith(Content.MachineTrait.Wakes))
+        {
+            var spec = Content.Machines.Get(core.Kind);
+            int below = core.Cell + spec.Height * width;
+            for (int x = 0; x < spec.Width; x++)
+                if (!_grid.Solid(below + x)) return true;
+        }
+        return false;
     }
 
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>
@@ -550,7 +565,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     /// <summary>The map's first lifepod makes heroes at its hatch; a map without one wakes them at its first S.</summary>
     protected override CrewState Init(Layout layout)
     {
-        var pods = layout.Machines().Where(m => Content.Machines.Get(m.Kind).Fixed).Select(m => m.Cell).ToList();
+        var pods = layout.Machines().Where(m => Content.Machines.Get(m.Kind) is { Fixed: true } spec && spec.Is(Content.MachineTrait.AirSource)).Select(m => m.Cell).ToList();
         if (pods.Count == 0) return new() { Spawn = layout.CellsOf('S').DefaultIfEmpty(0).First() };
         var (x, y) = Content.Crew.PodHatch;
         return new() { Pod = pods[0], Spawn = pods[0] + y * layout.Width + x };

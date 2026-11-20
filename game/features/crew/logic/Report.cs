@@ -134,16 +134,6 @@ public static class Report
         return problem == null ? new Eat(food) : null;
     }
 
-    /// <summary>
-    /// <c>PairDrone</c> when the sim would take it now (<paramref name="problem"/>, <c>PairProblem</c>'s, is null) with none in
-    /// <paramref name="inFlight"/>; null otherwise: a second click before the first lands spends no second drone (drone-companion).
-    /// </summary>
-    public static PairDrone? PairOf(string? problem, IReadOnlyList<Command> inFlight)
-    {
-        foreach (var c in inFlight)
-            if (c is PairDrone) return null;
-        return problem == null ? new PairDrone() : null;
-    }
 
     /// <summary>
     /// <c>SuitMode</c> flipping the suit's mode on a press (V, its edge key; 2026-11-03-the-regen-suit): from the last one in

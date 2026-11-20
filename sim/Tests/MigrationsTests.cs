@@ -407,7 +407,7 @@ public class MigrationsTests
     [Fact]
     public void MakesEveryHelmetLampOfAFormatSixtySevenSaveALightDrone()
     {
-        // A lamp in a slot, one on the floor, one made into the pod and one queued there, its blueprint known: as format 67
+        // A lamp in a slot and one on the floor, its blueprint known: as format 67
         // had them, the old id in each and the blueprints sorted with it.
         const string Room = """
             ##########
@@ -417,13 +417,10 @@ public class MigrationsTests
             #.OOOII..#
             ##########
             """;
-        const int Bench = 1;
         var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
-            .GiveItems(0, (Content.LightDrone.Item, 2), (Content.LightDrone.Core, 2), ("scrapChunk", 2 * Content.LightDrone.Armour));
+            .GiveItems(0, (Content.LightDrone.Item, 2));
         w.M.Knowledge.Grant(Content.LightDrone.Item);
         w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
-        w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run(Content.Crafts.Get(Content.LightDrone.Item).Ticks * 1000 / Content.Stations.Get("lifepod").Speed + 1);
-        w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run();
         Assert.Empty(w.Refusals);
         var save = JsonNode.Parse(w.World.Save().Replace("\"lightDrone\"", "\"helmetLamp\""))!.AsObject();
         save["format"] = 67;
@@ -437,8 +434,6 @@ public class MigrationsTests
         w.Reload(upgraded);
         Assert.Contains(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Inventory(0));
         Assert.Equal(Content.LightDrone.Item, Assert.Single(w.M.Items.Floor).Item);
-        Assert.Equal(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Crate(Bench)[0]);
-        Assert.Equal([Content.LightDrone.Item], w.M.Crafting.Queue(Bench).Select(e => e.Recipe));
         // Found by its blueprint's place in the sorted list.
         Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
     }
@@ -446,7 +441,7 @@ public class MigrationsTests
     [Fact]
     public void MakesEveryScannerOfAFormatSixtyEightSaveALightDroneAndKnowsTheMode()
     {
-        // Two scanners carried, one on the floor and one made into the pod, as format 68 had them (the mount it was worn on gone
+        // Two scanners carried and one on the floor, as format 68 had them (the mount it was worn on gone
         // since 70), the knowledge as it was: after the upgrade each is a drone and the crew knows the scanner mode.
         const string Room = """
             ##########
@@ -456,12 +451,10 @@ public class MigrationsTests
             #.OOOII..#
             ##########
             """;
-        const int Bench = 1;
         var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
-            .GiveItems(0, (Content.LightDrone.Item, 3), (Content.LightDrone.Core, 1), ("scrapChunk", Content.LightDrone.Armour));
+            .GiveItems(0, (Content.LightDrone.Item, 3));
         w.M.Knowledge.Grant(Content.LightDrone.Item);
         w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
-        w.Do(new Crafting.Craft(Bench, Content.LightDrone.Item, 1)).Run(Content.Crafts.Get(Content.LightDrone.Item).Ticks * 1000 / Content.Stations.Get("lifepod").Speed + 1);
         Assert.Empty(w.Refusals);
         var played = JsonNode.Parse(w.World.Save())!.AsObject();
         var save = JsonNode.Parse(w.World.Save().Replace("\"lightDrone\"", "\"scanner\""))!.AsObject();
@@ -474,7 +467,6 @@ public class MigrationsTests
         w.Reload(upgraded);
         Assert.Equal(2, w.M.Items.Inventory(0).Where(s => s?.Item == Content.LightDrone.Item).Sum(s => s!.Count));
         Assert.Equal(Content.LightDrone.Item, Assert.Single(w.M.Items.Floor).Item);
-        Assert.Equal(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Crate(Bench)[0]);
         Assert.True(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
         Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
         Assert.Equal(w.M.Knowledge.GrantedIds.Order(StringComparer.Ordinal), w.M.Knowledge.GrantedIds);

@@ -1,9 +1,9 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// The light drone (light-drone, drone-companion): crafted at the pod from the dormant core every hero comes aboard with
-/// (<see cref="Core"/>) armoured in raw scrap, a right click in hand pairs a hero with it for good, the
-/// item gone, and opens its bag rows (<see cref="Inventory.Start"/>). A small drone floating by a paired hero's head, its beam where
+/// The light drone (light-drone, drone-companion): a shard of the alien core that wrecked the scoop (<see cref="CoreMachine"/>), given
+/// for good to a hero who touches the core with E, opening its bag rows (<see cref="Inventory.Start"/>); every hero still without one
+/// is given it once the core breaks loose. A small drone floating by a paired hero's head, its beam where
 /// the pointer points once its lamp is bought, seen by friends, drawn by the client alone. It comes dark: its lamp and scanner are modes
 /// found later, each a node; the lamp, once bought, draws no power.
 /// </summary>
@@ -14,13 +14,10 @@ public static class LightDrone
     public static readonly string Item = "lightDrone";
 
     /// <summary>
-    /// The dormant core (drone-companion): in every hero's kit (<see cref="Inventory.Kit"/>), an unknown object that will not wake
-    /// bare; crafted into the drone with <see cref="Armour"/> chunks of raw scrap. Gear, so a death keeps it; one a hero, so one drone.
+    /// The machine that is the alien core (drone-companion): lodged by the scoop's right lock, never broken or taken apart, pressed with E
+    /// for a drone; gone for whoever has theirs, and for everyone once a cell of the floor under it is broken.
     /// </summary>
-    public static readonly string Core = "dormantCore";
-
-    /// <summary>How many raw scrap chunks the core wakes in.</summary>
-    public const int Armour = 5;
+    public static readonly string CoreMachine = "alienCore";
 
     /// <summary>
     /// The node that opens the scanner mode (2026-11-07-the-scanner, light-drone): bought once on the black market, known crew-wide;

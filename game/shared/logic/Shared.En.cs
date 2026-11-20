@@ -43,6 +43,7 @@ public static partial class En
         ["card.draw"] = "Battery draw",
         // The name the pointer's tip gives a machine never built, which has no card in the build menu.
         ["machine.lifepod"] = "Lifepod",
+        ["machine.alienCore"] = "Unknown object",
         // Food's and gear's rows (2026-11-14-food-and-gear-cards): what each guarantees, air in the HUD's O₂ units.
         ["card.group.effect"] = "Effect",
         ["card.group.air"] = "Air",

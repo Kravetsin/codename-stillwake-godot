@@ -39,6 +39,7 @@ public static partial class Ru
         ["card.minutes"] = "{n} мин",
         ["card.draw"] = "Расход батареи",
         ["machine.lifepod"] = "Спасательная капсула",
+        ["machine.alienCore"] = "Неопознанный объект",
         ["card.group.effect"] = "Эффект",
         ["card.group.air"] = "Воздух",
         ["card.group.guard"] = "Защита",

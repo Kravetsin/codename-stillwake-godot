@@ -197,6 +197,11 @@ public enum MachineTrait
     Switches = 65536,
     /// <summary>Holds biofuel in a store of <see cref="MachineSpec.FuelHolds"/> litres (Fuel): implied by it, never declared.</summary>
     HoldsFuel = 131072,
+    /// <summary>
+    /// The alien core that wrecked the scoop (drone-companion): a hero who touches it with E is given a shard of it, its drone, for good;
+    /// the core stays for the next hero. Only in the starting wreck.
+    /// </summary>
+    Wakes = 262144,
 }
 
 /// <summary>
@@ -279,6 +284,8 @@ public static class Machines
         new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 5, SlotTakes: (4, "canister"), Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
         // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
         new("lifepod", 6, 6, [new(5, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
+        // The alien core that wrecked the scoop (drone-companion): lodged by the right lock, a shard of it every hero's drone.
+        new("alienCore", 4, 4, [], [], BuildTicks: 0, Fixed: true, Has: MachineTrait.Wakes, Char: '?', Means: "alien core: draw its whole footprint, standing on a floor"),
         // The last crew's piles in the hold (the-scoop): never built, an axe breaks one and its cost is what it holds, a first reward for
         // making the axe. The cargo holds a world's one photosensitive panel. An axe takes 2 a hit, two hits a second; the sledgehammer's 12 breaks any.
         new("pileHull", 4, 4, [], [("scrapChunk", 6), ("hullPlate", 3)], BuildTicks: 180, Hp: 12, Char: 'a', Means: "pile of hull plates: draw its whole footprint"),

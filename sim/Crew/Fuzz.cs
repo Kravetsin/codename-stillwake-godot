@@ -21,11 +21,12 @@ public sealed partial class CrewModule
         if (rng.Below(6) == 0) return new Exert(rng.Below(2) == 0) { From = from };
         if (rng.Below(8) == 0) return new Thrust(rng.Below(2) == 0) { From = from };
         if (rng.Below(12) == 0) return new Refill { From = from };
-        // One draw past the foods purges instead: refused with nothing eaten; two past, pairs with a drone: mostly refused, none
-        // carried or paired already, taken in creative or with one the items fuzz spawned.
+        // One draw past the foods purges instead: refused with nothing eaten; two past, pairs with a drone at the map's alien core,
+        // refused paired already or on a map with none (machine 0).
         if (rng.Below(12) == 0)
             return rng.Below((ulong)Edible.Length + 2) is var e && e < Edible.Length ? new Eat(Edible[e]) { From = from }
-                : e == (ulong)Edible.Length ? new Purge { From = from } : new PairDrone { From = from };
+                : e == (ulong)Edible.Length ? new Purge { From = from }
+                : new PairDrone(_grid.MachinesWith(Content.MachineTrait.Wakes) is [var core, ..] ? core.Id : 0) { From = from };
         if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
         if (rng.Below(60) == 0) return new Succumb { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };

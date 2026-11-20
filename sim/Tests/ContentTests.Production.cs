@@ -174,7 +174,7 @@ public partial class ContentTests
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodTheSuitTheWorkbenchWhatIsAssembledTheFormerWhatIsStampedAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item, Content.LightDrone.Item];
+        string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
         string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "jetpack", "heatedHelmet", "cape", "drill", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge", "heatSuit", "heatHelmet"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
@@ -512,7 +512,8 @@ public partial class ContentTests
     public void EveryItemIsReachableFromTheWreck()
     {
         var (had, _) = Reachable(Stations.All, planet: true);
-        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
+        // The drone is never had: a shard of the alien core, its item the companion's card (drone-companion).
+        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id) && id != Content.LightDrone.Item).ToArray());
     }
 
     /// <summary>

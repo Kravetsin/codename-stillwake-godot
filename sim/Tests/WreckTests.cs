@@ -91,8 +91,8 @@ public class WreckTests
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap"], m.Grid.Machines.Select(x => x.Kind).Order(StringComparer.Ordinal));
-        Assert.Equal([Pod], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Fixed).Select(x => x.Cell));
+        Assert.Equal(["alienCore", "emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap"], m.Grid.Machines.Select(x => x.Kind).Order(StringComparer.Ordinal));
+        Assert.Equal([Pod], m.Grid.MachinesWith(Content.MachineTrait.AirSource).Select(x => x.Cell));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes(0).Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         // Four doors, each two cells by six.

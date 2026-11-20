@@ -44,9 +44,6 @@ public static class Crafts
     /// <summary>The most units a shift-click queues; a plain click queues one.</summary>
     public const int Many = 5;
 
-    /// <summary>The most units of <paramref name="craft"/> a click queues: one drone, a player's only (drone-companion), creative too.</summary>
-    public static int MostOf(string craft) => craft == Content.LightDrone.Item ? 1 : Many;
-
     /// <summary>The recipes' columns.</summary>
     public const int Columns = Content.Stations.RowMost;
 
@@ -55,12 +52,11 @@ public static class Crafts
 
     /// <summary>
     /// Every place of <paramref name="station"/>'s recipes' grid, row by row: a craft in the place content gives it,
-    /// or null for an empty one; whole rows, <see cref="RowsLeast"/> at least. The light drone's place is empty for a player
-    /// <paramref name="paired"/> with its drone already: one is all a player has (drone-companion).
+    /// or null for an empty one; whole rows, <see cref="RowsLeast"/> at least.
     /// </summary>
-    public static IReadOnlyList<string?> Places(Content.Station station, bool paired = false) => Enumerable.Range(0, Math.Max(RowsLeast, station.Rows.Count))
+    public static IReadOnlyList<string?> Places(Content.Station station) => Enumerable.Range(0, Math.Max(RowsLeast, station.Rows.Count))
         .SelectMany(r => Enumerable.Range(0, Columns).Select(c =>
-            r < station.Rows.Count && c < station.Rows[r].Count && !(paired && station.Rows[r][c] == Content.LightDrone.Item) ? station.Rows[r][c] : null))
+            r < station.Rows.Count && c < station.Rows[r].Count ? station.Rows[r][c] : null))
         .ToList();
 
     /// <summary>What one unit of <paramref name="craft"/> costs, item by item, against what is <paramref name="carried"/>.</summary>
@@ -158,7 +154,7 @@ public static class Crafts
         else if (look == Look.Fed) keys.Add(new(T("key.lmb"), T("card.fromInputs")));
         else if (MissingCraft(lines, creative, station) != null) keys.Add(new(T("key.lmb"), T("card.goTo")));
         if (HasInputs(station)) keys.Add(new(T("key.rmb"), T("card.repeatFromInputs")));
-        int many = look == Look.Fed ? MostOf(craft) : CountFor(true, lines, creative, MostOf(craft));
+        int many = look == Look.Fed ? Many : CountFor(true, lines, creative, Many);
         if (look != Look.Short && many > 1) keys.Add(new(T("key.shift"), T("card.many", ("n", many))));
         return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }

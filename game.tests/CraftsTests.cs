@@ -44,14 +44,6 @@ public class CraftsTests
     }
 
     [Fact]
-    public void ThePodShowsTheDronesCardOnlyToAPlayerNotPairedYet()
-    {
-        var pod = Content.Stations.Get("lifepod");
-        Assert.Equal(["helmet", "suit", "screwdriver", null, Content.LightDrone.Item, null, null, null], Crafts.Places(pod));
-        Assert.Equal(["helmet", "suit", "screwdriver", null, null, null, null, null], Crafts.Places(pod, paired: true));
-    }
-
-    [Fact]
     public void LooksReadyWhenAUnitIsCarriedShortWhenNotAndLockedWhenNotKnown()
     {
         var w = Start();
@@ -140,18 +132,6 @@ public class CraftsTests
         // The scarcest item decides.
         Assert.Equal(2, Crafts.CountFor(shift: true, Crafts.Lines("nailer", [("tube", 9), ("plate", 4), ("wire", 9)]), creative: false));
         Assert.Equal(5, Crafts.CountFor(shift: true, Crafts.Lines("plate", []), creative: true));
-    }
-
-    /// <summary>The drone, a player's only (drone-companion): one a click, shift or creative, and no shift on its card.</summary>
-    [Fact]
-    public void TheDroneIsQueuedOneAtATimeEvenInCreative()
-    {
-        string drone = Content.LightDrone.Item;
-        Assert.Equal(1, Crafts.MostOf(drone));
-        Assert.Equal(Crafts.Many, Crafts.MostOf("plate"));
-        Assert.Equal(1, Crafts.CountFor(shift: true, Crafts.Lines(drone, []), creative: true, Crafts.MostOf(drone)));
-        var block = Crafts.Block(drone, Content.Stations.Get("lifepod"), [], creative: true);
-        Assert.DoesNotContain(block.Keys, k => k.Key == T("key.shift"));
     }
 
     [Fact]
