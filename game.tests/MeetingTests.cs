@@ -6,126 +6,211 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The drone's first meeting with its hero (drone-meeting), timed as the pick «Вихрь + Капли» timed it.</summary>
+/// <summary>The drone's first meeting with its hero (drone-meeting), timed as the picked vision («Стена») timed it.</summary>
 public class MeetingTests
 {
     private const double Step = 1.0 / 240;
-    private static readonly Vec Core = new(80, 60), Palm = new(92, 52), Idle = new(95, 28);
+    private static readonly Vec Core = new(80, 60);
 
     private static IEnumerable<double> Sweep(double from = 0, double to = Meeting.End)
     {
         for (double u = from; u <= to + 1e-9; u += Step) yield return u;
     }
 
-    private static Plate Home(int i) => DroneSwarm.PlateIn(SwarmShape.Idle, i, 0, 3);
+    private static MeetingScene Scene(int side = 1) => new(Core, new Vec(Core.X + side * 16, Core.Y + 12), side, 3.7);
+
+    private static Vec Idle(MeetingScene s) => new(s.Feet.X - 6, s.Feet.Y - 50);
+
+    private static Vec Palm(MeetingScene s, double u) => new(s.HeroAt(u).Feet.X - s.Side * 4, s.HeroAt(u).Feet.Y - 20);
+
+    private static Plate Home(int i, double u) => DroneSwarm.PlateIn(SwarmShape.Idle, i, 0, (float)u);
+
+    private static double FirstWhen(Func<double, bool> holds)
+    {
+        foreach (double u in Sweep())
+            if (holds(u)) return u;
+        return double.PositiveInfinity;
+    }
 
     [Fact]
-    public void ItKneelsGivesBloodWakesTheCoreRaisesItsSootArmoursItAndRisesInThePicksOrder()
+    public void ItsBeatsComeInThePicksOrder()
     {
-        // Each beat's start, from the press: the kneel, the first drop, the cracks, the ring soaked in, the lift, the soot, the lens,
-        // the four plates, the rise, the stand, the end.
-        double FirstWhen(Func<double, bool> holds)
-        {
-            foreach (double u in Sweep())
-                if (holds(u)) return u;
-            return double.PositiveInfinity;
-        }
-        double kneels = FirstWhen(u => Meeting.Kneel(u) > 0);
-        double bleeds = FirstWhen(u => Meeting.DropsOut(u, Palm, Core, 1) > 0);
-        double cracks = FirstWhen(u => Meeting.Wake(u) > 0);
-        double soaked = FirstWhen(u => u > Meeting.Times.BurstTo && Meeting.DropsOut(u, Palm, Core, 1) == 0);
+        var s = Scene();
+        // E; the HUD gone; the core lit, lifted; the crumble; the void; the first drop; each ring full; the black; the eye; back to
+        // the wreck; the core home; each plate; the drone by the head; the end.
+        double hud = FirstWhen(u => Meeting.Hud(u) < 0.5);
+        double lit = FirstWhen(u => Meeting.Light(u) > 0.5);
         double lifts = FirstWhen(u => !Meeting.CoreLies(u));
-        double rises = FirstWhen(u => Meeting.Form(u) > 0);
-        double lights = FirstWhen(u => Meeting.Lens(u).On > 0);
+        double crumbles = FirstWhen(u => MeetingFlakes.Crumbled(u) > 0);
+        double vision = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Vision);
+        double bleeds = FirstWhen(u => Drops(s, u) > 0);
+        double black = FirstWhen(u => MeetingScene.BlackOf(0, u) > 0);
+        double eye = FirstWhen(u => Meeting.LensOn(u) > 0);
+        double back = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Back);
+        double home = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Home);
         var lands = new List<double>();
         for (int i = 0; i < Meeting.Plates; i++)
         {
             int plate = i;
-            lands.Add(FirstWhen(u => Meeting.PlateOf(plate, u, 0, Core, Idle, Home(plate)).Stage == PlateStage.Home));
+            lands.Add(FirstWhen(u => s.PlateOf(plate, u, Core, Home(plate, u)).Stage == PlateStage.Home));
         }
-        double flies = FirstWhen(u => !Meeting.DrawsDrone(u));
-        double stands = FirstWhen(u => u > Meeting.Times.KneelTo && Meeting.Kneel(u) < 1);
-        double[] beats = [kneels, bleeds, cracks, soaked, lifts, rises, lights, .. lands, flies, stands, Meeting.End];
+        double drone = FirstWhen(u => !Meeting.DrawsDrone(u));
+        double[] beats = [Meeting.Times.Press, hud, lit, lifts, crumbles, vision, bleeds, s.Full(0), s.Full(1), s.Full(2), black, eye, back, home, .. lands, drone, Meeting.End];
         for (int i = 1; i < beats.Length; i++) Assert.True(beats[i - 1] < beats[i], $"beat {i - 1} at {beats[i - 1]:F3} s, {i} at {beats[i]:F3} s");
-        Assert.InRange(kneels, 0.3, 0.3 + Step);
-        Assert.InRange(bleeds, 1.45, 1.75);
-        Assert.True(soaked <= Meeting.Times.Soaked + Step);
-        // Each a beat after the last, a fifth of a second from the debris.
-        for (int i = 0; i < lands.Count; i++) Assert.InRange(lands[i], 8.9 + 0.75 * i, 8.9 + 0.75 * i + Step);
-        Assert.Equal((1.0, 0.0), (Meeting.Kneel(Meeting.Times.KneelTo), Meeting.Kneel(Meeting.End)));
+        Assert.InRange(crumbles, Meeting.Times.InFrom, Meeting.Times.InFrom + Step);
+        Assert.InRange(vision, Meeting.Times.InTo, Meeting.Times.InTo + Step);
+        Assert.InRange(bleeds, Meeting.Times.Ring0 - Meeting.Times.Fly, Meeting.Times.Ring0 + 2);
+        Assert.InRange(eye, Meeting.Times.LensFrom, Meeting.Times.LensFrom + Step);
+        Assert.InRange(back, Meeting.Times.OutFrom, Meeting.Times.OutFrom + Step);
+        for (int i = 0; i < lands.Count; i++) Assert.InRange(lands[i], 19.8 + i, 19.8 + i + Step);
+        Assert.Equal((1.0, 0.0, 0.0), (Meeting.Hud(Meeting.End), Meeting.Grade(Meeting.End), Meeting.Grade(0)));
     }
 
     [Fact]
-    public void OnePlateAtMostIsInFlightAndEachGoesAwayFlyingHomeOnce()
+    public void TheThreeRingsFillInTurnEveryDropOnItsOwnRing()
     {
+        double[] begins = [Meeting.Times.Ring0, Meeting.Times.Ring1, Meeting.Times.Ring2];
+        foreach (int side in (int[])[1, -1])
+        {
+            var s = Scene(side);
+            for (int o = 0; o < 3; o++)
+            {
+                Assert.Equal(0, s.Arrived(o, begins[o]));
+                Assert.Equal(s.Count(o), s.Arrived(o, s.Full(o)));
+                Assert.True(s.Full(o) < begins[o] + 4, $"ring {o} full only at {s.Full(o):F3} s");
+                if (o < 2) Assert.True(s.Full(o) < begins[o + 1], $"ring {o} full at {s.Full(o):F3} s, after ring {o + 1} begins");
+            }
+            Assert.Equal(MeetingScene.Drops, s.Count(0) + s.Count(1) + s.Count(2));
+            // Each drop lands on its ring where the ring passes nearest the hero: on its ring from then, never back in flight.
+            for (int i = 0; i < MeetingScene.Drops; i++)
+            {
+                Assert.InRange(s.Arrives(i), begins[i % 3], begins[i % 3] + 4);
+                Assert.Null(s.DropAt(i, s.Arrives(i) - Meeting.Times.Fly - Step, Palm(s, 0), s.CoreAt(s.Arrives(i), Idle(s), 0)));
+            }
+        }
+    }
+
+    [Fact]
+    public void TheBloodTurnsFromRedToBlackAsTheEyeOpens()
+    {
+        var s = Scene();
+        for (int i = 0; i < MeetingScene.Drops; i++)
+        {
+            Assert.Equal(0, MeetingScene.BlackOf(i, Meeting.Times.BlackFrom));
+            Assert.Equal(1, MeetingScene.BlackOf(i, Meeting.Times.BlackTo));
+            var red = s.DropAt(i, 11, Palm(s, 11), s.CoreAt(11, Idle(s), 0))!.Value;
+            var dark = s.DropAt(i, 14, Palm(s, 14), s.CoreAt(14, Idle(s), 0))!.Value;
+            Assert.Equal(Meeting.Blood, red.Fill);
+            Assert.Equal(Meeting.Black, dark.Fill);
+            Assert.Equal(0, red.Ember);
+        }
+        // Some keep an ember once black, none while red.
+        int embers = 0;
+        for (int i = 0; i < MeetingScene.Drops; i++)
+            if (s.DropAt(i, 15, Palm(s, 15), s.CoreAt(15, Idle(s), 0))!.Value.Ember > 0) embers++;
+        Assert.InRange(embers, 1, MeetingScene.Drops / 2);
+    }
+
+    [Fact]
+    public void TheLensIsDeadTillTheEyeBeatAndOpenAfter()
+    {
+        var s = Scene();
+        foreach (double u in Sweep(-0.5, Meeting.End + 0.5))
+        {
+            double on = s.FaceOf(u).Lens;
+            if (u < Meeting.Times.LensFrom) Assert.True(on == 0, $"the lens lit {on:F3} at {u:F3} s");
+            if (u >= Meeting.Times.LensTo) Assert.True(on == 1, $"the lens only {on:F3} at {u:F3} s");
+        }
+    }
+
+    [Fact]
+    public void TheCoreShrinksBackExactlyWhereItBeganToGrowThenRisesToTheHead()
+    {
+        foreach (int side in (int[])[1, -1])
+        {
+            var s = Scene(side);
+            var idle = Idle(s);
+            Assert.Equal(new MeetingCore(Core, 1, 0), s.CoreAt(0, idle, 0));
+            var grows = s.CoreAt(Meeting.Times.InFrom - Step, idle, 0);
+            var back = s.CoreAt(Meeting.Times.OutTo, idle, 0);
+            Assert.Equal((grows.At, grows.R), (back.At, back.R));
+            Assert.Equal((s.Hover, 1.0), (back.At, back.R));
+            Assert.Equal(new MeetingCore(s.VoidCore, Meeting.VoidR, s.VoidAngle(10)), s.CoreAt(10, idle, 0));
+            Assert.Equal(idle, s.CoreAt(Meeting.Times.RiseTo, idle, 0.5).At);
+            // Smooth all along: no jump over a frame anywhere.
+            var last = s.CoreAt(0, idle, 0);
+            foreach (double u in Sweep(Step))
+            {
+                var now = s.CoreAt(u, idle, 0);
+                double moved = Math.Sqrt((now.At.X - last.At.X) * (now.At.X - last.At.X) + (now.At.Y - last.At.Y) * (now.At.Y - last.At.Y));
+                Assert.True(moved < 1.5, $"the core jumped {moved:F2} px at {u:F3} s");
+                Assert.True(Math.Abs(Math.Log(now.R / last.R)) < 0.05, $"the core's size jumped at {u:F3} s");
+                last = now;
+            }
+            // The hero stands where it pressed E before and after the vision.
+            Assert.Equal(s.Feet, s.HeroAt(1).Feet);
+            Assert.Equal(s.Feet, s.HeroAt(Meeting.Times.OutTo).Feet);
+            Assert.Equal(Meeting.VoidScale, s.HeroAt(10).Scale);
+        }
+    }
+
+    [Fact]
+    public void PlatesComeOnlyOnceBackFromTheVisionOneInFlightAtMost()
+    {
+        var s = Scene();
         var stages = new PlateStage[Meeting.Plates];
         foreach (double u in Sweep())
         {
             int flying = 0;
             for (int i = 0; i < Meeting.Plates; i++)
             {
-                var stage = Meeting.PlateOf(i, u, u + 40, Core, Idle, Home(i)).Stage;
+                var stage = s.PlateOf(i, u, Core, Home(i, u)).Stage;
                 Assert.True(stage >= stages[i], $"plate {i} went back from {stages[i]} to {stage} at {u:F3} s");
+                if (Meeting.PhaseOf(u) != MeetingPhase.Home) Assert.Equal(PlateStage.Away, stage);
+                if (Meeting.ArcAlpha(i, u) > 0) Assert.Equal(MeetingPhase.Home, Meeting.PhaseOf(u));
                 stages[i] = stage;
                 if (stage == PlateStage.Flying) flying++;
             }
             Assert.True(flying <= 1, $"{flying} plates in flight at {u:F3} s");
         }
-        Assert.All(stages, s => Assert.Equal(PlateStage.Home, s));
+        Assert.All(stages, stage => Assert.Equal(PlateStage.Home, stage));
     }
 
     [Fact]
-    public void TheRingHasSoakedInBeforeTheSootRises()
-    {
-        Assert.True(Meeting.Times.Soaked < Meeting.Times.FormFrom);
-        foreach (int side in (int[])[1, -1])
-            foreach (double u in Sweep())
-            {
-                bool drops = false;
-                for (int i = 0; i < Meeting.Drops; i++)
-                    drops |= Meeting.DropAt(i, u, Palm, Core, side) is { Alpha: > 0 };
-                bool rising = false;
-                for (int i = 0; i < Meeting.Motes; i++) rising |= Meeting.MoteRise(i, u) > 0;
-                Assert.False(drops && rising, $"drops still out as the soot rises at {u:F3} s");
-                if (u >= Meeting.Times.Soaked) Assert.False(drops, $"drops still out at {u:F3} s");
-            }
-    }
-
-    [Fact]
-    public void TheDroneLiftsFromTheCoreAndEndsInItsPlaceByTheHead()
-    {
-        Assert.Equal(Core, Meeting.DroneAt(0, Core, 1, Idle, 5));
-        Assert.Equal(Core, Meeting.DroneAt(Meeting.Times.LiftFrom, Core, -1, Idle, 5));
-        foreach (double u in Sweep(Meeting.Times.RiseTo))
-            Assert.Equal(Idle, Meeting.DroneAt(u, Core, 1, Idle, u * 7));
-        // Hanging over the core between, a little away from the hero, whichever side it kneels on.
-        var right = Meeting.DroneAt(10, Core, 1, Idle, 0);
-        var left = Meeting.DroneAt(10, Core, -1, Idle, 0);
-        Assert.True(right.Y < Core.Y - 8 && right.X < Core.X && left.X > Core.X);
-    }
-
-    [Fact]
-    public void OneDroneAtATimeTheMeetingsTillItRisesTheHerosAfter()
-    {
-        foreach (double u in Sweep(0))
-        {
-            bool meeting = Meeting.FormsDrone(u), own = !Meeting.DrawsDrone(u);
-            Assert.False(meeting && own, $"two drones at {u:F3} s");
-            if (u >= Meeting.Times.LiftFrom) Assert.True(meeting || own, $"no drone at {u:F3} s");
-        }
-    }
-
-    [Fact]
-    public void TheHeadSwimsAsAWeakerLastBreathNeverReachingTheInk()
+    public void TheHeadSwimsLighterThanTheLastBreathNeverReachingTheInk()
     {
         double most = 0;
         foreach (double u in Sweep(-1, Meeting.End + 1)) most = Math.Max(most, Meeting.Dizzy(u));
-        Assert.Equal(Meeting.Strong, most, 6);
+        Assert.Equal(Meeting.Level, most, 6);
         Assert.True(most < Tunnel.Sinks);
         Assert.Equal(0, Tunnel.Of(most, 3).Ink);
-        // Held while the blood is drawn, eased off as the hero stands.
-        Assert.Equal(Meeting.Strong, Meeting.Dizzy(Meeting.Times.Soaked), 6);
-        Assert.Equal((0.0, 0.0), (Meeting.Dizzy(0), Meeting.Dizzy(Meeting.End)));
+        Assert.Equal(Meeting.Level, Meeting.Dizzy(10), 6);
+        Assert.Equal((0.0, 0.0, 0.0), (Meeting.Dizzy(Meeting.Times.DizzyFrom), Meeting.Dizzy(Meeting.Times.DizzyGone), Meeting.Dizzy(Meeting.End)));
+    }
+
+    [Fact]
+    public void TheSimSparesTheHeroForTheWholeScene()
+    {
+        double seconds = Meeting.End - Meeting.Times.Press;
+        Assert.True(seconds * Stillwake.Sim.World.TicksPerSecond <= global::Stillwake.Content.Crew.MeetingTicks);
+        Assert.True((seconds + 0.1) * Stillwake.Sim.World.TicksPerSecond > global::Stillwake.Content.Crew.MeetingTicks);
+    }
+
+    [Fact]
+    public void TheFlakesCoverTheScreenAndAllGoBeforeTheVision()
+    {
+        var flakes = new MeetingFlakes(1280, 720, new Vec(600, 500));
+        Assert.Equal(MeetingFlakes.Across * MeetingFlakes.Down, flakes.Flakes.Count);
+        double area = 0;
+        foreach (var f in flakes.Flakes)
+        {
+            area += Math.Abs((f.A.X * f.B.Y - f.B.X * f.A.Y) + (f.B.X * f.C.Y - f.C.X * f.B.Y) + (f.C.X * f.D.Y - f.D.X * f.C.Y) + (f.D.X * f.A.Y - f.A.X * f.D.Y)) / 2;
+            Assert.Equal(f.Middle, MeetingFlakes.At(f, 0)!.Value.Middle);
+        }
+        Assert.Equal(1280 * 720, area, 0);
+        Assert.Equal(0, MeetingFlakes.Crumbled(Meeting.Times.InFrom));
+        Assert.Equal(1, MeetingFlakes.Crumbled(Meeting.Times.InFrom + (Meeting.Times.InTo - Meeting.Times.InFrom) * 0.85), 6);
+        Assert.NotEmpty(flakes.Stars);
     }
 
     [Fact]
@@ -133,33 +218,37 @@ public class MeetingTests
     {
         Span<Vec> points = stackalloc Vec[41];
         foreach (int side in (int[])[1, -1])
+        {
+            var s = Scene(side);
             foreach (double u in Sweep(-0.5, Meeting.End + 0.5))
             {
-                var drone = Meeting.DroneAt(u, Core, side, Idle, u * 3);
-                var (on, glow) = Meeting.Lens(u);
-                var (colour, alpha) = Meeting.CrackLook(u);
-                Finite(u, Meeting.Kneel(u), Meeting.Lean(u), Meeting.Reach(u), Meeting.Look(u, 0.3), Meeting.Dizzy(u), Meeting.Wake(u),
-                    Meeting.Lift(u), Meeting.Rise(u), Meeting.Form(u), drone.X, drone.Y, Meeting.AngleOf(u, drone, Idle, 2), on, glow,
-                    Meeting.Halo(u, Meeting.Breath(u)), Meeting.DrinkGlow(u), Meeting.Soak(u), Meeting.LensShift(u), Meeting.DebrisIn(u),
-                    colour.R, colour.G, colour.B, alpha);
-                for (int i = 0; i < Meeting.Drops; i++)
-                    if (Meeting.DropAt(i, u, Palm, Core, side) is { } d) Finite(u, d.At.X, d.At.Y, d.Tail.X, d.Tail.Y, d.Alpha, d.Radius);
+                var core = s.CoreAt(u, Idle(s), 0.3);
+                var hero = s.HeroAt(u);
+                var face = s.FaceOf(u);
+                var (drinking, embers) = s.VoidGlow(u, core.R);
+                var (breathing, waking) = Meeting.SmallHalos(u, Meeting.Breath(u), core.R);
+                Finite(u, core.At.X, core.At.Y, core.R, core.Angle, hero.Feet.X, hero.Feet.Y, hero.Scale, hero.Turn, hero.Kneel, hero.Lean, hero.Reach,
+                    face.Cracks, face.CrackAlpha, face.Soak, face.Lens, face.Glow, drinking, embers, breathing, waking, Meeting.Hud(u), Meeting.Grade(u),
+                    Meeting.Dizzy(u), Meeting.Halo(u, Meeting.Breath(u)), Meeting.LensShift(u), Meeting.DebrisIn(u), Meeting.Rings(u), Meeting.Spread(u));
+                for (int i = 0; i < MeetingScene.Drops; i++)
+                    if (s.DropAt(i, u, Palm(s, u), core) is { } d) Finite(u, d.At.X, d.At.Y, d.Tail.X, d.Tail.Y, d.Mid.X, d.Mid.Y, d.Radius, d.Ember, d.Lit, d.SheenAlpha);
                 for (int k = 0; k < Meeting.CrackCount; k++)
                 {
-                    int n = Meeting.CrackAt(k, u, drone, 0.4, side, points);
+                    int n = Meeting.CrackAt(k, face.Cracks, points);
+                    for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
+                    n = Meeting.CrackAt(k, face.Cracks, points, twig: true);
                     for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
                 }
-                for (int i = 0; i < Meeting.Motes; i++)
-                    if (Meeting.MoteAt(i, u, Core, drone, 0.4) is { } m) Finite(u, m.At.X, m.At.Y, m.Side, m.Alpha);
                 for (int i = 0; i < Meeting.Plates; i++)
                 {
-                    var plate = Meeting.PlateOf(i, u, u + 40, Core, drone, Home(i));
+                    var plate = s.PlateOf(i, u, core.At, Home(i, u));
                     Finite(u, plate.At.X, plate.At.Y, plate.Turn, plate.Flip, Meeting.ArcAlpha(i, u), Meeting.LandFlash(i, u));
                     var (first, _) = Meeting.ArcSeeds(i, u);
-                    int n = Meeting.Arc(drone, plate.At, first, points);
+                    int n = Meeting.Arc(core.At, plate.At, first, points);
                     for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
                 }
             }
+        }
     }
 
     [Fact]
@@ -192,6 +281,15 @@ public class MeetingTests
         var standing = Poses.LimbsOf(Pose.Kneel, hero, new Moment(0, 0, Kneel: new Kneeling(0, 0)));
         Assert.True(Math.Abs(standing.Lift) < 1, $"standing {standing.Lift:F2} px off the floor");
         Assert.False(Poses.HoldsIn(Pose.Kneel));
+    }
+
+    private static int Drops(MeetingScene s, double u)
+    {
+        int n = 0;
+        var core = s.CoreAt(u, Idle(s), 0);
+        for (int i = 0; i < MeetingScene.Drops; i++)
+            if (s.DropAt(i, u, Palm(s, u), core) is not null) n++;
+        return n;
     }
 
     private static void Finite(double u, params double[] numbers)

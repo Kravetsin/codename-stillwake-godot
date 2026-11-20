@@ -817,6 +817,9 @@ public partial class Figure : Node2D
     /// <summary>Where its drone flies instead of its place by the head, pixels of the world, its lens turned toward a unit vector (drone-meeting); none for its place.</summary>
     public (Vector2 At, Vector2 Toward)? DroneTo { get; set; }
 
+    /// <summary>How opaque its drone is, 0..1: a friend's new drone fading in by its head as its meeting ends (drone-meeting).</summary>
+    public float DroneFade { set => _drone.Modulate = new Color(1, 1, 1, value); }
+
     /// <summary>Its drone's lens's colour as it is now.</summary>
     public Color DroneLensColour => _drone.LensColour;
 

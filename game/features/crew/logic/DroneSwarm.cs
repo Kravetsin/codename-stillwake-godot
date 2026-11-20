@@ -229,6 +229,13 @@ public sealed class DroneSwarm
         return new Mote(x - y / length * wander, y + x / length * wander, seed.Size, front, Tune.FlowGlow * MathF.Sin(k * MathF.PI), Heat(seed, t), seed.Dark);
     }
 
+    /// <summary>Mote <paramref name="i"/>'s seed: its phase on its orbit, its spread, its side, whether it smoulders and whether dark (the drone's meeting winds its blood onto them).</summary>
+    public static (float Phase, float R1, float Size, bool Hot, bool Dark) SeedOf(int i)
+    {
+        var s = MoteSeeds[i];
+        return (s.Phase, s.R1, s.Size, s.Hot, s.Dark);
+    }
+
     /// <summary>Plate <paramref name="i"/> held in <paramref name="shape"/>, <paramref name="t"/> seconds on, aimed <paramref name="aim"/>: the pick's <c>tf</c>.</summary>
     public static Plate PlateIn(SwarmShape shape, int i, float aim, float t)
     {

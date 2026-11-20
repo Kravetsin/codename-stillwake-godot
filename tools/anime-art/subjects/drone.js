@@ -232,5 +232,92 @@ Subjects.drone = function () {
   heap.filter(p => p.y >= 60).forEach(mote);
   for (const p of heap) if (p.hot) halo(l, p.x, p.y, 3, EMBER, .3);
   out('machine_alienCore', lying);
+
+  // The giant core of the drone's meeting (drone-meeting), the vision page's (drone-vision.js gCore) at its giant size, 2x its 27 px a
+  // unit, its pens' caps doubled with it: drawn by the game at any size, never stretched past this. Four pictures on one frame, the core's
+  // middle at the frame's: its body with the light from straight above and its ink (drone_giant, never turned); its pits, hairlines and
+  // rust (drone_giant_skin), its dull lens (drone_giant_lens) and that lens lit (drone_giant_lit), all three turned with the lens.
+  for (const [name, draw] of [['drone_giant', giantBody], ['drone_giant_skin', giantSkin], ['drone_giant_lens', giantLens], ['drone_giant_lit', giantLit]]) {
+    const cv = document.createElement('canvas');
+    [cv.width, cv.height] = [GiantBox, GiantBox];
+    const g = cv.getContext('2d');
+    g.translate(GiantBox / 2, GiantBox / 2); g.scale(GiantR, GiantR);
+    draw(g);
+    out(name, cv);
+  }
 };
+
+// ---------- the giant core (drone-vision.js), drawn at GiantR px a unit ----------
+const GiantR = 54, GiantBox = 672;
+const cap = (x, m) => x / Math.sqrt(1 + (x / m) * (x / m));
+const pen = (R, w, m) => cap(w * R, 2 * m) / R;
+const PITS = [[-2.9, -2.4, .34], [-1.1, -3.7, .2], [1.5, -3.2, .26], [-3.9, .2, .28], [-.9, 1.4, .17], [2.6, 2.9, .3], [.6, 4.1, .22], [-2.3, 3.5, .19], [-4.2, -1.5, .16], [3.6, -1.9, .18], [-1.7, -.6, .13], [-3.1, 2.1, .12]];
+const HAIR = [[[-3.2, -1.2], [-2.6, -.9], [-2.4, -.2]], [[1.1, -4.3], [1.5, -3.7], [2.2, -3.6]], [[-1.6, 2.2], [-1.0, 2.6], [-1.1, 3.1]], [[3.3, 1.2], [3.9, 1.6]], [[-4.6, 1.6], [-4.0, 2.2], [-4.1, 2.8]], [[-.4, -4.6], [-.1, -4.1]]];
+const RUSTE = (() => { const r = rng(121), o = []; for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283 + r() * .4, d = 1.5 + r() * .7; o.push(blobAt(r, -2 + Math.cos(a) * d, 2.5 + Math.sin(a) * d * .9, .14 + r() * .18)); } return o; })();
+// The giant's watercolour, in device px: pooling with a darker tide line, grain, a few fibres; it tiles.
+function paper(g) {
+  const N = 320, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const x = cv.getContext('2d'), r = rng(4242), round = (f) => { for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) { x.save(); x.translate(ox, oy); f(); x.restore(); } };
+  for (let i = 0; i < 22; i++) {
+    const b = blobAt(r, r() * N, r() * N, 16 + r() * 46), dark = r() < .6;
+    round(() => { trace(x, b.s); x.fillStyle = dark ? 'rgba(0,0,0,.075)' : 'rgba(255,255,255,.035)'; x.fill(); x.strokeStyle = dark ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.05)'; x.lineWidth = 1.3; x.stroke(); });
+  }
+  for (let i = 0; i < 5200; i++) { const d = r() < .62, px = r() * N, py = r() * N; x.fillStyle = d ? `rgba(0,0,0,${(.05 + r() * .14).toFixed(3)})` : `rgba(255,255,255,${(.025 + r() * .06).toFixed(3)})`; x.fillRect(px, py, 1 + (r() < .25), 1); }
+  x.lineWidth = .8; x.strokeStyle = 'rgba(0,0,0,.08)';
+  for (let i = 0; i < 26; i++) { const px = r() * N, py = r() * N, rad = 8 + r() * 30, a0 = r() * 6.283; round(() => { x.beginPath(); x.arc(px, py, rad, a0, a0 + 1.2); x.stroke(); }); }
+  return g.createPattern(cv, 'repeat');
+}
+function giantBody(c) {
+  const R = GiantR;
+  c.save(); trace(c, ash.core); c.clip();
+  c.fillStyle = DARK[2]; c.fillRect(-9, -9, 18, 18);
+  c.save(); c.translate(0, -.8); c.fillStyle = DARK[1]; trace(c, ash.core); c.fill(); c.restore();
+  c.save(); c.translate(0, -2.6); c.fillStyle = DARK[0]; trace(c, ash.core); c.fill(); c.restore();
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = .9; c.fillStyle = paper(c); c.fillRect(0, 0, GiantBox, GiantBox); c.restore();
+  c.restore();
+  // The pick's gInk: a lit edge where the outline faces up, then the wandering pen.
+  const s = ash.core, off = cap(1.4 * R, 2 * 2.6) / R;
+  c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = 'rgba(214,220,226,.5)'; c.lineWidth = pen(R, 1, 1.6);
+  for (const g of s.segs) {
+    const nx = g[2] - s.cx, ny = g[3] - s.cy, L = Math.hypot(nx, ny) || 1;
+    if (ny / L < -.42) { const ix = -nx / L * off, iy = -ny / L * off; c.beginPath(); c.moveTo(g[0] + ix, g[1] + iy); c.quadraticCurveTo(g[2] + ix, g[3] + iy, g[4] + ix, g[5] + iy); c.stroke(); }
+  }
+  c.strokeStyle = INK; const lw = pen(R, 1.7, 5.5);
+  for (const g of s.segs) { if (g[6] <= .05) continue; c.lineWidth = lw * g[6]; c.beginPath(); c.moveTo(g[0], g[1]); c.quadraticCurveTo(g[2], g[3], g[4], g[5]); c.stroke(); }
+  c.restore();
+}
+function giantSkin(c) {
+  const R = GiantR;
+  c.save(); trace(c, ash.core); c.clip(); c.lineCap = 'round';
+  for (const [x, y, r] of PITS) {
+    c.fillStyle = 'rgba(14,15,18,.55)'; c.beginPath(); c.ellipse(x, y, r, r * .82, 0, 0, 6.283); c.fill();
+    c.strokeStyle = 'rgba(205,210,218,.4)'; c.lineWidth = pen(R, .07, 1.3); c.beginPath(); c.ellipse(x, y + r * .08, r * .86, r * .68, 0, .4, 2.75); c.stroke();
+    c.strokeStyle = 'rgba(10,10,12,.6)'; c.lineWidth = pen(R, .09, 1.6); c.beginPath(); c.ellipse(x, y, r * 1.05, r * .86, 0, 3.6, 5.9); c.stroke();
+  }
+  c.strokeStyle = 'rgba(12,13,16,.7)'; c.lineWidth = pen(R, .08, 1.2);
+  for (const h of HAIR) { c.beginPath(); c.moveTo(h[0][0], h[0][1]); for (let i = 1; i < h.length; i++) c.lineTo(h[i][0], h[i][1]); c.stroke(); }
+  c.restore();
+  rust(c, ash.crust);
+  c.fillStyle = 'rgba(96,52,30,.8)'; for (const b of RUSTE) { trace(c, b.s); c.fill(); }
+}
+function giantLens(c) {
+  const R = GiantR * .82;
+  c.save(); c.translate(2.2, 0); c.scale(.82, .82);
+  c.fillStyle = DARK[2]; c.beginPath(); c.ellipse(0, 0, 3.1, 4.4, 0, 0, 6.283); c.fill(); c.strokeStyle = INK; c.lineWidth = pen(R, 1.3, 3.8); c.stroke();
+  c.fillStyle = css(pale([77, 64, 45], .1)); c.beginPath(); c.ellipse(.3, 0, 2.1, 3.3, 0, 0, 6.283); c.fill();
+  c.save(); c.beginPath(); c.ellipse(.3, 0, 2.1, 3.3, 0, 0, 6.283); c.clip();
+  c.translate(0, .9); c.fillStyle = css([52, 44, 34], .75); c.beginPath(); c.ellipse(.3, 0, 2.1, 3.3, 0, 0, 6.283); c.fill(); c.restore();
+  c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = pen(R, .16, 2.4); c.beginPath(); c.ellipse(.3, 0, 1.7, 2.8, 0, 3.55, 4.3); c.stroke();
+  c.restore();
+}
+function giantLit(c) {
+  const R = GiantR * .82, SIGN = [168, 238, 255];
+  c.save(); c.translate(2.2, 0); c.scale(.82, .82);
+  c.fillStyle = css(pale(SIGN, .3)); c.beginPath(); c.ellipse(.3, 0, 2.1, 3.3, 0, 0, 6.283); c.fill();
+  c.fillStyle = css(pale(SIGN, .8)); c.beginPath(); c.ellipse(.8, 0, .9, 1.7, 0, 0, 6.283); c.fill();
+  c.strokeStyle = css(pale(SIGN, .55), .4); c.lineWidth = pen(R, .12, 1.3);
+  for (const k of [.72, .46]) { c.beginPath(); c.ellipse(.3, 0, 2.1 * k, 3.3 * k, 0, 0, 6.283); c.stroke(); }
+  c.restore();
+}
 })();

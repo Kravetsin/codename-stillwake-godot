@@ -449,7 +449,7 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
-        // Meeting its drone, the hero kneels where it is, held still as if seated till it ends (drone-meeting).
+        // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting).
         _locked = _meetings.ContainsKey(client.Id);
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
@@ -492,7 +492,8 @@ public partial class HeroView : Node2D
         // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
         // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.
         if (known == null || woke || m.Items.Creative(client.Id)) _body.Reset();
-        else if (!passedOut && !_body.Gone
+        // Spared by its drone's meeting, the body holds as it is till it ends (drone-meeting).
+        else if (!passedOut && !_body.Gone && !m.Crew.Spared(client.Id)
             && _body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
             client.Send(new Sim.Crew.Succumb());
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.

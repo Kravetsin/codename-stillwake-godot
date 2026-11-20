@@ -96,8 +96,8 @@ public partial class HeroView
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion); seen
-            // pairing here, it meets it as its peer does (drone-meeting).
-            if (_watch.Turned(m, id, m.Players.HasDrone(id), crew.CoreLost())) Meet(id, hero, m);
+            // pairing here, it stands through its meeting, its drone shown as the meeting ends (drone-meeting).
+            if (_watch.Turned(m, id, m.Players.HasDrone(id), crew.CoreLost())) MeetFriend(id);
             shown.Figure.Paired = m.Players.HasDrone(id);
             (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
             shown.Figure.DroneWindow = (seen.Projects, 0);
