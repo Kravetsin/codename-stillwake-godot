@@ -64,6 +64,17 @@ public static class Aiming
         return dx * dx + dy * dy <= (long)Spec.Hero.Reach * Spec.Hero.Reach;
     }
 
+    /// <summary>Whether the hero's body is within <see cref="Spec.Hero.CoreTouch"/> of <paramref name="core"/>'s footprint either way: near enough to lay a palm on it.</summary>
+    public static bool Touches(Hero hero, Machine core, int width)
+    {
+        var spec = Spec.Machines.Get(core.Kind);
+        long left = core.Cell % width * Hero.Unit, top = core.Cell / width * Hero.Unit;
+        long right = left + spec.Width * Hero.Unit, bottom = top + spec.Height * Hero.Unit, half = Spec.Hero.Width / 2;
+        long dx = Math.Max(0, Math.Max(left - (hero.X + half), hero.X - half - right));
+        long dy = Math.Max(0, Math.Max(top - hero.Y, hero.Y - Spec.Hero.Height - bottom));
+        return dx <= Spec.Hero.CoreTouch && dy <= Spec.Hero.CoreTouch;
+    }
+
     private static (int HalfW, int HalfH)? HalfOf(string item) => WreckAim.HalfOf(item);
 
     private const int WreckMargin = WreckAim.Margin;
@@ -269,6 +280,7 @@ public static class Aiming
             : machine != null && Spec.Machines.Is(machine.Kind, Spec.MachineTrait.Wakes) && !m.Players.HasDrone(peer) && !m.Crew.CoreLost()
             ? new Use(new Sim.Crew.PairDrone(machine.Id), m.Crew.PairProblem(peer, machine.Id))
             : crate == null ? PressOf(m, peer, cell, shown) : null;
+        if (press?.Command is Sim.Crew.PairDrone) inReach = Touches(hero, machine!, grid.Width);
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         // Over a machine's or a plan's risen picture, as if at its footprint's top row under the pointer.
         if (riseOf != null && Risen.Under(grid, m.Building, cell, riseOf) is int top
