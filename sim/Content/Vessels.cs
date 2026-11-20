@@ -366,15 +366,17 @@ public static class Vessels
         new(MedCab, 2, 5, [], [("plate", 2), ("glass", 1), ("canister", 1)], BuildTicks: 120, Hp: 6),
         // The hangar's fuel cart and the fuel tank by a liner's engines, a look a content (fuel first; the tanker's bays the rest).
         new(FuelCart, 3, 2, [], [("plate", 2), ("tube", 1)], BuildTicks: 80, Hp: 6),
-        .. Looked(new(Capsule, 14, 11, [], [("plate", 10), ("tube", 4)], BuildTicks: 240, Hp: 30, Slots: TankSlots), CapsuleContents),
+        // A fuel tank broken gives what fuel clung to its walls besides what it held (Fits.FuelOnBreaking): the capsule's first look.
+        .. Looked(new(Capsule, 14, 11, [], [("plate", 10), ("tube", 4)], BuildTicks: 240, Hp: 30, Slots: TankSlots), CapsuleContents)
+            .Select((row, look) => look == 0 ? row with { Cost = [.. row.Cost, (Fuel.Item, Fits.FuelOnBreaking.Capsule)] } : row),
         // A tanker's (big-vessels, the mockup's furnish): the pump room's pump and its wall panel of valves, a pipeway's too; a bay's
         // tall tanks, a look a content but fuel (water, oxygen); the fuel bay's column, one for a span of three decks, one for four. The
         // valves' panel stands floor to ceiling of a deck. Every tank holds its liquid (Fits.SmallTank and on), spilled as it breaks.
         new(Pump, 4, 4, [], [("gear", 2), ("tube", 3), ("rotor", 1)], BuildTicks: 160, Hp: 12),
         new(Valves, 3, Open, [], [("tube", 3), ("gear", 1)], BuildTicks: 120, Hp: 8),
         .. Looked(new(TankTall, 8, 11, [], [("plate", 6), ("tube", 2)], BuildTicks: 200, Hp: 20, Slots: TankSlots), TankTallContents),
-        new(FuelColumn3, 10, 19, [], [("plate", 14), ("tube", 4)], BuildTicks: 300, Hp: 40, Slots: TankSlots),
-        new(FuelColumn4, 10, 26, [], [("plate", 18), ("tube", 4)], BuildTicks: 360, Hp: 48, Slots: TankSlots),
+        new(FuelColumn3, 10, 19, [], [("plate", 14), ("tube", 4), (Fuel.Item, Fits.FuelOnBreaking.Column)], BuildTicks: 300, Hp: 40, Slots: TankSlots),
+        new(FuelColumn4, 10, 26, [], [("plate", 18), ("tube", 4), (Fuel.Item, Fits.FuelOnBreaking.Column)], BuildTicks: 360, Hp: 48, Slots: TankSlots),
         // A hangar's shuttle, one of five models (the mockup's SHUTTLE_DRAW and yields; its motor a rotor, its small nozzle copper): only taken apart.
         new(ShuttleGull, 21, 7, [], [("plate", 14), ("wire", 6), ("glass", 2), ("tube", 3)], BuildTicks: 240, Hp: 30),
         new(ShuttleMule, 24, 9, [], [("plate", 20), ("frame", 4), ("tube", 4)], BuildTicks: 240, Hp: 36),
@@ -646,6 +648,18 @@ public static class Vessels
         /// large one (a fuel column, a liner's fuel tank by its engines).
         /// </summary>
         public static readonly (int Min, int Max) SmallTank = (5, 15), MediumTank = (10, 25), LargeTank = (15, 35);
+
+        /// <summary>
+        /// A tanker's fuel (vessel-wrecks fixes, 150–300 litres a tanker on average): its fuel bay's column holds this many litres, at
+        /// most its slots' whole (<see cref="TankSlots"/> stacks of 20); a tank bay's capsule holds fuel this often in a hundred, else
+        /// water or oxygen alike.
+        /// </summary>
+        public static readonly (int Min, int Max) ColumnTank = (90, 140);
+
+        public const int FuelCapsulePercent = 55;
+
+        /// <summary>The litres a fuel tank gives broken, besides what it held: a column's, a fuel capsule's.</summary>
+        public static readonly (int Column, int Capsule) FuelOnBreaking = (30, 10);
     }
 
     /// <summary>The surface kind each class's vessel lies on (vessel-worlds), in the order of <see cref="Classes"/>.</summary>

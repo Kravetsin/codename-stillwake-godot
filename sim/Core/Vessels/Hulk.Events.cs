@@ -100,7 +100,18 @@ internal sealed partial class Hulk
                 for (int y = Math.Max(0, bands[b]); y < Math.Min(_h, bands[b + 1]); y++) cut[y] = rib.Left + j;
             }
             foreach (var t in _things)
-                if (!t.Gone && t.Machine && !ProtThing(t) && 2 * t.X + t.W < 2 * cut[Math.Clamp(t.Y + t.H / 2, 0, _h - 1)]) t.Gone = true;
+            {
+                if (t.Gone || !t.Machine || ProtThing(t) || 2 * t.X + t.W >= 2 * cut[Math.Clamp(t.Y + t.H / 2, 0, _h - 1)]) continue;
+                if (t.W * t.H <= 30 && r.Below(100) < 45)
+                {
+                    t.Gone = true;
+                    continue;
+                }
+                long mx = 10 * t.X + 5 * t.W, my = 10 * t.Y + 5 * t.H;
+                var (ax, ay) = Unit(mx - 10 * (rib.Left + 1), my - 5 * cy2);
+                var (ux, uy) = Unit(ax * 9 / 10 - 400, ay);
+                Throw(r, t, mx, my, ux, uy, 8 + r.Below(17));
+            }
             var list = new List<(int, int)>();
             for (int y = 0; y < _h; y++)
             {
@@ -126,7 +137,13 @@ internal sealed partial class Hulk
                 // dy stretched by 1.15: 1.3225 in hundredths.
                 if ((100 * dx * dx + 132 * dy * dy) * 1_000_000 < rad * rad) cells.Add((x, y));
             }
-        foreach (var t in Carve(cells, rec)) t.Gone = true;
+        // What the void hit: blown apart four times in ten, else thrown out from its edge.
+        foreach (var t in Carve(cells, rec))
+        {
+            var (ax, ay) = Unit(10 * t.X + 5 * t.W - 5 * cx2, 10 * t.Y + 5 * t.H - 5 * cy2);
+            if (r.Below(100) < 40) t.Gone = true;
+            else Throw(r, t, 5 * cx2 + ax * radius / 100, 5 * cy2 + ay * radius / 100, ax, ay, 4 + r.Below(19));
+        }
         int cy = cy2 / 2;
         ShiftArmour((cx2 * 5 - 18 * radius) / 10, (cx2 * 5 + 18 * radius + 9) / 10, cy, outward: true);
         BuckleDecks(cx2, 12 * radius, 1);
@@ -378,7 +395,8 @@ internal sealed partial class Hulk
                 if (hit) cells.Add((x, y));
             }
         var keep = cells.FindAll(c => !(At(c.Item1, c.Item2) == Wall && _skin[I(c.Item1, c.Item2)] && RibAt(c.Item1, c.Item2)));
-        foreach (var t in Carve(keep, rec)) t.Gone = true;
+        var (sfx, sfy) = Unit(side * 1000, -380);
+        foreach (var t in Carve(keep, rec)) Throw(r, t, 5 * ccx2, 10 * (top - 1), sfx, sfy, 4 + r.Below(41));
         ShiftArmour(cx - R - 6, cx + R + 6, ccy2 / 2, outward: false, x => 10 * Math.Abs(x - cx) > 8 * R);
         BuckleDecks(ccx2, 9 * R, 2);
         Lodge(rec, (ccx2 + (int)(12 * ux * R / 10_000)) / 2, ccy2 / 2);
@@ -398,7 +416,9 @@ internal sealed partial class Hulk
                     // dy shrunk by 1.3: 169 against 100.
                     if ((169 * dx * dx + 100 * dy * dy) * 10_000 < 169 * rad * rad) hole.Add((x, y));
                 }
-            foreach (var t in Carve(hole, rec)) t.Gone = true;
+            foreach (var t in Carve(hole, rec))
+                if (r.Below(2) == 0) t.Gone = true;
+                else Throw(r, t, 10 * sx + 5, 10 * (st - 1), sfx, sfy, 4 + r.Below(21));
             if (k == 0) Lodge(rec, sx, st);
         }
         Vent();
@@ -425,13 +445,15 @@ internal sealed partial class Hulk
             for (int dy = 0; dy < spec.Height && fits; dy++)
                 for (int dx = 0; dx < spec.Width && fits; dx++) fits = Free(left + dx, yy + dy);
             if (!fits) return;
+            int under = 0;
             for (int dx = 0; dx < spec.Width; dx++)
-                if (At(left + dx, yy + spec.Height) >= Wall)
-                {
-                    _things.Add(new Thing { Layer = "machine", Kind = Vessels.Stone, X = left, Y = yy, W = spec.Width, H = spec.Height });
-                    rec.Stones.Add((left, yy));
-                    return;
-                }
+                if (At(left + dx, yy + spec.Height) >= Wall) under++;
+            if (under == 0) continue;
+            // A stone lies only where the floor holds its whole width; one landing over an edge rolls off and is lost.
+            if (under < spec.Width) return;
+            _things.Add(new Thing { Layer = "machine", Kind = Vessels.Stone, X = left, Y = yy, W = spec.Width, H = spec.Height, Rest = 0, Touched = spec.Width });
+            rec.Stones.Add((left, yy));
+            return;
         }
     }
 
@@ -488,6 +510,12 @@ internal sealed partial class Hulk
         }
         for (int k = 0; k < _rocks.Count; k++) _rocks[k] = Mp(_rocks[k], _bodyTop).X;
         if (_last != null) (_last.X, _last.Y) = Mp(_last.X, _last.Y);
+        foreach (var t in _things)
+            if (t.Thrown && t.Gone)
+            {
+                var (ax, ay) = Mp(WreckMath.FloorDiv(t.Aim.X, 10), WreckMath.FloorDiv(t.Aim.Y, 10));
+                t.Aim = (t.Aim.X + 10 * (ax - WreckMath.FloorDiv(t.Aim.X, 10)), t.Aim.Y + 10 * (ay - WreckMath.FloorDiv(t.Aim.Y, 10)));
+            }
         if (_blast is { } bl) _blast = (2 * Mp(bl.X2 / 2, bl.Y2 / 2).X + bl.X2 % 2, 2 * Mp(bl.X2 / 2, bl.Y2 / 2).Y + bl.Y2 % 2, bl.R);
         bool protStern = Stern(_prot.X0, _prot.Y0);
         var (px0, py0) = Mv(_prot.X0, _prot.Y0, protStern);
@@ -517,7 +545,12 @@ internal sealed partial class Hulk
                 for (int x = t.X; x < t.X + t.W && !across; x++) across = Stern(x, y) != s0;
             if (across)
             {
-                t.Gone = true;
+                if (!t.Machine || r.Below(100) < 30) t.Gone = true;
+                else
+                {
+                    Throw(r, t, 5 * (2 * c0 + gb - gs), 10 * t.Y + 5 * t.H + 5 * (dyS + dyB), 0, 0, 0);
+                    t.Aim = (t.Aim.X + ((int)r.Below(61) - 30) * gap / 10, t.Aim.Y + (int)r.Below(61) - 30);
+                }
                 continue;
             }
             (t.X, t.Y) = Mv(t.X, t.Y, s0);
@@ -602,6 +635,19 @@ internal sealed partial class Hulk
     /// </summary>
     public List<WreckPatch> Strip(Rng r)
     {
+        // Scavengers leave the plates a part stands on or hangs from: they take panels, not what holds the vessel's parts.
+        var holds = new bool[_gw * _gh];
+        for (int t = 0; t < _things.Count; t++)
+        {
+            var th = _things[t];
+            if (th.Gone || th.Rest < 0) continue;
+            int along = th.Rest < 2 ? th.W : th.H;
+            for (int k = 0; k < along; k++)
+            {
+                var (x, y) = th.Rest switch { 0 => (th.X + k, th.Y + th.H), 1 => (th.X + k, th.Y - 1), 2 => (th.X - 1, th.Y + k), _ => (th.X + th.W, th.Y + k) };
+                if (In(x, y)) holds[I(x, y)] = true;
+            }
+        }
         var holes = new List<int>();
         for (int i = 0; i < _cells.Length; i++)
             if (_carved[i] && _orig[i] == Wall && _skin[i]) holes.Add(i);
@@ -624,7 +670,7 @@ internal sealed partial class Hulk
                     if (At(x, yy) == Wall && _skin[I(x, yy)]) list.Add((x, yy));
                 }
             }
-            Carve(list, null, keepRibs: true);
+            Carve(list.FindAll(c => !In(c.Item1, c.Item2) || !holds[I(c.Item1, c.Item2)]), null, keepRibs: true);
         }
         holes = holes.FindAll(i => _cells[i] == Space);
         var patches = new List<WreckPatch>();

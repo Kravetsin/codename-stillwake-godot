@@ -10,10 +10,10 @@ using Looks = Stillwake.Game.VesselLooks;
 namespace Stillwake.Game.Features.Light;
 
 /// <summary>
-/// How a derelict's lamp burns (derelict-looks): red on its battery, dead, or the vessel's one dying lamp; on a wreck (vessel-wrecks), a
-/// broken stern's lamp blinking red, or a sealed room's still lit warm.
+/// How a derelict's lamp burns (derelict-looks, vessel-wrecks): dead, the vessel's one flickering, or lit: a wreck's red on its battery,
+/// an abandoned vessel's white, its own light.
 /// </summary>
-public enum LampState { Red, Dead, Dying, Blink, Warm }
+public enum LampState { Red, Dead, Dying, Warm }
 
 /// <summary>A lamp the vessel was stamped with: its top-left in the vessel's frame, its kind, how it burns, where its phase starts.</summary>
 public readonly record struct VesselLamp(int X, int Y, string Kind, LampState State, double PhaseMs);
@@ -58,19 +58,16 @@ public sealed class VesselLights
         var airlock = vessel.Compartments.First(c => c.Holds(sx, sy));
         bool InAirlock(VesselPart p) => airlock.Holds(p.X, p.Y);
 
+        // A lamp an event carved is simply gone with its part; the rest burn as an abandoned vessel's do, a wreck's lit ones red.
+        var lit = built.Wreck != null ? LampState.Red : LampState.Warm;
         var lamps = parts.Where(p => p.Layer == "machine" && LampKinds.Contains(p.Kind)).ToList();
         var others = lamps.Where(p => !InAirlock(p)).ToList();
         var dying = others.Count == 0 ? null : others[Looks.Below(Seed, Looks.Salt.Dying, 0, others.Count)];
         Lamps = lamps.Select(p => new VesselLamp(p.X, p.Y, p.Kind,
-            InAirlock(p) ? LampState.Red : p == dying ? LampState.Dying
-            : Looks.Below(Seed, Looks.Salt.Lamp, Cell(p), 100) < Looks.LampRedPercent ? LampState.Red : LampState.Dead,
+            InAirlock(p) ? lit : p == dying ? LampState.Dying
+            : Looks.Below(Seed, Looks.Salt.Lamp, Cell(p), 100) < Looks.LampRedPercent ? lit : LampState.Dead,
             Phase(p))).ToList();
         Dying = dying == null ? null : lamps.IndexOf(dying);
-        if (built.Wreck is { } wreck)
-        {
-            Lamps = ByWreck(built, wreck, Lamps, Seed);
-            Dying = Lamps.Select((l, i) => (l, i)).Where(t => t.l.State == LampState.Dying).Select(t => (int?)t.i).FirstOrDefault();
-        }
 
         Consoles = parts.Where(p => p.Layer == "machine" && ConsoleKinds.Contains(Vessels.FirstLook(p.Kind))).Select(p =>
         {
@@ -122,51 +119,12 @@ public sealed class VesselLights
     {
         LampState.Red => Breathes(L.EmergencyBreathe, L.EmergencyRate, ms, phaseMs),
         LampState.Dying => DyingAt(ms, phaseMs),
-        LampState.Blink => (ms + phaseMs) % Looks.BlinkMs < Looks.BlinkMs / 2 ? 1 : 0,
         LampState.Warm => 1,
         _ => 0,
     };
 
     /// <summary>Whether a lamp in <paramref name="state"/> burns its battery's red, not its own colour.</summary>
-    public static bool Emergency(LampState state) => state is LampState.Red or LampState.Blink;
-
-    /// <summary>
-    /// The lamps of a wreck by its events (vessel-wrecks, the mockup's lamps): all dark when its last group is old or the power was lost
-    /// first; else dark in every compartment a fire burnt or the air left, now and then one stuttering there instead; after a break the
-    /// stern's all blinking red and the bow's dark but one sealed compartment's, still lit warm.
-    /// </summary>
-    public static IReadOnlyList<VesselLamp> ByWreck(Built made, VesselWreck wreck, IReadOnlyList<VesselLamp> lamps, uint seed)
-    {
-        var v = made.Vessel;
-        bool dark = wreck.Events[^1].Old || wreck.Events[0].Kind == WreckKind.Icing && wreck.Events[0].Radius == 0;
-        if (dark) return [.. lamps.Select(l => l with { State = LampState.Dead })];
-        var burnt = wreck.Events.Where(e => e.Kind == WreckKind.Fire).SelectMany(e => e.Compartments).ToHashSet();
-        int RoomOf(VesselLamp l)
-        {
-            for (int c = 0; c < v.Compartments.Count; c++)
-                if (v.Compartments[c].Holds(l.X + 1, l.Y)) return v.Compartments[c].Of >= 0 ? v.Compartments[c].Of : c;
-            return -1;
-        }
-        bool Sealed(int room) => room >= 0 && !burnt.Contains(room) && !wreck.Vented.Contains(room);
-        var states = lamps.Select(l =>
-        {
-            int room = RoomOf(l);
-            if (Sealed(room) || room < 0) return l.State;
-            return !burnt.Contains(room) && Looks.Below(seed, Looks.Salt.Flicker, l.Y * v.Width + l.X, 100) < Looks.StutterPercent ? LampState.Dying : LampState.Dead;
-        }).ToArray();
-        if (wreck.Events.FirstOrDefault(e => e.Break != null)?.Break is { } cut)
-        {
-            for (int i = 0; i < lamps.Count; i++) states[i] = lamps[i].X < cut.Column ? LampState.Blink : LampState.Dead;
-            var lit = lamps.Select(RoomOf).Where(Sealed).Distinct().Order().ToList();
-            if (lit.Count > 0)
-            {
-                int keep = lit[Looks.Below(seed, Looks.Salt.Lamp, 1, lit.Count)];
-                for (int i = 0; i < lamps.Count; i++)
-                    if (RoomOf(lamps[i]) == keep) states[i] = LampState.Warm;
-            }
-        }
-        return [.. lamps.Select((l, i) => l with { State = states[i] })];
-    }
+    public static bool Emergency(LampState state) => state is LampState.Red;
 
     /// <summary>How bright a lit screen is, glitching or not.</summary>
     public static float Screen(bool glitching, double ms, double phaseMs) =>

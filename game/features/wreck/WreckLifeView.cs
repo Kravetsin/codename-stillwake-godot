@@ -55,8 +55,7 @@ public partial class WreckLifeView : Node2D, ILightSource
         var livery = Looks.LiveriesOf(built.Vessel.Class)[Looks.LiveryOf(built.Vessel.Class, built.Vessel.Seed)];
         uint hull = built.Wreck.Scavenged ? Looks.Faded(livery).Hull : livery.Hull;
         WreckLooks.Of(scene, hull, _ => null, ends);
-        var intact = Shipyard.Build(Content.Vessels.Class(built.Vessel.Class)!, built.Vessel.Seed, []);
-        return new WreckLifeView(WreckLife.Of(scene, intact, ends, lights), hull);
+        return new WreckLifeView(WreckLife.Of(scene, ends, lights), hull);
     }
 
     private WreckLifeView(WreckLife life, uint hull)
@@ -144,10 +143,6 @@ public partial class WreckLifeView : Node2D, ILightSource
                 g.DrawSetTransform(Px(x, y), (float)turn, Vector2.One * Cell);
                 switch (d.Kind)
                 {
-                    case DriftKind.Machine:
-                        var spec = Content.Machines.Get(d.Machine!);
-                        g.DrawTextureRect(PixelArt.Picture($"machine_{d.Machine}"), new Rect2(-spec.Width / 2f, -spec.Height / 2f, spec.Width, spec.Height), false);
-                        break;
                     case DriftKind.Rock:
                         var stone = d.Shape!.Select(p => new Vector2((float)(p.X * d.Size), (float)(p.Y * d.Size))).ToArray();
                         g.DrawColoredPolygon(stone, Of(0x5c5045));

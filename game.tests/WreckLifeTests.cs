@@ -16,7 +16,7 @@ public class WreckLifeTests
         var scene = new WreckScene(built);
         var ends = new List<WreckLooks.End>();
         WreckLooks.Of(scene, 0xaeb6b7, _ => null, ends);
-        return WreckLife.Of(scene, Shipyard.Build(V.Class(cls)!, seed, []), ends, lights ?? []);
+        return WreckLife.Of(scene, ends, lights ?? []);
     }
 
     private static int Count(WreckLife l, Mote k) => l.Motes[k].Count;

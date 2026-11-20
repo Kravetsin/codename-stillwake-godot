@@ -23,7 +23,7 @@ public class VesselLightsTests(ITestOutputHelper output)
         output.WriteLine(string.Concat(lights.Consoles.Select(c => c.Lit ? c.Glitching ? 'G' : 'L' : '-')));
         var dying = lights.Lamps[lights.Dying!.Value];
         Assert.Equal((LampState.Dying, 88, 27), (dying.State, dying.X, dying.Y));
-        Assert.Equal("rrr...r.rr.r.yr.", string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' })));
+        Assert.Equal("rrr...r.rr.r.yr.", string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Warm => 'r', LampState.Dying => 'y', _ => '.' })));
         Assert.All(lights.Lamps, l => Assert.Equal(V.Lamp, l.Kind));
         Assert.Equal("-L", string.Concat(lights.Consoles.Select(c => c.Lit ? c.Glitching ? 'G' : 'L' : '-')));
         Assert.Equal(["salvageConsole2", V.Console], lights.Consoles.Select(c => c.Kind));
@@ -34,7 +34,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     {
         var v = Of("liner", 1);
         var lights = new VesselLights(Made.Of(v));
-        string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
+        string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Warm => 'r', LampState.Dying => 'y', _ => '.' }));
         Assert.Equal("rrrrrrr...r.r...r....rr.rrrrrr....y...rrrrr.r....rr.r.rr..r..rr..r.r.r..rrr...r...", states);
         Assert.Equal(2, lights.Lamps.Count(l => l.Kind == V.Chandelier));
         Assert.True(Light.Lamps.ContainsKey(V.Chandelier));
@@ -42,7 +42,7 @@ public class VesselLightsTests(ITestOutputHelper output)
         var (sx, sy) = Shipyard.Door(Made.Of(v));
         var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
         Assert.Contains(lights.Lamps, l => airlock.Holds(l.X, l.Y));
-        Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Red, l.State));
+        Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Warm, l.State));
         var m = VesselDressTests.Laid(v);
         var chandelier = lights.Lamps.First(l => l.Kind == V.Chandelier);
         int cell = VesselLights.CellOf(chandelier.X, chandelier.Y, m.Grid.Width);
@@ -55,7 +55,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     {
         var v = Of("tanker", 1);
         var lights = new VesselLights(Made.Of(v));
-        string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Red => 'r', LampState.Dying => 'y', _ => '.' }));
+        string states = string.Concat(lights.Lamps.Select(l => l.State switch { LampState.Warm => 'r', LampState.Dying => 'y', _ => '.' }));
         output.WriteLine(states);
         // Re-recorded once its boom widened its frame (big-vessels stage 3), and once its hangar went and a second well came (big-vessels
         // fixes): a lamp's draw is by its cell in the frame.
@@ -64,7 +64,7 @@ public class VesselLightsTests(ITestOutputHelper output)
         var (sx, sy) = Shipyard.Door(Made.Of(v));
         var airlock = v.Compartments.Single(c => c.Holds(sx, sy));
         Assert.Contains(lights.Lamps, l => airlock.Holds(l.X, l.Y));
-        Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Red, l.State));
+        Assert.All(lights.Lamps.Where(l => airlock.Holds(l.X, l.Y)), l => Assert.Equal(LampState.Warm, l.State));
         // Every room lit by its lamps, the tall tank rooms too.
         Assert.All(v.Compartments, c => Assert.Contains(lights.Lamps, l => c.Holds(l.X, l.Y)));
     }
@@ -99,7 +99,7 @@ public class VesselLightsTests(ITestOutputHelper output)
             var airlock = v.Compartments.Single(c => sx >= c.Left && sx < c.Left + c.Width && sy >= c.Top && sy < c.Top + V.Open);
             var inside = lights.Lamps.Where(l => l.X >= airlock.Left && l.X < airlock.Left + airlock.Width && l.Y >= airlock.Top && l.Y < airlock.Top + V.Open).ToList();
             Assert.NotEmpty(inside);
-            Assert.All(inside, l => Assert.Equal(LampState.Red, l.State));
+            Assert.All(inside, l => Assert.Equal(LampState.Warm, l.State));
             // Every lamp but the airlock's could be the dying one: one is, while any is left.
             Assert.Equal(lights.Lamps.Count > inside.Count, lights.Dying != null);
         }
@@ -121,7 +121,7 @@ public class VesselLightsTests(ITestOutputHelper output)
     {
         var v = Of("freighter", 4);
         var m = VesselDressTests.Laid(v);
-        var lamp = new VesselLights(Made.Of(v)).Lamps.First(l => l.State == LampState.Red);
+        var lamp = new VesselLights(Made.Of(v)).Lamps.First(l => l.State == LampState.Warm);
         int cell = VesselLights.CellOf(lamp.X, lamp.Y, m.Grid.Width);
         Assert.False(VesselLights.Stands(m.Grid, lamp.Kind, cell));
         m.Grid.Place(cell, new Placement("machine", lamp.Kind));

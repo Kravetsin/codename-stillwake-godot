@@ -47,11 +47,11 @@ described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.W
   counted obtained (`Caught`, the-board), a tank's liquid alike ([big-vessels](../../docs/decisions/2026-11-17-big-vessels.md)).
   Furniture, salvage piles (`Content.Vessels.Salvage`) and outside parts ([derelict-looks](../../docs/decisions/2026-11-17-derelict-looks.md)).
 - **Wrecks** ([vessel-wrecks](../../docs/decisions/2026-11-18-vessel-wrecks.md)): `WreckPercent` of contacts, drawn from the
-  seed, are wrecked by a chain of 1–3 events (by class: shuttle 1, freighter 1–2, liner and tanker 1–3), each next drawn evenly
-  from those allowed: explosion, fire, icing, asteroid, break. A forced chain (`Find`'s `Wreck`, carried by the contact, the
+  seed, are wrecked by a chain of 1–3 events by class, each next drawn evenly from those allowed: explosion, fire, icing,
+  asteroid, break. A forced chain (`Find`'s `Wreck`, carried by the contact, the
   voyage and `Surface.Wreck`) replaces the draw, a step not allowed at its turn skipped; an empty one is intact. The arrival
-  room and two cells round it are never touched; engines stay unless carved; rooms not reached keep everything. The radar
-  shows only the class. `Opened` lays `Build`'s parts.
+  room and two cells round it are never touched; engines stay unless carved; rooms not reached keep everything. Nothing
+  hangs: what lost its support, or an event threw, lies in space as a machine tools break. `Opened` lays `Build`'s parts.
 - **Its kind's rules** (`VesselKind`): the ship's space (no gravity in the open, vacuum, starlight), no debris, no meteors;
   built as a planet allows, no machines; tools break what stands, nothing is marked (`ToolsBreak`), as on a planet.
 - **It closes** at the end of the tick no peer stands on it (`Kind.Transient`, Core): gone home, died and woke aboard, or left

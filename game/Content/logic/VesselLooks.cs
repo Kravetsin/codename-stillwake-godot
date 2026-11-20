@@ -83,18 +83,11 @@ public static class VesselLooks
     public static readonly (int W, int H) LargeGlyph = (7, 12), SmallGlyph = (6, 10);
 
     /// <summary>
-    /// Of a hundred lamps inside, but the airlock's (always red) and the one dying, how many still burn red on their battery; the
-    /// rest are dead.
+    /// Of a hundred lamps inside, but the airlock's (always lit) and the one flickering, how many still burn: a wreck's red on its
+    /// battery, an abandoned vessel's white (vessel-wrecks); the rest are dead.
     /// </summary>
     public const int LampRedPercent = 45;
 
-    /// <summary>
-    /// A wreck's lamps (vessel-wrecks): a broken stern's blink, on half of each period, in ms; a lamp in a room a breach or a fire left
-    /// dark still stutters this many times in a hundred while its last group is fresh (the mockup's 18).
-    /// </summary>
-    public const double BlinkMs = 1200;
-
-    public const int StutterPercent = 18;
 
     /// <summary>A console's screen is dark one time in this many; of those lit, one in <see cref="GlitchOneIn"/> glitches.</summary>
     public const int ConsoleDarkOneIn = 4, GlitchOneIn = 4;

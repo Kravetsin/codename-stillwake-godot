@@ -37,14 +37,27 @@ picked the look on a mockup drawn from real stamped vessels: https://claude.ai/a
 - **One builder:** `Shipyard.Build(cls, seed, forced)` returns `Built(Vessel, VesselWreck?, Parts)`: described, stamped, wrecked
   (`Hulk`, a port of the mockup's geometry on integers), every caller on it (`Places.Opened`, `World.Open`, the client's dress,
   lights, signs, beacons, looks and motion); `Stamp` internal. Draws are the vessel's own streams: 3 the wreck, 4 + i event i,
-  9 scavenging, so an intact vessel stamps as before.
+  9 scavenging, 10 what is thrown, so an intact vessel stamps as before.
 - **Forced chains are data:** `Find(Class, Wreck?, Wrecked?)` (`Wrecked` a dev's ask for a wrecked or an intact vessel: the seed drawn again till `IsWreck` agrees) → `Contact.Wreck` → `ISurfaces.Visit`/`Open` and the shuttle's `Voyage` →
   `Surface.Wreck` (saved), each null for the seed's own; an empty chain is intact; a step not allowed at its turn is skipped.
   Every peer and a late joiner build the same. The dev flag `--vessel=<class> --wrecked=blast,fire,rock:old` forces one.
 - **The record** (`VesselWreck`): each event's kind, age, group, centre, radius, direction, carved cells, burnt or frozen
   compartments (a fire's heat each), break, stones and cause; the vented compartments; the patches. The client draws from it alone
   and never re-runs the damage: looks painted once per 32-cell chunk (`game/features/wreck`), motes as one multimesh a kind and
-  chunk swaying in their shader, drifters, sparks and vents from the chunks in view, lamps by event (`VesselLights`).
+  chunk swaying in their shader, drifters (shards, bits, stones), sparks and vents from the chunks in view.
+- **After the user played it** (2026-11-20):
+  - *Nothing hangs.* A machine keeps the side it was stamped resting on (a floor, a ceiling, a hull); once the chain is done, one
+    holding by fewer cells of that side than stamped is thrown, again till all hold. A stone lies only on a floor under its whole
+    width. Scavengers leave the plates a part rests on.
+  - *What an event throws is a machine of the vessel world*, laid upright in space at the free spot nearest where it flew (within
+    `ThrownSearch` cells, a cell clear of the hull and every part, never in the arrival room's ring), broken by tools for what it
+    gives; an old group keeps `ThrownOldPercent` (30) of them, the rest drifted off. Lamps and stones thrown are only lost.
+  - *A room a breach opened is not dark* (hidden-rooms): what joins space shows from the first look; sealed rooms stay dark till seen.
+  - *Lamps* burn as an abandoned vessel's: the airlock's lit, one flickering, `LampRedPercent` lit, the rest dead; a wreck's lit
+    ones red, an intact vessel's white. A lamp an event carved is gone.
+  - *A tanker brings 150–300 litres of fuel* (mean 219, 10th–90th percentile 163–287 over seeds 1–200): its fuel column holds
+    `ColumnTank`, a tank bay's capsule is fuel `FuelCapsulePercent` (55) in a hundred (a sphere under it then water); a fuel tank
+    broken gives `FuelOnBreaking` besides what it held.
 
 ## Later
 

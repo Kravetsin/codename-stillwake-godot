@@ -42,6 +42,14 @@ internal sealed partial class Hulk
         public List<(string Item, int Count)>? Holds;
         public int Door = -1, Shaft = -1, Hatch = -1;
         public bool Machine => Layer == "machine";
+
+        /// <summary>Thrown out by event <c>Event</c> toward <c>Aim</c> (its middle, in tenths of a cell): laid in space there once the chain is done.</summary>
+        public bool Thrown;
+        public (int X, int Y) Aim;
+        public int Event = -1;
+
+        /// <summary>The side it rested on as stamped (0 below, 1 above, 2 left, 3 right; -1 none) and how many cells of it touched.</summary>
+        public int Rest = -1, Touched;
     }
 
     /// <summary>A compartment as the events find it: by its vessel's index (a split one's two halves share it), burnt once a fire reached it.</summary>
@@ -124,6 +132,16 @@ internal sealed partial class Hulk
             }
         }
         _orig = (byte[])_cells.Clone();
+        var held = Occupancy();
+        for (int t = 0; t < _things.Count; t++)
+        {
+            if (!_things[t].Machine) continue;
+            for (int side = 0; side < 4; side++)
+            {
+                int touched = Touching(_things[t], t, side, held);
+                if (touched > _things[t].Touched) (_things[t].Rest, _things[t].Touched) = (side, touched);
+            }
+        }
         // A hull cell within two cells of space, as stamped.
         for (int y = 0; y < _h; y++)
             for (int x = 0; x < _w; x++)
@@ -209,6 +227,58 @@ internal sealed partial class Hulk
     {
         foreach (var t in _things)
             if (!t.Gone && t.Kind == Vessels.Lamp && x >= t.X && x < t.X + t.W && y >= t.Y && y < t.Y + t.H) t.Gone = true;
+    }
+
+    /// <summary>
+    /// <paramref name="t"/> thrown out of the hull (vessel-wrecks): from (<paramref name="x10"/>, <paramref name="y10"/>), in tenths of a
+    /// cell, along (<paramref name="ux"/>, <paramref name="uy"/>) in thousandths, <paramref name="dist"/> cells, up to a cell and a half off
+    /// its line; a lamp or a stone only lost. It is laid in space there as the chain ends (<c>LayThrown</c>).
+    /// </summary>
+    private void Throw(Rng r, Thing t, long x10, long y10, int ux, int uy, long dist)
+    {
+        t.Gone = true;
+        if (t.Kind is Vessels.Lamp or Vessels.Stone) return;
+        (t.Thrown, t.Event) = (true, _records.Count - 1);
+        t.Aim = ((int)(x10 + ux * dist / 100 + (int)r.Below(31) - 15), (int)(y10 + uy * dist / 100 + (int)r.Below(31) - 15));
+    }
+
+    /// <summary>
+    /// How many cells along <paramref name="side"/> of <paramref name="t"/> (0 under, 1 over, 2 left, 3 right) hold it: hull or glass,
+    /// or another thing standing.
+    /// </summary>
+    private int Touching(Thing t, int self, int side, int[] occ)
+    {
+        int n = 0, along = side < 2 ? t.W : t.H;
+        for (int k = 0; k < along; k++)
+        {
+            var (x, y) = side switch
+            {
+                0 => (t.X + k, t.Y + t.H),
+                1 => (t.X + k, t.Y - 1),
+                2 => (t.X - 1, t.Y + k),
+                _ => (t.X + t.W, t.Y + k),
+            };
+            if (!In(x, y)) continue;
+            int o = occ[I(x, y)];
+            if (At(x, y) >= Wall || o >= 0 && o != self && !_things[o].Gone) n++;
+        }
+        return n;
+    }
+
+    /// <summary>(<paramref name="x"/>, <paramref name="y"/>) as a direction in thousandths, a thousand long; straight up for none.</summary>
+    private static (int Ux, int Uy) Unit(long x, long y)
+    {
+        long l = Root(x * x + y * y);
+        return l == 0 ? (0, -1000) : ((int)(x * 1000 / l), (int)(y * 1000 / l));
+    }
+
+    /// <summary>The whole square root of <paramref name="v"/>, rounded down.</summary>
+    private static long Root(long v)
+    {
+        if (v <= 0) return 0;
+        long x = v, y = (x + 1) / 2;
+        while (y < x) (x, y) = (y, (y + v / y) / 2);
+        return x;
     }
 
     /// <summary>
@@ -381,17 +451,18 @@ internal sealed partial class Hulk
             var th = _things[t];
             int cx2 = 2 * th.X + th.W, cy2 = 2 * th.Y + th.H;
             long best = long.MaxValue;
-            int hx = 0;
+            int hx = 0, hy = 0;
             foreach (var (x, y) in holes)
             {
                 long dx = 2 * x + 1 - cx2, dy = 2 * y + 1 - cy2, q = 25 * dx * dx + 81 * dy * dy;
-                if (q < best) (best, hx) = (q, x);
+                if (q < best) (best, hx, hy) = (q, x, y);
             }
             if (best > far) continue;
             if (best * 100 < lost && r.Below(100) < (th.W * th.H <= Vessels.SmallCells ? Wrecks.LostSmall : Wrecks.LostOther))
             {
                 Mark(occ, th, -1, t);
-                th.Gone = true;
+                var (ux, uy) = Unit(2 * hx + 1 - cx2, 2 * hy + 1 - cy2);
+                Throw(r, th, 10 * hx + 5, 10 * hy + 5, ux, uy, 4 + r.Below(15));
                 continue;
             }
             int step = Math.Sign(2 * hx + 1 - cx2);

@@ -12,15 +12,15 @@ public enum Mote { Dust, DustLit, RockDust, Paint, Bit, Rivet, Ice, IceDull, Fue
 /// <summary>A mote: where it hangs in cells, its size, how far and fast it sways, its phase.</summary>
 public readonly record struct Speck(float X, float Y, float Size, float Ax, float Ay, float Rate, float Phase);
 
-/// <summary>What a drifter is: a hull shard, a bit, a stone, or a thrown machine's picture.</summary>
-public enum DriftKind { Shard, Bit, Rock, Machine }
+/// <summary>What a drifter is: a hull shard, a bit or a stone. A machine thrown out is the sim's, laid in space (vessel-wrecks).</summary>
+public enum DriftKind { Shard, Bit, Rock }
 
 /// <summary>
 /// A thing drifting outside a wreck (the mockup's drifters): decoration only, never grabbable, never the sim's. It sways along its
 /// scatter line round (<c>X</c>, <c>Y</c>) and turns.
 /// </summary>
 public sealed record Drifter(DriftKind Kind, double X, double Y, double Vx, double Vy, double Amp, double Rate, double Phase, double Turn, double Spin,
-    double Size, IReadOnlyList<(double X, double Y)>? Shape = null, string? Machine = null, uint Colour = 0, bool Bent = false)
+    double Size, IReadOnlyList<(double X, double Y)>? Shape = null, uint Colour = 0, bool Bent = false)
 {
     /// <summary>Where it is and how turned <paramref name="t"/> seconds in.</summary>
     public (double X, double Y, double Turn) At(double t)
@@ -130,29 +130,27 @@ public sealed class WreckLife
     }
 
     /// <summary>
-    /// What moves on <paramref name="scene"/>'s wreck: <paramref name="intact"/> the same vessel built whole, what the events threw out
-    /// read against it; <paramref name="ends"/> the cables' and pipes' ends its looks hang (<see cref="WreckLooks.Of"/>); dust within
-    /// <paramref name="lights"/>' reach shows warm.
+    /// What moves on <paramref name="scene"/>'s wreck: <paramref name="ends"/> the cables' and pipes' ends its looks hang
+    /// (<see cref="WreckLooks.Of"/>); dust within <paramref name="lights"/>' reach shows warm. What the events threw out of the hull is
+    /// the sim's, laid in space as machines (vessel-wrecks): nothing here stands for it.
     /// </summary>
-    public static WreckLife Of(WreckScene scene, Built intact, IReadOnlyList<WreckLooks.End> ends, IReadOnlyList<(double X, double Y, double Reach)> lights)
+    public static WreckLife Of(WreckScene scene, IReadOnlyList<WreckLooks.End> ends, IReadOnlyList<(double X, double Y, double Reach)> lights)
     {
         var life = new WreckLife(scene);
         var w = scene.Wreck;
-        var lost = Lost(scene, intact);
         for (int k = 0; k < w.Events.Count; k++)
         {
             var e = w.Events[k];
             life._r = new Mulberry(scene.Built.Vessel.Seed * 2246822519u + (uint)k * 3266489917u + 3u);
             life._old = e.Old;
-            var thrown = lost.Where(m => Nearest(w, m) == k).ToList();
             var spots = new List<(double X, double Y)>();
             switch (e.Kind)
             {
-                case WreckKind.Explosion: life.Blast(e, thrown, spots); break;
+                case WreckKind.Explosion: life.Blast(e, spots); break;
                 case WreckKind.Fire: life.Fire(e, spots); break;
                 case WreckKind.Icing: life.Icing(e, k == 0); break;
-                case WreckKind.Asteroid: life.Rock(e, thrown, spots); break;
-                default: life.Break(e, thrown, spots, ends.Where(x => x.Event == k).ToList()); break;
+                case WreckKind.Asteroid: life.Rock(e, spots); break;
+                default: life.Break(e, spots, ends.Where(x => x.Event == k).ToList()); break;
             }
             if (e.Old) continue;
             // Fresh: a few of the event's torn edges spark, and most of its cables' cut ends.
@@ -176,46 +174,6 @@ public sealed class WreckLife
             dust.RemoveAt(i);
         }
         return life;
-    }
-
-    /// <summary>The machines the intact vessel stood with that the wreck has nowhere near (fourteen cells, a kind matched once): thrown out.</summary>
-    private static List<WreckScene.Thing> Lost(WreckScene scene, Built intact)
-    {
-        var left = scene.Machines.Select(m => (m.Kind, m.X, m.Y)).ToList();
-        var lost = new List<WreckScene.Thing>();
-        foreach (var p in intact.Parts.Where(p => p.Layer == "machine" && p.Kind != Vessels.Lamp))
-        {
-            int best = -1, bd = 14 * 14 + 1;
-            for (int i = 0; i < left.Count; i++)
-            {
-                if (left[i].Kind != p.Kind) continue;
-                int d = (left[i].X - p.X) * (left[i].X - p.X) + (left[i].Y - p.Y) * (left[i].Y - p.Y);
-                if (d < bd) (bd, best) = (d, i);
-            }
-            if (best >= 0)
-            {
-                left.RemoveAt(best);
-                continue;
-            }
-            var spec = Machines.Get(p.Kind);
-            lost.Add(new WreckScene.Thing { Kind = p.Kind, X = p.X, Y = p.Y, W = spec.Width, H = spec.Height });
-        }
-        return lost;
-    }
-
-    /// <summary>The event that threw <paramref name="m"/> out: the nearest that carves, by its centre.</summary>
-    private static int Nearest(VesselWreck w, WreckScene.Thing m)
-    {
-        int best = -1;
-        double bd = double.MaxValue;
-        for (int k = 0; k < w.Events.Count; k++)
-        {
-            var e = w.Events[k];
-            if (e.Kind is WreckKind.Fire or WreckKind.Icing) continue;
-            double d = (e.X - m.X) * (e.X - m.X) + (e.Y - m.Y) * (e.Y - m.Y);
-            if (d < bd) (bd, best) = (d, k);
-        }
-        return best;
     }
 
     // ---------- the mockup's makers ----------
@@ -274,12 +232,11 @@ public sealed class WreckLife
     }
 
     /// <summary>A drifter's sway and turn drawn as the mockup's: the rest given.</summary>
-    private Drifter Make(DriftKind kind, double x, double y, double vx, double vy, double size, IReadOnlyList<(double, double)>? shape = null, string? machine = null,
-        uint colour = 0, bool bent = false, double? spin = null)
+    private Drifter Make(DriftKind kind, double x, double y, double vx, double vy, double size, IReadOnlyList<(double, double)>? shape = null,
+        uint colour = 0, bool bent = false)
     {
         double amp = 0.3 + _r.Next() * 0.9, rate = 0.12 + _r.Next() * 0.22, ph = _r.Next() * 6.28, turn = _r.Next() * 6.28, vr = (_r.Next() - 0.5) * 0.35;
-        if (kind == DriftKind.Machine) (vr, turn) = (vr * 0.35, (_r.Next() - 0.5) * 1.2);
-        return new(kind, x, y, vx, vy, amp, rate, ph, turn, spin ?? vr, size, shape, machine, colour, bent);
+        return new(kind, x, y, vx, vy, amp, rate, ph, turn, vr, size, shape, colour, bent);
     }
 
     private List<(double, double)> ShardShape()
@@ -309,20 +266,14 @@ public sealed class WreckLife
 
     private static readonly uint[] Bits = [0x8f9599, 0x6e6a63, 0xa7a294, 0x4f5256];
 
-    /// <summary>Debris trailing out of a breach along (<paramref name="ux"/>, <paramref name="uy"/>): shards, bits, stones, a few thrown machines.</summary>
-    private void Trail(double x0, double y0, double ux, double uy, int n, double d0 = 2, double d1 = 30, double spread = 1.4, bool rocks = false,
-        IReadOnlyList<string>? machines = null, double machineShare = 0.12)
+    /// <summary>Debris trailing out of a breach along (<paramref name="ux"/>, <paramref name="uy"/>): shards, bits, stones.</summary>
+    private void Trail(double x0, double y0, double ux, double uy, int n, double d0 = 2, double d1 = 30, double spread = 1.4, bool rocks = false)
     {
         for (int j = 0; j < n; j++)
         {
             double u = (j + _r.Next()) / n, dist = d0 + (d1 - d0) * Math.Pow(u, 0.85), perp = (_r.Next() - 0.5) * spread * (0.4 + dist / d1 * 2);
             double x = x0 + ux * dist - uy * perp, y = y0 + uy * dist + ux * perp, roll = _r.Next();
-            if (machines != null && roll < machineShare)
-            {
-                string k = machines[_r.Int(machines.Count)];
-                Drift(Make(DriftKind.Machine, x, y, ux, uy, 1, machine: k), x0, y0);
-            }
-            else if (rocks && roll < 0.24) Drift(Make(DriftKind.Rock, x, y, ux, uy, 0.35 + _r.Next() * 0.9, RockShape(_r)), x0, y0);
+            if (rocks && roll < 0.24) Drift(Make(DriftKind.Rock, x, y, ux, uy, 0.35 + _r.Next() * 0.9, RockShape(_r)), x0, y0);
             else if (roll < 0.72)
             {
                 var shape = ShardShape();
@@ -330,13 +281,6 @@ public sealed class WreckLife
             }
             else Drift(Make(DriftKind.Bit, x, y, ux, uy, 0.22 + _r.Next() * 0.3, colour: Bits[_r.Int(Bits.Length)]), x0, y0);
         }
-    }
-
-    /// <summary>A machine thrown out of the hull from (<paramref name="hx"/>, <paramref name="hy"/>) along its way, <paramref name="dist"/> cells.</summary>
-    private void Eject(WreckScene.Thing m, double hx, double hy, double ux, double uy, double dist)
-    {
-        double x = hx + ux * dist + (_r.Next() - 0.5) * 3, y = hy + uy * dist + (_r.Next() - 0.5) * 3;
-        Drift(Make(DriftKind.Machine, x, y, ux, uy, 1, machine: m.Kind), m.X + m.W / 2.0, m.Y + m.H / 2.0);
     }
 
     private (int Top, int Bottom) Body()
@@ -360,17 +304,11 @@ public sealed class WreckLife
 
     // ---------- the events ----------
 
-    private void Blast(WreckEvent e, List<WreckScene.Thing> thrown, List<(double X, double Y)> spots)
+    private void Blast(WreckEvent e, List<(double X, double Y)> spots)
     {
         double cx = e.X + 0.5, cy = e.Y + 0.5, R = e.Radius;
         var (top, bottom) = Body();
         bool toTop = cy - top < bottom - cy;
-        foreach (var m in thrown)
-        {
-            double ax = m.X + m.W / 2.0 - cx, ay = m.Y + m.H / 2.0 - cy, l = Math.Sqrt(ax * ax + ay * ay) is var h && h > 0 ? h : 1;
-            if (_r.Chance(0.4)) continue;
-            Eject(m, cx + ax / l * R, cy + ay / l * R, ax / l, ay / l, 4 + _r.Next() * 18);
-        }
         spots.AddRange(Edges(e));
         if (!_old)
             foreach (var (x, y) in spots)
@@ -449,18 +387,15 @@ public sealed class WreckLife
         }
     }
 
-    private static readonly string[] Thrown = ["salvageSection", "salvageSlab", "crate", "salvageCrate", Vessels.Chair];
-
-    private void Rock(WreckEvent e, List<WreckScene.Thing> thrown, List<(double X, double Y)> spots)
+    private void Rock(WreckEvent e, List<(double X, double Y)> spots)
     {
         double ccx = e.X + 0.5, top = e.Y, R = e.Radius;
         int side = Math.Sign(e.DirX) is var s && s != 0 ? s : 1;
         double fx = side, fy = -0.38, fl = Math.Sqrt(fx * fx + fy * fy);
         (fx, fy) = (fx / fl, fy / fl);
         double sl = Math.Sqrt(e.DirX * e.DirX + e.DirY * e.DirY), ux = e.DirX / sl, uy = e.DirY / sl;
-        foreach (var m in thrown) Eject(m, ccx, top - 1, fx, fy, 4 + _r.Next() * 40);
         spots.AddRange(Edges(e));
-        Trail(ccx, top - 1, fx, fy, _big ? 70 : 46, 1, _big ? 70 : 50, 9, rocks: true, machines: Thrown, machineShare: 0.08);
+        Trail(ccx, top - 1, fx, fy, _big ? 70 : 46, 1, _big ? 70 : 50, 9, rocks: true);
         for (int k = 0; k < 8; k++)
         {
             double x = ccx - ux * (4 + _r.Next() * 20) + (_r.Next() - 0.5) * 6, y = top - uy * (4 + _r.Next() * 12);
@@ -478,18 +413,12 @@ public sealed class WreckLife
         Freeze(ccx, top, e.DirX, -1, e.Compartments);
     }
 
-    private void Break(WreckEvent e, List<WreckScene.Thing> thrown, List<(double X, double Y)> spots, List<WreckLooks.End> ends)
+    private void Break(WreckEvent e, List<(double X, double Y)> spots, List<WreckLooks.End> ends)
     {
         var b = e.Break!;
         var (top, bottom) = Body();
         int gy0 = top + Math.Min(b.SternRows, b.BowRows), gy1 = bottom + Math.Max(b.SternRows, b.BowRows);
         double gcx = e.X, gcy = (gy0 + gy1) / 2.0, gap = b.Gap;
-        foreach (var m in thrown)
-        {
-            if (_r.Chance(0.3)) continue;
-            double x = gcx + (_r.Next() - 0.5) * gap * 0.6, y = m.Y + (b.SternRows + b.BowRows) / 2.0 + (_r.Next() - 0.5) * 6;
-            Drift(Make(DriftKind.Machine, x, y, (_r.Next() - 0.5) * 0.3, _r.Next() < 0.5 ? -1 : 1, 1, machine: m.Kind, spin: (_r.Next() - 0.5) * 0.12), b.Column, m.Y + m.H / 2.0);
-        }
         double gx0 = b.Column - gap / 2;
         for (int k = 0; k < 22; k++)
         {

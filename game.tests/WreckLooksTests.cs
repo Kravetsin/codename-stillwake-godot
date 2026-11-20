@@ -185,59 +185,23 @@ public class WreckLooksTests
     private static LampState[] Lamps(Built b) => [.. new VesselLights(b).Lamps.Select(l => l.State)];
 
     [Fact]
-    public void AWrecksLampsAllGoDarkWhenItsLastGroupIsOldOrItsPowerWasLostFirst()
+    public void AWrecksLampsAreDeadFlickeringOrRedAnAbandonedVesselsDeadFlickeringOrWhiteInTheSameShares()
     {
-        // A fire then a strike long after: the last group old.
-        Assert.All(Lamps(Built("liner", 7, "fire,rock:old")), s => Assert.Equal(LampState.Dead, s));
-        Assert.All(Lamps(Built("liner", 7, "ice,fire")), s => Assert.Equal(LampState.Dead, s));
-        Assert.Contains(Lamps(Built("liner", 7, "fire")), s => s is LampState.Red or LampState.Dying);
-    }
-
-    [Fact]
-    public void ALampInARoomAFireBurntIsDarkAndOneTheAirLeftDarkOrStuttering()
-    {
-        int checkedLamps = 0;
-        foreach (var chain in (string[])["fire", "blast", "rock", "break"])
-        {
-            var b = Built("liner", 7, chain);
-            var lights = new VesselLights(b);
-            var burnt = b.Wreck!.Events.Where(e => e.Kind == WreckKind.Fire).SelectMany(e => e.Compartments).ToHashSet();
-            foreach (var lamp in lights.Lamps)
+        int wreckLit = 0, intactLit = 0, wreckAll = 0, intactAll = 0;
+        foreach (var cls in Content.Vessels.Classes)
+            for (uint seed = 1; seed <= 20; seed++)
             {
-                int room = b.Vessel.Compartments.ToList().FindIndex(c => c.Holds(lamp.X + 1, lamp.Y));
-                if (room < 0) continue;
-                if (chain == "break") continue;
-                if (burnt.Contains(room)) Assert.Equal(LampState.Dead, lamp.State);
-                else if (b.Wreck.Vented.Contains(room)) Assert.True(lamp.State is LampState.Dead or LampState.Dying, $"{chain}: {lamp.State}");
-                else continue;
-                checkedLamps++;
+                var wreck = Lamps(Shipyard.Build(V.Class(cls.Id)!, seed, WreckChain.Parse("fire")));
+                var intact = Lamps(Shipyard.Build(V.Class(cls.Id)!, seed, []));
+                Assert.All(wreck, s => Assert.True(s is LampState.Dead or LampState.Dying or LampState.Red, s.ToString()));
+                Assert.All(intact, s => Assert.True(s is LampState.Dead or LampState.Dying or LampState.Warm, s.ToString()));
+                Assert.True(intact.Count(s => s == LampState.Dying) <= 1);
+                (wreckLit, wreckAll) = (wreckLit + wreck.Count(s => s == LampState.Red), wreckAll + wreck.Length);
+                (intactLit, intactAll) = (intactLit + intact.Count(s => s == LampState.Warm), intactAll + intact.Length);
             }
-        }
-        Assert.True(checkedLamps > 5, $"{checkedLamps} lamps");
-    }
-
-    [Fact]
-    public void AfterABreakTheSternBlinksRedAndTheBowIsDarkButOneSealedRoomStillLit()
-    {
-        int warm = 0;
-        for (uint seed = 1; seed <= 6; seed++)
-        {
-            var b = Built("liner", seed, "break");
-            var cut = b.Wreck!.Events[0].Break!;
-            var lamps = new VesselLights(b).Lamps;
-            // The stern's blink, but the sealed room still lit if it lies astern.
-            Assert.All(lamps.Where(l => l.X < cut.Column), l => Assert.True(l.State is LampState.Blink or LampState.Warm, $"{l.State}"));
-            var lit = lamps.Where(l => l.State == LampState.Warm).ToList();
-            Assert.All(lamps.Where(l => l.X >= cut.Column && l.State != LampState.Warm), l => Assert.Equal(LampState.Dead, l.State));
-            var rooms = lit.Select(l => b.Vessel.Compartments.ToList().FindIndex(c => c.Holds(l.X + 1, l.Y))).Select(i => b.Vessel.Compartments[i].Of >= 0 ? b.Vessel.Compartments[i].Of : i).Distinct().ToList();
-            Assert.True(rooms.Count <= 1, $"seed {seed}: {rooms.Count} rooms lit");
-            Assert.All(rooms, r => Assert.DoesNotContain(r, b.Wreck.Vented));
-            warm += rooms.Count;
-        }
-        Assert.True(warm > 0);
-        Assert.True(VesselLights.Emergency(LampState.Blink));
-        Assert.Equal(1f, VesselLights.Shines(LampState.Blink, 0, 0));
-        Assert.Equal(0f, VesselLights.Shines(Stillwake.Game.Features.Light.LampState.Blink, VesselLooks.BlinkMs * 0.75, 0));
+        // Lit as the derelict's pattern has it: the airlock's and about LampRedPercent of the rest.
+        Assert.InRange(intactLit * 100 / intactAll, VesselLooks.LampRedPercent - 10, VesselLooks.LampRedPercent + 15);
+        Assert.InRange(wreckLit * 100 / wreckAll, VesselLooks.LampRedPercent - 10, VesselLooks.LampRedPercent + 15);
     }
 
     [Fact]

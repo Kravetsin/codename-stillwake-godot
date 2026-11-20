@@ -47,6 +47,12 @@ public static class Wrecks
     /// <summary>What a crate by a fire's seat becomes: a pile of bits, its loot a bits pile's as anywhere.</summary>
     public const string Bits = "pileBits";
 
+    /// <summary>
+    /// What an event throws out of the hull is laid in space as a machine of the vessel world: an old group's kept this many times in a
+    /// hundred, the rest long drifted off; each at the free spot nearest its aim within this many cells, else lost.
+    /// </summary>
+    public const int ThrownOldPercent = 30, ThrownSearch = 16;
+
     /// <summary>Cells round the arrival room that no event touches, every side: its walls and doors stand.</summary>
     public const int ProtectRing = 2;
 }

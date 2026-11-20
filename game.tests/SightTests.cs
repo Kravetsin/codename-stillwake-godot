@@ -197,4 +197,45 @@ public class SightTests
             if (outside) Assert.Equal(0, sight.Dark(c));
         }
     }
+
+    [Theory]
+    [InlineData("freighter")]
+    [InlineData("liner")]
+    [InlineData("tanker")]
+    public void AWrecksRoomsABreachOpenedShowFromTheFirstLookItsSealedOnesStayDark(string cls)
+    {
+        int opened = 0, sealedRooms = 0;
+        for (uint seed = 1; seed <= 20; seed++)
+        {
+            var built = Shipyard.Build(V.Class(cls)!, seed, [new(Content.WreckKind.Explosion, false), new(Content.WreckKind.Asteroid, false)]);
+            var vessel = built.Vessel;
+            int w = vessel.Width, h = vessel.Height;
+            var back = new bool[w * h];
+            var seals = new bool[w * h];
+            foreach (var p in built.Parts)
+            {
+                if (p.Layer == "back") back[p.Y * w + p.X] = true;
+                if (p.Layer != "structure") continue;
+                if (p.Kind == "wall") seals[p.Y * w + p.X] = true;
+                if (p.Kind == "door" && !p.Open)
+                    for (int y = p.Y; y < p.Y + 2; y++)
+                        for (int x = p.X; x < p.X + 2; x++) seals[y * w + x] = true;
+                if (p.Kind == Content.Builds.Hatch) seals[p.Y * w + p.X] = seals[p.Y * w + p.X + 1] = true;
+            }
+            var sight = new Sight(w, h, c => back[c] && !seals[c], c => seals[c]);
+            // No hero inside yet: what shows is only what space reaches.
+            sight.Look([], changed: false, 0);
+            for (int k = 0; k < vessel.Compartments.Count; k++)
+            {
+                var room = vessel.Compartments[k];
+                // The middle of its floor, where the sim reads whether the air left it; a room whose middle a breach took is left out.
+                int c = (room.Floor - 1) * w + room.Left + room.Width / 2;
+                if (!back[c] || seals[c]) continue;
+                bool vented = built.Wreck!.Vented.Contains(k);
+                (opened, sealedRooms) = vented ? (opened + 1, sealedRooms) : (opened, sealedRooms + 1);
+                Assert.True(sight.Dark(c) == (vented ? 0 : 1), $"seed {seed}: {room} opened {vented}, dark {sight.Dark(c)}");
+            }
+        }
+        Assert.True(opened > 0 && sealedRooms > 0, $"{opened} opened, {sealedRooms} sealed");
+    }
 }

@@ -28,10 +28,10 @@ and the built vessel alone; the damage is never run again here. Namespace `Featu
   An old group keeps a sixth of its motes (rivets two in five), twice as spread, ice dull, no embers; a third of its drifters,
   farther out; no sparks, vents or glows.
 - **Motion:** motes by the mockup's clouds, fans, room dots and trails; dust in a lit lamp's or ember's reach warm; ice and fuel
-  glinting; embers flickering; drifters (shards, bits, stones, thrown machines) sway on their scatter line and turn, decoration
-  only; fresh events spark at torn edges and cut cables; vents from burst pipes, torn pipes and a tanker's broken bay.
-- **Lamps** are the light feature's (`VesselLights.ByWreck`): dark when the last group is old or the power went first; dark in
-  burnt and vented rooms, a few stuttering; after a break the stern blinks red, the bow dark but one sealed room lit.
+  glinting; embers flickering; drifters (shards, bits, stones) sway on their scatter line and turn, decoration only; a machine
+  thrown out is the sim's, laid in space; fresh events spark at torn edges and cut cables; vents from burst pipes, torn pipes and a tanker's broken bay.
+- **Lamps** are the light feature's (`VesselLights`): as an abandoned vessel's (dead, one flickering, the rest lit), a wreck's
+  lit ones red; one an event carved is gone.
 - **Layers:** room looks at `WreckRooms`, hull looks at `WreckOver`, motes and drifters at `WreckMotes`, sparks, embers and
   glints added at `WreckSparks`. All lit as the hull but the added ones.
 - **Costs:** looks painted once as the surface loads (about 70 ms on a liner with three events); a chunk whose cells changed

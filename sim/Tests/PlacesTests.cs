@@ -253,7 +253,8 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal([("glass", 3), ("wire", 2), ("copper", 1)], Machines.Get(Vessels.Chandelier).Cost);
         Assert.Equal([("plate", 2), ("coil", 1), ("wire", 1)], Machines.Get(Vessels.Stove).Cost);
         Assert.Equal([("plate", 2)], Machines.Get(Vessels.Counter).Cost);
-        Assert.Equal([("plate", 10), ("tube", 4)], Machines.Get(Vessels.Capsule).Cost);
+        // A fuel tank broken gives fuel too (vessel-wrecks): the capsule's first look, the fuel columns.
+        Assert.Equal([("plate", 10), ("tube", 4), ("biofuel", 10)], Machines.Get(Vessels.Capsule).Cost);
         Assert.Equal([("plate", 14), ("wire", 6), ("glass", 2), ("tube", 3)], Machines.Get(Vessels.ShuttleGull).Cost);
         Assert.Equal([("plate", 20), ("frame", 4), ("tube", 4)], Machines.Get(Vessels.ShuttleMule).Cost);
         Assert.Equal([("plate", 12), ("gear", 4), ("rotor", 1)], Machines.Get(Vessels.ShuttleBeetle).Cost);
@@ -263,8 +264,8 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal([("gear", 2), ("tube", 3), ("rotor", 1)], Machines.Get(Vessels.Pump).Cost);
         Assert.Equal([("tube", 3), ("gear", 1)], Machines.Get(Vessels.Valves).Cost);
         Assert.Equal([("plate", 6), ("tube", 2)], Machines.Get(Vessels.TankTall).Cost);
-        Assert.Equal([("plate", 14), ("tube", 4)], Machines.Get(Vessels.FuelColumn(3)).Cost);
-        Assert.Equal([("plate", 18), ("tube", 4)], Machines.Get(Vessels.FuelColumn(4)).Cost);
+        Assert.Equal([("plate", 14), ("tube", 4), ("biofuel", 30)], Machines.Get(Vessels.FuelColumn(3)).Cost);
+        Assert.Equal([("plate", 18), ("tube", 4), ("biofuel", 30)], Machines.Get(Vessels.FuelColumn(4)).Cost);
         Assert.All(Vessels.Furniture, r => Assert.Contains(r.Kind, Vessels.Machines));
         Assert.All(Vessels.Furniture, r => Assert.Null(r.Menu));
         Assert.All(Vessels.Furniture, r => Assert.All(r.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item)));
@@ -283,6 +284,36 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         int cell = Vessels.Margin / 2 * v.Grid.Width + Vessels.Margin / 2;
         v.Grid.Place(cell, new Placement("machine", kind));
         Hammered(w, v, v.Grid.MachineAt(cell)!);
+    }
+
+    [Fact]
+    public void AMachineAnEventThrewOutLiesInSpaceOnTheVesselWorldAndTheSledgehammerBreaksItForWhatItGives()
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
+        var liner = Vessels.Class("liner")!;
+        WreckStep[] chain = [new(WreckKind.Explosion, false), new(WreckKind.Asteroid, false)];
+        // The machines the chain laid in space: none where the intact vessel had one, none holding loot, so all it gives is its cost.
+        List<Vessel.Fitting> Thrown(uint seed)
+        {
+            var intact = Shipyard.Build(liner, seed, []).Parts.Where(p => p.Layer == "machine").Select(p => (p.Kind, p.X, p.Y)).ToHashSet();
+            return [.. Shipyard.Build(liner, seed, chain).Vessel.Outside.Where(f => !intact.Contains((f.Kind, f.X, f.Y)) && f.Loot.Count == 0)];
+        }
+        for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(k => k.Class == "liner" && Thrown(k.Seed).Count > 0); i++)
+            w.Do(new Find("liner", chain)).Run();
+        var contact = w.M.Places.Contacts.Last(k => k.Class == "liner");
+        var thrown = Thrown(contact.Seed);
+        Assert.NotEmpty(thrown);
+        var (_, id) = Visited("liner", w);
+        var v = w.On(id);
+        foreach (var f in thrown)
+        {
+            var part = v.Grid.MachineAt(InFrame(v, f.X, f.Y));
+            Assert.Equal(f.Kind, part?.Kind);
+            Assert.Null(v.Grid.BackAt(part!.Cell));
+        }
+        Hammered(w, v, v.Grid.MachineAt(InFrame(v, thrown[0].X, thrown[0].Y))!);
     }
 
     /// <summary>
