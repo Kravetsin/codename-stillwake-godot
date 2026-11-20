@@ -127,6 +127,19 @@ public static class Wreck
         "",
     ]);
 
+    /// <summary>
+    /// The channel the alien core punched through the roof over the landing, a row of the drawing each with its first and last column, drawn
+    /// <c>.</c> in <see cref="Rows"/>: where the client scorches the plates round it. Read by the client only (drone-companion).
+    /// </summary>
+    public static readonly IReadOnlyList<(int Row, int First, int Last)> CorePath =
+    [
+        (5, 75, 78),
+        (6, 74, 77),
+        (7, 73, 76),
+        (8, 72, 75),
+        (9, 71, 74),
+    ];
+
     /// <summary>The pipe inside the pod, from its port to a free end: what makes it a first generator.</summary>
     public static readonly IReadOnlyList<string> Under = Placed(
     [

@@ -52,6 +52,8 @@ public static class SurfaceViews
         }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
+        // The hole the alien core punched through its roof: soot round it, its cut edges still smouldering (Wreck.CorePath).
+        new(c => new CoreScorchView(c.M.Grid), Fades: true),
         // Frost creeping over the hull's outer walls before the ice belt, where a stretch frosts it (docs/decisions/2026-11-15-stretches-of-space.md).
         new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Frost: true })
             ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null, Fades: true),
