@@ -353,6 +353,15 @@ public sealed class Ui
     public (double X, double Y)? DroneAt { get; set; }
 
     /// <summary>
+    /// How far into a drone's meeting with the core (drone-meeting) the core still lies in it, seconds; none while no meeting
+    /// shows it lying. Set by <c>crew</c> every frame: the core's picture and glow stay till its soot rises, waking as it drinks.
+    /// </summary>
+    public double? CoreMeeting { get; set; }
+
+    /// <summary>Whether this player has taken the core in a meeting of their own, paired or not yet (a dev run plays one unpaired).</summary>
+    public bool CoreTaken { get; set; }
+
+    /// <summary>
     /// How far every hologram window trails the hero this frame, in screen pixels (<c>HoloSway</c>, the motion «Отставание»).
     /// Set by <c>items</c> every frame; <c>crafting</c> carries its station's panel by it.
     /// </summary>

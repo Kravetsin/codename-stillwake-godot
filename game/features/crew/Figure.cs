@@ -629,6 +629,15 @@ public partial class Figure : Node2D
     /// <summary>How far more it leans than its pose, radians, forward positive, settled as the pose's lean is.</summary>
     public double Lean { get; set; }
 
+    /// <summary>How it is bent kneeling (drone-meeting), in <see cref="Pose.Kneel"/>; none kneels fully, upright.</summary>
+    public Kneeling? Kneel { get; set; }
+
+    /// <summary>Where its near hand reaches, pixels of the world, and how far of the way, 0..1 (drone-meeting); none for no reach.</summary>
+    public (Vector2 To, double Share)? Reach { get; set; }
+
+    /// <summary>Its near fist's middle as last drawn, pixels of the world: where blood bursts from in the drone's meeting.</summary>
+    public Vector2 Palm { get; private set; }
+
     /// <summary>The back fist's item, the fuse sparking over it, and the item hung at the belt with its strap.</summary>
     private readonly Sprite2D _offHeld = new() { Centered = false, Visible = false }, _fuse = new() { Centered = false, Visible = false, Material = Unshaded },
         _belt = new() { Centered = false, Visible = false };
@@ -789,8 +798,30 @@ public partial class Figure : Node2D
     /// <summary>Whether its drone projects a drone window before it (drone-holo): its lamp and scanner off meanwhile.</summary>
     public bool Projects { get; private set; }
 
-    /// <summary>Whether its drone shines: the lamp worn, not projecting.</summary>
-    public bool Shines => _lampWorn && !Projects;
+    /// <summary>Whether its drone shines: the lamp worn, not projecting, the drone shown.</summary>
+    public bool Shines => _lampWorn && !Projects && _drone.Visible;
+
+    /// <summary>Whether its drone is shown whatever it wears (drone-meeting): hidden while the meeting draws it, shown as it hands over; none as it wears.</summary>
+    public bool? DroneShown
+    {
+        get => _droneShown;
+        set
+        {
+            if (value == _droneShown) return;
+            _droneShown = value;
+            ShowDrone();
+        }
+    }
+    private bool? _droneShown;
+
+    /// <summary>Where its drone flies instead of its place by the head, pixels of the world, its lens turned toward a unit vector (drone-meeting); none for its place.</summary>
+    public (Vector2 At, Vector2 Toward)? DroneTo { get; set; }
+
+    /// <summary>Its drone's lens's colour as it is now.</summary>
+    public Color DroneLensColour => _drone.LensColour;
+
+    /// <summary>Its own clock, ms: what its drone's soot and plates move by.</summary>
+    public double ClockMs => _timeMs;
 
     /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
     public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
@@ -800,7 +831,7 @@ public partial class Figure : Node2D
 
     private void ShowDrone()
     {
-        _drone.Visible = _paired || _lampWorn || _scannerWorn;
+        _drone.Visible = _droneShown ?? (_paired || _lampWorn || _scannerWorn);
         _drone.Scanning = _scannerWorn && !_lampWorn;
         _drone.Idle = !_lampWorn && !_scannerWorn;
     }
@@ -1564,7 +1595,7 @@ public partial class Figure : Node2D
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
             _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null,
-            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null));
+            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null, pose == Pose.Kneel ? Kneel : null));
         if (Lean != 0) to = to with { Tilt = to.Tilt + Lean };
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
@@ -1739,6 +1770,12 @@ public partial class Figure : Node2D
             if (picture != null && _frontHand.Texture != picture) _frontHand.Texture = picture;
             _frontWrist.Rotation = (float)-signWrist;
         }
+        // Reaching for something (the drone's meeting), the near hand goes toward it as far as the arm goes.
+        if (Reach is { Share: > 0 } reaching)
+        {
+            var (dx, dy) = FromShoulder(reaching.To);
+            frontArm = Mix(frontArm, Rig.Reach(new Vec(dx, dy), Rig.Arm, 1), reaching.Share);
+        }
         _swingArm.Drew(frontArm);
         // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
         frontArm = frontArm with { Upper = frontArm.Upper + body.Kick };
@@ -1748,6 +1785,7 @@ public partial class Figure : Node2D
         if (OffHand is { Share: > 0 } off) backArm = Mix(backArm, off.Arm, off.Share);
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
+        Palm = _waist.ToGlobal(Pixel(Rig.FistOf(frontArm)));
         // The collar over the near arm's shoulder while it hangs; raised, the arm crosses over it (BodyFit.CollarOverArm).
         bool over = _collar.GetIndex() > _frontArmNode.GetIndex();
         if (BodyFit.CollarOverArm(frontArm) != over) _waist.MoveChild(_collar, over ? _helmet.GetIndex() + 1 : _frontArmNode.GetIndex());
@@ -1781,6 +1819,7 @@ public partial class Figure : Node2D
             var toward = overDrone ? Vector2.Up : HeadLampToward;
             var feet = _frame.ToGlobal(Vector2.Zero);
             Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;
+            if (DroneTo is { } meeting) (toward, before) = (meeting.Toward, meeting.At);
             _drone.Follow(_helmet.GlobalPosition, hero.Facing, toward, elapsedMs, _timeMs, before);
             _droneThere = before != null && (_droneThere || _drone.Off < SheetHoloLook.OverArrived);
             _drone.Projecting = overDrone;

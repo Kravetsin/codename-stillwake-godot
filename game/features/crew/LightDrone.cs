@@ -39,7 +39,9 @@ public partial class LightDrone : Node2D
 
     private static readonly Color Ink = new("16171b"), Bezel = new("2a2d32");
     private static readonly Color RimDark = new("1a1b1f"), RimLight = new("26282d"), SootDark = new("4c4f55"), SootLight = new("606369");
-    private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f), Ember = new(1f, 138 / 255f, 58 / 255f);
+    private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f);
+    /// <summary>Its embers' and arcs' hot orange (the picks' <c>EMBER</c>).</summary>
+    internal static readonly Color Ember = new(1f, 138 / 255f, 58 / 255f);
     /// <summary>Its lens's colour shining and scanning, the mode wheel's too.</summary>
     internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
     /// <summary>Its lens with no mode open yet: a dull ember of the lamp's colour.</summary>
@@ -117,7 +119,7 @@ public partial class LightDrone : Node2D
     public bool Projecting { get; set; }
 
     /// <summary>Its lens's colour: the hologram's projecting, else its mode's.</summary>
-    private Color LensColour => Projecting ? Holo : Scanning ? Scan : Idle ? Dark : Lamp;
+    internal Color LensColour => Projecting ? Holo : Scanning ? Scan : Idle ? Dark : Lamp;
 
     /// <summary>
     /// Whether a drone window is <paramref name="open"/> or its soot still out by <paramref name="soot"/>, 0..1 (drone-frame): either
@@ -153,24 +155,50 @@ public partial class LightDrone : Node2D
     /// <summary>In the pick's order: soot behind, plates behind, the core and its lens, soot before, plates before.</summary>
     public override void _Draw()
     {
-        _core ??= HiRes.Texture(HiRes.Load("drone_core") ?? throw new InvalidOperationException("No picture drone_core"));
-        _plates ??= HiRes.Texture(HiRes.Load("drone_plates") ?? throw new InvalidOperationException("No picture drone_plates"));
         float angle = _angle;
-        var toward = Vector2.FromAngle(angle);
-        var colour = LensColour;
         DrawSoot(front: false);
         for (int i = 0; i < _placed.Length; i++)
-            if (!_placed[i].Front) DrawPlate(i);
-        DrawTextureRect(_core, new Rect2(-CoreBox / 2f, -CoreBox / 2f, CoreBox, CoreBox), false);
-        var lens = toward * LensAhead;
-        DrawColoredPolygon(Ellipse(lens, BezelX + BezelInk / 2, BezelY + BezelInk / 2, angle), Ink);
-        DrawColoredPolygon(Ellipse(lens, BezelX - BezelInk / 2, BezelY - BezelInk / 2, angle), Bezel);
-        DrawColoredPolygon(Ellipse(lens + toward * 0.06f, GlassX, GlassY, angle), colour.Lerp(Colors.White, 0.3f));
-        DrawColoredPolygon(Ellipse(lens + toward * 0.16f, 0.185f, 0.35f, angle), colour.Lerp(Colors.White, 0.8f));
+            if (!_placed[i].Front) DrawPlate(this, i, _placed[i], Vector2.Zero);
+        DrawCore(this, Vector2.Zero, angle, LensColour);
         DrawSoot(front: true);
         for (int i = 0; i < _placed.Length; i++)
-            if (_placed[i].Front) DrawPlate(i);
+            if (_placed[i].Front) DrawPlate(this, i, _placed[i], Vector2.Zero);
     }
+
+    /// <summary>The core's picture, drone.js's <c>drone_core</c>.</summary>
+    private static Texture2D CorePicture => _core ??= HiRes.Texture(HiRes.Load("drone_core") ?? throw new InvalidOperationException("No picture drone_core"));
+
+    private static Texture2D PlatesPicture => _plates ??= HiRes.Texture(HiRes.Load("drone_plates") ?? throw new InvalidOperationException("No picture drone_plates"));
+
+    /// <summary>The core at <paramref name="at"/> on <paramref name="on"/>, its lens turned <paramref name="angle"/> in <paramref name="colour"/> (the drone's and its first meeting's).</summary>
+    internal static void DrawCore(CanvasItem on, Vector2 at, float angle, Color colour)
+    {
+        var toward = Vector2.FromAngle(angle);
+        on.DrawTextureRect(CorePicture, new Rect2(at.X - CoreBox / 2f, at.Y - CoreBox / 2f, CoreBox, CoreBox), false);
+        var lens = at + toward * LensAhead;
+        on.DrawColoredPolygon(Ellipse(lens, BezelX + BezelInk / 2, BezelY + BezelInk / 2, angle), Ink);
+        on.DrawColoredPolygon(Ellipse(lens, BezelX - BezelInk / 2, BezelY - BezelInk / 2, angle), Bezel);
+        on.DrawColoredPolygon(Ellipse(lens + toward * 0.06f, GlassX, GlassY, angle), colour.Lerp(Colors.White, 0.3f));
+        on.DrawColoredPolygon(Ellipse(lens + toward * 0.16f, 0.185f, 0.35f, angle), colour.Lerp(Colors.White, 0.8f));
+    }
+
+    /// <summary>Where the lens of a core at <paramref name="at"/> turned <paramref name="angle"/> is.</summary>
+    internal static Vector2 LensOf(Vector2 at, float angle) => at + Vector2.FromAngle(angle) * LensAhead;
+
+    /// <summary>
+    /// A mote of soot, its middle at (<paramref name="x"/>, <paramref name="y"/>), its side <paramref name="s"/>: a dark rim, its tone,
+    /// a lit top on the larger ones; all <paramref name="alpha"/> as opaque.
+    /// </summary>
+    internal static void Mote(Triangles into, float x, float y, float s, bool dark, float alpha = 1)
+    {
+        x -= s / 2;
+        y -= s / 2;
+        into.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, Faded(dark ? RimDark : RimLight, alpha));
+        into.Rect(x, y, s, s, Faded(dark ? SootDark : SootLight, alpha));
+        if (s > LitFrom) into.Rect(x, y, s, LitTop, Faded(SootTop, alpha));
+    }
+
+    private static Color Faded(Color colour, float alpha) => alpha >= 1 ? colour : new Color(colour, colour.A * alpha);
 
     /// <summary>The motes kept on one side of the core in one call: each a dark rim, its tone, a lit top on the larger ones.</summary>
     private void DrawSoot(bool front)
@@ -180,28 +208,25 @@ public partial class LightDrone : Node2D
         {
             var mote = _motes[i];
             if (mote.Front != front || !_swarm.Kept(i)) continue;
-            float s = mote.Side, x = mote.X - s / 2, y = mote.Y - s / 2;
-            _soot.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, mote.Dark ? RimDark : RimLight);
-            _soot.Rect(x, y, s, s, mote.Dark ? SootDark : SootLight);
-            if (s > LitFrom) _soot.Rect(x, y, s, LitTop, SootTop);
+            Mote(_soot, mote.X, mote.Y, mote.Side, mote.Dark);
         }
         _soot.Flush(GetCanvasItem());
     }
 
     /// <summary>
-    /// Plate <paramref name="i"/> where it is: the nearest of its pictures, face or rusty back, turned the rest of the way and squashed
-    /// across its long axis by how far it is turned over (the pick's <c>flipY</c>); its light from above is off by a few degrees at most.
+    /// Plate <paramref name="i"/> as <paramref name="plate"/> places it from <paramref name="at"/> on <paramref name="on"/>: the nearest of its
+    /// pictures, face or rusty back, turned the rest of the way and squashed across its long axis by how far it is turned over (the pick's
+    /// <c>flipY</c>); its light from above is off by a few degrees at most.
     /// </summary>
-    private void DrawPlate(int i)
+    internal static void DrawPlate(CanvasItem on, int i, Plate plate, Vector2 at)
     {
-        var plate = _placed[i];
         float flip = MathF.Abs(plate.Flip) < EdgeOn ? (plate.Flip < 0 ? -EdgeOn : EdgeOn) : plate.Flip;
         int turn = ((int)Math.Round(plate.Turn / Mathf.Tau * Turns) % Turns + Turns) % Turns;
         var squash = new Transform2D(Vector2.Right, new Vector2(0, MathF.Abs(flip)), Vector2.Zero);
-        DrawSetTransformMatrix(new Transform2D(plate.Turn, new Vector2(plate.X, plate.Y)) * squash * new Transform2D(-turn * Mathf.Tau / Turns, Vector2.Zero));
+        on.DrawSetTransformMatrix(new Transform2D(plate.Turn, at + new Vector2(plate.X, plate.Y)) * squash * new Transform2D(-turn * Mathf.Tau / Turns, Vector2.Zero));
         int column = turn + (flip < 0 ? Turns : 0);
-        DrawTextureRectRegion(_plates, new Rect2(-PlateBox / 2f, -PlateBox / 2f, PlateBox, PlateBox), new Rect2(column * PlateBox, i * PlateBox, PlateBox, PlateBox));
-        DrawSetTransform(Vector2.Zero, 0);
+        on.DrawTextureRectRegion(PlatesPicture, new Rect2(-PlateBox / 2f, -PlateBox / 2f, PlateBox, PlateBox), new Rect2(column * PlateBox, i * PlateBox, PlateBox, PlateBox));
+        on.DrawSetTransform(Vector2.Zero, 0);
     }
 
     /// <summary>

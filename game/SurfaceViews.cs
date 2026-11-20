@@ -38,7 +38,8 @@ public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = 
 public static class SurfaceViews
 {
     /// <summary>Whether the alien core is gone for this player (drone-companion): they have their drone, or it broke loose.</summary>
-    private static bool CoreGone(SurfaceContext c) => c.M.Players.HasDrone(c.Peer()) || c.M.Crew.CoreLost();
+    private static bool CoreGone(SurfaceContext c) =>
+        Features.Crew.Meeting.CoreGone(c.M.Crew.CoreLost(), c.M.Players.HasDrone(c.Peer()), c.Hands.Ui.CoreTaken, c.Hands.Ui.CoreMeeting != null);
 
     public static readonly IReadOnlyList<SurfaceView> All =
     [
@@ -83,7 +84,7 @@ public static class SurfaceViews
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
-        new(c => new Features.Crew.CoreGlow(c.M.Grid, () => CoreGone(c))),
+        new(c => new Features.Crew.CoreGlow(c.M.Grid, () => CoreGone(c), () => c.Hands.Ui.CoreMeeting)),
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Furnace.Burning), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),
         new(Drones),

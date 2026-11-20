@@ -33,6 +33,7 @@ public partial class HeroView
             if (!others.Any(o => o.Id == id))
             {
                 shown.Figure.Visible = false;
+                EndMeeting(id);
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
                 shown.Gesture.Stop();
@@ -94,7 +95,9 @@ public partial class HeroView
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
-            // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion).
+            // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion); seen
+            // pairing here, it meets it as its peer does (drone-meeting).
+            if (_watch.Turned(m, id, m.Players.HasDrone(id), crew.CoreLost())) Meet(id, hero, m);
             shown.Figure.Paired = m.Players.HasDrone(id);
             (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
             shown.Figure.DroneWindow = (seen.Projects, 0);
@@ -114,8 +117,10 @@ public partial class HeroView
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
                 _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
-            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
-                seen.HoldsPlan, elapsedMs);
+            var (posed, looks) = InMeeting(id, shown.Figure, hero,
+                Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0);
+            shown.Figure.Show(hero, posed, looks, seen.HoldsPlan, elapsedMs);
+            ShowMeeting(id, shown.Figure, m);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
             if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges))

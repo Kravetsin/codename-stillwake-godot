@@ -72,13 +72,13 @@ public partial class HeroView
         // The gesture key: a tap points, held its wheel opens by the arrow (gestures-for-words); clicks meanwhile use nothing.
         float wheelScale = _ui.Slot / (float)Slots.Base;
         bool typing = GetViewport().GuiGetFocusOwner() is LineEdit;
-        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && !typing;
+        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && !typing && !_locked;
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
         _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
         // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
         if (!DroneOpen(_droneMode) && DroneModes.Next(_droneMode, _droneOpen) is { } otherMode) _droneMode = otherMode;
-        bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing;
+        bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
         if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
         _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
@@ -101,6 +101,8 @@ public partial class HeroView
         var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, pace, targets, budget);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);
+        // E on the core: the drone's meeting plays from the press, the sim pairing them meanwhile (drone-meeting).
+        if (uses.Commands.Any(c => c is Sim.Crew.PairDrone) && !m.Players.HasDrone(client.Id) && !m.Crew.CoreLost()) MeetHere(client, m);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it; on a square, while any of its plans can be worked.
         bool working = builds && (targets != null ? targets.Any(t => t.Problem == null) : aim is { InReach: true, Work.Problem: null });

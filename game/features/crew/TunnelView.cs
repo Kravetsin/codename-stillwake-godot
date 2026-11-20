@@ -50,6 +50,7 @@ public partial class TunnelView : CanvasLayer
 
     private readonly Func<(int Gasp, int Out)?> _read;
     private readonly Func<Vector2?> _hero;
+    private readonly Func<double> _dizzy;
     private readonly Tunnel _tunnel = new();
     private readonly ColorRect _screen = new();
     private readonly ShaderMaterial _material = new() { Shader = new Shader { Code = Shader } };
@@ -57,9 +58,10 @@ public partial class TunnelView : CanvasLayer
 
     /// <param name="read">This player's hero's last breath and ticks out, or none.</param>
     /// <param name="hero">Its head and feet in the world as drawn, or none.</param>
-    public TunnelView(Func<(int Gasp, int Out)?> read, Func<(Vector2 Head, Vector2 Feet)?> hero)
+    /// <param name="dizzy">How far into the last breath its head swims besides, as giving blood in the drone's meeting does (drone-meeting); never ink.</param>
+    public TunnelView(Func<(int Gasp, int Out)?> read, Func<(Vector2 Head, Vector2 Feet)?> hero, Func<double> dizzy)
     {
-        _read = read;
+        (_read, _dizzy) = (read, dizzy);
         _hero = () => hero() is (var head, var feet) ? head.Lerp(feet, Chest) : null;
         Layer = ScreenLayers.LastBreath;
         _screen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -79,7 +81,7 @@ public partial class TunnelView : CanvasLayer
             var (gasp, @out) = _read() ?? (0, 0);
             _tunnel.Read(gasp, @out);
         }
-        double p = _tunnel.Advance(delta);
+        double p = Math.Max(_tunnel.Advance(delta), _dizzy());
         _screen.Visible = p > 0;
         if (!_screen.Visible) return;
         var look = Tunnel.Of(p, _clock);

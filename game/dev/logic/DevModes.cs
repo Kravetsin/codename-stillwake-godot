@@ -115,6 +115,7 @@ public static class DevModes
         new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (hero-skins)"),
         new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (hero-skins)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
+        new("--meeting", DevShape.Either, "the drone's meeting played on this hero beside the core as it is placed, =seconds into it (0 bare), unpaired (drone-meeting)"),
     ];
 
     private static readonly Dictionary<string, DevMode> ByName = All.ToDictionary(m => m.Name, StringComparer.Ordinal);

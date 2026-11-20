@@ -449,6 +449,8 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
+        // Meeting its drone, the hero kneels where it is, held still as if seated till it ends (drone-meeting).
+        _locked = _meetings.ContainsKey(client.Id);
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         InPod = Seating.InPod(m, client.Id);
@@ -522,7 +524,7 @@ public partial class HeroView : Node2D
                 ? Hero.ThrustToward(taken.X, taken.Y, _current.Middle, pointed)
                 : null;
             if (thrust != null) _thrust = thrust;
-            var input = passedOut || seat != null
+            var input = passedOut || seat != null || _locked
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
                 : taken with
                 {
@@ -574,9 +576,9 @@ public partial class HeroView : Node2D
         if (Report.ThrustOf(m.Crew, client.Id, _venting) is { } thrusts) client.Send(thrusts);
         HearThrust(elapsedMs);
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
-        if (_breathe && !passedOut) Breathe(client, m);
+        if (_breathe && !passedOut && !_locked) Breathe(client, m);
         _breathe = false;
-        if (_eat is { } food && !passedOut) Eat(client, m, food);
+        if (_eat is { } food && !passedOut && !_locked) Eat(client, m, food);
         _eat = null;
         if (m.Crew.HeroOf(client.Id) is { } sick && Purged(client.Id, sick.Purges))
         {
@@ -591,9 +593,9 @@ public partial class HeroView : Node2D
         _switchSuit = false;
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
-        bool holdsPlan = HoldsPlan && !passedOut;
+        bool holdsPlan = HoldsPlan && !passedOut && !_locked;
         // A drone window open, friends see the drone project it before the hero (drone-holo).
-        bool projects = _ui.DroneWindow.Open && !passedOut;
+        bool projects = _ui.DroneWindow.Open && !passedOut && !_locked;
         _clockMs += elapsedMs;
         _beamLeftMs = Math.Max(0, _beamLeftMs - elapsedMs);
         _sendTo = client;
@@ -622,8 +624,13 @@ public partial class HeroView : Node2D
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space; in water it swims so.
         var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding || ship.Wet(drawn.BodyCell(ship.Width)), passedOut);
+        if (MeetAt is double meetAt)
+        {
+            MeetAt = null;
+            MeetHere(client, m, meetAt);
+        }
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
-        UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
+        UseHands(client, m, shown, pointer, passedOut || _locked, pose, elapsedMs, handFree: !HoldsPlan);
         _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
@@ -646,7 +653,10 @@ public partial class HeroView : Node2D
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);
+        (pose, look) = InMeeting(client.Id, _figure, drawn, pose, look);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
+        ShowMeeting(client.Id, _figure, m);
+        HoldCore(client.Id);
         _figure.Visible = seat == null;
         _ui.DroneLens = _figure.Visible && !passedOut && _figure.DroneLens is { } lens ? (lens.Position.X, lens.Position.Y, lens.Size.X, lens.Size.Y) : null;
         // Its own thrust shows at once (0014); others' as the sim says.

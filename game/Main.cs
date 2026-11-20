@@ -352,7 +352,7 @@ public partial class Main : Node2D, ITogether
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
             // The last breath out of air or past a death of the body (body-temperature), whichever ends first.
             AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me
-                ? (Tunnel.Sooner(me.Gasp, _hero?.BodyGasp ?? 0), me.Out) : null, () => _hero?.Shown));
+                ? (Tunnel.Sooner(me.Gasp, _hero?.BodyGasp ?? 0), me.Out) : null, () => _hero?.Shown, () => _hero?.Dizzy ?? 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()
