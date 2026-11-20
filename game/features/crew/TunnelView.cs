@@ -15,7 +15,7 @@ public partial class TunnelView : CanvasLayer
     /// <summary>Where on the hero the world sways about and blurs least: this far from its head to its feet, its chest.</summary>
     private const float Chest = 0.35f;
 
-    private static readonly StringName Center = "center", Blur = "blur", Dark = "dark", Sway = "sway", Ghost = "ghost", Swim = "swim", Ink = "ink";
+    private static readonly StringName Center = "center", Blur = "blur", Dark = "dark", Sway = "sway", Ghost = "ghost", Swim = "swim", Ink = "ink", Clear = "clear";
 
     private const string Shader = """
         shader_type canvas_item;
@@ -27,6 +27,7 @@ public partial class TunnelView : CanvasLayer
         uniform vec2 ghost = vec2(0.0);
         uniform float swim = 0.0;
         uniform float ink = 0.0;
+        uniform float clear = 0.0;
         const vec3 brown = vec3(34.0, 12.0, 9.0) / 255.0;
         const vec3 ink_colour = vec3(23.0, 18.0, 15.0) / 255.0;
 
@@ -39,11 +40,12 @@ public partial class TunnelView : CanvasLayer
             vec2 uv = (c + vec2(k * d.x - s * d.y, s * d.x + k * d.y)) / size;
             uv += vec2(sin(uv.y * 9.0 + TIME * 1.7), sin(uv.x * 7.0 + TIME * 1.3)) * swim * vec2(1.0, aspect);
             // Blurred everywhere, the more the farther from the hero, with no line between: at most a picture 40 pixels wide.
-            float edge = smoothstep(0.08, 0.7, length(d) / size.x);
-            float lod = blur * log2(size.x / 40.0) * mix(0.35, 1.0, edge);
+            // Clear keeps what lies at the hero sharp and single, as the meeting plays there (drone-meeting).
+            float edge = smoothstep(0.08 + 0.1 * clear, 0.7, length(d) / size.x);
+            float lod = blur * log2(size.x / 40.0) * mix(0.35 * (1.0 - clear), 1.0, edge);
             vec3 world = textureLod(screen, uv, lod).rgb;
             vec3 twin = textureLod(screen, uv - ghost * vec2(1.0, aspect), lod).rgb;
-            vec3 colour = mix(mix(world, twin, 0.34), brown, dark * mix(0.55, 1.0, edge));
+            vec3 colour = mix(mix(world, twin, 0.34 * mix(1.0 - clear, 1.0, edge)), brown, dark * mix(0.55, 1.0, edge));
             COLOR = vec4(mix(colour, ink_colour, ink), 1.0);
         }
         """;
@@ -81,7 +83,7 @@ public partial class TunnelView : CanvasLayer
             var (gasp, @out) = _read() ?? (0, 0);
             _tunnel.Read(gasp, @out);
         }
-        double p = Math.Max(_tunnel.Advance(delta), _dizzy());
+        double breath = _tunnel.Advance(delta), dizzy = _dizzy(), p = Math.Max(breath, dizzy);
         _screen.Visible = p > 0;
         if (!_screen.Visible) return;
         var look = Tunnel.Of(p, _clock);
@@ -95,5 +97,6 @@ public partial class TunnelView : CanvasLayer
         _material.SetShaderParameter(Ghost, new Vector2((float)look.GhostX, (float)look.GhostY));
         _material.SetShaderParameter(Swim, (float)look.Swim);
         _material.SetShaderParameter(Ink, (float)look.Ink);
+        _material.SetShaderParameter(Clear, dizzy > breath ? 1f : 0f);
     }
 }

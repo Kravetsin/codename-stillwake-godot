@@ -74,7 +74,7 @@ public partial class HeroView
     /// <summary>
     /// <paramref name="figure"/> as its hero's meeting, if any, bends it this frame, before it is shown: kneeling where it stands, the near
     /// hand to the core, the head after it and the drone; its drone hidden while the meeting draws it, then flown to its place. Lying
-    /// or afloat it only watches. The pose and look to show it in.
+    /// or tumbling it only watches. The pose and look to show it in.
     /// </summary>
     private (Pose Pose, double Look) InMeeting(int id, Figure figure, Hero hero, Pose pose, double look)
     {
@@ -91,7 +91,8 @@ public partial class HeroView
         var drone = Meeting.DroneAt(u, new Vec(met.Core.X, met.Core.Y), met.Side, new Vec(idle.X, idle.Y), met.ClockS);
         met.Drone = new Vector2((float)drone.X, (float)drone.Y);
         met.Angle = (float)Meeting.AngleOf(u, drone, new Vec(helm.X, helm.Y), figure.HeadLampToward.Angle());
-        bool kneels = pose is not (Pose.Lie or Pose.Tumble or Pose.Float);
+        // Afloat too: the core lies out of the outer lock, in space, and the hero holds on to it by its palm.
+        bool kneels = pose is not (Pose.Lie or Pose.Tumble);
         figure.Kneel = new Kneeling(Meeting.Kneel(u), Meeting.Lean(u));
         figure.Reach = kneels ? (met.Core, Meeting.Reach(u)) : null;
         figure.DroneShown = !Meeting.DrawsDrone(u);
