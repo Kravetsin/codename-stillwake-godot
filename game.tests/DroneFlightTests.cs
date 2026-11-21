@@ -15,12 +15,12 @@ public class DroneFlightTests
     [Theory]
     [InlineData(30)]
     [InlineData(144)]
-    public void ARunReversedCarriesItPastTheHeadButNeverJumpsAFrame(int fps)
+    public void ARunReversedLeavesItBehindItCatchesUpAndNeverJumpsAFrame(int fps)
     {
         double frameMs = 1000.0 / fps, dt = Math.Min(frameMs, T.MaxFrameMs);
         var flight = new DroneFlight();
         var anchor = new Vec(0, 0);
-        double most = 0, past = 0;
+        double fastest = 0, behind = 0, past = 0;
         for (double ms = 0; ms < 4000; ms += frameMs)
         {
             int way = ms < 2000 ? 1 : -1;
@@ -28,11 +28,14 @@ public class DroneFlightTests
             anchor = DroneFlight.Plus(anchor, DroneFlight.Scaled(hero, frameMs));
             var was = flight.At;
             var at = flight.Step(anchor, hero, anchor, window: false, darting: false, frameMs);
-            if (ms > 0) most = Math.Max(most, Apart(at, was) - (RunSpeed + T.Cruise) * dt);
+            if (ms > 0) fastest = Math.Max(fastest, Apart(at, was) / dt);
+            if (ms is > 1500 and < 2000) behind = Math.Max(behind, anchor.X - at.X);
             if (ms >= 2000) past = Math.Max(past, at.X - anchor.X);
         }
-        Assert.True(most <= 0.1, $"moved {most:F3} px more than its bound in a frame");
-        Assert.True(past > 4, $"carried only {past:F1} px past the head");
+        // It trails the run some cells behind and catches up at no more than a run and a half: never a jump.
+        Assert.True(fastest <= RunSpeed * 1.5, $"flew {fastest / RunSpeed:F2} runs fast in a frame");
+        Assert.InRange(behind, T.Slack, T.Reach);
+        Assert.True(past > T.Slack, $"trailed only {past:F1} px after the turn");
     }
 
     [Fact]

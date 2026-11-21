@@ -13,8 +13,9 @@ catcher out of view.
 
 ## Player experience
 
-1. Running and turning: it carries on past the head, curves over it and settles. It never jumps.
-2. Standing still: it sits by a shoulder, then drifts to a new perch every few seconds, its lens looking off into the dark.
+1. Running: it falls a few cells behind and catches up when the hero stops. Turning: it carries on, curves round and
+   trails the other way. It never jumps.
+2. Standing still: it sits by a shoulder, then slowly drifts to a new perch every 8–20 s, its lens looking off into the dark.
 3. Lamp or scan: the lens follows the pointer whatever the drone does, the beam with it.
 4. Bag or plans open: it flies before the waist and projects, in any pose; it does not wander meanwhile.
 5. A meteor `Hazards.Incoming` whose cell is within `Notice` of the anchor: it darts toward the cell, flashes red until the
@@ -48,11 +49,13 @@ catcher out of view.
 
 - **Body.** Position and velocity, pixels of the world. The anchor is the hero's middle column `Above` (16 px) over the
   neck, or over the body's middle lying down: a turn moves nothing. Each frame, dt capped at 33 ms so a stall never flings it:
-  - its wanted velocity is the hero's plus `(goal - pos) / ArriveMs`, that second term at most `Cruise` long (`DartSpeed`
-    darting);
+  - its wanted velocity is its own, never the hero's: toward the goal, a drift easing in near it (`gap / ArriveMs`, at most
+    `Drift`; to a window's place `gap / WindowArriveMs`, at most `Cruise`) plus a catch-up past `Slack`,
+    `((gap - Slack) / Snap)²`, all at most `Chase` (`DartSpeed` darting). So it trails a running hero some cells behind and
+    catches up when the hero stops; it does not ride the shoulder (the user, 2026-11-21);
   - its velocity moves toward the wanted one by at most `Accel`·dt, which gives the overshoot on a turn;
   - outside a window it stays within `Reach` of the anchor: past it, the position is put back on the circle and the outward
-    part of the velocity dropped. A window's goal has no reach: it is always before the waist;
+    part of the velocity dropped, a net for the longest falls. A window's goal has no reach: it is always before the waist;
   - the first frame, the first after being hidden, and any anchor jump over `Lost` in one frame (a respawn, a late joiner)
     put it at its goal at rest;
   - `Off` is its distance to its goal (`Figure` reads it for `_droneThere`, the window's arrival).
@@ -73,10 +76,10 @@ catcher out of view.
 - **Lens.** `LightDrone` keeps its easing. Toward the pointer in lamp and scan (the look for a friend), up in a window, at the
   danger in a dart, else the perch's own look.
 
-Tunables, `DroneFlight.Tune`, in the client: they never enter the sim, so not `sim/Content`. `Above` 16 px, `Cruise`
-0.12 px/ms, `DartSpeed` 0.6 px/ms, `Accel` 0.002 px/ms², `ArriveMs` 250, `Reach` 40 px, `Lost` 64 px, `Home` 10 × 5 px
-half-sizes, `BoredMs` random 3000–8000, `Notice` 160 px, `Lean` 6 px,
-`PulseMs` 1200.
+Tunables, `DroneFlight.Tune`, in the client: they never enter the sim, so not `sim/Content`. `Above` 16 px, `Drift`
+0.025 px/ms, `Cruise` 0.12 px/ms, `ArriveMs` 400, `WindowArriveMs` 150, `Slack` 12 px, `Snap` 28 px, `Chase` 1.3 px/ms,
+`DartSpeed` 0.6 px/ms, `Accel` 0.002 px/ms², `Reach` 48 px, `Lost` 64 px, `Home` 10 × 5 px half-sizes, `BoredMs` random
+8000–20000 (3000–8000 re-perched too often, 2026-11-21), `Notice` 160 px, `Lean` 6 px, `PulseMs` 1200.
 
 ## Co-op
 
@@ -87,8 +90,8 @@ traffic.
 
 ## Steps
 
-1. `DroneFlight` with its tests: a run reversed at 30 and 144 fps never moves it more than
-   `(hero speed + Cruise)·dt + 0.1 px` a frame; a facing flip alone moves nothing; within `Reach` at any hero motion up to the
+1. `DroneFlight` with its tests: a run reversed at 30 and 144 fps leaves it between `Slack` and `Reach` behind, and never
+   flies it faster than a run and a half in a frame; a facing flip alone moves nothing; within `Reach` at any hero motion up to the
    hero's fastest fall; a window goal reached in every pose; a jump over `Lost`, the first frame and a re-show put it at its goal.
 2. `DroneWill` and `DroneSenses` with their tests, seeded: ranks (window > dart > settle); a dart held while its danger
    lasts, then returning within `Home`, never twice for the same one, replaced by a new one; the lean under a dart, none with a
