@@ -177,18 +177,36 @@ const SUITS = { me: ['#938d7d', '#6f6b5f', '#4b4941', '#5d5a50', '#777366'], fri
 const NECK = () => [.3, -RIG.Neck], HELM = [1, -RIG.Neck - 6.2], EYE = [4.6, -RIG.Neck - 6.4], HELM_R = 6.4;
 const rotAbout = (p, o, a) => { const q = rot(p[0] - o[0], p[1] - o[1], a); return [o[0] + q[0], o[1] + q[1]]; };
 const toS = (h, p) => [h.x + h.face * Z * p[0], h.y + Z * p[1]];
-// the pose: legs and arms from the gait; h.e of the way to holding the planner sheet at look h.hl (Poses.Plan)
+// the kneel a page may bend the rig into (h.kn of the way): thigh from straight down and knee bend, front leg then back; the
+// front thigh level and its shin upright, the back knee on the ground and its toes tucked under
+const KNEEL = { F: [1.5, 1.5], B: [-.05, 1.7], Toe: [1.2, 2] };
+// the pose: legs and arms from the gait; h.e of the way to holding the planner sheet at look h.hl (Poses.Plan). A page's own
+// pose on the same joints: h.kn of the way to the kneel, the body h.lean forward about the hip, the front hand h.rk of the way
+// to h.rp (world px from the feet); all three 0 unless a page sets them
 function poseOf(h) {
-  const P = {}, bob = h.air ? 0 : Math.abs(Math.sin(h.ph)) * .7 * h.amp, up = p => [p[0], p[1] - bob];
-  P.bob = bob; P.sh = up([.4, -RIG.Shoulder]); P.neck = up(NECK());
-  const leg = s => {
-    const hip = [s * RIG.HipApart, -RIG.Hip], q = h.ph + (s > 0 ? 0 : Math.PI);
+  const kq = h.kn || 0, lean = h.lean || 0, gb = h.air ? 0 : Math.abs(Math.sin(h.ph)) * .7 * h.amp;
+  const angs = s => {
+    const q = h.ph + (s > 0 ? 0 : Math.PI);
     let th, kn;
     if (h.air) { th = s > 0 ? .9 : -.3; kn = s > 0 ? 1.1 : .5; } else { th = Math.sin(q) * .6 * h.amp; kn = Math.max(0, -Math.cos(q)) * 1.1 * h.amp + .06; }
-    const k = [hip[0] + Math.sin(th) * RIG.Leg[0], hip[1] + Math.cos(th) * RIG.Leg[0]], f = [k[0] + Math.sin(th - kn) * RIG.Leg[1], k[1] + Math.cos(th - kn) * RIG.Leg[1]];
-    return [up(hip), up(k), up(f), up([f[0] + 2.6, f[1]])];
+    if (kq > 0) { const K = s > 0 ? KNEEL.F : KNEEL.B; th = lerp(th, K[0], kq); kn = lerp(kn, K[1], kq); }
+    return [th, kn];
   };
-  P.legF = leg(1); P.legB = leg(-1);
+  const LF = angs(1), LB = angs(-1);
+  // kneeling lowers the hip until the front foot stands on the ground
+  const drop = kq > 0 ? Math.max(0, RIG.Hip - RIG.Leg[0] * Math.cos(LF[0]) - RIG.Leg[1] * Math.cos(LF[0] - LF[1])) * Math.min(1, kq * 10) : 0;
+  const bob = gb - drop, up = p => [p[0], p[1] - bob];
+  const P = { bob, lean };
+  P.hip = up([0, -RIG.Hip]);
+  const leaned = p => lean ? rotAbout(p, P.hip, lean) : p;
+  P.neck0 = up(NECK()); P.neck = leaned(P.neck0); P.sh = leaned(up([.4, -RIG.Shoulder]));
+  const leg = (s, [th, kn]) => {
+    const hip = [s * RIG.HipApart, -RIG.Hip];
+    const k = [hip[0] + Math.sin(th) * RIG.Leg[0], hip[1] + Math.cos(th) * RIG.Leg[0]], f = [k[0] + Math.sin(th - kn) * RIG.Leg[1], k[1] + Math.cos(th - kn) * RIG.Leg[1]];
+    const toe = s < 0 && kq > 0 ? lerp2([2.6, 0], KNEEL.Toe, kq) : [2.6, 0];
+    return [up(hip), up(k), up(f), up([f[0] + toe[0], f[1] + toe[1]])];
+  };
+  P.legF = leg(1, LF); P.legB = leg(-1, LB);
   let fa, ba;
   if (h.air) { fa = [1.3, .7]; ba = [-.6, .9]; }
   else { const s = Math.sin(h.ph) * h.amp; fa = [.12 - .7 * s, .3 + .5 * h.amp]; ba = [-.06 + .7 * s, .3 + .5 * h.amp]; }
@@ -196,8 +214,10 @@ function poseOf(h) {
     const hand = planHand(h.hl), turn = sheetTurn(h.hl), al = HOLD.FarHand * SHEET.Length, far = [hand[0] + Math.cos(turn) * al, hand[1] + Math.sin(turn) * al];
     fa = mixBend(fa, reach(hand, RIG.Arm, 1), h.e); ba = mixBend(ba, reach(far, RIG.Arm, 1), h.e);
   }
+  if (kq > 0) { const kn = P.legF[1]; ba = mixBend(ba, reach([kn[0] - P.sh[0], kn[1] - P.sh[1]], RIG.Arm, 1), kq); }   // the far hand on the front knee
+  if (h.rk > 0 && h.rp) fa = mixBend(fa, reach([h.rp[0] - P.sh[0], h.rp[1] - P.sh[1]], RIG.Arm, 1), h.rk);
   P.armF = limbPts(P.sh, fa, RIG.Arm); P.armB = limbPts(P.sh, ba, RIG.Arm);
-  P.helm = rotAbout(up(HELM), P.neck, h.look); P.eye = rotAbout(up(EYE), P.neck, h.look);
+  P.helm = leaned(rotAbout(up(HELM), P.neck0, h.look)); P.eye = leaned(rotAbout(up(EYE), P.neck0, h.look));
   return P;
 }
 function limb(c, pts, w, col) {
@@ -212,13 +232,18 @@ function drawHero(c, h) {
   limb(c, P.armB.slice(0, 3), RIG.Arm[2] * .9, S[3]); fist(c, P.armB[2], S[3]);
   limb(c, P.legB.slice(0, 3), RIG.Leg[2] * .9, S[3]); limb(c, P.legB.slice(2), 2.2, '#3a3833');
   const b = P.bob;
+  // the body and the helmet lean about the hip (P.lean, 0 unless a page bends it)
+  const leaned = () => { c.save(); if (P.lean) { c.translate(P.hip[0], P.hip[1]); c.rotate(P.lean); c.translate(-P.hip[0], -P.hip[1]); } };
+  leaned();
   rr(c, -6.6, -RIG.Shoulder - 1.8 - b, 3.2, 9.5, .8); c.fillStyle = '#58564e'; c.fill(); c.strokeStyle = INK; c.lineWidth = .45; c.stroke();
   rr(c, -4, -RIG.Shoulder - 2.6 - b, 8.4, RIG.Shoulder - RIG.Hip + 4.2, 2.2); c.fillStyle = S[1]; c.fill();
   c.fillStyle = S[0]; c.fillRect(-2.6, -RIG.Shoulder - 1.6 - b, 5.6, 1.4); c.fillStyle = S[2]; c.fillRect(-3.6, -RIG.Hip - .4 - b, 7.6, 1.3);
   rr(c, -4, -RIG.Shoulder - 2.6 - b, 8.4, RIG.Shoulder - RIG.Hip + 4.2, 2.2); c.strokeStyle = INK; c.lineWidth = .5; c.stroke();
+  c.restore();
   limb(c, P.legF.slice(0, 3), RIG.Leg[2] * .9, S[4]); limb(c, P.legF.slice(2), 2.2, '#45423b');
   // the helmet turns about the neck by the look, down positive
-  c.save(); c.translate(P.neck[0], P.neck[1]); c.rotate(h.look); c.translate(-P.neck[0], -P.neck[1] - b);
+  leaned();
+  c.translate(P.neck0[0], P.neck0[1]); c.rotate(h.look); c.translate(-P.neck0[0], -P.neck0[1] - b);
   c.beginPath(); c.arc(HELM[0], HELM[1], HELM_R, 0, 6.283); c.fillStyle = '#a29c8c'; c.fill(); c.strokeStyle = INK; c.lineWidth = .5; c.stroke();
   c.beginPath(); c.ellipse(HELM[0] + 3, HELM[1] - .1, 3.5, 3.1, 0, 0, 6.283); c.fillStyle = '#18212e'; c.fill();
   c.beginPath(); c.arc(HELM[0] + 3.6, HELM[1] - .9, 1.9, 3.6, 5.2); c.strokeStyle = 'rgba(170,205,235,.55)'; c.lineWidth = .35; c.stroke();
@@ -345,7 +370,9 @@ function drawWindow(T) {
 
 // ---------- the options every page has: the open schedule, the hero, speed, pause ----------
 const RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-const OPT = { mode: 'sched', stand: false, slow: false, playing: !RM, force: null, hideWindow: false };
+// a page with window: false has no bag: no open schedule, ghost or Tab key, and its heroes stand where its step puts them
+const WIN = PAGE.window !== false;
+const OPT = { mode: 'sched', stand: !WIN, slow: false, playing: !RM, force: null, hideWindow: false };
 function schedule() { return OPT.mode === 'often' ? { L: 1.4, wins: [[0, .7]] } : { L: 4.6, wins: [[.5, 3.3]] }; }
 // whether the window is open lag seconds behind this tile's schedule (a friend's window)
 function scheduledOn(T, lag = 0) {
@@ -494,13 +521,14 @@ function drawCursor(c, x, y) {
   c.fillStyle = 'rgba(238,238,232,.9)'; c.fill(); c.strokeStyle = '#111'; c.lineWidth = 1.2; c.stroke(); c.restore();
 }
 const world = T => { T.c.setTransform(T.S, 0, 0, T.S, 0, 0); T.c.globalAlpha = 1; T.c.globalCompositeOperation = 'source-over'; };
-// a hero with its drone and lamp; the page draws over the hero, takes the drone's plates away, draws over the drone
+// a hero with its drone and lamp; the page draws over the hero, takes the drone's plates away, draws over the drone; while
+// ownDrone holds, the page draws the drone and its lamp itself
 function drawFigure(T, h) {
-  const c = T.c, d = h.d;
-  world(T); lampOn(c, d.p[0], d.p[1], h.x, h.y, h.face, .6, 2.6);
+  const c = T.c, d = h.d, own = !!hook('ownDrone', T, h);
+  if (!own) { world(T); lampOn(c, d.p[0], d.p[1], h.x, h.y, h.face, .6, 2.6); }
   world(T); drawHero(c, h);
   world(T); hook('overHero', T, h);
-  world(T); drawDrone(c, d.p[0], d.p[1], d.ang, 0, T.time + h.seed, DSC, !!hook('platesAway', T, h));
+  if (!own) { world(T); drawDrone(c, d.p[0], d.p[1], d.ang, 0, T.time + h.seed, DSC, !!hook('platesAway', T, h)); }
   world(T); hook('overDrone', T, h);
 }
 function frameTile(T, dt) {
@@ -509,27 +537,30 @@ function frameTile(T, dt) {
   if (T.bufS !== T.S) { T.bufS = T.S; T.cache = {}; hook('onScale', T); }
   if (CFG.scene) { CFG.scene(T, dt); return; }   // a page drawing its whole scene: no floor, hero loop, drone or window
   stepHero(T, dt);
-  stepTimeline(T, dt);
+  if (WIN) stepTimeline(T, dt);
   hook('step', T, dt);
   for (const h of T.heroes) { h.P = poseOf(h); stepDrone(T, h, dt); }
-  hitTest(T); stepGhost(T, dt); stepMotion(T, dt); hitTest(T);
+  if (WIN) { hitTest(T); stepGhost(T, dt); stepMotion(T, dt); hitTest(T); }
   const c = T.c;
   c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-  drawBack(T);
+  if (CFG.back) { world(T); CFG.back(T); } else drawBack(T);
   for (const h of T.heroes) drawFigure(T, h);
   drawWindow(T);
+  world(T); hook('screen', T);
   world(T);
   const P = pointer(T);
   if (T.held && P && !OPT.hideWindow && ready(IMG[T.held.it[0]])) {
     c.drawImage(IMG[T.held.it[0]], P[0] - 20, P[1] - 20, 40, 40);
     if (T.held.it[1] > 1) { c.font = '600 11px ui-monospace,Consolas,monospace'; c.textAlign = 'right'; c.fillStyle = '#000'; c.fillText(String(T.held.it[1]), P[0] + 19, P[1] + 19); c.fillStyle = '#fff'; c.fillText(String(T.held.it[1]), P[0] + 18, P[1] + 18); c.textAlign = 'left'; }
   }
-  if (!T.real && T.ghost.on) drawCursor(c, T.ghost.x, T.ghost.y);
-  const lit = Math.max(0, 1 - (T.time - T.tab) / .45);
-  rr(c, 24.5, 494.5, 54, 26, 4); c.fillStyle = css([20, 24, 30], .6 + .3 * lit); c.fill(); c.strokeStyle = css([200, 210, 222], .3 + .65 * lit); c.lineWidth = 1; c.stroke();
-  c.font = '600 13px system-ui,"Segoe UI",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillStyle = css([226, 230, 236], .5 + .5 * lit); c.fillText('Tab', 51.5, 512); c.textAlign = 'left';
+  if (WIN && !T.real && T.ghost.on) drawCursor(c, T.ghost.x, T.ghost.y);
+  if (WIN) {
+    const lit = Math.max(0, 1 - (T.time - T.tab) / .45);
+    rr(c, 24.5, 494.5, 54, 26, 4); c.fillStyle = css([20, 24, 30], .6 + .3 * lit); c.fill(); c.strokeStyle = css([200, 210, 222], .3 + .65 * lit); c.lineWidth = 1; c.stroke();
+    c.font = '600 13px system-ui,"Segoe UI",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillStyle = css([226, 230, 236], .5 + .5 * lit); c.fillText('Tab', 51.5, 512); c.textAlign = 'left';
+  }
   const hud = hook('hud', T);
-  if (hud) { c.font = '13px system-ui,"Segoe UI",sans-serif'; c.fillStyle = 'rgba(214,226,240,.75)'; c.fillText(hud, 92, 512); }
+  if (hud) { c.font = '13px system-ui,"Segoe UI",sans-serif'; c.textBaseline = 'alphabetic'; c.fillStyle = 'rgba(214,226,240,.75)'; c.fillText(hud, WIN ? 92 : 24, 512); }
   if (OPT.slow) { c.font = '12px system-ui,"Segoe UI",sans-serif'; c.fillStyle = 'rgba(214,190,140,.85)'; c.fillText('×¼', 24, 486); }
 }
 
@@ -575,8 +606,8 @@ function segButtons(host, opts, get, set) {
   return refresh;
 }
 const STANDARD = {
-  openMode: { key: 'mode', opts: [['Открывать и закрывать', 'sched'], ['Часто', 'often'], ['Всегда открыто', 'always']] },
-  heroMode: { key: 'stand', opts: [['Герой бегает', false], ['Герой стоит', true]] },
+  openMode: { win: 1, key: 'mode', opts: [['Открывать и закрывать', 'sched'], ['Часто', 'often'], ['Всегда открыто', 'always']] },
+  heroMode: { win: 1, key: 'stand', opts: [['Герой бегает', false], ['Герой стоит', true]] },
   speedMode: { key: 'slow', opts: [['Как в игре', false], ['Медленно ×¼', true]] },
   playMode: { key: 'playing', opts: [['Движение', true], ['Пауза', false]] },
 };
@@ -610,10 +641,11 @@ function mark() {
   tiles.forEach(t => { const on = PICK === t.cand.id; t.sec.classList.toggle('chosen', on); t.sec.querySelector('.pick').textContent = on ? 'Выбран ✓' : 'Выбрать этот'; });
   dirtyAll();
 }
+// the db doc a pick of id writes: the candidate and every saved toggle
+function pickDoc(id) { const doc = { pick: id }; for (const t of SAVED()) doc[t.key] = OPT[t.key]; return doc; }
 function choose(id) {
   PICK = id; mark();
-  const doc = { pick: id };
-  for (const t of SAVED()) doc[t.key] = OPT[t.key];
+  const doc = pickDoc(id);
   doc.at = new Date().toISOString();
   if (!db) { status(`Выбрано: ${label(id)}. База недоступна: нажми «Скопировать выбор» и отправь текст.`); return; }
   status('Сохраняю…');
@@ -671,9 +703,9 @@ function startPage(cfg) {
     const io = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.cv === e.target); if (t) { t.visible = e.isIntersecting; t.dirty = true; } }), { rootMargin: '120px' });
     tiles.forEach(t => io.observe(t.cv));
   }
-  for (const id in STANDARD) if (!PAGE.kitBars || PAGE.kitBars.includes(id)) toggle({ id, ...STANDARD[id] });
+  for (const id in STANDARD) if ((WIN || !STANDARD[id].win) && (!PAGE.kitBars || PAGE.kitBars.includes(id))) toggle({ id, ...STANDARD[id] });
   PAGE.toggles.forEach(toggle);
-  if (window.__pickCheck) window.__pickCheck({ tiles, OPT, X: cfg.expose || {} });
+  if (window.__pickCheck) window.__pickCheck({ tiles, OPT, X: cfg.expose || {}, picked: () => PICK && pickDoc(PICK) });
   requestAnimationFrame(loop);
   readPick();
 }
