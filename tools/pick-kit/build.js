@@ -1,10 +1,11 @@
-// node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>]
+// node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>] [--fonts <dir>]
 // Writes <out-dir>/index.html, one self-contained page: the kit, the bag's item pictures and the page file. Then runs
 // the page's stub check; --break applies one of the page's breaks first, to see its check fail (README.md).
 const fs = require('fs'), path = require('path');
-const [pageArg, outArg] = process.argv.slice(2).filter(a => !a.startsWith('--'));
-const bi = process.argv.indexOf('--break'), brk = bi > 0 ? process.argv[bi + 1] : null;
-if (!pageArg || !outArg) { console.log('usage: node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>]'); process.exit(2); }
+const opt = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
+const brk = opt('--break');
+const [pageArg, outArg] = process.argv.slice(2).filter((a, i, all) => !a.startsWith('--') && !(i && /^--(break|fonts)$/.test(all[i - 1])));
+if (!pageArg || !outArg) { console.log('usage: node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>] [--fonts <dir>]'); process.exit(2); }
 const page = require(path.resolve(pageArg));
 // A db doc's path has an even number of segments ('picks/x'); an odd one is a collection, and the pick is never saved.
 if (page.pick.doc.split('/').length % 2) { console.log(`pick.doc '${page.pick.doc}' is not a doc path: use 'picks/<name>'`); process.exit(1); }
@@ -16,11 +17,19 @@ const icons = {};
 if (page.window !== false)   // the bag's pictures, only for a page that has the bag
   for (const [, id] of itemLine.matchAll(/'(\w+)'/g)) icons[id] = 'data:image/png;base64,' + fs.readFileSync(path.join(items, id + '.png')).toString('base64');
 
+// the page's fonts (`fonts: { family: file }`), inlined as @font-face data: files from --fonts, else fonts/ beside the out dir
+const fontDir = opt('--fonts') || path.join(path.resolve(outArg), '..', 'fonts');
+const fontFaces = Object.entries(page.fonts || {}).map(([fam, file]) => {
+  const f = path.join(fontDir, file);
+  if (!fs.existsSync(f)) { console.log(`font '${fam}' not found: ${f} (pass --fonts <dir>)`); process.exit(1); }
+  return `@font-face{font-family:"${fam}";src:url(data:font/ttf;base64,${fs.readFileSync(f).toString('base64')}) format("truetype");font-display:block}
+`;
+}).join('');
 const span = t => `<span class="seg" id="${t.id}">${t.label ? `<span class="lbl">${t.label}</span>` : ''}</span>`;
 const bar = ts => ts.length ? `<div class="bar">\n  ${ts.map(span).join('\n  ')}\n</div>\n` : '';
 const own = n => page.toggles.filter(t => (t.bar || 2) === n);
 const fn = page.page.toString(), expr = /^(async\s+)?(function\b|\(|[\w$]+\s*=>)/.test(fn) ? fn : 'function ' + fn;
-const data = { toggles: page.toggles, pick: page.pick, window: page.window !== false, kitBars: page.kitBars, tile: page.tile };
+const data = { fonts: Object.keys(page.fonts || {}), toggles: page.toggles, pick: page.pick, window: page.window !== false, kitBars: page.kitBars, tile: page.tile };
 const win = page.window !== false;   // window: false, no bag: no open schedule and no running hero to toggle
 const [TW, TH] = page.tile || [1000, 540];
 const kitBar = id => !page.kitBars || page.kitBars.includes(id);
@@ -28,7 +37,7 @@ const script = `(() => {\n'use strict';\nconst ICON_SRC = ${JSON.stringify(icons
 const html = `<title>${page.title}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-:root{color-scheme:dark;--bg:#0c0e12;--panel:#151920;--panel2:#1d222b;--text:#e3e0d8;--mute:#9a968c;--line:#2d333d;--accent:#8cc4ff;--pick:#7fe0c4;--stage:#05070b}
+${fontFaces}:root{color-scheme:dark;--bg:#0c0e12;--panel:#151920;--panel2:#1d222b;--text:#e3e0d8;--mute:#9a968c;--line:#2d333d;--accent:#8cc4ff;--pick:#7fe0c4;--stage:#05070b}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);overflow-x:hidden}
 body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
