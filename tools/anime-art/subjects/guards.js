@@ -1,7 +1,7 @@
 // A vessel's guards' docks, as picked (derelict-enemies): capsule G1 «Зрачок — впадина» on a small room's back wall and stand S1 «Люлька»
 // on a big room's floor, ported from the pick pages' draw code (mountG, faceLamp, CAP_G1; STANDS[0]). Asleep: the capsule shut behind its
 // smoked iris, its hazard lamp dark (the game blinks its amber pip); the stand without its robot and without what moves.
-// `guard_capsule_open` is the capsule awake, its iris open (the game draws the blades opening over it, then the lamp red).
+// `guard_capsule_open` is the capsule awake, its iris open; `guard_capsule_iris_<n>`, drawn over it, the iris's steps opening, as the game plays them.
 // `guard_capsule`, 40 × 48: its dock's 5 × 5 cells and the row over them, the floor at its foot. `guard_stand`, 56 × 64: its dock's
 // 7 × 8 cells, the robot's middle 3 cells from its left. Its moving parts (drum, yoke, hook, waist clamp, beacon) are `creatures/inkStand/*`,
 // their pivots in Content/logic/StandInk.cs; the cables from the console to the yoke are the game's lines. Exposes `GuardKit`.
@@ -86,6 +86,25 @@ function capsule(a, shut) {
   wear(a, cx - 15.6, cy + 6.6, .9);
   wear(a, cx + 12.4, cy - 14.2, .6);
   a.flat(ell(cx, cy + 18.6, 9, 1.6), 'rgba(21,18,15,.4)');
+}
+
+/** How many steps the iris opens by between shut and open: `guard_capsule_iris_<1..IRIS>`, the game plays them through its waking. */
+const IRIS = 5;
+/**
+ * The iris `o` of the way open (CAP_G1.front): its smoked glass blades turned `o` × 1.1 radians and drawn back from a pinhole to the rim,
+ * over the open capsule; its rim inked again over them.
+ */
+function iris(a, o) {
+  const [cx, cy] = GC, R = GR + .05, h = .6 + (R + .2 - .6) * o, turn = o * 1.1;
+  const rim = ring(cx, cy, R, 32), glass = path([...rim, ...ring(cx, cy, h, 20).reverse()]);
+  a.flat(glass, 'rgba(38,50,58,.6)');
+  for (let i = 0; i < 8; i++) {
+    const q = i / 8 * Math.PI * 2 + turn, ca = Math.cos(q), sa = Math.sin(q), tx = cx + ca * h, ty = cy + sa * h, d = Math.sqrt(R * R - h * h);
+    a.line(open([[tx, ty], [tx - sa * d, ty + ca * d]]), { w: 3.6, c: INK });
+    a.line(open([[tx + ca * .5, ty + sa * .5], [tx - sa * d + ca * .5, ty + ca * d + sa * .5]]), { w: 2, c: 'rgba(200,220,230,.22)' });
+  }
+  a.flat(path([[cx - 9.4, cy - 5.6], [cx - 6.8, cy - 9.2], [cx - 5.6, cy - 8.4], [cx - 8.2, cy - 4.8]]), 'rgba(220,236,242,.2)', { clip: glass });
+  a.line(path(rim), { w: 3.4 });
 }
 
 /* ---------- stand S1, drawn in cells as the page drew it: the floor at 14, the robot's middle at 31; mapped to world pixels ---------- */
@@ -232,6 +251,7 @@ window.GuardKit = { pal, mix, INK, STEEL, STEEL_D, DARK, GUNM, RUST, RUST_D, rin
 Subjects.guards = function () {
   out('guard_capsule', Anime.bake({ w: 40, h: 48, draw: (a) => capsule(a, true) }));
   out('guard_capsule_open', Anime.bake({ w: 40, h: 48, draw: (a) => capsule(a, false) }));
+  for (let k = 1; k <= IRIS; k++) out(`guard_capsule_iris_${k}`, Anime.bake({ w: 40, h: 48, draw: (a) => iris(a, k / (IRIS + 1)) }));
   out('guard_stand', Anime.bake({ w: 56, h: 64, draw: stand }));
   const parts = snapAll({
     drum: cellBox(-.45, -.45, .45, .45, (a) => cells(0, 0).drum(a, [0, 0], .36, 0)),

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Render;
@@ -15,7 +16,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// capsule G1 on its room's back wall, a robot's stand S1 on its room's floor, its yoke and clamp in front of its robot. A capsule is drawn with the
 /// back-wall objects; a stand before the machines, for it stands over what furniture its floor holds; both behind bodies and under the
 /// unseen rooms' fog. A capsule shows its spider's state: asleep, shut, its hazard lamp's amber standby pip blinking with a little light;
-/// waking, its lamp flashing red and amber and lighting the room as its iris opens (<see cref="DockWake"/>); open after, its lamp red
+/// waking, its lamp flashing red and amber and lighting the room as its iris opens step by step (<see cref="DockWake"/>); open after, its lamp red
 /// while its spider lives, dark once it is killed. The spider is drawn by <see cref="TickBodies"/> once the iris is open. A stand lets its
 /// escort go as it wakes (<see cref="StandWake"/>): its clamp swings up, its drum pays out the cable that lowers the yoke with the robot,
 /// the yoke's hooks open and it rises off its shoulders, its beacon flashing amber; after, it stands open and empty. The escort is drawn
@@ -45,13 +46,13 @@ public partial class DocksView : Node2D, ILightSource
     private readonly List<LightSource> _lights = [];
     private double _timeMs;
 
-    /// <summary>Where in the capsule's picture its hazard lamp is, its iris's middle, and the shelf its spider sits folded on (guards.js).</summary>
-    private static readonly Vector2 Pip = new(31.03f, 12.97f), Iris = new(20, 24), OnShelf = new(20, 34);
+    /// <summary>Where in the capsule's picture its hazard lamp is, and the shelf its spider sits folded on (guards.js).</summary>
+    private static readonly Vector2 Pip = new(31.03f, 12.97f), OnShelf = new(20, 34);
 
-    /// <summary>The iris's radius and its blades' width, as guards.js draws them shut.</summary>
-    private const float IrisR = 12.85f, Blade = 3.6f;
+    /// <summary>The iris's steps opening, drawn over the open capsule: <see cref="DockWake.IrisStep"/> 1 is the first.</summary>
+    private static readonly string[] IrisSteps = [.. Enumerable.Range(1, DockWake.IrisSteps).Select(k => $"guard_capsule_iris_{k}")];
 
-    private static readonly Color Ink = new(0.043f, 0.055f, 0.075f), Smoke = new(0.15f, 0.2f, 0.23f, 0.6f), Cable = new(0.086f, 0.094f, 0.11f);
+    private static readonly Color Cable = new(0.086f, 0.094f, 0.11f);
 
     /// <summary>
     /// Where a stand's moving parts sit in its picture (guards.js, the page's cells mapped to it: a cell 8 px, its floor at the bottom):
@@ -175,13 +176,9 @@ public partial class DocksView : Node2D, ILightSource
                 continue;
             }
             var (state, p) = _now[i];
-            if (state == Shown.Asleep)
-            {
-                g.DrawTexture(PixelArt.Picture("guard_capsule"), corner);
-                continue;
-            }
-            g.DrawTexture(PixelArt.Picture("guard_capsule_open"), corner);
-            if (state == Shown.Waking && DockWake.Iris(p) < 1) Blades(g, corner + Iris, DockWake.Iris(p));
+            int step = state switch { Shown.Asleep => 0, Shown.Waking => DockWake.IrisStep(p), _ => DockWake.IrisSteps + 1 };
+            g.DrawTexture(PixelArt.Picture(step == 0 ? "guard_capsule" : "guard_capsule_open"), corner);
+            if (step is > 0 and <= DockWake.IrisSteps) g.DrawTexture(PixelArt.Picture(IrisSteps[step - 1]), corner);
         }
     }
 
@@ -225,21 +222,6 @@ public partial class DocksView : Node2D, ILightSource
         g.DrawSetTransform(at, turn, new Vector2(face, 1));
         g.DrawTexture(CreatureParts.Ink(CreatureArt.InkStand.Id, part, CreatureParts.Kind.Colour), new Vector2(-p.PivotX, -p.PivotY));
         g.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-    }
-
-    /// <summary>The iris's smoked glass and blades, <paramref name="open"/> of the way open: guards.js's blades, their pinhole grown to the rim.</summary>
-    private static void Blades(Sketch g, Vector2 middle, double open)
-    {
-        g.DrawCircle(middle, IrisR, Smoke with { A = Smoke.A * (float)(1 - open) });
-        double h = 0.6 + (IrisR - 0.6) * open;
-        float d = (float)Math.Sqrt(Math.Max(0, IrisR * IrisR - h * h)) + 1;
-        for (int k = 0; k < 8; k++)
-        {
-            double q = k / 8.0 * Math.Tau;
-            float ca = (float)Math.Cos(q), sa = (float)Math.Sin(q);
-            var from = middle + new Vector2(ca, sa) * (float)h;
-            g.DrawLine(from, from + new Vector2(-sa, ca) * d, Ink, Blade);
-        }
     }
 
     private void PaintPips(Sketch g)

@@ -193,6 +193,10 @@ public class TickTests
         Assert.True(DockWake.Iris(DockWake.ShownAt) > 0.5 && DockWake.Folded(DockWake.ShownAt) == 1);
         Assert.True(DockWake.Folded(DockWake.DropFrom) == 0 && DockWake.Drop(DockWake.DropFrom) == 0);
         Assert.Equal((1.0, true, 0.0, 1.0), (DockWake.Iris(1), DockWake.Shown(1), DockWake.Folded(1), DockWake.Drop(1)));
+        // Its iris shut, then every step's picture in turn, then open.
+        var steps = Enumerable.Range(0, 101).Select(k => DockWake.IrisStep(k / 100.0)).Distinct().ToList();
+        Assert.Equal(Enumerable.Range(0, DockWake.IrisSteps + 2), steps);
+        Assert.Equal((0, DockWake.IrisSteps + 1), (DockWake.IrisStep(DockWake.IrisFrom), DockWake.IrisStep(DockWake.IrisTo)));
         // A stand: shut and hung asleep; its clamp up before its robot is lowered; lowered before its hooks open; open, risen and its robot up at the end.
         Assert.Equal((0.0, StandWake.Hang, 0.0, 1.0, 0.0), (StandWake.Clamp(0), StandWake.Hung(0), StandWake.Hooks(0), StandWake.Folded(0), StandWake.Lamp(0, 0)));
         Assert.True(StandWake.Clamp(StandWake.LowerFrom) == StandWake.ClampSwing && StandWake.Hung(StandWake.HooksFrom) == 0);

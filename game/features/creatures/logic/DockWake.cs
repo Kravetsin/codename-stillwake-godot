@@ -25,6 +25,12 @@ public static class DockWake
     /// <summary>How open its iris is at <paramref name="p"/>: 0 shut, 1 open.</summary>
     public static double Iris(double p) => TickMotion.Ease((p - IrisFrom) / (IrisTo - IrisFrom));
 
+    /// <summary>The steps its iris opens by between shut and open: its pictures <c>guard_capsule_iris_1</c> on (guards.js).</summary>
+    public const int IrisSteps = 5;
+
+    /// <summary>Which of its iris's pictures shows at <paramref name="p"/>: 0 shut, 1 to <see cref="IrisSteps"/> opening, one more open.</summary>
+    public static int IrisStep(double p) => Math.Clamp((int)Math.Floor(Iris(p) * (IrisSteps + 1)), 0, IrisSteps + 1);
+
     /// <summary>Whether the spider is seen in its capsule at <paramref name="p"/>: hidden behind the iris before.</summary>
     public static bool Shown(double p) => p >= ShownAt;
 
