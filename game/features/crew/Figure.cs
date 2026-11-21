@@ -845,6 +845,9 @@ public partial class Figure : Node2D
     /// <summary>Where its drone's scan sparks leave and go home, in pixels of the world, and how red an alarm turns them; none while no drone floats by it.</summary>
     public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Mouth, _drone.LensBox.GetCenter(), _drone.Tint) : null;
 
+    /// <summary>A point of the world its drone's eye stays on, in pixels, over its lamp's aim: a find it scans over the head; null for none.</summary>
+    public Vector2? DroneStare { get; set; }
+
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
 
@@ -1839,6 +1842,8 @@ public partial class Figure : Node2D
                 _will.Reset();
             }
             Vec? lens = !overDrone && (_lampWorn || _scannerWorn) && HeadLampToward is var toward ? new Vec(toward.X, toward.Y) : null;
+            if (!overDrone && DroneStare is { } stare && stare.DistanceTo(_drone.GlobalPosition) > 1 && (stare - _drone.GlobalPosition).Normalized() is var way)
+                lens = new Vec(way.X, way.Y);
             var senses = Senses with
             {
                 Anchor = new Vec(anchor.X, anchor.Y),

@@ -258,6 +258,9 @@ public partial class HeroView : Node2D
 
     /// <summary>Where this hero's drone's scan sparks leave and go home, and how red they burn (light-drone); none while it is away.</summary>
     public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
+
+    /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
+    public Vector2? DroneStare { set => _figure.DroneStare = value; }
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };

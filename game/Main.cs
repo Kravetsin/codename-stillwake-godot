@@ -457,7 +457,8 @@ public partial class Main : Node2D, ITogether
             edge.Follow(tablet);
         }
         AddChild(edge);
-        AddChild(new FindFlashView(tech.Flash, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null));
+        AddChild(new FindScanView(tech.Scan, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null,
+            () => _hero?.Shown?.Head, () => _hero?.DroneScan?.Eye, () => _hands.Ui.Slot, at => { if (_hero != null) _hero.DroneStare = at; }));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
