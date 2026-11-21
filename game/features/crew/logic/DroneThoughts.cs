@@ -21,8 +21,8 @@ public readonly record struct DroneBearing(Vec Off, double Tilt, double Swell, d
 /// The light drone's thoughts and moods (drone-thoughts), its own drone only, client only: one picture over it at a time, a thought or mood
 /// starting only when nothing higher shows (a window, a gesture, an icon or lesson at the drone, the dart, a thought before a mood) and never
 /// resumed once cut; nothing while its hero is passed out, in its meeting or seated. The alarms show once its player knows them: the dart's
-/// meteor or bolt while it darts, cold and heat when the level, a <see cref="Tune.Step"/> of degrees each, rises above the highest shown, which
-/// resets only at level 0. Love on waking from a death and pride after a deed lesson play once nothing higher shows, never lost; curious about a
+/// meteor or bolt while it darts, cold and heat when the body's level, a <see cref="Tune.Step"/> of degrees off normal each, rises above
+/// the highest shown and held (one cut sooner shows again), which resets once the body is back within a step of normal. Love on waking from a death and pride after a deed lesson play once nothing higher shows, never lost; curious about a
 /// teaching machine (once each) and bored after standing still each wait a plain gap, and wait while the scanner reads. A find hops the body only.
 /// Milliseconds.
 /// </summary>
@@ -31,8 +31,8 @@ public sealed class DroneThoughts
     /// <summary>Its tunables: the client's alone, they never enter the sim.</summary>
     public static class Tune
     {
-        /// <summary>Degrees of cold or heat a level: a thought again each this much deeper.</summary>
-        public const int Step = 3;
+        /// <summary>Degrees of the body under or over normal a level: a thought at each, from the first (34° and 40° from 37°).</summary>
+        public const double Step = 3;
 
         /// <summary>The least time between two curious moods, and between two bored ones, ms.</summary>
         public const double MoodGapMs = 120_000;
@@ -51,7 +51,7 @@ public sealed class DroneThoughts
     private double _startMs;
     private double? _outMs;
     private (DroneThought, int)? _dart;
-    private int _coldMark, _heatMark;
+    private int _coldMark, _heatMark, _shownLevel;
     private bool _love, _pride;
     private double _sinceCurious = Tune.MoodGapMs, _sinceBored = Tune.MoodGapMs;
     private readonly HashSet<int> _wondered = [];
@@ -97,7 +97,7 @@ public sealed class DroneThoughts
         }
         _love |= senses.Woke;
         _pride |= senses.Proud;
-        int cold = Level(senses.Cold), heat = Level(senses.Heat);
+        int cold = Level(BodyHeat.Normal - senses.Body), heat = Level(senses.Body - BodyHeat.Normal);
         if (cold == 0) _coldMark = 0;
         if (heat == 0) _heatMark = 0;
         Still(senses, ms);
@@ -106,7 +106,13 @@ public sealed class DroneThoughts
         if (_showing is { } shown && _outMs == null)
         {
             bool darted = shown is DroneThought.Meteor or DroneThought.Bolt;
-            if (darted ? dart == null || dart != _dart : _nowMs - _startMs >= InMs + HoldMs) _outMs = _nowMs;
+            if (darted ? dart == null || dart != _dart : _nowMs - _startMs >= InMs + HoldMs)
+            {
+                _outMs = _nowMs;
+                // Cold and heat count as shown once their picture has held: one cut sooner shows again when free.
+                if (shown == DroneThought.Cold) _coldMark = Math.Max(_coldMark, _shownLevel);
+                if (shown == DroneThought.Heat) _heatMark = Math.Max(_heatMark, _shownLevel);
+            }
         }
         if (_outMs is { } outAt && _nowMs - outAt >= OutMs) _showing = null;
         // Higher things cut it, the dart all but its own picture: nothing cut comes back.
@@ -137,8 +143,8 @@ public sealed class DroneThoughts
         (_showing, _startMs, _outMs) = (thought, _nowMs, null);
         switch (thought)
         {
-            case DroneThought.Cold: _coldMark = cold; break;
-            case DroneThought.Heat: _heatMark = heat; break;
+            case DroneThought.Cold: _shownLevel = cold; break;
+            case DroneThought.Heat: _shownLevel = heat; break;
             case DroneThought.Love:
                 _love = false;
                 _loveSide = senses.At.X < senses.Anchor.X ? -1 : 1;
@@ -229,7 +235,8 @@ public sealed class DroneThoughts
     /// <summary>The dart's picture first, then cold and heat, then the moods.</summary>
     private static int Rank(DroneThought thought) => thought is DroneThought.Meteor or DroneThought.Bolt ? 0 : Alarm(thought) ? 1 : 2;
 
-    private static int Level(int degrees) => degrees <= 0 ? 0 : (degrees + Tune.Step - 1) / Tune.Step;
+    /// <summary>The level of a body <paramref name="degrees"/> off normal: one at each whole <see cref="Tune.Step"/>.</summary>
+    private static int Level(double degrees) => degrees <= 0 ? 0 : (int)Math.Floor(degrees / Tune.Step);
 
     private static Vec Unit(Vec v)
     {

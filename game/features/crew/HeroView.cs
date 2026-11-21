@@ -674,8 +674,7 @@ public partial class HeroView : Node2D
         {
             Own = true,
             Alarms = _knows(Stillwake.Content.LightDrone.AlarmsMode),
-            Cold = m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)),
-            Heat = m.Crew.Heat(client.Id, _current.BodyCell(grid.Width)),
+            Body = _body.Degrees,
             Wonder = DroneWonderOf(m, known, elapsedMs),
             Icon = DroneBecoming != null,
             Finding = _droneFinds && !_droneVisits,

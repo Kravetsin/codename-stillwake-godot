@@ -27,30 +27,38 @@ public class DroneThoughtsTests
         return shown;
     }
 
-    private static DroneSenses Felt(bool heat, int degrees) => heat ? Mine with { Heat = degrees } : Mine with { Cold = degrees };
+    /// <summary>Its hero's body <paramref name="off"/> degrees under normal, or over it for <paramref name="heat"/>.</summary>
+    private static DroneSenses Body(bool heat, double off) => Mine with { Body = BodyHeat.Normal + (heat ? off : -off) };
+
+    private static DroneSenses Chilled => Body(false, Tune.Step);
+
+    /// <summary>Long enough for any picture to form, hold and fall apart, ms.</summary>
+    private const double Through = 8000;
 
     [Theory]
     [InlineData(false, DroneThought.Cold)]
     [InlineData(true, DroneThought.Heat)]
-    public void ColdOrHeatShowsOnceThenAgainOnlyAStepDeeperAndItsMarkResetsOnlyAtZero(bool heat, DroneThought thought)
+    public void ColdOrHeatShowsAtEachStepOfTheBodyOffNormalAndItsMarkResetsWithinAStep(bool heat, DroneThought thought)
     {
         var will = Will();
-        Assert.Contains(thought, Run(will, Felt(heat, 1), 100));
-        Assert.DoesNotContain(thought, Run(will, Felt(heat, Tune.Step), 5000)[^100..]);
-        Assert.Contains(thought, Run(will, Felt(heat, Tune.Step + 1), 100));
-        Run(will, Felt(heat, Tune.Step + 1), 5000);
-        Assert.DoesNotContain(thought, Run(will, Felt(heat, 1), 5000));
-        // Back up to the level shown: its mark stayed, so nothing again.
-        Assert.DoesNotContain(thought, Run(will, Felt(heat, Tune.Step + 1), 5000));
-        Run(will, Felt(heat, 0), 100);
-        Assert.Contains(thought, Run(will, Felt(heat, 1), 100));
+        Assert.DoesNotContain(thought, Run(will, Body(heat, Tune.Step - 0.1), 1000));
+        Assert.Contains(thought, Run(will, Body(heat, Tune.Step), 100));
+        Run(will, Body(heat, Tune.Step), Through);
+        Assert.DoesNotContain(thought, Run(will, Body(heat, 2 * Tune.Step - 0.1), Through));
+        Assert.Contains(thought, Run(will, Body(heat, 2 * Tune.Step), 100));
+        Run(will, Body(heat, 2 * Tune.Step), Through);
+        Assert.DoesNotContain(thought, Run(will, Body(heat, Tune.Step), Through));
+        // Back down to the level shown: its mark stayed, so nothing again.
+        Assert.DoesNotContain(thought, Run(will, Body(heat, 2 * Tune.Step), Through));
+        Run(will, Body(heat, Tune.Step - 0.1), 100);
+        Assert.Contains(thought, Run(will, Body(heat, Tune.Step), 100));
     }
 
     [Fact]
     public void WithoutTheAlarmsKnownNoAlarmShowsYetTheMoodsDo()
     {
         var will = Will();
-        var shown = Run(will, Mine with { Alarms = false, Cold = 10, Heat = 10, Meteor = Meteor }, 3000);
+        var shown = Run(will, Body(false, 10) with { Alarms = false, Meteor = Meteor }, 3000);
         Assert.All(shown, s => Assert.Null(s));
         Assert.True(will.Pick(Mine with { Alarms = false, Meteor = Meteor }, 16).Darting);
         Assert.Contains(DroneThought.Love, Run(will, Mine with { Alarms = false, Woke = true }, 100));
@@ -61,7 +69,7 @@ public class DroneThoughtsTests
     {
         var will = Will();
         var intent = default(DroneIntent);
-        for (int ms = 0; ms < 4000; ms += 16)
+        for (int ms = 0; ms < 8000; ms += 16)
         {
             intent = will.Pick(Mine with { Meteor = Meteor }, 16);
             Assert.Equal(DroneThought.Meteor, will.Thoughts.Showing);
@@ -74,13 +82,15 @@ public class DroneThoughtsTests
     }
 
     [Fact]
-    public void ABoltCutsTheSnowflakeWhichNeverReturns()
+    public void ABoltCutsTheSnowflakeWhichShowsAgainOnceTheDartIsOver()
     {
         var will = Will();
-        Run(will, Mine with { Cold = 1 }, 200);
+        Run(will, Chilled, 200);
         Assert.Equal(DroneThought.Cold, will.Thoughts.Showing);
-        Assert.Contains(DroneThought.Bolt, Run(will, Mine with { Cold = 1, Bolt = Bolt }, 500));
-        Assert.DoesNotContain(DroneThought.Cold, Run(will, Mine with { Cold = 1 }, 5000));
+        Assert.Contains(DroneThought.Bolt, Run(will, Chilled with { Bolt = Bolt }, 500));
+        Assert.Contains(DroneThought.Cold, Run(will, Chilled, 2000));
+        Run(will, Chilled, Through);
+        Assert.DoesNotContain(DroneThought.Cold, Run(will, Chilled, Through));
     }
 
     public static TheoryData<string> Higher => ["gesture", "window", "icon"];
@@ -92,18 +102,20 @@ public class DroneThoughtsTests
         _ => senses with { Icon = true },
     };
 
+    /// <summary>A find's icon over the head cut the first snowflake in play, and it never came back: one cut before it held shows again.</summary>
     [Theory]
     [MemberData(nameof(Higher))]
-    public void AGestureWindowOrIconHoldsColdBackAndCutsItForGood(string higher)
+    public void AGestureWindowOrIconHoldsColdBackAndOneCutBeforeItHeldShowsAgain(string higher)
     {
         var will = Will();
-        Assert.All(Run(will, Above(Mine with { Cold = 1 }, higher), 1000), s => Assert.Null(s));
-        Assert.Contains(DroneThought.Cold, Run(will, Mine with { Cold = 1 }, 100));
-        Run(will, Above(Mine with { Cold = 1 }, higher), 100);
+        Assert.All(Run(will, Above(Chilled, higher), 1000), s => Assert.Null(s));
+        Assert.Contains(DroneThought.Cold, Run(will, Chilled, 100));
+        Run(will, Above(Chilled, higher), 100);
         Assert.Null(will.Thoughts.Showing);
-        Assert.DoesNotContain(DroneThought.Cold, Run(will, Mine with { Cold = 1 }, 5000));
+        Assert.Contains(DroneThought.Cold, Run(will, Chilled, 100));
+        Run(will, Chilled, Through);
+        Assert.DoesNotContain(DroneThought.Cold, Run(will, Chilled, Through));
     }
-
     [Fact]
     public void CuriousOnceAMachineWithinWonderAndNotTwiceInAGap()
     {
@@ -161,7 +173,7 @@ public class DroneThoughtsTests
     [Fact]
     public void NothingShowsOverAFriendsDroneNorWhileItsHeroIsOutOrQuiet()
     {
-        var all = Mine with { Woke = true, Proud = true, Cold = 9, Meteor = Meteor, Wonder = new DroneWonder(31, new Vec(200, 150)) };
+        var all = Body(false, 9) with { Woke = true, Proud = true, Meteor = Meteor, Wonder = new DroneWonder(31, new Vec(200, 150)) };
         var friend = Will();
         Assert.All(Run(friend, all with { Own = false }, 3000), s => Assert.Null(s));
         var quiet = Will();

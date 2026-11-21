@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json.Nodes;
 using Stillwake.Net;
 using Stillwake.Sim;
@@ -7,12 +8,12 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// The drone's thoughts and moods (drone-thoughts), for frames, the hero standing still all along: a corridor of hull open to space at its left
-/// end, a lamp hanging 30 cells left of the hero, a wall at the right end close by. The hero is bare, paired, knows the alarms and not the lamp.
-/// At once the cold shows, then curious at the lamp; at 6 s creative keeps it alive; at 20 s a meteor is seen coming at the right wall; at
-/// about 61 s it is bored; at 64 s it dies and wakes 5 s on, love; creative again after.
+/// The drone's thoughts and moods (drone-thoughts), for frames, the hero standing still all along, never creative: a corridor of hull open to
+/// space at its left end, a lamp hanging 30 cells left of the hero, a wall at the right end close by. The hero wears the basic helmet alone,
+/// paired, knows the alarms and not the lamp. Curious at the lamp at once; the body cools 0.15° a second, a snowflake at 34° (20 s) and 31°
+/// (40 s); a meteor at the right wall at 27 s; the helmet's air runs out at 45 s and the hero dies at about 55 s, waking at 60 s: love.
 /// </summary>
-[Dev("--drone-moods", "a bare hero standing paired by a lamp: cold, curious, a meteor at 20 s, bored at 61 s, a death at 64 s and love (DroneMoodsScenario)")]
+[Dev("--drone-moods", "a hero in a helmet standing paired by a lamp: curious, cold at 20 and 40 s, a meteor at 27 s, a death and love at 60 s (DroneMoodsScenario)")]
 public sealed class DroneMoodsScenario : DevScenario
 {
     /// <summary>The corridor, a character a 16 px block, doubled (0104): the lamp at column 27, the hero at 42, the wall struck at 49.</summary>
@@ -28,10 +29,7 @@ public sealed class DroneMoodsScenario : DevScenario
     { Known = Spec.Research.StartKnown }) with
     { Meteors = true };
 
-    private const int Peer = 0, Second = World.TicksPerSecond;
-    private const int Kept = 6 * Second, Meteor = 20 * Second, Dies = 64 * Second, Alive = 72 * Second;
-
-    private int _step;
+    private const int Peer = 0, Second = World.TicksPerSecond, Meteor = 27 * Second;
 
     public override Layout? Map => Corridor;
 
@@ -47,24 +45,10 @@ public sealed class DroneMoodsScenario : DevScenario
             ["deeds"] = new JsonArray(),
         });
         root["slices"]!["hazards"]!["nextIn"] = Meteor;
+        int helmet = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Slot);
+        var slots = new JsonArray();
+        for (int i = 0; i < Spec.Inventory.Total; i++) slots.Add(i == helmet ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 } : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = Peer, ["slots"] = slots });
         return World.Load(root.ToJsonString(), seed.Modules());
-    }
-
-    /// <summary>Creative on once the curious mood has shown, off for the death, on again after waking.</summary>
-    public override void Frame(Client client, Registry m, Action<string> log)
-    {
-        if (m.Crew.HeroOf(client.Id) is not { } hero) return;
-        long tick = client.World.Tick;
-        if (_step == 0 && tick >= Kept) Send(new Sim.Items.SetCreative(true), "creative: kept alive");
-        else if (_step == 1 && tick >= Dies) Send(new Sim.Items.SetCreative(false), "creative off for the death");
-        else if (_step == 2 && tick >= Dies + Second) Send(new Sim.Crew.Succumb(), "succumbs");
-        else if (_step == 3 && tick >= Alive && hero.Out == 0) Send(new Sim.Items.SetCreative(true), "woke: creative again");
-
-        void Send(Command command, string what)
-        {
-            client.Send(command);
-            log($"drone-moods: {what} at tick {tick}");
-            _step++;
-        }
     }
 }
