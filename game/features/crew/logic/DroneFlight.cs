@@ -4,7 +4,7 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The light drone's body (docs/plans/drone-motion.md): where it flies by its hero, in pixels of the world, after the goal its will
+/// The light drone's body (drone-motion ADR): where it flies by its hero, in pixels of the world, after the goal its will
 /// gives (<see cref="DroneWill"/>). It keeps the hero's velocity plus a pull to its goal, its own velocity turning toward that at a
 /// bounded acceleration, so a turn carries it on past the head and round, never a jump; outside a window it stays within
 /// <see cref="Tune.Reach"/> of its anchor. It ignores walls (light-drone).

@@ -5,7 +5,7 @@ using T = Stillwake.Game.Features.Crew.DroneFlight.Tune;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The light drone's mind (docs/plans/drone-motion.md): what it flies to, where it looks and when it turns red.</summary>
+/// <summary>The light drone's mind (drone-motion ADR): what it flies to, where it looks and when it turns red.</summary>
 public class DroneWillTests
 {
     private static readonly Vec Anchor = new(400, 200);

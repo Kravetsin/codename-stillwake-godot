@@ -37,4 +37,4 @@ were hard to read from far away.
 - **The mode is not saved or hashed.** It changes nothing in the sim; if a mode ever does, it becomes a command then.
 - The drone ignores walls; its place is drawn by the client and never reaches the sim.
 - Not built: the magnet mode, drone skins, power draw, scanning creatures, sounds for modes, rebinding the wheel's sides.
-- Alarms were designed and cut; the design waits in `docs/plans/drone-alarms.md`.
+- Alarms were cut here; they shipped with the drone's own motion ([drone-motion](2026-11-21-drone-motion.md)).
