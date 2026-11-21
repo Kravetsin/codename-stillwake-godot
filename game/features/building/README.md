@@ -68,7 +68,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   driver's square sums its blueprints', else its marks' (`SquareTip`).
 - **A mark's tip** (0064, `MarkTip`): its card's picture and name, then what it gives back, green (`RefundOf`).
 - **The menu is a docked tablet of fixed size** (0073, 0107): bottom middle, 10 by 2 cards, the card in hand edged sky blue; the wheel over it scrolls a row, never the
-  hotbar. B slides it in and out; put away it takes no input. Picking a card leaves it open; one
+  hotbar. B fades it in and out; put away it takes no input. Picking a card leaves it open; one
   taken by G is scrolled into view; it opens on its last tab. Its wings' keys keep their foot at every slot size.
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. Enter or a click
   elsewhere ends typing, Esc clears first (`DropSearch`); a tab or G ends it; put away, it is forgotten.

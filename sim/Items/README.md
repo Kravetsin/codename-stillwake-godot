@@ -4,23 +4,23 @@
 
 | File | Purpose |
 | --- | --- |
-| `Deliveries.cs` | Where deliveries go in a machine (`Receiving`) |
-| `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged |
+| `Deliveries.cs` | Where deliveries go (`Receiving`) |
+| `Floor.cs` | Stacks on the floor |
 | `Fuzz.cs` | Commands for the desync suite |
-| `Gains.cs` | `Gain` and the journal of gains |
-| `Hand.cs` | `Wield`: the slot in hand |
+| `Gains.cs` | `Gain`, the journal |
+| `Hand.cs` | `Wield`, the hand |
 | `Items.cs` | The module |
 | `Modules.cs` | Fits a module into a machine (0086) |
 | `Stacks.cs` | Slot rules: give, take, move |
-| `Stash.cs` | The bag into crates in reach holding its items |
-| `State.cs` | The saved slice and its records |
+| `Stash.cs` | The bag into crates in reach |
+| `State.cs` | The saved slice |
 | `Spray.cs` | A kill's loot dealt into pieces |
-| `Stock.cs` | A peer's stock: its own slots, then every crate |
-| `ToolStats.cs` | What a tool works with (0098): damage, pace, draw |
+| `Stock.cs` | A peer's own slots, then every crate |
+| `ToolStats.cs` | What a tool works with (0098) |
 
 Every stack of items (0008).
 
-- **Depends on:** `Grid` (machines, floors), `Rooms` (space, open cells), `Knowledge` (`Obtain`), `Players` (`HasDrone`).
+- **Depends on:** `Grid` (machines, floors), `Rooms` (space, open cells), `Knowledge` (`Obtain`, `Knows`, `Find`), `Players` (`HasDrone`).
 - **State** (saved, sorted lists; derived only `Gains`): `Inventories` by peer, once changed; `Crates` holding something,
   by id; `Creative` peers; `Floor` (`FloorStack`, id order), `NextFloorId`; `Ticks`; `Kept` (0062); `Running`, a `Runner` a
   peer (0055); `Fitted` by machine, module (0086) and `Hands` (tool-in-hand), saved only when set.
@@ -30,8 +30,9 @@ Every stack of items (0008).
 
 - **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047), then the
   trash (trash-slot); `SlotOpen` says which are open. A `Stack`: `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
-- **Own slots** (drone-companion): unpaired (`HasDrone`) the hotbar; paired `Inventory.Start` and bag upgrades.
+- **Own slots** (drone-companion): unpaired (`HasDrone`) the hotbar; paired `Inventory.Start` and the bag upgrades it `Knows`.
   A shut slot keeps its stack, unseen by give, take, sort, stash.
+- **Finds** (own-knowledge): before research walks, each non-creative peer's slots in order `Find` an item first held.
 - **Per-item values** (0053, 0098): `Charge` (thousandths of a power-tick) and `Module` (a module on a
   tool among its `Hosts`) live on a stack of one and go with it. Stacks merge only
   when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none. Saved if set.
@@ -55,7 +56,7 @@ Every stack of items (0008).
 - **Sort** (0008): the bag past the hotbar, or every slot of a `crate`. Alike stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Stash** (quick-stash): bag stacks not in `Keep` move into each `Container` within `StashReach` of `Cell`,
   through walls, holding the item, nearest then by id.
-- **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
+- **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` whole from the
   first belt battery holding it; creative none.
 - **Creative**, a peer's (creative-per-player): `Take*` take nothing, return it whole; `ShortOf*` pass; its slots and trash open.
 - **Running** (0055): `Run(Item, On)`, one thing a hero. Each tick, in peer order, a run draws its stack's boosted `Draw`
@@ -82,7 +83,7 @@ Every stack of items (0008).
 `Move` (`items.noCrate`, `noSlot`, `takeOnly`, `notEquipment`, `notBattery`, `notTool`, `notTaken`, `empty`, `full`); `Drop`
 (`noCrate`, `noSlot`, `empty`, `noCell`); `PickUp` (`gone`, `tooSoon`, `full`); `Sort` (`noCrate`, `notCrate`); `Run`
 (`notElectric`; on: `notHeld`, `flat`); `Fit` (`noMachine`, `noCrate`, `noSlot`, `empty`, `notModule`, `fitted`,
-`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `Wield` (`notHotbar`); `SetCreative` (sender's); `Stash`, never refused; `Spawn` (`notCreative`, `full`). A negative
+`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `Wield` (`notHotbar`); `SetCreative`; `Stash`, never refused; `Spawn` (`notCreative`, `full`). A negative
 cost throws.
 
 ## Invariants

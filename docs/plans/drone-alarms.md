@@ -1,6 +1,7 @@
 # Design: the drone's alarms
 
-By design-author, cut by design-reviewer. It continues [light-drone](light-drone.md) and [drone-companion](drone-companion.md):
+By design-author, cut by design-reviewer; cut from the light drone before it shipped, not built. It continues
+[light-drone](../decisions/2026-11-21-light-drone.md) and [drone-companion](../decisions/2026-11-21-drone-companion.md):
 a paired hero's drone warns, by light and motion, of danger the screen does not show at the hero.
 
 ## Sources, checked against the code
