@@ -98,7 +98,7 @@ public class DroneWillTests
     }
 
     [Fact]
-    public void OnlyAFriendsDroneLowOnAirPulsesRedAndPassedOutItKeepsToTheAnchor()
+    public void LowOnAirItPulsesRedAndPassedOutItKeepsToTheAnchor()
     {
         double Reddest(DroneSenses senses)
         {
@@ -107,10 +107,9 @@ public class DroneWillTests
             for (int ms = 0; ms < T.PulseMs * 2; ms += 16) most = Math.Max(most, will.Pick(senses, 16).Tint);
             return most;
         }
-        Assert.True(Reddest(Still with { Friend = true, Low = true }) > 0.9);
-        Assert.Equal(0, Reddest(Still with { Low = true }));
-        Assert.Equal(0, Reddest(Still with { Friend = true }));
-        Assert.True(Reddest(Still with { Friend = true, Low = true, Out = true, Meteor = Meteor }) > 0.9);
+        Assert.True(Reddest(Still with { Low = true }) > 0.9);
+        Assert.Equal(0, Reddest(Still));
+        Assert.True(Reddest(Still with { Low = true, Out = true, Meteor = Meteor }) > 0.9);
         var will = Will();
         for (int ms = 0; ms < 20000; ms += 16)
         {

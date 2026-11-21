@@ -22,7 +22,7 @@ catcher out of view.
 6. A bolt `Hazards.Strike` whose column is within its `Spread` + 2 columns (8 px each) of the anchor: the same dart, toward
    the strike's column at the anchor's height. Hunted (`Crew.Hunted(peer)` with `Creatures.HunterOf(peer)` not null): it
    leans toward the hunter the whole time, under a dart too.
-7. A friend's drone does all this too, and pulses red while that friend's air is `Low` (`Danger.Read`).
+7. It pulses red while its hero's air is `Low` (`Danger.Read`); a friend's drone does all this too.
 
 ## Decided (the user)
 
@@ -65,10 +65,10 @@ catcher out of view.
     random `BoredMs`.
   - **Lean:** `Lean` toward the hunter added to any goal but the window's.
   - **Sign** (a gesture, `DroneSign`): the goal held where the drone is while it plays.
-  - **Tint**, apart from the goal: red while a dart's danger lasts, and for a friend whose air is `Low` a red pulse every
+  - **Tint**, apart from the goal: red while a dart's danger lasts, and while its hero's air is `Low` a red pulse every
     `PulseMs`. A passed-out hero's drone keeps to the anchor and still tints.
 - **Senses.** `DroneSenses`, a record `HeroView` fills per drawn hero each frame: the anchor, the hero's velocity, the window,
-  the meteor, the bolt, the hunter's place, `Low` for a friend, the surface. A hazard of another surface than
+  the meteor, the bolt, the hunter's place, `Low`, the surface. A hazard of another surface than
   the hero's is not sensed. Each read is O(1) or one `List.Find`.
 - **Lens.** `LightDrone` keeps its easing. Toward the pointer in lamp and scan (the look for a friend), up in a window, at the
   danger in a dart, else the perch's own look.
@@ -92,8 +92,8 @@ traffic.
    hero's fastest fall; a window goal reached in every pose; a jump over `Lost`, the first frame and a re-show put it at its goal.
 2. `DroneWill` and `DroneSenses` with their tests, seeded: ranks (window > dart > settle); a dart held while its danger
    lasts, then returning within `Home`, never twice for the same one, replaced by a new one; the lean under a dart, none with a
-   window or no hunter; a meteor beyond `Notice`, a bolt outside its spread, a hazard on another surface ignored; only friends
-   pulse; standing 60 s it re-perches at most `BoredMs` max apart and
+   window or no hunter; a meteor beyond `Notice`, a bolt outside its spread, a hazard on another surface ignored; low air
+   pulses; standing 60 s it re-perches at most `BoredMs` max apart and
    stays within `Home`; the lens on the pointer in lamp and scan.
 3. Callers: `Figure` passes the anchor and senses, keeps `Off` for `_droneThere`; `LightDrone.Follow` takes the goal, look
    and tint; `HeroView` and `HeroView.Others` fill the senses; `HeroView.Meeting` takes `Above` from `DroneFlight`, its drone

@@ -10,7 +10,7 @@ public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spr
 /// <summary>
 /// What a light drone senses this frame (docs/plans/drone-motion.md), pixels of the world: its hero's anchor and surface, where it
 /// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the meteor
-/// coming and the bolt glowing, the hunter's place, whether its hero is a friend low on air, passed out, or signing.
+/// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing.
 /// </summary>
 public readonly record struct DroneSenses(
     Vec Anchor,
@@ -21,7 +21,6 @@ public readonly record struct DroneSenses(
     DroneDanger? Meteor = null,
     DroneDanger? Bolt = null,
     Vec? Hunter = null,
-    bool Friend = false,
     bool Low = false,
     bool Out = false,
     bool Signing = false);
@@ -80,7 +79,7 @@ public sealed class DroneWill
             if (senses.Hunter is { } hunter) goal = DroneFlight.Plus(goal, DroneFlight.Scaled(Toward(anchor, hunter, default), T.Lean));
             if (senses.ModeLook is { } aim) look = aim;
         }
-        return new DroneIntent(goal, look, Tint(danger != null, senses.Friend && senses.Low), danger != null && senses.Window == null && !senses.Out);
+        return new DroneIntent(goal, look, Tint(danger != null, senses.Low), danger != null && senses.Window == null && !senses.Out);
     }
 
     /// <summary>The point it darts at: the meteor's cell, or the bolt's column at the anchor's height; none while no dart lasts.</summary>
@@ -111,7 +110,7 @@ public sealed class DroneWill
         _boredLeft = Bored();
     }
 
-    /// <summary>How red: a dart's danger flashing it, a friend's low air pulsing it once each <see cref="T.PulseMs"/>.</summary>
+    /// <summary>How red: a dart's danger flashing it, its hero's low air pulsing it once each <see cref="T.PulseMs"/>.</summary>
     private double Tint(bool danger, bool low)
     {
         double flash = danger ? (1 - Math.Cos(Math.Tau * _clockMs / T.FlashMs)) / 2 : 0;

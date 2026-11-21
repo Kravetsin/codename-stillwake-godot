@@ -643,7 +643,7 @@ public partial class HeroView : Node2D
         _figure.Paired = m.Players.HasDrone(client.Id);
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
         _figure.DroneWindow = _ui.DroneWindow;
-        _figure.Senses = DroneSensesOf(m, client.Id, _surface, friend: false);
+        _figure.Senses = DroneSensesOf(m, client.Id, _surface);
         _ui.DroneAt = _figure.DroneLens is { } droneLens ? (droneLens.GetCenter().X, droneLens.GetCenter().Y) : null;
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;

@@ -101,7 +101,7 @@ public partial class HeroView
             shown.Figure.Paired = m.Players.HasDrone(id);
             (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
             shown.Figure.DroneWindow = (seen.Projects, 0);
-            shown.Figure.Senses = DroneSensesOf(m, id, here, friend: true);
+            shown.Figure.Senses = DroneSensesOf(m, id, here);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
@@ -259,10 +259,10 @@ public partial class HeroView
     private static (double X, double Y) Thousandths(Vector2 at) => (at.X / Rig.Cell * Hero.Unit, at.Y / Rig.Cell * Hero.Unit);
 
     /// <summary>
-    /// What hero <paramref name="id"/>'s drone senses of the world (drone-motion), its hero on <paramref name="surface"/>: the meteor coming and the bolt glowing here, the catcher hunting it, and for a
-    /// <paramref name="friend"/> its low air. The sim's queries read as they are; nothing is sent.
+    /// What hero <paramref name="id"/>'s drone senses of the world (drone-motion), its hero on <paramref name="surface"/>: the meteor coming and the bolt glowing here, the catcher hunting it, its
+    /// hero's low air. The sim's queries read as they are; nothing is sent.
     /// </summary>
-    private DroneSenses DroneSensesOf(Registry m, int id, int surface, bool friend)
+    private DroneSenses DroneSensesOf(Registry m, int id, int surface)
     {
         int width = m.Grid.Width;
         // This view's sim is the surface its own hero stands on (Main.Follow): its hazards are that surface's.
@@ -275,8 +275,8 @@ public partial class HeroView
             double unit = Stillwake.Sim.Creatures.CreaturesModule.Unit, height = Content.Creatures.Get(c.Species).Body.Height;
             hunter = new Vec(c.X / unit * Rig.Cell, (c.Y / unit - height / 2) * Rig.Cell);
         }
-        bool low = friend && Danger.Read(m.Crew, m.Atmosphere, id).Danger == SuitDanger.Low;
-        return new DroneSenses(default, default, surface, Meteor: meteor, Bolt: bolt, Hunter: hunter, Friend: friend, Low: low);
+        bool low = Danger.Read(m.Crew, m.Atmosphere, id).Danger == SuitDanger.Low;
+        return new DroneSenses(default, default, surface, Meteor: meteor, Bolt: bolt, Hunter: hunter, Low: low);
     }
 
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
