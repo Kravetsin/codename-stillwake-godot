@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 /// The new game's ship with an axe in hand and the hero in the hold, to break its piles (hold-piles); with <c>--autopilot</c>
 /// the piles are hit by themselves, one after the other, at the axe's pace, for a recording.
 /// </summary>
-[Dev("--piles", "the wreck's hold with an axe in hand, a sledgehammer on slot 8, the scanner on the helmet, the piles broken with --autopilot (PilesScenario)")]
+[Dev("--piles", "the wreck's hold with an axe in hand, a sledgehammer on slot 8, the light drone paired, its scanner mode known, the piles broken with --autopilot (PilesScenario)")]
 public sealed class PilesScenario : DevScenario
 {
     private long _next = 20;
@@ -25,10 +25,12 @@ public sealed class PilesScenario : DevScenario
     {
         var root = JsonNode.Parse(DieDemo.Seed(world, seed.Modules).Save())!;
         root["slices"]!["crew"]!["heroes"]![0]!["air"] = Spec.Crew.Lungs + Spec.Items.Get(Spec.Helmet.Basic).Tank;
-        // The sledgehammer and the scanner beside the axe, to try a pile's hit points on (2026-11-07-pile-hit-points).
+        // The sledgehammer beside the axe, and the light drone paired, its scanner mode known, to try a pile's hit points on (2026-11-07-pile-hit-points).
         var slots = root["slices"]!["items"]!["inventories"]![0]!["slots"]!.AsArray();
         slots[7] = new JsonObject { ["item"] = Spec.Weapons.Sledgehammer.Item, ["count"] = 1 };
-        slots[Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount)] = new JsonObject { ["item"] = Spec.Helmet.Scanner, ["count"] = 1 };
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
+        var known = root["slices"]!["knowledge"]!["granted"]!.AsArray().Select(g => (string)g!).Append(Spec.LightDrone.ScannerMode).Distinct().Order(StringComparer.Ordinal);
+        root["slices"]!["knowledge"]!["granted"] = new JsonArray([.. known.Select(id => (JsonNode)id)]);
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 

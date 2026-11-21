@@ -40,8 +40,11 @@ public partial class ItemsView : Node2D
     private bool _wasOut;
 
     /// <param name="ui">The hand, which the hotbar frees, and the crate open.</param>
+    private readonly Ui _ui;
+
     public ItemsView(Ui ui)
     {
+        _ui = ui;
         Panel = new InventoryPanel(ui);
         Panel.StashedAway += parts => _stashed = parts;
     }
@@ -85,7 +88,8 @@ public partial class ItemsView : Node2D
         var gained = _gains.Read(items, items.Gains, client.Id);
         if (hero is { } spot)
         {
-            var chest = new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell;
+            // With a drone by the hero, what it picks up flies into the drone, the bag being its (drone-holo); else into the chest.
+            var chest = _ui.DroneAt is var (dx, dy) ? new Vector2((float)dx, (float)dy) : new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell;
             // Every gain is counted beside where it came from and flies into the hero as a spark: icons flying hid the dig and the
             // catch, and a count far off left what came from which piece unclear. A catch's loot from where the piece was (0075).
             for (int i = 0; i < caught.Count; i++)

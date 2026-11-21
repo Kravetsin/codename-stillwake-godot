@@ -54,6 +54,7 @@ public static class Prompts
             SetDoor d => new Prompt(d.Open ? "use.openDoor" : "use.closeDoor", press.Problem),
             Sim.Landing.SetPlatform p => new Prompt(p.Open ? "use.openPlatform" : "use.closePlatform", press.Problem),
             Sim.Pipes.SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
+            Sim.Crew.PairDrone => new Prompt("use.touchCore", press.Problem),
             _ => throw new InvalidOperationException($"No prompt for {press.Command.GetType().Name}"),
         };
     }

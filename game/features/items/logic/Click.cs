@@ -80,7 +80,7 @@ public static class Clicks
     /// that is worn, takes off what is worn, and sends any other stack to the other side of an open crate, or with none
     /// between the bag and the hotbar (<see cref="Shifted"/>), the stack flying there. A click on the picked
     /// slot puts it back. A right click on a canister of the hero's own, nothing picked, breathes it into
-    /// the suit (0047) rather than picking half.
+    /// the suit (0047) rather than picking half; on a drone of the hero's own, it pairs it (drone-companion).
     /// </summary>
     public static Clicked On(Picked? picked, SlotClick click) => Flying(click.Shift && !click.Right, Click(picked, click), click.Stack?.Item);
 

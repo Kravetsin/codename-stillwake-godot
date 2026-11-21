@@ -6,7 +6,7 @@ using Rung = Stillwake.Game.HeroMotion.Ladder;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>What a hero's figure is doing, read from its movement: never decided anywhere else.</summary>
-public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit, Strapped }
+public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit, Strapped, Kneel }
 
 /// <summary>
 /// Each limb's bend (<see cref="Rig"/>), and how the whole body is placed: <see cref="Tilt"/> radians
@@ -36,11 +36,18 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// the hands pull the body up onto (0092); none away from one. On the floor the figure eases its gait (2026-11-04-hero-gait):
 /// <see cref="Cycle"/>, the strides the legs have gone through, <see cref="Gait"/> from backpedalling (-1) through walking (0)
 /// into running (1), and <see cref="Moving"/> from standing (0) into striding (1); with none, the stride is <see cref="Travelled"/>
-/// over the pose's own and the pose is all there is.
+/// over the pose's own and the pose is all there is. <see cref="Kneel"/>, how a kneeling hero is bent; none kneels fully, upright.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
     double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false,
-    Momentum? Momentum = null, double? Ledge = null, double? Cycle = null, double? Gait = null, double? Moving = null);
+    Momentum? Momentum = null, double? Ledge = null, double? Cycle = null, double? Gait = null, double? Moving = null,
+    Kneeling? Kneel = null);
+
+/// <summary>
+/// How a kneeling hero is bent (drone-meeting): <see cref="Down"/> of the way from standing onto its knee, 0..1, the body
+/// <see cref="Lean"/> radians forward about it.
+/// </summary>
+public readonly record struct Kneeling(double Down, double Lean);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -176,7 +183,7 @@ public static class Poses
     }
 
     /// <summary>Whether the hands can hold the plan or a tool in <paramref name="pose"/>: on a ladder too (0077: dig while climbing), not passed out nor sitting.</summary>
-    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble or Pose.Sit or Pose.Strapped);
+    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble or Pose.Sit or Pose.Strapped or Pose.Kneel);
 
     /// <summary>The sheet's turn, clockwise, for the head's turn <paramref name="look"/>.</summary>
     public static double SheetTurn(double look) => -Sheet.Ahead + look * Sheet.PerLook;
@@ -391,6 +398,8 @@ public static class Poses
                 return Sitting(moment.TimeMs);
             case Pose.Strapped:
                 return Strapped(moment.TimeMs);
+            case Pose.Kneel:
+                return Kneeled(moment.TimeMs, moment.Kneel ?? new Kneeling(1, 0));
             default:
                 return Limp(moment);
         }
@@ -634,6 +643,42 @@ public static class Poses
             FrontLeg: leg,
             BackLeg: leg,
             Tilt: tilt, Lift: -Rig.Hip, Lying: false);
+    }
+
+    /// <summary>
+    /// Kneeling (drone-meeting, the pick kit's kneel): the near thigh level and its shin upright, its boot flat on the floor; the far
+    /// knee down, its toes tucked under (<see cref="KneelToe"/>, ahead and down from the ankle); the far hand on the near knee.
+    /// Angles are the floor's, as the kit bends them; the body leans about its middle, so the limbs turn as much back.
+    /// </summary>
+    public static class Knelt
+    {
+        public static readonly Bend Front = new(1.5, -1.5), Back = new(-0.05, -1.7);
+        public static readonly Vec Toe = new(1.2, 2), Flat = new(2.6, 0);
+    }
+
+    /// <summary>
+    /// <paramref name="kneel"/>'s <c>Down</c> of the way from standing onto the knee (<see cref="Knelt"/>), the body leaning its
+    /// <c>Lean</c>; set down on the near boot's sole once on the way.
+    /// </summary>
+    private static Limbs Kneeled(double timeMs, Kneeling kneel)
+    {
+        var stand = Standing(timeMs);
+        double down = Math.Clamp(kneel.Down, 0, 1), tilt = kneel.Lean;
+        Bend Toward(Bend from, Bend to) => new(from.Upper + (to.Upper + tilt - from.Upper) * down, from.Lower + (to.Lower - from.Lower) * down);
+        var front = Toward(stand.FrontLeg, Knelt.Front);
+        var back = Toward(stand.BackLeg, Knelt.Back);
+        double frontFoot = Flat(front, tilt);
+        double toe = Math.Atan2(Knelt.Flat.Y + (Knelt.Toe.Y - Knelt.Flat.Y) * down, Knelt.Flat.X + (Knelt.Toe.X - Knelt.Flat.X) * down);
+        double backFoot = tilt - toe - back.Upper - back.Lower;
+        // The far hand on the near knee, both in the body's frame.
+        var knee = Rig.EndOf(front with { Lower = 0 }, new Segments(Rig.Leg.Upper, 0, 0));
+        var onKnee = new Vec(Rig.HipApart + knee.X, Rig.Shoulder - Rig.Hip - Rig.HipRise(Rig.HipApart, tilt) + knee.Y);
+        var reached = Rig.Reach(onKnee, Rig.Arm, 1);
+        var backArm = new Bend(stand.BackArm.Upper + (reached.Upper - stand.BackArm.Upper) * down, stand.BackArm.Lower + (reached.Lower - stand.BackArm.Lower) * down);
+        double frontSole = SoleOf(front, frontFoot, Rig.HipApart, tilt), backSole = SoleOf(back, backFoot, -Rig.HipApart, tilt);
+        double set = Math.Min(1, down * 10);
+        return new Limbs(stand.FrontArm, backArm, front, back, tilt, Math.Max(frontSole, backSole) + (frontSole - Math.Max(frontSole, backSole)) * set, false,
+            frontFoot, backFoot);
     }
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>

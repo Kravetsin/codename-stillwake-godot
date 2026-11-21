@@ -162,19 +162,20 @@ public class SuitsTests
     }
 
     [Fact]
-    public void AHelmetWithoutABodyHoldsTheAirButTheColdCoolsTheBodyABodyWithoutAHelmetTheOtherWay()
+    public void AHelmetWithoutABodyHoldsTheAirABodyWithoutAHelmetNotAndEachKeepsOutOnlyItsShareOfTheCold()
     {
         var helmeted = InVacuum(Beyond, suited: true);
         TakeOff(Breaths(helmeted, 1), BodySlot);
         int air = HeroOf(helmeted).Air;
         Breaths(helmeted, 2);
-        Assert.Equal((Full, air - 2, Felt), (helmeted.M.Crew.CapacityOf(0), HeroOf(helmeted).Air, helmeted.M.Crew.Felt(0, HeroOf(helmeted).Cell)));
+        // The helmet still adds its own degrees (gear-roles).
+        Assert.Equal((Full, air - 2, Felt + Content.Items.Get(Helmet).Low!.Value), (helmeted.M.Crew.CapacityOf(0), HeroOf(helmeted).Air, helmeted.M.Crew.Felt(0, HeroOf(helmeted).Cell)));
 
         var bodied = InVacuum(Beyond, suited: true);
         TakeOff(Breaths(bodied, 1), HeadSlot);
         Assert.Equal(Lungs, HeroOf(bodied).Air);
         Breaths(bodied, 3);
-        Assert.Equal((Lungs, Lungs - 3, 0), (bodied.M.Crew.CapacityOf(0), HeroOf(bodied).Air, bodied.M.Crew.Felt(0, HeroOf(bodied).Cell)));
+        Assert.Equal((Lungs, Lungs - 3, Felt + Content.Items.Get(Body).Low!.Value), (bodied.M.Crew.CapacityOf(0), HeroOf(bodied).Air, bodied.M.Crew.Felt(0, HeroOf(bodied).Cell)));
     }
 
     [Fact]

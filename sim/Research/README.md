@@ -6,9 +6,10 @@
 | --- | --- |
 | `Blueprints.cs` | Every blueprint: what a card of the build menu places, by the name the tree knows it by. |
 | `Prices.cs` | What a block costs, worked out from what it opens. |
-| `Research.cs` | Knowing blueprints and crafts: what the world knows, what the rule grants it, and the market's rings it buys more from. |
+| `Research.cs` | Knowing blueprints and crafts: what each player knows, what the rule grants them, and the market's rings the crew buys more from. |
 
-Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-board.md), [tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md)). The market's rings are data,
+Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-board.md), [tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md),
+[own-knowledge](../../docs/decisions/2026-11-21-own-knowledge.md)): each player for themself, purchases for the crew. The market's rings are data,
 `Content/Research.cs`. A blueprint not known cannot be planned (`building.unknown`), a craft not known not queued
 (`crafting.unknown`).
 
@@ -26,12 +27,14 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
   `Walk` raises the level, every tick, once the points reach the target, the next counted from what is sold then: one level a tick, so one capsule
   opens one. Every surface's research calls `Open`, which Knowledge keeps once.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`, empty); a map with none knows
-  everything. A creative peer knows everything and sees every node done (`Knows(peer, …)`, `Done(peer, node)`); the world does not, so nothing it arms (magnetic flares) changes.
-- **The rule** ([the-board](../../docs/decisions/2026-11-05-the-board.md), [one-to-understand](../../docs/decisions/2026-11-12-one-to-understand.md)): a blueprint or craft is understood, and granted, once one of each
-  part was ever obtained (`Knowledge.ObtainedOf` above 0) and, for a craft, a machine that makes it stands on some surface. `Walk`, in
-  the derivation phase, checks when a count or that surface's grid has moved, and on a load's first tick. What only the market
+  everything. A creative peer knows everything and sees every node done (`Knows(peer, …)`, `Done(peer, node)`); no one else does, so nothing it arms changes.
+  The ship's machines and the world's events go by any player's knowing (`KnowsAny`): magnetic flares arm once anyone knows `ArmedBy`.
+- **The rule** ([the-board](../../docs/decisions/2026-11-05-the-board.md), [one-to-understand](../../docs/decisions/2026-11-12-one-to-understand.md)): a blueprint or craft is understood by a player, and granted to them, once
+  they have held one of each part (`Knowledge.HasFound`) and, for a craft, a machine that makes it stands on this surface. `Walk`, in
+  the derivation phase after `Items` finds, walks each learner when `Knowledge.Version` or that surface's grid has moved, and on a
+  load's first tick. A part of `Inventory.Kit` waits for nothing. What only the market
   opens (`Content.Research.Market`) and upgrades stay outside it. Known stays known, its machine gone or not.
-- **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known or on its way (`Knowledge.InFlight`); gear and the confiscated container
+- **A node is reached** when everything it `Needs` is bought by the crew, whoever is in creative mode: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known or on its way (`Knowledge.InFlight`); gear and the confiscated container
   never are (`Repeats`): sold again and again, gear one to a hero.
 - **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits: what it opens
   is worth (a blueprint its cost, a craft its item, gear its hand worth) times its `Times`, to two figures. An upgrade
@@ -51,8 +54,8 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
 
 ## API
 
-- **Queries** (`IResearchQueries`): `Knows(placement)`, `Knows(id)`, the world's; `Knows(peer, …)`, a peer's; `Recipes()`, every blueprint then every craft as
-  `Recipe(Id, Placement, Cost, Known)`, creative mode aside; `Credits`; `Done(node)`, `Done(peer, node)`; `Reached(node)`; `BuyProblem(block)`;
+- **Queries** (`IResearchQueries`): `KnowsAny(id)`; `Knows(peer, placement)`, `Knows(peer, id)`; `Recipes(peer)`, every blueprint then every
+  craft as `Recipe(Id, Placement, Cost, Known)` for that peer; `Credits`; `Done(peer, node)`; `Reached(node)`; `BuyProblem(block)`;
   `Standing()`, the next level, what it wants and its points and target.
 - **Commands:** `BuyBlock(Block)`, the block named by what it opens. `Fuzz` draws it at any node, refused ones too.
 

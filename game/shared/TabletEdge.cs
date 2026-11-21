@@ -7,10 +7,10 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The tablet's top edge along the window's foot and the keys over it, in place of words ([tablet-edge](../../../docs/decisions/2026-11-02-tablet-edge.md)): the same art as every
-/// tablet's, across the window, its screen dark. A tablet taken out rises from it (<see cref="TabletPeek.Pose"/>), so it shows while none is up. The keys are holograms
-/// floating over the top of whichever is up (hologram-keys): only those that can be used now, the row closing up round them (<see cref="EdgeRow"/>), dim unless the
-/// pointer nears the screen's foot, as large as the interface's size has them; the crew's credits on the right (<see cref="CreditHolo"/>). A key says its name and hotkey over it, under the pointer.
+/// The keys along the window's foot, in place of words ([tablet-edge](../../../docs/decisions/2026-11-02-tablet-edge.md)): holograms (hologram-keys) fixed where the tablet's
+/// rim lay, whatever window is open (holo windows), the windows resting above them (<see cref="TabletPeek.Floor"/>); only those that can be used now, the row closing up
+/// round them (<see cref="EdgeRow"/>), dim unless the pointer nears the screen's foot, as large as the interface's size has them; the crew's credits on the right
+/// (<see cref="CreditHolo"/>). A key says its name and hotkey over it, under the pointer.
 /// </summary>
 public partial class TabletEdge : CanvasLayer
 {
@@ -19,15 +19,10 @@ public partial class TabletEdge : CanvasLayer
     /// <summary>How far in from the rim's right edge the credits end: short of the bezel's charge lamps, off the keys in the middle.</summary>
     private const float ReadoutIn = 160;
 
-    /// <summary>How far in from a tablet's right edge the credits end while it is up: just before its stylus, clear of the keys.</summary>
-    private const float ReadoutBeforeStylus = TabletLayout.BezelSide + 4;
 
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly Tablet _rim = new();
-    /// <summary>Over the rim's metal: a click on it is no click on the world behind.</summary>
-    private readonly Control _metal = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     /// <summary>The span of the row: a click between its keys is no click on the world either.</summary>
     private readonly Control _row = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly List<Slot> _slots = [];
@@ -52,8 +47,6 @@ public partial class TabletEdge : CanvasLayer
         ProcessPriority = 1;
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(_root);
-        _root.AddChild(_rim);
-        _root.AddChild(_metal);
         _root.AddChild(_row);
     }
 
@@ -86,17 +79,10 @@ public partial class TabletEdge : CanvasLayer
         if (keysAway) _keysAway.Add(tablet);
     }
 
-    /// <summary>Where it lies on the screen, the rim while it shows and the keys' row: what the crew's markers keep out of.</summary>
-    public Rect2 Covers
-    {
-        get
-        {
-            var keys = _readout is { Visible: true } r ? _row.GetGlobalRect().Merge(r.GetGlobalRect()) : _row.GetGlobalRect();
-            return _rim.Visible ? _rim.Covers.Merge(keys) : keys;
-        }
-    }
+    /// <summary>Where it lies on the screen, the keys' row and the credits: what the crew's markers keep out of.</summary>
+    public Rect2 Covers => _readout is { Visible: true } r ? _row.GetGlobalRect().Merge(r.GetGlobalRect()) : _row.GetGlobalRect();
 
-    /// <summary>Where the tablet the keys ride lies on the screen, the one up or the rim, its top the metal's: what a find's flash runs along.</summary>
+    /// <summary>Where the rim lay along the foot, its top just under the keys: what a find's flash runs along.</summary>
     public Rect2 Art { get; private set; }
 
     public override void _Process(double delta)
@@ -115,24 +101,20 @@ public partial class TabletEdge : CanvasLayer
         if (window != _window)
         {
             _window = window;
-            _rim.LayAsRim(window);
-            float metalTop = TabletPeek.ScreenTop(window.Y) - TabletLayout.BezelAbove;
-            _metal.Position = new Vector2(_rim.Covers.Position.X, metalTop);
-            _metal.Size = new Vector2(_rim.Covers.Size.X, window.Y - metalTop);
+            var (left, wide) = TabletPeek.RimArt(window.X);
+            float rimTop = TabletPeek.ScreenTop(window.Y) - TabletLayout.BezelAbove;
+            Art = new Rect2(left, rimTop, wide, window.Y - rimTop);
         }
         Tablet? up = null;
         foreach (var tablet in _tablets)
             if (tablet.Shown && (up == null || tablet.Up > up.Up)) up = tablet;
-        _rim.Visible = _metal.Visible = up == null;
-        var art = Art = (up ?? _rim).Covers;
-        var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
-        float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
+        var art = Art;
+        float middle = TabletPeek.RowAt(art.Position.X, 0, art.Size.X).Middle, grown = EdgeRow.Grown(_ui.Slot), top = TabletPeek.KeysTop(window.Y, grown);
         _ui.EdgeTop = top;
-        // On a tablet up the credits stand just before its stylus: 160 in from its edge they ran into the keys.
-        Lay(middle, top, up == null ? art.End.X - ReadoutIn : art.End.X - ReadoutBeforeStylus, grown, delta);
+        Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
         if (_keysAway.Exists(t => t.Shown)) HideKeys();
         var pointer = _root.GetViewport().GetMousePosition();
-        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer), new Rect2(Vector2.Zero, window).HasPoint(pointer)));
+        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && up.Covers.HasPoint(pointer), new Rect2(Vector2.Zero, window).HasPoint(pointer)));
         foreach (var slot in _slots) slot.Key.Near = (float)_near.Lit;
         if (_readout != null) _readout.Near = (float)_near.Lit;
         _tips.Frame(_ui.MenuOpen.Get() ? null : pointer);

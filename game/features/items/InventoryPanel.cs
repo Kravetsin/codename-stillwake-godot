@@ -29,7 +29,8 @@ namespace Stillwake.Game.Features.Items;
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
 /// and all of it is built again when that changes. It is the wrist computer (0074): the hotbar on the cuff, the bag on
-/// the forearm display, the equipment on its unit (<see cref="WristScreen"/>); the open machine's window is a hologram in
+/// the forearm display, or once the drone is paired a hologram it projects (drone-companion), the equipment on its unit
+/// (<see cref="WristScreen"/>); the open machine's window is a hologram in
 /// its station's colour, a beam from the machine to it (<see cref="MachineHolo"/>, machine-holograms).
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
@@ -61,8 +62,17 @@ public partial class InventoryPanel : CanvasLayer
     private readonly SlotFlights _flights = new();
     private bool _flown;
     private Control _shown = null!, _held = null!, _fire = null!;
-    /// <summary>The wrist computer's screens (0074): the hotbar on the cuff, the bag on the forearm display, the equipment's unit.</summary>
-    private WristScreen _hotbar = null!, _inventory = null!, _body = null!;
+    /// <summary>The wrist computer's screens (0074): the hotbar on the cuff and the equipment's unit.</summary>
+    private WristScreen _hotbar = null!, _body = null!;
+    /// <summary>
+    /// The bag's block: unpaired, the forearm display (0074); paired, the drone's hologram window holding its keys and the trash
+    /// too (drone-companion). Its look is chosen as it is built, and built again when the pairing changes.
+    /// </summary>
+    private Control _inventory = null!;
+    /// <summary>Whether the bag was built paired.</summary>
+    private bool _builtPaired;
+    /// <summary>How far the paired bag's glass and contents have come out as the drone's soot frames it (drone-frame).</summary>
+    /// <summary>The paired bag's outline on the screen, handed to the soot every frame.</summary>
     /// <summary>How far the open screens have come on: their content fades in as the build tablet's does (0073).</summary>
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
@@ -70,10 +80,13 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The open machine's hologram under every panel, and the machine's box in world pixels it beams from.</summary>
     private MachineHolo? _holo;
     private Rect2 _holoBox;
+    /// <summary>How far the hologram windows trail the hero, and where the hero was on the last frame, in the world's pixels.</summary>
+    private readonly HoloSway _sway = new();
+    private (float X, float Y)? _heroWas;
     /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
     private GridContainer _bag = null!;
-    /// <summary>The trash's own frame (trash-slot), and the column holding the bag with it under the bag's right edge.</summary>
-    private WristScreen _trash = null!;
+    /// <summary>The trash's own frame (trash-slot), the slot alone inside the paired bag's window, and the column holding the bag with it under the bag's right edge.</summary>
+    private Control _trash = null!;
     private VBoxContainer _bagColumn = null!;
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
@@ -208,6 +221,11 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>This player's hero's ticks left before another canister (canister-mark): its slots sweep round while it cools. Set by <c>Main</c>.</summary>
     public Func<int>? CanisterIn { get; set; }
 
+    /// <summary>Whether this player has paired with its drone (drone-companion): before it, its bag is not shown. Set by <c>Main</c>.</summary>
+    public Func<bool>? Paired { get; set; }
+
+
+
     private readonly CanisterCooling _cooling = new();
     private readonly FlatBlink _refused = new();
     private bool _coolShown;
@@ -234,12 +252,16 @@ public partial class InventoryPanel : CanvasLayer
         AddChild(_over);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         Build();
+        _ui.Soot.Taken += SootTaken;
     }
+
+    public override void _ExitTree() => _ui.Soot.Taken -= SootTaken;
 
     /// <summary>The hotbar, the inventory, the equipment and the stack in hand, at the slot size chosen now.</summary>
     private void Build()
     {
         int size = _ui.Slot;
+        _builtPaired = Paired?.Invoke() ?? true;
         // First: the open machine's hologram draws over the world and under every panel.
         _root.AddChild(_holo = new MachineHolo());
         var top = Style.Gap(new HBoxContainer(), 8);
@@ -258,24 +280,18 @@ public partial class InventoryPanel : CanvasLayer
 
         // The grid, and under it the machine open; the equipment at the screen's other edge (0058).
         var shown = Style.Gap(new VBoxContainer { Position = new Vector2(Slots.Margin, Slots.InventoryTop(size)) }, 8);
-        // The bag, as wide as the hotbar; its sort key on the display's right edge, outside the screen (0008, 0081).
-        var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
-        grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
-        grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
-        grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
-        // The trash (trash-slot) in a frame of its own under the bag, at its right edge.
+        _bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i)));
         _trashBox = Box(new Place(Content.Inventory.Trash));
         _trashBox.GhostMark = SlotMark.Trash;
-        _trash = new WristScreen(WristPieces.Cuff, WristArt.Screen, 4) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
-        _trash.AddChild(_trashBox);
         _bagColumn = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin }, 14);
-        _bagColumn.AddChild(_inventory = grid);
-        _bagColumn.AddChild(_trash);
+        if (_builtPaired) Projected();
+        else Wrist();
         shown.AddChild(_bagColumn);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
         _root.AddChild(_body = Body(size));
         _body.Visible = false;
+        ShowLooks();
         // Last: a sort's light crosses over the slots.
         _root.AddChild(_sweep = new SortSweep());
         _root.AddChild(_burst = new TrashBurst());
@@ -300,6 +316,49 @@ public partial class InventoryPanel : CanvasLayer
         _over.AddChild(_pointerStar = new FavouriteStar(6.3f) { Visible = false });
     }
 
+    /// <summary>
+    /// The unpaired bag on the wrist (0074): the bag on the forearm display, as wide as the hotbar, its sort and stash keys on the
+    /// display's right edge, outside the screen (0008, 0081); the trash (trash-slot) in a frame of its own under it, at its right edge.
+    /// </summary>
+    private void Wrist()
+    {
+        var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        grid.AddChild(_bag);
+        grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
+        grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
+        var trash = new WristScreen(WristPieces.Cuff, WristArt.Screen, 4) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
+        trash.AddChild(_trashBox);
+        _bagColumn.AddChild(_inventory = grid);
+        _bagColumn.AddChild(_trash = trash);
+    }
+
+    /// <summary>
+    /// The paired bag as the drone projects it (drone-companion): one hologram window the drone's soot frames (drone-frame), the
+    /// bag with the trash under its right edge, the sort and stash keys at its right as a crate's sort key is in its header. Its
+    /// margins are a machine window's (<see cref="MachineFrame"/>), so every slot keeps its place.
+    /// </summary>
+    private void Projected()
+    {
+        var window = new HoloWindow();
+        var slots = Style.Gap(new VBoxContainer(), 8);
+        slots.AddChild(_bag);
+        _trashBox.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
+        slots.AddChild(_trash = _trashBox);
+        var keys = Style.Gap(new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkBegin }, 4);
+        keys.AddChild(_bagKey = Sorter(null, cap: true));
+        keys.AddChild(_stashKey = Stasher(cap: true));
+        var row = Style.Gap(new HBoxContainer(), 8);
+        row.AddChild(slots);
+        row.AddChild(keys);
+        window.AddChild(row);
+        // Its glass and contents come in as the soot frames it.
+        window.Glass(0, 0);
+        _bagColumn.AddChild(_inventory = window);
+    }
+
+    /// <summary>The bag display's lamp flared: on the wrist only, a hologram has none.</summary>
+    private void BlinkBag() => (_inventory as WristScreen)?.Blink();
+
     /// <summary>Takes down everything <see cref="Build"/> and the machine's panel made, before they are built at another size.</summary>
     private void Clear()
     {
@@ -315,7 +374,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey, _appearance) = (null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey, _appearance, _doll) = (null, null, null, null, null, null, null, null, null);
         _chargerLines.Clear();
     }
 
@@ -348,6 +407,7 @@ public partial class InventoryPanel : CanvasLayer
         _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
         _cooling.Read(CanisterIn?.Invoke() ?? 0);
         Refresh();
+        Refreshed?.Invoke();
     }
 
     private void Send(Command command)
@@ -366,40 +426,45 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058), in rows by where it
-    /// is worn (<see cref="Equipment.Rows"/>): the head with the helmet's mount, the body with the back and the cape, the
-    /// belt's three; each kind under its name, no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so
-    /// the hands have no slot.
+    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058), as a doll (gear-tabs, pick B):
+    /// this player's hero standing in the middle (<see cref="Doll"/>), each slot by the part it dresses (<see cref="Equipment.SpotOf"/>,
+    /// <see cref="DollLayout"/>), a leader line to it, no captions: an empty slot's tip names its kind. Over the metal, the Gear
+    /// and Appearance tabs (<see cref="GearTabs"/>). The screwdriver is a hotbar item (0107), so the hands have no slot.
     /// </summary>
     private WristScreen Body(int size)
     {
-        var column = _gear = Style.Gap(new VBoxContainer(), 2);
-        foreach (var kinds in Equipment.Rows)
+        var layout = _dollLayout = DollLayout.Of(size);
+        var mouseless = Control.MouseFilterEnum.Ignore;
+        _stage = new Control { CustomMinimumSize = new Vector2(layout.Width, layout.Height), MouseFilter = mouseless };
+        _gearSpots = new Control { Size = _stage.CustomMinimumSize, MouseFilter = mouseless };
+        _gearSpots.AddChild(_gearLeads = new DollLeads(layout, DollLayout.Gear, amber: false));
+        foreach (var place in Equipment.All())
         {
-            var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-            foreach (var kind in kinds) row.AddChild(Kind(kind));
-            column.AddChild(row);
+            var box = Box(place);
+            var (x, y) = layout.SlotAt(Equipment.SpotOf(place));
+            (box.Position, box.Size) = (new Vector2(x, y), box.CustomMinimumSize);
+            _gearSpots.AddChild(box);
         }
+        _stage.AddChild(_gearSpots);
+        PutDoll();
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
-        body.AddChild(_bodyShows = new VBoxContainer());
-        _bodyShows.AddChild(column);
-        // The appearance key on the metal's left edge, as the bag's sort key is on its right (hero-skins).
-        var key = _looksKey = new LooksButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), () =>
+        body.AddChild(_bodyShows = new MarginContainer { MouseFilter = mouseless });
+        _bodyShows.AddChild(_stage);
+        // The tabs stand on the metal's top edge, the open one reaching into it.
+        _tabs = new GearTabs(size, looks =>
         {
             _ui.Click();
-            _looks = !_looks;
+            _looks = looks;
             ShowLooks();
         })
         { Visible = Appearance != null };
-        _tipSpots.Add(key, () => new Tip(T(_looks ? "items.gear" : "items.looks")));
-        body.Mount(key, _ => new Vector2(-WristLook.SideKeyOut - WristLook.SideKeyWidth, WristLook.SideKeyDown));
-        ShowLooks();
+        body.Mount(_tabs, _ => new Vector2(6, -(WristPieces.Body.Window.Top - WristPieces.Pad) * WristPiece.Scale + 1 - _tabs.CustomMinimumSize.Y));
         return body;
     }
 
     /// <summary>
-    /// Makes the equipment's screen show the skins in its place (hero-skins), another feature's (crew's <c>AppearanceView</c>), built
-    /// at the slot size given and again with it; set by <c>Main</c>. None: no appearance key.
+    /// Makes the equipment's screen show the skins in its gear's place (hero-skins, gear-tabs), another feature's (crew's
+    /// <c>AppearanceView</c>), built at the slot size given and again with it; set by <c>Main</c>. None: no tabs.
     /// </summary>
     public Func<int, Control>? Appearance
     {
@@ -407,46 +472,56 @@ public partial class InventoryPanel : CanvasLayer
         set
         {
             _appearanceOf = value;
-            _looksKey.Visible = value != null;
+            _tabs.Visible = value != null;
+            ShowLooks();
         }
     }
 
-    private Func<int, Control>? _appearanceOf;
-    private LooksButton _looksKey = null!;
+    /// <summary>The doll the equipment is laid round (gear-tabs): crew's <c>HeroDoll</c>, built at the slot size given; set by <c>Main</c>.</summary>
+    public Func<int, Control>? Doll
+    {
+        get => _dollOf;
+        set
+        {
+            _dollOf = value;
+            PutDoll();
+        }
+    }
 
-    private VBoxContainer _gear = null!, _bodyShows = null!;
-    private Control? _appearance;
-    /// <summary>Whether the equipment's screen shows the skins, kept while the panel is built again.</summary>
+    /// <summary>After every read of the slots, on the timer and at once after this peer's own move: what the doll's dress is read on.</summary>
+    public event Action? Refreshed;
+
+    private Func<int, Control>? _appearanceOf, _dollOf;
+    private GearTabs _tabs = null!;
+    private Control _stage = null!, _gearSpots = null!;
+    private DollLeads _gearLeads = null!;
+    private DollLayout _dollLayout = null!;
+    private MarginContainer _bodyShows = null!;
+    private Control? _appearance, _doll;
+    /// <summary>Whether the Appearance tab is chosen, kept while the panel is built again.</summary>
     private bool _looks;
+
+    /// <summary>The Appearance tab's screen: warm amber glass, and its light and lamp.</summary>
+    private static readonly Color LooksScreen = new("1d140b"), LooksGlow = new("e9a84c");
+
+    /// <summary>The doll under both tabs' slots, once the panel is built and <see cref="Doll"/> is set.</summary>
+    private void PutDoll()
+    {
+        if (_doll != null || Doll == null || !IsInstanceValid(_stage)) return;
+        _stage.AddChild(_doll = Doll(_ui.Slot));
+        _stage.MoveChild(_doll, 0);
+        _doll.Size = _doll.CustomMinimumSize;
+    }
 
     private void ShowLooks()
     {
         if (_looks && _appearance == null && Appearance != null) _bodyShows.AddChild(_appearance = Appearance(_ui.Slot));
-        _gear.Visible = !_looks || _appearance == null;
-        if (_appearance == null) return;
-        _appearance.Visible = _looks;
-        // As wide as the equipment, so the screen keeps its size and a strip has room.
-        _appearance.CustomMinimumSize = new Vector2(_gear.GetCombinedMinimumSize().X, 0);
+        bool looks = _looks && _appearance != null;
+        _gearSpots.Visible = !looks;
+        if (_appearance != null) _appearance.Visible = looks;
+        _tabs.Show(looks);
+        _body.Tint(looks ? LooksScreen : null, looks ? LooksGlow : null);
     }
-
-    /// <summary>One kind's slots in a row under its name.</summary>
-    private VBoxContainer Kind(string kind)
-    {
-        var column = Style.Gap(new VBoxContainer(), 2);
-        column.AddChild(Caption(kind));
-        var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-        foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
-        column.AddChild(row);
-        return column;
-    }
-
-    private static Label Caption(string kind) => new()
-    {
-        Text = T($"equip.{kind}"),
-        LabelSettings = Style.Text(Style.Mono, 9, Style.Slate500),
-        HorizontalAlignment = HorizontalAlignment.Center,
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-    };
 
     private SlotBox Box(Place place, string? key = null)
     {
@@ -478,10 +553,13 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
-    /// <summary>The bag's tall sort key, or with <paramref name="crate"/> that crate's square one in its header; its tip says what it does.</summary>
-    private SortButton Sorter(int? crate)
+    /// <summary>
+    /// The bag's tall sort key, or with <paramref name="crate"/> that crate's square one in its header, or with <paramref name="cap"/>
+    /// the projected bag's square one; its tip says what it does.
+    /// </summary>
+    private SortButton Sorter(int? crate, bool cap = false)
     {
-        var size = crate == null ? new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight) : new Vector2(WristLook.KeycapSide, WristLook.KeycapSide);
+        var size = crate == null && !cap ? new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight) : new Vector2(WristLook.KeycapSide, WristLook.KeycapSide);
         var button = new SortButton(size, () => SortOf(crate));
         _tipSpots.Add(button, () => new Tip(T("items.sort")));
         return button;
@@ -499,15 +577,15 @@ public partial class InventoryPanel : CanvasLayer
         if (crate == null)
         {
             _sweep.Run(_bag);
-            _inventory.Blink();
+            BlinkBag();
         }
         else if (_crateGrid != null) _sweep.Run(_crateGrid);
     }
 
-    /// <summary>The bag's stash key, under its sort key; its tip says what it does and how to keep an item out of it.</summary>
-    private StashButton Stasher()
+    /// <summary>The bag's stash key, under its sort key, square with <paramref name="cap"/>; its tip says what it does and how to keep an item out of it.</summary>
+    private StashButton Stasher(bool cap = false)
     {
-        var button = new StashButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), StashBag);
+        var button = new StashButton(cap ? new Vector2(WristLook.KeycapSide, WristLook.KeycapSide) : new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), StashBag);
         _tipSpots.Add(button, () => new Tip(T("items.stash"), new TipLine(T("items.stashHow"), Tone.Dim)));
         return button;
     }
@@ -535,7 +613,7 @@ public partial class InventoryPanel : CanvasLayer
         }
         _ui.Click();
         Send(stash);
-        if (Shown) _inventory.Blink();
+        if (Shown) BlinkBag();
         StashedAway?.Invoke(parts);
     }
 
@@ -557,6 +635,8 @@ public partial class InventoryPanel : CanvasLayer
             var name = T("logistics.kept", ("item", T($"item.{kept}")));
             return Supplied?.Invoke(id, kept) == false ? new Tip(name, new TipLine(T("logistics.noneInReach"), Tone.Bad)) : new Tip(name);
         }
+        // No captions by the doll: an empty equipment slot's tip names what it wears (gear-tabs).
+        if (Equipment.KindOf(box.Place) is { } worn) return new Tip(T($"equip.{worn}"));
         return box.GhostMark switch
         {
             SlotMark.Docks => new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)),
@@ -600,14 +680,18 @@ public partial class InventoryPanel : CanvasLayer
         if (Input.MouseMode != mode) Input.MouseMode = mode;
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
+        Sway(delta, carrying);
         Hologram(delta);
         Cooling(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         // As small as what it shows: the skins' strip closed or the equipment back, it shrinks again.
         if (_body.GetCombinedMinimumSize() is var least && _body.Size != least) _body.Size = least;
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
+        // Where the bag stands, not where it sways to: a station's panel docked under it sways by itself.
+        var still = (_inventory as HoloWindow)?.Offset ?? Vector2.Zero;
         var grid = _inventory.GetGlobalRect();
-        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, (_trash.Visible ? _trash.GetGlobalRect() : grid).End.Y) : null);
+        grid.Position -= still;
+        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, _trash.Visible ? Math.Max(grid.End.Y, _trash.GetGlobalRect().End.Y - still.Y) : grid.End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }
@@ -628,19 +712,30 @@ public partial class InventoryPanel : CanvasLayer
     private void Refresh()
     {
         if (_reading is not { } reading) return;
+        bool paired = Paired?.Invoke() ?? true;
+        // Paired (or unpaired, creative turned off) the bag changes its look: everything built again, what is open kept open.
+        if (paired != _builtPaired)
+        {
+            Clear();
+            Build();
+        }
         BuildCrate();
-        _shown.Visible = _body.Visible = Shown;
+        _shown.Visible = Shown;
+        _body.Visible = Shown;
         _creative.Visible = reading.Creative;
         _ui.Chosen.Set(_chosen);
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
         var held = Held;
         // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).
         var carried = held is { } inHand ? reading.At(inHand.Place)?.Item : null;
+        bool bagOpen = false;
         foreach (var box in _slots)
         {
             var p = box.Place;
-            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
-            box.Visible = _items!.SlotOpen(_client!.Id, p);
+            // A slot waiting on an upgrade or the pairing is not there yet (2026-10-30-room-upgrades, drone-companion).
+            bool open = _items!.SlotOpen(_client!.Id, p);
+            box.Visible = open;
+            bagOpen |= open && Hotbar.InBag(p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);
@@ -649,13 +744,28 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
+        // None of the bag open, before the pairing: no bag at all, the equipment alone.
+        if (_inventory.Visible != bagOpen) _inventory.Visible = bagOpen;
+        // The screen ends past the last belt slot open: one more opened widens it.
+        int belts = Equipment.Of(Content.Charge.Belt).Count(p => _items!.SlotOpen(_client!.Id, p));
+        var stage = new Vector2(_dollLayout.WidthFor(belts), _dollLayout.Height);
+        if (_stage.CustomMinimumSize != stage) _stage.CustomMinimumSize = _gearSpots.Size = stage;
         // The trash's frame shows with its slot: in creative mode only (trash-slot).
         _trash.Visible = _trashBox.Visible;
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
         foreach (var socket in _sockets)
             socket.Show(FittedTo(socket.Machine).Contains(socket.Module), carried == socket.Module && GoesIn(carried, socket.Machine), _socketHovered == socket);
+        foreach (var place in Equipment.All()) _gearLeads.Fill(Equipment.SpotOf(place), reading.At(place) != null);
+        // The belt's row has the one line, lit while any of it is worn.
+        _gearLeads.Fill(DollSpot.Belt1, Equipment.Of(Content.Charge.Belt).Any(p => reading.At(p) != null));
         if (_unfitting is { } unfitting && !GodotObject.IsInstanceValid(unfitting)) _unfitting = null;
         _held.Visible = held != null || _unfitting != null;
+        // A stack lifted from any slot turns the Appearance tab back to the gear (gear-tabs).
+        if (Equipment.LooksShown(_looks, _held.Visible) != _looks)
+        {
+            _looks = false;
+            ShowLooks();
+        }
         if (held is { } h)
         {
             var stack = reading.At(h.Place)!;

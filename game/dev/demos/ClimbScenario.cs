@@ -11,7 +11,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// The grapple's climb out of a planet's deep (grapple-climbs): the first planet opened and the hero beamed to the bottom of its
 /// deepest chasm, open to the sky hundreds of rows up, with the grappling gun in hand, the harpoon beside it, the drill with a battery to dig
-/// deeper and the helmet lamp, in creative mode so the climb is never cut short by the air.
+/// deeper and the light drone, in creative mode so the climb is never cut short by the air.
 /// </summary>
 [Dev("--climb", "the first planet, the hero at the bottom of its deepest chasm with the grappling gun in hand, the harpoon, the drill and the lamp, creative (grapple-climbs)", Order = 5)]
 public sealed class ClimbScenario : DevScenario
@@ -24,15 +24,15 @@ public sealed class ClimbScenario : DevScenario
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
         var slots = new JsonArray();
-        int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount), belt = Spec.Inventory.Slots + 2;
+        int belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? Stack(Spec.Grapple.Item)
                 : i == 1 ? Stack(Spec.Harpoon.Item)
                 : i == 2 ? Stack(Spec.Weapons.Drill.Item)
-                : i == lamp ? Stack(Spec.HelmetLamp.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         return World.Load(root.ToJsonString(), seed.Modules());
     }
 

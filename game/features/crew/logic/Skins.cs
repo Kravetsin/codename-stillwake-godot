@@ -34,6 +34,10 @@ public static class Skins
         new("ramHelmet", Head, DlcAppId: 0),
         new("bathysphereHelmet", Head, DlcAppId: 0),
         new("paradeHelmet", Head, DlcAppId: 0),
+        // Raw helmets picked with the heated and heat helmets (gear-roles), worn as skins until gear of their own needs them.
+        new("dustHelmet", Head, DlcAppId: 0),
+        new("hideHelmet", Head, DlcAppId: 0),
+        new("boilerHelmet", Head, DlcAppId: 0),
         new("diverSuit", Suit, DlcAppId: 0),
         new("platedSuit", Suit, DlcAppId: 0),
         new("rescueSuit", Suit, DlcAppId: 0),

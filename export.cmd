@@ -1,5 +1,5 @@
 @echo off
-rem Exports the Windows build to build\windows\Stillwake.exe and zips it as build\Stillwake-windows.zip.
+rem Exports the Windows build to build\windows\Castoff.exe and zips it as build\Castoff-windows.zip.
 setlocal
 rem No build servers left behind once the build is done: they idle in the task manager otherwise.
 set MSBUILDDISABLENODEREUSE=1
@@ -12,9 +12,9 @@ cd /d "%~dp0"
 if exist build\windows rmdir /s /q build\windows
 mkdir build\windows
 "%GODOT%" --headless --path game --import
-"%GODOT%" --headless --path game --export-release "Windows Desktop" ..\build\windows\Stillwake.exe || exit /b 1
+"%GODOT%" --headless --path game --export-release "Windows Desktop" ..\build\windows\Castoff.exe || exit /b 1
 rem The co-op launchers: host or join through the playtest server's relay.
 copy /y deploy\launchers\host.cmd build\windows\ >nul
 copy /y deploy\launchers\join.cmd build\windows\ >nul
-powershell -NoProfile -Command "Compress-Archive -Path build\windows\* -DestinationPath build\Stillwake-windows.zip -Force"
-echo Built build\windows\Stillwake.exe and build\Stillwake-windows.zip
+powershell -NoProfile -Command "Compress-Archive -Path build\windows\* -DestinationPath build\Castoff-windows.zip -Force"
+echo Built build\windows\Castoff.exe and build\Castoff-windows.zip

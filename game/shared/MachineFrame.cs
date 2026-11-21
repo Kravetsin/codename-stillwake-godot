@@ -8,11 +8,11 @@ namespace Stillwake.Game.Shared;
 /// The one frame every machine's window opens in, under the inventory (0058): the same panel for a crate, a
 /// furnace, a smelter, a generator, a trade station, a charging station and a queued station; a header with the
 /// machine's name in bold and, for one on the power grid, a bolt and its power, lit while it works and dark at
-/// 0 while it does not; under it the machine's own body. Used by the items feature and the crafting feature. It has no
-/// ground of its own: its owner's <see cref="MachineHolo"/> draws the hologram under it, and the frame's name, headings
-/// and dim words take the station's <see cref="Tone"/> (machine-holograms).
+/// 0 while it does not; under it the machine's own body. Used by the items feature and the crafting feature. A hologram
+/// window: its owner's <see cref="MachineHolo"/> draws the hologram under it, and the frame's name, headings and dim words
+/// take the station's <see cref="Tone"/> (machine-holograms).
 /// </summary>
-public partial class MachineFrame : PanelContainer
+public partial class MachineFrame : HoloWindow
 {
     /// <summary>A bolt with no power through it.</summary>
     private static readonly Color Unlit = new(0.35f, 0.35f, 0.4f);
@@ -40,13 +40,6 @@ public partial class MachineFrame : PanelContainer
     public MachineFrame(string name, int? power)
     {
         _name = new Label { LabelSettings = _nameText, SizeFlagsHorizontal = SizeFlags.ExpandFill, VerticalAlignment = VerticalAlignment.Center };
-        SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-        MouseFilter = MouseFilterEnum.Stop;
-        // The wrist's screen's margins, so every slot keeps its place (0074).
-        var margins = new StyleBoxEmpty();
-        margins.SetContentMarginAll(8);
-        margins.ContentMarginLeft = margins.ContentMarginRight = Slots.ScreenPadding;
-        AddThemeStyleboxOverride("panel", margins);
         Head = Style.Gap(new HBoxContainer(), 6);
         Head.AddChild(_name);
         Head.AddChild(_bolt);

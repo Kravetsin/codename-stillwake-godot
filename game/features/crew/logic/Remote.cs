@@ -8,9 +8,12 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// A hero as others see it: its movement, the turn of its head toward its pointer, whether it holds the
 /// plan, the item it wields (an item's id, such as the fire axe's), what its hands are busy with and its
-/// harpoon's rod while out of the gun, and the spot its player pinged. Only drawn, never part of the world.
+/// harpoon's rod while out of the gun, the spot its player pinged, its light drone's mode, none for the lamp (light-drone), and whether
+/// the drone projects a drone window before it (drone-holo). Only
+/// drawn, never part of the world.
 /// </summary>
-public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false, string? Wields = null, Busy? Busy = null, RodSeen? Rod = null, PingSeen? Ping = null);
+public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false, string? Wields = null, Busy? Busy = null, RodSeen? Rod = null, PingSeen? Ping = null,
+    DroneMode? Drone = null, bool Projects = false);
 
 /// <summary>
 /// A hero's harpoon rod out of the gun, as others see it (<see cref="HarpoonShot.Seen"/>): where it is,
@@ -68,13 +71,13 @@ public readonly record struct SentHero(Seen Seen, double? At = null)
 {
     private sealed record Wire(
         int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor, double? Look, bool Plan, double? At,
-        string? Wields, Busy? Busy, RodSeen? Harpoon, PingSeen? Ping);
+        string? Wields, Busy? Busy, RodSeen? Harpoon, PingSeen? Ping, DroneMode? Drone, bool Projects);
 
     /// <summary>What <c>Client.SendHero</c> carries, packed (<see cref="Packing"/>): net never reads it.</summary>
     public byte[] Encode()
     {
         var h = Seen.Hero;
-        return Packing.Pack(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy, Seen.Rod, Seen.Ping));
+        return Packing.Pack(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy, Seen.Rod, Seen.Ping, Seen.Drone, Seen.Projects));
     }
 
     /// <summary>A hero another peer sent, as <see cref="Encode"/> wrote it; none for what it did not write.</summary>
@@ -83,7 +86,7 @@ public readonly record struct SentHero(Seen Seen, double? At = null)
         try
         {
             if (Packing.Unpack<Wire>(state) is not { Facing: 1 or -1 } w) return null;
-            return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan, w.Wields, w.Busy, w.Harpoon, w.Ping), w.At);
+            return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan, w.Wields, w.Busy, w.Harpoon, w.Ping, w.Drone, w.Projects), w.At);
         }
         catch (InvalidDataException)
         {

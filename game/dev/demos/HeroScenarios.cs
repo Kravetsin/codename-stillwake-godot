@@ -148,8 +148,10 @@ public sealed class BreatheScenario : DevScenario
     }
 }
 
-[Dev("--skins", "the Appearance tab opened, the weapon effect's strip shown (SkinsDemo)")]
+[Dev("--skins", "the hero dressed, the Appearance tab opened, the weapon effect's strip shown (SkinsDemo)")]
 public sealed class SkinsScenario : DevScenario
 {
+    public override World Seed(World world, DevSeed seed) => SkinsDemo.Seed(world, seed.Modules);
+
     public override void Attach(DevContext c) => c.Add(new SkinsDemo());
 }

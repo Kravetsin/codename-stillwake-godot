@@ -130,27 +130,32 @@ public class GestureTests
         Assert.True(ThumbUp(Gesture.No) < -0.9);
     }
 
+    private static Wheel<Gesture> NewWheel() => new(Gestures.WheelSides);
+
+    /// <summary>One step of the gesture key: a tap points.</summary>
+    private static Gesture? Step(Wheel<Gesture> wheel, bool held, double ms, (double, double) at) => wheel.Step(held, ms, at, Wheel.Middle, Gesture.Point);
+
     [Fact]
     public void ATapPoints()
     {
-        var wheel = new GestureWheel();
-        Assert.Null(wheel.Step(true, 16, (100, 100), GestureWheel.Middle));
-        Assert.Null(wheel.Step(true, 100, (102, 101), GestureWheel.Middle));
+        var wheel = NewWheel();
+        Assert.Null(Step(wheel, true, 16, (100, 100)));
+        Assert.Null(Step(wheel, true, 100, (102, 101)));
         Assert.False(wheel.Open);
-        Assert.Equal(Gesture.Point, wheel.Step(false, 16, (102, 101), GestureWheel.Middle));
+        Assert.Equal(Gesture.Point, Step(wheel, false, 16, (102, 101)));
         // Nothing after: the key let go once.
-        Assert.Null(wheel.Step(false, 16, (102, 101), GestureWheel.Middle));
+        Assert.Null(Step(wheel, false, 16, (102, 101)));
     }
 
     [Fact]
     public void HeldItOpensAndLettingGoInTheMiddlePicksNothing()
     {
-        var wheel = new GestureWheel();
-        wheel.Step(true, 16, (100, 100), GestureWheel.Middle);
-        wheel.Step(true, GestureWheel.TapMs, (105, 100), GestureWheel.Middle);
+        var wheel = NewWheel();
+        Step(wheel, true, 16, (100, 100));
+        Step(wheel, true, Wheel.TapMs, (105, 100));
         Assert.True(wheel.Open);
         Assert.Null(wheel.Toward);
-        Assert.Null(wheel.Step(false, 16, (105, 100), GestureWheel.Middle));
+        Assert.Null(Step(wheel, false, 16, (105, 100)));
         Assert.False(wheel.Open);
     }
 
@@ -163,18 +168,18 @@ public class GestureTests
     [InlineData(-40, -5, Gesture.Wave)]
     public void LettingGoPicksTheSideThePointerMovedToward(double dx, double dy, Gesture picked)
     {
-        var wheel = new GestureWheel();
-        wheel.Step(true, 16, (100, 100), GestureWheel.Middle);
-        wheel.Step(true, GestureWheel.TapMs, (100 + dx, 100 + dy), GestureWheel.Middle);
+        var wheel = NewWheel();
+        Step(wheel, true, 16, (100, 100));
+        Step(wheel, true, Wheel.TapMs, (100 + dx, 100 + dy));
         Assert.Equal(picked, wheel.Toward);
-        Assert.Equal(picked, wheel.Step(false, 16, (100 + dx, 100 + dy), GestureWheel.Middle));
+        Assert.Equal(picked, Step(wheel, false, 16, (100 + dx, 100 + dy)));
     }
 
     [Fact]
     public void AQuickFlickPicksWithoutTheWheel()
     {
-        var wheel = new GestureWheel();
-        wheel.Step(true, 16, (100, 100), GestureWheel.Middle);
-        Assert.Equal(Gesture.Wave, wheel.Step(false, 50, (60, 100), GestureWheel.Middle));
+        var wheel = NewWheel();
+        Step(wheel, true, 16, (100, 100));
+        Assert.Equal(Gesture.Wave, Step(wheel, false, 50, (60, 100)));
     }
 }

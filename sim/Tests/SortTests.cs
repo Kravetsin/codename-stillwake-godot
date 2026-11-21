@@ -15,7 +15,7 @@ public class SortTests
     private static int StackOf(string item) => Content.Items.Get(item).Stack;
 
     /// <summary>A crate at the left and a furnace at the right.</summary>
-    private static Scenario Store() => new(Layout.Parse(["#KK.FF#", "#...FF#"]), doubled: true);
+    private static Scenario Store() => new Scenario(Layout.Parse(["#KK.FF#", "#...FF#"]), doubled: true).Pair(0);
 
     private static int CrateOf(Scenario w) => w.M.Grid.MachineAt(w.At(1, 0))!.Id;
     private static int FurnaceOf(Scenario w) => w.M.Grid.MachineAt(w.At(4, 0))!.Id;

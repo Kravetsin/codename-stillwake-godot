@@ -722,18 +722,14 @@ public class DesyncTests(ITestOutputHelper output)
             var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1000, joinAt: 503, tamper: (tick, clients) =>
             {
                 var first = clients[0];
-                bool known = game.Module<Sim.Knowledge.KnowledgeModule>(first.World).Granted("wallIron");
+                bool known = game.Module<Sim.Knowledge.KnowledgeModule>(first.World).KnowsAny("wallIron");
                 if (tick <= 503) early |= known;
                 granted |= known;
                 if (tick <= 503 || tick % 10 != 5) return;
-                // Often, at a built bench: the fuzz tears machines down, the bench too, and lays plans, which are no station.
-                var crafting = game.Module<CraftingModule>(first.World);
-                if (game.Module<Sim.Grid.GridModule>(first.World).MachinesOf("workbench").FirstOrDefault(m => crafting.StationOf(m.Id) != null) is not { } built) return;
-                int bench = built.Id;
-                // The fuzz moves the bag's iron into machines: a spawn pays for each plate, and spawns are never obtained.
+                // A plate in hand, spawned in creative, which finds nothing, then held out of it: the first find of a plate (own-knowledge).
                 first.Send(new Sim.Items.SetCreative(true));
-                first.Send(new Sim.Items.Spawn("iron", 2));
-                first.Send(new Sim.Crafting.Craft(bench, "plate", 1));
+                first.Send(new Sim.Items.Spawn("plate", 1));
+                first.Send(new Sim.Items.SetCreative(false));
             });
             return (run, granted && !early ? null : $"granted {granted}, before the joiner {early}");
         });

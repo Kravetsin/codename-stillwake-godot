@@ -86,9 +86,9 @@ public sealed class StripParts(TipSpots tips)
     public CreditLine ActionPrice { get; } = new(Tablet.FontSize + 3) { Alignment = BoxContainer.AlignmentMode.Center };
 
     /// <summary>Learns what each blueprint places: what its picture and name are drawn from.</summary>
-    public void Learn(IResearchQueries research)
+    public void Learn()
     {
-        foreach (var recipe in research.Recipes()) _placements[recipe.Id] = recipe.Placement;
+        foreach (var blueprint in Stillwake.Sim.Research.Blueprints.All) _placements[blueprint.Id] = blueprint.Placement;
     }
 
     /// <summary>What blueprint <paramref name="id"/> places; null for anything else.</summary>

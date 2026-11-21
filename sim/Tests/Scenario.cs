@@ -110,13 +110,28 @@ public sealed class Scenario
     /// </summary>
     public bool Bare { get; init; }
 
+    /// <summary>
+    /// Peers are not paired with their drones, their own slots the hotbar alone, as a new player's (drone-companion). Otherwise (the
+    /// default) a peer is paired the first time the scenario gives it a hero or items (<see cref="Pair"/>), its bag rows open as
+    /// before pairing was a rule; <see cref="Bare"/> or not.
+    /// </summary>
+    public bool Unpaired { get; init; }
+
     private readonly HashSet<int> _dressed = [];
 
     public Scenario Do(Command c)
     {
+        if (c is Enter) Pair(c.From);
         // Only a peer seated aboard: one carried to another surface keeps what it carries there.
         if (c is Enter && !Bare && World.SurfaceOf(c.From) == 0 && M.Crew.HeroOf(c.From) == null && _dressed.Add(c.From)) Suit(c.From);
         _pending.Add(c);
+        return this;
+    }
+
+    /// <summary>Peer <paramref name="peer"/> paired with its drone straight in the players' slice, once, unless <see cref="Unpaired"/>.</summary>
+    public Scenario Pair(int peer)
+    {
+        if (!Unpaired && !M.Players.HasDrone(peer)) M.Players.Pair(peer);
         return this;
     }
 

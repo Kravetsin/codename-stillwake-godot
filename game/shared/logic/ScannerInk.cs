@@ -17,7 +17,6 @@ public static class ScannerInk
     {
         ["helmet"] = ("hero_scanner", 6.2, -1.9),
         ["heavyHelmet"] = ("hero_heavyHelmet_scanner", 6.2, -4.1),
-        ["quiltedHelmet"] = ("hero_quiltedHelmet_scanner", 6.2, -3),
         ["brassHelmet"] = ("hero_scanner", 6.2, -2.4),
         ["beakHelmet"] = ("hero_scanner", 6.2, -2.8),
         ["roninHelmet"] = ("hero_scanner", 6.2, -2.2),

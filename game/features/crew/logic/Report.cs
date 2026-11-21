@@ -134,6 +134,7 @@ public static class Report
         return problem == null ? new Eat(food) : null;
     }
 
+
     /// <summary>
     /// <c>SuitMode</c> flipping the suit's mode on a press (V, its edge key; 2026-11-03-the-regen-suit): from the last one in
     /// <paramref name="inFlight"/>, sent and not yet applied, else from the sim's <paramref name="on"/>; switching on only

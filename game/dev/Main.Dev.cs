@@ -93,6 +93,12 @@ public partial class Main
             hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge));
         else if (_scenarios.Select(s => s.Start).FirstOrDefault(s => s != null) is { } start) hero.Start = start;
         hero.Arrive = _scenarios.Select(s => s.Arrive).FirstOrDefault(a => a != null);
+        // --meeting[=s]: the drone's meeting on this hero, standing two cells right of the core on its floor (drone-meeting).
+        if (_dev.Given("--meeting") is { } meeting)
+        {
+            hero.MeetAt = meeting == "" ? 0 : double.Parse(meeting, System.Globalization.CultureInfo.InvariantCulture);
+            hero.Start = m => m.Grid.MachinesWith(Content.MachineTrait.Wakes) is [var core, ..] ? core.Cell + m.Grid.Width + 2 : m.Crew.Spawn;
+        }
     }
 
     /// <summary>The scenarios' nodes, made last, over every panel and menu they work, and the measuring tools.</summary>

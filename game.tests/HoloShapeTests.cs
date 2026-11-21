@@ -8,7 +8,7 @@ using MachineTrait = Stillwake.Content.MachineTrait;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Where a machine window's hologram touches, leaves the machine and grows, and its tone (machine-holograms).</summary>
+/// <summary>Where a machine window's hologram touches and leaves the machine, and its tone (machine-holograms).</summary>
 public class HoloShapeTests
 {
     private const float Cell = 8;
@@ -48,27 +48,6 @@ public class HoloShapeTests
         Assert.Equal((506f, 388f), HoloShape.Emitter(small, (0, 0), Cell));
     }
 
-    [Fact]
-    public void TheWindowGrowsFromTheTouchPointAlongItsEdgeThenAcross()
-    {
-        var touch = new HoloTouch(410, 396, HoloEdge.Right);
-        Assert.Null(HoloShape.Grown(Window, touch, 0));
-        var (line, isLine) = HoloShape.Grown(Window, touch, 0.01)!.Value;
-        Assert.True(isLine);
-        Assert.Equal((408f, 2f), (line.X, line.W));
-        Assert.True(line.Y < 396 && line.Bottom > 396 && line.H < 20, $"a short line through the touch point, {line}");
-        var (edge, _) = HoloShape.Grown(Window, touch, HoloLook.EdgeFirst - 1e-6)!.Value;
-        Assert.Equal((300f, 500f), (Rounded(edge.Y), Rounded(edge.Bottom)));
-        var (half, spread) = HoloShape.Grown(Window, touch, 0.6)!.Value;
-        Assert.False(spread);
-        Assert.Equal((300f, 200f, 410f), (half.Y, half.H, Rounded(half.Right)));
-        Assert.True(half.W > 2 && half.W < 400);
-        Assert.Equal((Window, false), HoloShape.Grown(Window, touch, 1));
-        // From the top edge it spreads down.
-        var (down, _) = HoloShape.Grown(Window, new HoloTouch(100, 300, HoloEdge.Top), 0.6)!.Value;
-        Assert.Equal((10f, 300f, 400f), (down.X, down.Y, down.W));
-    }
-
     [Theory]
     [InlineData("furnace", HoloTone.Warm)]
     [InlineData("burnerGenerator", HoloTone.Warm)]
@@ -86,6 +65,14 @@ public class HoloShapeTests
     [InlineData("dropPod", HoloTone.Neutral)]
     public void AStationsToneIsItsFireElseItsPowerElseNeutral(string kind, HoloTone tone) =>
         Assert.Equal(tone, HoloShape.ToneOf(Machines.Get(kind)));
+
+    [Fact]
+    public void TheDronesBagIsInItsOwnBlueAndNoMachineTakesIt()
+    {
+        // The pick's HOLO, rgb(140,196,255) (drone-companion).
+        Assert.Equal("8cc4ff", HoloLook.Of(HoloTone.Drone).Light);
+        Assert.DoesNotContain(Machines.All, spec => HoloShape.ToneOf(spec) == HoloTone.Drone);
+    }
 
     [Fact]
     public void EveryMachineThatOpensAWindowGetsItsToneByTheRule()
@@ -131,6 +118,4 @@ public class HoloShapeTests
             var (ex, ey) = HoloShape.Emitter(box, (touch.X, touch.Y), cell);
             Assert.True(ex >= box.X && ex <= box.Right && ey >= box.Y && ey <= box.Bottom, $"emitter ({ex}, {ey}) outside {box}");
         });
-
-    private static float Rounded(float x) => (float)System.Math.Round(x, 2);
 }

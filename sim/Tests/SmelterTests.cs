@@ -232,7 +232,7 @@ public class SmelterTests
     public void IsBoughtInTheTree()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
-        var smelter = w.M.Research.Recipes().Single(r => r.Id == "smelter");
+        var smelter = w.M.Research.Recipes(0).Single(r => r.Id == "smelter");
         Assert.False(smelter.Known);
     }
 }

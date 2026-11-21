@@ -115,13 +115,13 @@ public class ModulesTests
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
-        if (walks) live.Knowledge.Obtain("scrapChunk", 1);
+        if (walks) live.Knowledge.Find(0, "scrapChunk");
         for (int i = 0; i < 400; i++)
         {
             if (walks && i == 200)
             {
-                Assert.False(live.Knowledge.Granted("furnace"));
-                live.Knowledge.Obtain("hullPlate", 1);
+                Assert.False(live.Knowledge.Knows(0, "furnace"));
+                live.Knowledge.Find(0, "hullPlate");
             }
             if (readAir && live.Rooms.All.Count > 0)
             {
@@ -156,7 +156,7 @@ public class ModulesTests
             if (live.Grid.ChangedSince(gridWas) == null) behind++;
             Assert.True(world.Hash() == copy.Hash(), $"tick {i}: the world differs from one loaded before it");
         }
-        if (walks) Assert.True(live.Knowledge.Granted("furnace"), "the rule granted nothing");
+        if (walks) Assert.True(live.Knowledge.Knows(0, "furnace"), "the rule granted nothing");
         Assert.True(around > 30, $"rooms found around a change {around} times");
         Assert.True(grown > 3 && shrunk > 3, $"the built box grew {grown} times and shrank {shrunk}");
         Assert.True(behind >= 2, $"the log was outrun {behind} times");

@@ -82,14 +82,10 @@ public static class BodyFit
     /// <summary>Soft hoods: their top turns, their base on the shoulders from row 12.5 drawn over the near arm.</summary>
     private static readonly HelmetFit Hood = new(HelmetTurn.Soft, NeckX, SoftY, Cut: 12.5);
 
-    /// <summary>The basic helmet's ball, nodding whole on its rubber seal.</summary>
-    private static readonly HelmetFit Ball = new(HelmetTurn.Soft, NeckX, SealY, Cut: null);
-
-    /// <summary>
-    /// A helmet skin turning whole on the basic helmet's seal: a beak, a jaw or a neck guard below the seal would bend with it
-    /// as the ball's rubber does, so none bends; a rubber seal of its own, the basic collar's ring, bends between it and the collar.
-    /// </summary>
-    private static readonly HelmetFit Shell = new(HelmetTurn.Ring, NeckX, SealY, Cut: null, Sealed: true);
+    /// <summary>The basic helmet's ball, still on its rubber collar (light-drone, a try): the head turns inside.</summary>
+    private static readonly HelmetFit Ball = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null);
+    /// <summary>A helmet skin, still on a rubber seal of its own, the basic collar's ring, between it and its collar.</summary>
+    private static readonly HelmetFit Shell = new(HelmetTurn.Bolted, HeadX, HeadY, Cut: null, Sealed: true);
 
     /// <summary>Each helmet's fit by its item, the catchers' by their pictures (<see cref="CreatureLooks.Heroes"/>).</summary>
     private static readonly Dictionary<string, HelmetFit> Fits = new()
@@ -106,10 +102,14 @@ public static class BodyFit
         ["ramHelmet"] = Shell,
         ["bathysphereHelmet"] = Shell,
         ["paradeHelmet"] = Shell,
-        // The hood's last roll, under its plate, bends; its bottom fades into the suit rather than end in a line across it.
-        [Stillwake.Content.Helmet.Quilted] = Hood with { Fade = (13.6, 14.6) },
         // The bell turns whole on its rubber gasket as the skins do on theirs, with no shoulder piece: it met no suit well.
         [Stillwake.Content.Helmet.Heavy] = Shell,
+        // The raw painted helmets (gear-roles), each on its own collar; the dust wrap on its own seal too.
+        ["dustHelmet"] = Shell,
+        ["hideHelmet"] = Ball,
+        ["boilerHelmet"] = Ball,
+        [Stillwake.Content.Helmet.Heated] = Ball,
+        [Stillwake.Content.Helmet.HeatProof] = Ball,
         ["catcherHood"] = Hood,
         ["catcherCap"] = Hood,
         ["catcherBeak"] = Hood,

@@ -1,4 +1,4 @@
-# Stillwake
+# Castoff (codename Stillwake)
 
 A 2D side-view space game: an always-moving ship salvages debris and turns it into automated
 production. PC (Steam), online co-op for 4+ players in host-owned worlds. The game is described in
@@ -219,7 +219,7 @@ publishes them. A pick goes into its ADR.
   from a button through Web Audio. Say what is unheard. Once picked: cut, level and credit them as `CREDITS.md` says.
 - **Art:** drawn in code on a canvas at the game's scale (a cell 8 px, the hero beside it), moving through every state it has.
   Once picked: exported by the code that drew it, through `tools/`. The game is drawn in ink and watercolour ([no more pixels](docs/decisions/2026-11-03-pixels-unsupported.md)): a new picture follows
-  `tools/anime-art/README.md`.
+  `tools/anime-art/README.md`. A pick page is one page file on `tools/pick-kit` (its README), built and checked by its `build.js`.
 
 ## Commands
 
@@ -230,7 +230,7 @@ dotnet format Stillwake.sln --include $(git diff --name-only origin/main -- "*.c
 dotnet format Stillwake.sln --verify-no-changes --no-restore                         # CI's exact check, ~25 s
 godot --path game                          # play; --headless --import once after new assets
 godot --path game --write-movie /tmp/f/shot.png --fixed-fps 20 --quit-after 100 -- --autopilot
-godot --headless --path game --export-release "Windows Desktop" ../build/windows/Stillwake.exe
+godot --headless --path game --export-release "Windows Desktop" ../build/windows/Castoff.exe
 ```
 
 `godot` is `Godot_v4.7.2-stable_mono_win64_console.exe` (on this machine in

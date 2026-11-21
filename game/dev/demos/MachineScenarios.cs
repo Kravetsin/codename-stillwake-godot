@@ -9,6 +9,7 @@ using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 
@@ -75,6 +76,60 @@ public sealed class OpenScenario : DevScenario
         client.Send(new Sim.Places.Find("freighter"));
         client.Send(new Sim.Places.Find("shuttle"));
         client.Send(new Sim.Places.SetCourse(1));
+    }
+}
+
+/// <summary>Peer 0 paired with its light drone through the save (drone-companion), so its bag is the drone's hologram.</summary>
+[Dev("--paired", "peer 0 paired with its light drone, the bag its hologram; with --testbed --open=crate, the bag open (drone-companion)")]
+public sealed class PairedScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = System.Text.Json.Nodes.JsonNode.Parse(world.Save())!;
+        root["slices"]!["players"]!["drones"] = new System.Text.Json.Nodes.JsonArray(0);
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+}
+
+[Dev("--drone-window", "with --paired, drone windows opened in turn by their keys on the drone's soot, a comma list of bag, build, handbook, board and market: each at 1 s for 2 s, the next opening over it, the last closing (DroneWindowDemo)", Shape = DevShape.Equals)]
+public sealed class DroneWindowScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new DroneWindowDemo(Args.Value("--drone-window")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
+}
+
+/// <summary>
+/// <c>--drone-window</c>'s hands (drone-frame): each window's own key pressed through Godot's input, the first at 1 s, the next 2 s on
+/// while the last is open, so the soot switches; the last key pressed again 2 s on, closing it.
+/// </summary>
+public sealed partial class DroneWindowDemo(IReadOnlyList<string> windows) : Node
+{
+    private double _t;
+    private int _pressed;
+
+    private static Bind KeyOf(string window) => window switch
+    {
+        "bag" => Bind.Inventory,
+        "build" => Bind.Build,
+        "handbook" => Bind.Handbook,
+        "board" => Bind.Tablet,
+        "market" => Bind.Market,
+        _ => throw new ArgumentException($"--drone-window: no window {window}; bag, build, handbook, board or market"),
+    };
+
+    public override void _Ready()
+    {
+        foreach (var window in windows) KeyOf(window);
+    }
+
+    public override void _Process(double delta)
+    {
+        _t += delta;
+        // The windows in turn, then the last one's key again.
+        while (_pressed <= windows.Count && _t >= 1 + 2 * _pressed)
+        {
+            TabletHands.Press(BindKeys.KeyOf(KeyOf(windows[Math.Min(_pressed, windows.Count - 1)])));
+            _pressed++;
+        }
     }
 }
 

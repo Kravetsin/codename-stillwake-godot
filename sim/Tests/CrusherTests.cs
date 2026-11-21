@@ -166,7 +166,7 @@ public class CrusherTests
     public void IsBoughtInTheTree()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
-        var crusher = w.M.Research.Recipes().Single(r => r.Id == "crusher");
+        var crusher = w.M.Research.Recipes(0).Single(r => r.Id == "crusher");
         Assert.False(crusher.Known);
     }
 

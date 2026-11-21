@@ -33,6 +33,7 @@ public partial class HeroView
             if (!others.Any(o => o.Id == id))
             {
                 shown.Figure.Visible = false;
+                EndMeeting(id);
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
                 shown.Gesture.Stop();
@@ -94,8 +95,13 @@ public partial class HeroView
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.LoadedAfter(seen.Wields == Content.Grapple.Item ? HarpoonShot.MsOf(Content.Grapple.CooldownTicks) : HarpoonShot.CooldownMs);
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
-            shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
-            shown.Figure.Scanner = m.Items.Equipped(id, Content.Helmet.Scanner);
+            // Its drone, once its peer paired with one, shines or scans as its peer sends its mode (light-drone, drone-companion); seen
+            // pairing here, it stands through its meeting, its drone shown as the meeting ends (drone-meeting).
+            if (_watch.Turned(m, id, m.Players.HasDrone(id), crew.CoreLost())) MeetFriend(id);
+            shown.Figure.Paired = m.Players.HasDrone(id);
+            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
+            shown.Figure.DroneWindow = (seen.Projects, 0);
+            shown.Figure.Senses = DroneSensesOf(m, id, here);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
@@ -112,8 +118,10 @@ public partial class HeroView
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
                 _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
-            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
-                seen.HoldsPlan, elapsedMs);
+            var (posed, looks) = InMeeting(id, shown.Figure, hero,
+                Poses.PoseOf(hero, afloat || ship.Glides(hero.X) || ship.Wet(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0);
+            shown.Figure.Show(hero, posed, looks, seen.HoldsPlan, elapsedMs);
+            ShowMeeting(id, shown.Figure, m);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
             if (crew.HeroOf(id) is { } sick && Purged(id, sick.Purges))
@@ -249,6 +257,27 @@ public partial class HeroView
 
     /// <summary>A point in the world's pixels, in thousandths of a cell.</summary>
     private static (double X, double Y) Thousandths(Vector2 at) => (at.X / Rig.Cell * Hero.Unit, at.Y / Rig.Cell * Hero.Unit);
+
+    /// <summary>
+    /// What hero <paramref name="id"/>'s drone senses of the world (drone-motion), its hero on <paramref name="surface"/>: the meteor coming and the bolt glowing here, the catcher hunting it, its
+    /// hero's low air. The sim's queries read as they are; nothing is sent.
+    /// </summary>
+    private DroneSenses DroneSensesOf(Registry m, int id, int surface)
+    {
+        int width = m.Grid.Width;
+        // This view's sim is the surface its own hero stands on (Main.Follow): its hazards are that surface's.
+        Vec Middle(int cell) => new((cell % width + 0.5) * Rig.Cell, (cell / width + 0.5) * Rig.Cell);
+        var meteor = m.Hazards.Incoming is { } coming ? new DroneDanger(coming.Cell, Middle(coming.Cell), _surface) : (DroneDanger?)null;
+        var bolt = m.Hazards.Strike is { } strike ? new DroneDanger(strike.Cell, Middle(strike.Cell), _surface, strike.Spread) : (DroneDanger?)null;
+        Vec? hunter = null;
+        if (m.Crew.Hunted(id) && m.Creatures.HunterOf(id) is { } c)
+        {
+            double unit = Stillwake.Sim.Creatures.CreaturesModule.Unit, height = Content.Creatures.Get(c.Species).Body.Height;
+            hunter = new Vec(c.X / unit * Rig.Cell, (c.Y / unit - height / 2) * Rig.Cell);
+        }
+        bool low = Danger.Read(m.Crew, m.Atmosphere, id).Danger == SuitDanger.Low;
+        return new DroneSenses(default, default, surface, Meteor: meteor, Bolt: bolt, Hunter: hunter, Low: low);
+    }
 
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>

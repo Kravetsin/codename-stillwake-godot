@@ -118,8 +118,11 @@ public class PlanetVarietyTests
     [Fact]
     public void EveryOreAPlanetMayHoldGrowsWhereASuitStands()
     {
-        var suits = new[] { Suit.Basic, Suit.Heat }.Select(Content.Items.Get).ToList();
-        int low = suits.Min(s => s.Low!.Value), high = suits.Max(s => s.High!.Value);
+        // Worn whole, helmet and suit adding their degrees (gear-roles): the basic pair and the heat pair.
+        var pairs = new[] { (Helmet.Basic, Suit.Basic), (Helmet.HeatProof, Suit.Heat) }
+            .Select(p => (Head: Content.Items.Get(p.Item1), Body: Content.Items.Get(p.Item2))).ToList();
+        int low = pairs.Min(p => Temperature.BareLow + p.Head.Low!.Value + p.Body.Low!.Value);
+        int high = pairs.Max(p => Temperature.BareHigh + p.Head.High!.Value + p.Body.High!.Value);
         foreach (var type in Content.Landing.Planets.Select(p => (PlanetType)Content.Surfaces.Get(p.Type)).Distinct())
         {
             var table = Terrain.CaveChances(type);

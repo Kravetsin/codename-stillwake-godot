@@ -34,7 +34,7 @@ public partial class ContentTests
     [Fact]
     public void MachinesBuiltIntoTheShipAreTheLifepodAloneAMapDrawsItAndItCostsNothing()
     {
-        Assert.Equal(["lifepod"], Machines.All.Where(m => m.Fixed).Select(m => m.Kind));
+        Assert.Equal(["lifepod", "alienCore"], Machines.All.Where(m => m.Fixed).Select(m => m.Kind));
         var pod = Machines.Get("lifepod");
         Assert.Empty(pod.Cost);
         Assert.Equal((0, null, null), (pod.Inputs, pod.Makes, pod.Draws));

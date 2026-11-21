@@ -33,14 +33,14 @@ const traced = Object.fromEntries(fs.readdirSync(path.join(here, 'traced')).filt
 
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
 const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
-<script>window.LOGICAL=${JSON.stringify(logical)};window.WRECK=${JSON.stringify(wreck)};window.TRACED=${JSON.stringify(traced)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);</script>
+<script>window.LOGICAL=${JSON.stringify(logical)};window.WRECK=${JSON.stringify(wreck)};window.TRACED=${JSON.stringify(traced)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);window.ANIME_ROOT=${JSON.stringify(url(''))};</script>
 <script src="${url('engine.js')}"></script>
 <script src="${url('wash.js')}"></script>
 <script src="${url('traced.js')}"></script>
 <script src="${url('limbs.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}
 <script>
-Traced.loadRaw().then(() => { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); Limbs.join(Made); document.getElementById('out').textContent = String(Made.length); })
+Traced.loadRaw().then(async () => { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) await Subjects[s](); Limbs.join(Made); document.getElementById('out').textContent = String(Made.length); })
   .catch((e) => { document.getElementById('out').textContent = 'ERROR ' + e.stack; });
 </script>`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anime-art-'));

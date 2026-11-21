@@ -309,7 +309,7 @@ public class ArcModuleTests
         + w.M.Grid.Machines.Sum(m => Held(w, m.Id, Arc) + w.M.Items.FittedTo(m.Id).Count(f => f == Arc))
         + w.M.Items.Floor.Where(s => s.Item == Arc).Sum(s => s.Count);
 
-    private static bool IntoTrash(Command c) => c is Move { Dst: { Crate: null, Slot: int slot } } && slot == Spec.Inventory.Trash;
+    internal static bool IntoTrash(Command c) => c is Move { Dst: { Crate: null, Slot: int slot } } && slot == Spec.Inventory.Trash;
 
     /// <summary>
     /// Items are conserved across fits and takes: whatever the items fuzz draws but spawns and moves into the trash (which lose

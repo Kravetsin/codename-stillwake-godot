@@ -29,7 +29,8 @@ public partial class TitleScreen : CanvasLayer
     private readonly Func<string?> _updateTo, _updating;
     private readonly TitleItem _continueItem;
     private readonly List<TitleItem> _items = [];
-    private readonly Label _name, _problem, _updateLine, _foot;
+    private readonly TitleNameView _name = new();
+    private readonly Label _problem, _updateLine, _foot;
     private readonly PanelContainer _panel, _update;
     private readonly Button _updateButton;
     private readonly Dictionary<string, (TitleItem Item, Control Page)> _pages = [];
@@ -66,8 +67,7 @@ public partial class TitleScreen : CanvasLayer
         column.GrowVertical = Control.GrowDirection.Both;
         column.OffsetLeft = 72;
         root.AddChild(column);
-        var spaced = new FontVariation { BaseFont = Style.Mono, SpacingGlyph = 6 };
-        column.AddChild(_name = new Label { Text = "STILLWAKE", LabelSettings = new LabelSettings { Font = spaced, FontSize = 44, FontColor = Style.Sky200, ShadowColor = new Color(0, 0, 0, 0.7f), ShadowSize = 4 } });
+        column.AddChild(_name);
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 28), MouseFilter = Control.MouseFilterEnum.Ignore });
         _continueItem = Item(column, "title.continue", play, 26);
         var pages = new (string Key, Control Page)[] { ("title.worlds", worlds), ("title.together", Together = new TogetherPage(together, hostWorlds, () => Open(null))), ("title.settings", settings) };

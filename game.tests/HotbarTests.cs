@@ -17,6 +17,15 @@ public class HotbarTests
     }
 
     [Fact]
+    public void TheBagIsTheSlotsPastTheHotbarNotACratesNorTheEquipment()
+    {
+        Assert.True(Hotbar.InBag(new Stillwake.Sim.Items.Place(Hotbar.Row)));
+        Assert.True(Hotbar.InBag(new Stillwake.Sim.Items.Place(Stillwake.Content.Inventory.Slots - 1)));
+        Assert.False(Hotbar.InBag(new(0)));
+        Assert.False(Hotbar.InBag(new(Stillwake.Content.Inventory.Slots)));
+        Assert.False(Hotbar.InBag(new(Hotbar.Row, 3)));
+    }
+    [Fact]
     public void EachSlotShowsTheDigitThatChoosesItFromOneToNine()
     {
         Assert.Equal("1", Hotbar.KeyOf(0));

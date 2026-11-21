@@ -79,16 +79,16 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0071](0071-a-door-command-says-the-state-it-wants.md) | A door command says the state it wants | accepted |  |
 | [0072](0072-air-shows-under-every-build-tab.md) | Air shows under every build tab | accepted |  |
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
-| [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms (in part) |
+| [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted | machine-holograms, drone-frame (in part) |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer, head-tally, loot-pieces (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted | night-chills, vessel-worlds (in part) |
-| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
+| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge, light-drone (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082, composed-backdrops (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs, planet-variety (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted | hud-vitals (in part) |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
-| [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted |  |
+| [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted | drone-frame (in part) |
 | [0084](0084-back-walls-of-natural-materials.md) | Back walls of natural materials | accepted |  |
 | [0085](0085-ruins-on-the-first-planet.md) | Ruins on the first planet | accepted |  |
 | [0086](0086-modules-one-socket-for-machines-and-tools.md) | Modules: one socket for machines and tools | accepted |  |
@@ -126,7 +126,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted | melee-edge (in part) |
 | [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted | fuel-liquid (in part) |
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted | planet-variety (in part) |
-| [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
+| [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted | tether-title (in part) |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted | ore-pockets (in part) |
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
@@ -169,7 +169,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [generated-vessels](2026-10-30-generated-vessels.md) | Generated vessels, written beside the ship by a jump | accepted | vessel-worlds, derelict-looks (in part) |
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
-| [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
+| [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted | drone-companion (in part) |
 | [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted | market-key, the-board (in part) |
 | [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted | trade-station-later (in part) |
 | [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | superseded | market-decrypt, the-board |
@@ -182,7 +182,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hold-piles](2026-10-31-hold-piles.md) | The hold's piles | accepted |  |
 | [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
 | [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | superseded | hologram-keys |
-| [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted | the-board (in part) |
+| [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted | the-board, drone-companion (in part) |
 | [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour, ink-by-default |
 | [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
 | [guards-in-ink](2026-11-01-guards-in-ink.md) | The guards in ink | accepted |  |
@@ -204,7 +204,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [ports-left-to-right](2026-11-02-ports-left-to-right.md) | Ports read left to right | accepted |  |
 | [russian-language](2026-11-02-russian-language.md) | The game speaks Russian | accepted |  |
-| [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted | hologram-keys (in part) |
+| [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted | hologram-keys, drone-frame (in part) |
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted | no-ice-canister (in part) |
@@ -251,7 +251,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact, spark-rule (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
-| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand, board-islands (in part) |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand, board-islands, own-knowledge (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge, spark-rule (in part) |
@@ -279,7 +279,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [crusher-takes-arc](2026-11-07-crusher-takes-arc.md) | The crusher takes the arc module | accepted |  |
 | [grapple-climbs](2026-11-07-grapple-climbs.md) | The grapple climbs | accepted |  |
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
-| [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
+| [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted | drone-frame (in part) |
 | [machines-stand](2026-11-07-machines-stand.md) | Machines stand on a floor | accepted |  |
 | [night-chills](2026-11-07-night-chills.md) | Night chills a planet's open sky | accepted | temperature-in-degrees, moving-sun (in part) |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
@@ -295,7 +295,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
-| [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
+| [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted | light-drone (in part) |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
 | [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted | board-islands (in part) |
@@ -338,7 +338,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [back-focus-faint](2026-11-12-back-focus-faint.md) | The back walls' focus clears the front round the pointer | accepted |  |
 | [food-and-the-body](2026-11-12-food-and-the-body.md) | Food and the body | accepted | food-tuning, hungry-respawn, jet-cruise (in part) |
 | [fruit-not-biomass](2026-11-12-fruit-not-biomass.md) | Fruit, not biomass | accepted |  |
-| [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted |  |
+| [one-to-understand](2026-11-12-one-to-understand.md) | One of each part is enough to understand a thing | accepted | own-knowledge (in part) |
 | [glowberry-bush](2026-11-13-glowberry-bush.md) | Spores grow a glowberry bush | accepted |  |
 | [gourd-vine](2026-11-13-gourd-vine.md) | The grow capsule grows a gourd vine | accepted |  |
 | [hud-vitals](2026-11-13-hud-vitals.md) | The vitals: air, charge and meals as frameless light at the bottom-left | superseded | hungry-respawn, hud-dials |
@@ -352,18 +352,18 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [grapple-and-nailer-traced](2026-11-14-grapple-and-nailer-traced.md) | The grappling gun and the nailer traced from picked references | accepted | raw-tool-pictures (in part) |
 | [grinder-contact](2026-11-14-grinder-contact.md) | The grinder's sparks leave its haze's rim where it comes out of a wreck | accepted | drill-contact, spark-rule (in part) |
 | [grinder-redrawn](2026-11-14-grinder-redrawn.md) | The grinder drawn raw from a picked reference, its wheel spun in code | accepted |  |
-| [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted | body-temperature (in part) |
-| [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted |  |
+| [heat-limits](2026-11-14-heat-limits.md) | Heat: the other side of the degrees | accepted | body-temperature, gear-roles (in part) |
+| [helmets-fit-the-suit](2026-11-14-helmets-fit-the-suit.md) | Helmets fit the suit, each turning its own way | accepted | gear-roles (in part) |
 | [helmets-traced](2026-11-14-helmets-traced.md) | The basic and heavy helmets, traced | accepted |  |
 | [homemade-cutter](2026-11-14-homemade-cutter.md) | The plasma cutter is the homemade one | accepted |  |
 | [pickaxe-and-harpoon-traced](2026-11-14-pickaxe-and-harpoon-traced.md) | The pickaxe and the harpoon traced from picked references | accepted | raw-tool-pictures (in part) |
-| [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted |  |
+| [quilted-helmet-and-traced-art](2026-11-14-quilted-helmet-and-traced-art.md) | The quilted helmet and traced art | accepted | gear-roles (in part) |
 | [railgun-traced](2026-11-14-railgun-traced.md) | The railgun traced from a picked reference | accepted | raw-tool-pictures (in part) |
 | [raw-tool-pictures](2026-11-14-raw-tool-pictures.md) | Held tools ship their picked reference's own paint | accepted |  |
 | [salvage-tools-raw](2026-11-14-salvage-tools-raw.md) | Cutter, spear and sledgehammer drawn raw | accepted | homemade-cutter (in part) |
 | [spear-effects](2026-11-14-spear-effects.md) | The spear's effects | accepted |  |
 | [temperature-gradients](2026-11-14-temperature-gradients.md) | Temperature gradients: colder away from the ship, smooth down the bands | accepted | body-temperature (in part) |
-| [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted | body-temperature (in part) |
+| [temperature-in-degrees](2026-11-14-temperature-in-degrees.md) | Temperature in degrees | accepted | body-temperature, gear-roles (in part) |
 | [the-thermometer](2026-11-14-the-thermometer.md) | The thermometer: a frost star and the degrees, a row under the charge | superseded | body-temperature, hud-dials |
 | [tool-card-pictures](2026-11-14-tool-card-pictures.md) | A tool's card shows its picture enlarged | accepted |  |
 | [tool-in-hand](2026-11-14-tool-in-hand.md) | The tool in hand is the one that works | accepted |  |
@@ -379,13 +379,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquid-cards](2026-11-15-liquid-cards.md) | A canister's and a bottle's litres are food's rows | accepted |  |
 | [spark-rule](2026-11-15-spark-rule.md) | A tool's haze in matter throws that matter's look, whatever was hit | accepted |  |
 | [spear-trail](2026-11-15-spear-trail.md) | The plain spear trails haze outside its thrust | accepted |  |
-| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted | surface-storms, moving-sun (in part) |
+| [stretches-of-space](2026-11-15-stretches-of-space.md) | Stretches of space | accepted | surface-storms, moving-sun, gear-roles (in part) |
 | [trash-slot](2026-11-15-trash-slot.md) | A trash slot in creative mode | accepted |  |
 | [cape-billows](2026-11-16-cape-billows.md) | The cape is painted raw and billows slowly at a run | accepted |  |
-| [crew-pings](2026-11-16-crew-pings.md) | Pings: a tap of F marks the spot | accepted |  |
+| [crew-pings](2026-11-16-crew-pings.md) | Pings: a tap of F marks the spot | accepted | light-drone (in part) |
 | [fancy-skins](2026-11-16-fancy-skins.md) | Fancy skins: nine helmets and their suits | accepted |  |
 | [fuel-liquid](2026-11-16-fuel-liquid.md) | Fuel is a liquid | accepted |  |
-| [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted |  |
+| [gestures-for-words](2026-11-16-gestures-for-words.md) | Gestures, in place of words | accepted | light-drone (in part) |
 | [hand-at-wrist](2026-11-16-hand-at-wrist.md) | The hand is its own picture, hung at the wrist | accepted |  |
 | [hero-skins](2026-11-16-hero-skins.md) | Skins: how a hero looks, apart from what it wears | accepted |  |
 | [loot-pieces](2026-11-16-loot-pieces.md) | Loot lies as a few small objects that bounce and tip onto a side | accepted |  |
@@ -405,6 +405,17 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [bell-no-skirt](2026-11-18-bell-no-skirt.md) | The heavy bell sits as the helmet skins do, its shoulder piece gone | accepted |  |
 | [board-islands](2026-11-18-board-islands.md) | The board is fixed district islands on a grid | accepted |  |
 | [body-temperature](2026-11-18-body-temperature.md) | The hero's body temperature | accepted |  |
+| [gear-doll](2026-11-18-gear-doll.md) | The equipment is a doll under two tabs | accepted |  |
 | [hud-dials](2026-11-18-hud-dials.md) | The vitals as a row of dials over a long air bar | accepted |  |
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
 | [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |
+| [drone-companion](2026-11-21-drone-companion.md) | Each hero pairs once with a shard of the alien core; the bag comes with it | accepted |  |
+| [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted |  |
+| [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted |  |
+| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted |  |
+| [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |
+| [gear-roles](2026-11-21-gear-roles.md) | Helmets and suits each add their degrees; the heated and heat helmets | accepted |  |
+| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted |  |
+| [own-knowledge](2026-11-21-own-knowledge.md) | Each player learns for themself; purchases are the crew's | accepted |  |
+| [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
+| [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |

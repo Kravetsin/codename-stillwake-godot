@@ -20,7 +20,7 @@ public readonly record struct HoloTouch(float X, float Y, HoloEdge Edge);
 
 /// <summary>
 /// The geometry of a machine window's hologram (machine-holograms): where the beam touches the window, where it leaves
-/// the machine, how much of the window has grown, and the tone of a machine's station.
+/// the machine, and the tone of a machine's station; how the window is traced is <see cref="HoloPen"/>'s.
 /// </summary>
 public static class HoloShape
 {
@@ -61,40 +61,6 @@ public static class HoloShape
     // Math.Clamp throws where rounding leaves the two ends of a half-box inset a hair apart the wrong way.
     private static float Within(float x, float low, float high) => Math.Min(Math.Max(x, low), Math.Max(low, high));
 
-    /// <summary>
-    /// How much of <paramref name="window"/> shows at <paramref name="progress"/> of its growth: first a line along the
-    /// touched edge, out from the touch point (<see cref="HoloLook.EdgeFirst"/> of it), then spreading across, each easing
-    /// out; null at none. <c>Line</c> while it is still the edge alone.
-    /// </summary>
-    public static (HoloRect Rect, bool Line)? Grown(HoloRect window, HoloTouch touch, double progress)
-    {
-        if (progress <= 0) return null;
-        if (progress >= 1) return (window, false);
-        const float Thin = 2;
-        bool upright = touch.Edge is HoloEdge.Left or HoloEdge.Right;
-        if (progress < HoloLook.EdgeFirst)
-        {
-            float v = EaseOut(progress / HoloLook.EdgeFirst);
-            if (upright)
-            {
-                float top = touch.Y - (touch.Y - window.Y) * v, bottom = touch.Y + (window.Bottom - touch.Y) * v;
-                float x = touch.Edge == HoloEdge.Right ? window.Right - Thin : window.X;
-                return (new HoloRect(x, top, Thin, Math.Max(1, bottom - top)), true);
-            }
-            float from = touch.X - (touch.X - window.X) * v, to = touch.X + (window.Right - touch.X) * v;
-            float y = touch.Edge == HoloEdge.Bottom ? window.Bottom - Thin : window.Y;
-            return (new HoloRect(from, y, Math.Max(1, to - from), Thin), true);
-        }
-        float across = EaseOut((progress - HoloLook.EdgeFirst) / (1 - HoloLook.EdgeFirst));
-        return touch.Edge switch
-        {
-            HoloEdge.Right => (window with { X = window.Right - Math.Max(Thin, window.W * across), W = Math.Max(Thin, window.W * across) }, false),
-            HoloEdge.Left => (window with { W = Math.Max(Thin, window.W * across) }, false),
-            HoloEdge.Bottom => (window with { Y = window.Bottom - Math.Max(Thin, window.H * across), H = Math.Max(Thin, window.H * across) }, false),
-            _ => (window with { H = Math.Max(Thin, window.H * across) }, false),
-        };
-    }
-
     /// <summary>The tone of <paramref name="spec"/>'s window, by its static traits, never by whether it has power now.</summary>
     public static HoloTone ToneOf(MachineSpec spec) =>
         spec.Is(MachineTrait.Fire) ? HoloTone.Warm : spec.Powered ? HoloTone.Cold : HoloTone.Neutral;
@@ -107,6 +73,4 @@ public static class HoloShape
             (left, top, right, bottom) = (Math.Min(left, c % width), Math.Min(top, c / width), Math.Max(right, c % width), Math.Max(bottom, c / width));
         return (left, top, right - left + 1, bottom - top + 1);
     }
-
-    private static float EaseOut(double x) => (float)(1 - Math.Pow(1 - x, 3));
 }

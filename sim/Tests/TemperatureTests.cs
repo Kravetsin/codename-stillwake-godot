@@ -120,11 +120,13 @@ public class TemperatureTests
     }
 
     [Fact]
-    public void TheBodysLimitThenTheCapesDegreesSetWhatIsWithstood()
+    public void TheHelmetsAndTheBodysDegreesAddThenTheCapesSetWhatIsWithstood()
     {
         var w = new Scenario(PodRoom) { Bare = true };
         w.Do(new Enter(Beyond) { From = 0 }).Run();
         Assert.Equal(Content.Temperature.BareLow, w.M.Crew.LowOf(0));
+        w.Wear(0, Content.Helmet.Basic);
+        Assert.Equal(-50, w.M.Crew.LowOf(0));
         w.Wear(0, Content.Suit.Basic);
         Assert.Equal(-110, w.M.Crew.LowOf(0));
         w.Wear(0, Content.Cape.Item);
@@ -177,15 +179,16 @@ public class TemperatureTests
     [InlineData(60, "heatSuit", false, 0)]
     [InlineData(65, "heatSuit", false, 5)]
     [InlineData(60, "heatSuit", true, 5)]
-    [InlineData(43, null, false, 13)]
-    [InlineData(50, null, false, 20)]
-    [InlineData(60, null, false, 30)]
-    public void HeatIsTheDegreesPastTheBodysHighTheCapeFiveLowerAndNoColdBesides(int degrees, string? body, bool caped, int heat)
+    // The basic helmet alone (gear-roles): its own ten degrees past the bare thirty.
+    [InlineData(43, null, false, 3)]
+    [InlineData(50, null, false, 10)]
+    [InlineData(60, null, false, 20)]
+    public void HeatIsTheDegreesPastTheGearsHighTheCapeFiveLowerAndNoColdBesides(int degrees, string? body, bool caped, int heat)
     {
         var w = InHeat(degrees, body, caped);
         int cell = HeroOf(w).Cell;
         Assert.Equal(degrees, w.M.Crew.TemperatureAt(cell));
-        Assert.Equal((body == null ? Content.Temperature.BareHigh : body == Content.Suit.Heat ? 60 : 50) - (caped ? Content.Cape.Warmth : 0), w.M.Crew.HighOf(0));
+        Assert.Equal((body == null ? 40 : body == Content.Suit.Heat ? 60 : 50) - (caped ? Content.Cape.Warmth : 0), w.M.Crew.HighOf(0));
         Assert.Equal((heat, 0), (w.M.Crew.Heat(0, cell), w.M.Crew.Felt(0, cell)));
         // No hero, nothing felt.
         Assert.Equal(0, w.M.Crew.Heat(1, cell));
@@ -240,8 +243,8 @@ public class TemperatureTests
     [Fact]
     public void TheColdLeavesTheCapesRemainderForBlowsAlone()
     {
-        // Bare and caped at −10°: 5 felt, the cape's remainder untouched.
-        var w = InHeat(-10, null, caped: true);
+        // Bare and caped at −10°, with no helmet (gear-roles: one keeps −10° out): 5 felt, the cape's remainder untouched.
+        var w = OpenGround(At(-10), night: false, bare: true).Wear(0, Content.Cape.Item);
         w.M.Crew.Blow(0, 3, Harm.Blow);
         Assert.Equal(600, HeroOf(w).Spared);
         Breaths(w, 10);

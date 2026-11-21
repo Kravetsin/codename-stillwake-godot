@@ -72,6 +72,8 @@ public sealed class MarketPage : ITabletPage
     private readonly List<(float At, string Words)> _madeFrom = [];
     private List<Tile> _inView = [], _shownAll = [];
     private IResearchQueries? _research;
+    /// <summary>The peer playing here: who buys, and whose purchases show (own-knowledge).</summary>
+    private readonly Func<int> _me;
     /// <summary>Whether a delivery has a trade station to come to (2026-11-08-mafia-deliveries); off the ship, taken as there is.</summary>
     private bool _station = true;
     private Standing _standing = new(null, [], 0, 0);
@@ -93,9 +95,9 @@ public sealed class MarketPage : ITabletPage
     /// <param name="send">Sends a command to the session.</param>
     /// <param name="readSoon">Has the tablet read on its next frame.</param>
     /// <param name="seen">What this machine has seen of the orders, for the world played.</param>
-    public MarketPage(TechTab tab, Control view, StripParts strip, Action<Command> send, Action readSoon, Func<BoardSeen> seen)
+    public MarketPage(TechTab tab, Control view, StripParts strip, Action<Command> send, Action readSoon, Func<BoardSeen> seen, Func<int> me)
     {
-        (_view, _strip, _send, _readSoon, _seen) = (view, strip, send, readSoon, seen);
+        (_view, _strip, _send, _readSoon, _seen, _me) = (view, strip, send, readSoon, seen, me);
         _orders = Content.Research.Nodes.Where(n => n.Gate && n.Tab == tab.Id).ToArray();
         _goods = MarketGoods.Of(tab);
         _reveal = new MarketReveal(tab.Rings.Length);
@@ -139,15 +141,22 @@ public sealed class MarketPage : ITabletPage
         if (playing || _reveal.Playing) Repaint();
     }
 
+    /// <summary>Its tiles and their pictures made as a surface loads, not on the tablet's first opening.</summary>
+    public void Warm(Registry m)
+    {
+        _research = m.Research;
+        if (_tiles.Count == 0) Build();
+    }
+
     public void Read(Registry m)
     {
         var research = m.Research;
         _research = research;
         _station = m.Rules.Id != Content.Surfaces.Ship.Id || m.Grid.MachinesWith(MachineTrait.Sells).Any();
         if (_tiles.Count == 0) Build();
-        _met = _orders.Count(research.Done);
+        _met = _orders.Count(n => research.Done(_me(), n));
         if (_out) _reveal.Play(_seen().SeeOrders(_met), _met);
-        foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, research.Done, research.Reached, research.BuyProblem);
+        foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, n => research.Done(_me(), n), n => research.Reached(n), n => research.BuyProblem(n));
         _standing = research.Standing();
         _order = _standing.Next;
         string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|' + _met + '|' + _station + '|'
@@ -159,7 +168,7 @@ public sealed class MarketPage : ITabletPage
 
     private void Build()
     {
-        _strip.Learn(_research!);
+        _strip.Learn();
         foreach (var good in _goods)
         {
             var box = new Control { MouseFilter = Control.MouseFilterEnum.Stop, Visible = false };
@@ -236,11 +245,11 @@ public sealed class MarketPage : ITabletPage
     {
         if (_research is not { } research) return;
         _shownAll = _tiles;
-        _inView = [.. MarketGoods.Sorted(_goods, research.Reached, _shelf).Select(g => _tiles.First(t => t.Good == g))];
+        _inView = [.. MarketGoods.Sorted(_goods, n => research.Reached(n), _shelf).Select(g => _tiles.First(t => t.Good == g))];
         int fresh = 0;
         foreach (var tile in _inView)
         {
-            tile.Fresh = MarketGoods.FreshOf(tile.Good, research.Reached, _reveal.Plays);
+            tile.Fresh = MarketGoods.FreshOf(tile.Good, n => research.Reached(n), _reveal.Plays);
             if (tile.Fresh != MarketFresh.None) fresh++;
         }
         int index = 0;
@@ -366,7 +375,7 @@ public sealed class MarketPage : ITabletPage
         picture.Size = new Vector2(86, 80);
         _strip.Tips.Add(picture, () => TipOf(id));
         card.AddChild(picture);
-        if (!tile.Ladder && !ResearchModule.Repeats(id))
+        if (!tile.Ladder && !ResearchModule.Repeats(id) && !IsMode(id))
         {
             float x = WordsAt + Width(Spaced, T("research.takes").ToUpperInvariant(), 10) + 14;
             foreach (var (item, count) in TechLinks.Of(id).Takes)
@@ -425,6 +434,13 @@ public sealed class MarketPage : ITabletPage
         _readSoon();
     }
 
+    /// <summary>
+    /// Whether <paramref name="id"/> is no thing but what one does: a mode of the light drone its node opens for the crew (light-drone),
+    /// neither an item, an upgrade, a blueprint nor the seized lot.
+    /// </summary>
+    private static bool IsMode(string id) =>
+        !Content.Items.TryGet(id, out _) && Content.Upgrades.Of(id) == null && id != Content.Research.Confiscated && !Blueprints.All.Any(b => b.Id == id);
+
     /// <summary>The words about a good: an upgrade's, a blueprint's or an item's kind; none where nothing says.</summary>
     private static string AboutOf(string id) =>
         Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}.about")
@@ -434,6 +450,7 @@ public sealed class MarketPage : ITabletPage
     private Tip TipOf(string id)
     {
         if (Content.Upgrades.Of(id) is { } upgrade) return new Tip(_strip.NameOf(id), [new TipLine(T($"upgrade.{upgrade.Kind}.about"), Tone.Dim)]);
+        if (IsMode(id)) return new Tip(_strip.NameOf(id), [new TipLine(T($"item.{id}.about"), Tone.Dim)]);
         if (_strip.PlacementOf(id) is not { } placement) return new Tip(_strip.NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
         if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));
@@ -580,7 +597,7 @@ public sealed class MarketPage : ITabletPage
         Say(card, Strong, Fitted(_strip.NameOf(id), Strong, 18, room), WordsAt, 36, 18, Words);
         // What it is, or, with no station to come to, that one is wanted: every purchase drifts in by its row.
         Say(card, Plain, Fitted(_station ? AboutOf(id) : T("research.market.noStation"), Plain, 12, room), WordsAt, 55, 12, _station ? Dim : Dear);
-        if (ResearchModule.Repeats(id))
+        if (ResearchModule.Repeats(id) || IsMode(id))
         {
             Caps(card, T("research.market.arrives"), WordsAt, 88, Dim);
             return;
@@ -588,9 +605,9 @@ public sealed class MarketPage : ITabletPage
         if (tile.Ladder)
         {
             float x = WordsAt + Caps(card, T("research.market.boughtOf", ("n", tile.State.Bought), ("m", tile.State.Opened)), WordsAt, 88, Dim) + 14;
-            foreach (var step in tile.Good.Steps.Where(research.Reached))
+            foreach (var step in tile.Good.Steps.Where(s => research.Reached(s)))
             {
-                bool had = research.Done(step);
+                bool had = research.Done(_me(), step);
                 string price = Prices.Of(step).ToString();
                 float chip = CreditLine.CoinOf(11) + 3 + Width(Strong, price, 11) + 12;
                 if (x + chip > wide) break;
@@ -611,7 +628,7 @@ public sealed class MarketPage : ITabletPage
 
     /// <summary>The key of what kind of good <paramref name="id"/> is: an upgrade, gear sold per hero, the seized lot, or a blueprint.</summary>
     private static string KindOf(bool ladder, string id) =>
-        ladder ? "research.market.kind.upgrade"
+        ladder || IsMode(id) ? "research.market.kind.upgrade"
         : id == Content.Research.Confiscated ? "research.market.kind.lot"
         : ResearchModule.Repeats(id) ? "research.market.kind.gear" : "research.market.kind.blueprint";
 

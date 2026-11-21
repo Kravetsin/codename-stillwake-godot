@@ -348,9 +348,9 @@ public class SurfacesTests
         var w = Opened();
         w.M.Knowledge.Grant("wire");
         w.M.Knowledge.Earn(3);
-        Assert.True(w.On(1).Research.Knows("wire"));
+        Assert.True(w.On(1).Research.Knows(0, "wire"));
         Assert.Equal(3, w.On(1).Research.Credits);
-        Assert.Equal(w.M.Research.Recipes().Select(r => r.Known), w.On(1).Research.Recipes().Select(r => r.Known));
+        Assert.Equal(w.M.Research.Recipes(0).Select(r => r.Known), w.On(1).Research.Recipes(0).Select(r => r.Known));
     }
 
     [Fact]

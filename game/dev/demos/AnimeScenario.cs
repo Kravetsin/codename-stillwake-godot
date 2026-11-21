@@ -16,7 +16,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// The anime slice (tools/anime-art): the testbed's hero by the smelter in its suit, the slice's items on the hotbar and in the bag.
 /// <c>=bare</c> without the suit; <c>=bag</c> the inventory open, for the tenth item; <c>=walk</c> (or <c>=walk-bare</c>) it walks a few
-/// steps left and back; <c>=door</c> every door opened and shut; <c>=colours</c> (lit) and <c>=colours-dark</c> a row of players in each colour; <c>=cave</c> it stands by moss and a crystal in the first planet's caves, its helmet lamp on.
+/// steps left and back; <c>=door</c> every door opened and shut; <c>=colours</c> (lit) and <c>=colours-dark</c> a row of players in each colour; <c>=cave</c> it stands by moss and a crystal in the first planet's caves, its light drone on.
 /// </summary>
 [Dev("--anime", "the anime slice by the smelter; =bare no suit, =bag inventory open, =walk or =walk-bare a stroll left and back, =door every door opened and shut, =colours or =colours-dark a row of players, =cave by moss and a crystal", Shape = DevShape.Either, Order = 1)]
 public sealed class AnimeScenario : DevScenario

@@ -12,7 +12,11 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public partial class SkinSlot : Control
 {
-    private static readonly Color Mark = Style.Slate500, Lock = new("e2e8f0"), LockShade = new("0b1220");
+    private static readonly Color Mark = new("c99b5f"), Lock = new("e2e8f0"), LockShade = new("0b1220");
+    /// <summary>The Appearance tab's amber (gear-tabs, pick B): its slots and cards edged in it, the one open or chosen lit.</summary>
+    public static readonly Color Amber = new("e9a84c");
+    private static readonly StyleBoxFlat Plain = Box(new Color("2a1d0f"), Amber with { A = 0.3f }), Hovered = Box(new Color("2a1d0f"), Amber with { A = 0.7f }),
+        Chosen = Box(new Color("3a2711"), Amber, glow: true);
     private static readonly Dictionary<string, Texture2D?> Cards = new();
     /// <summary>The room round a card inside the slot, px.</summary>
     private const float Inset = 3;
@@ -65,7 +69,7 @@ public partial class SkinSlot : Control
 
     public override void _Draw()
     {
-        DrawStyleBox(SlotLooks.Of(_chosen ? SlotTint.Worn : SlotTint.Plain, _hovered, false), new Rect2(Vector2.Zero, Size));
+        DrawStyleBox(_chosen ? Chosen : _hovered ? Hovered : Plain, new Rect2(Vector2.Zero, Size));
         if (_card != null) DrawTextureRect(_card, new Rect2(new Vector2(Inset, Inset), Size - new Vector2(2 * Inset, 2 * Inset)), false, new Color(1, 1, 1, _owned ? 1 : 0.4f));
         var middle = Size / 2;
         if (_id == null)
@@ -75,6 +79,13 @@ public partial class SkinSlot : Control
             DrawLine(middle + new Vector2(-r, r) * 0.7f, middle + new Vector2(r, -r) * 0.7f, Mark, 1.5f, true);
         }
         if (!_owned) Padlock(new Vector2(Size.X - 9, Size.Y - 9));
+    }
+
+    private static StyleBoxFlat Box(Color fill, Color edge, bool glow = false)
+    {
+        var box = Style.Box(fill, edge, radius: 3);
+        if (glow) (box.ShadowColor, box.ShadowSize) = (Amber with { A = 0.45f }, 5);
+        return box;
     }
 
     private static Texture2D? CardOf(string id)
