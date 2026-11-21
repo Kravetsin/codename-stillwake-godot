@@ -1,7 +1,7 @@
 # research (client): the tablet and the trade station's screen
 
-The board of what the crew has found and the black market ([board-islands](../../../docs/decisions/2026-11-18-board-islands.md), [the-board](../../../docs/decisions/2026-11-05-the-board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [market-grid](../../../docs/decisions/2026-11-03-market-grid.md)). T takes the tablet out
-anywhere. A trade station is worked as a crate is, through the items feature's panel.
+The board of what this player has found ([own-knowledge](../../../docs/decisions/2026-11-21-own-knowledge.md)) and the crew's black market ([board-islands](../../../docs/decisions/2026-11-18-board-islands.md), [the-board](../../../docs/decisions/2026-11-05-the-board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [market-grid](../../../docs/decisions/2026-11-03-market-grid.md)). T takes the tablet out
+anywhere, a hologram of the drone's glass ([drone-frame](../../../docs/decisions/2026-11-21-drone-frame.md)). A trade station is worked as a crate is, through the items feature's panel.
 
 ## Files
 
@@ -53,6 +53,6 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 - Its own search, top right ([board-search-related](../../../docs/decisions/2026-11-07-board-search-related.md)): what is known or almost, by word starts in either language, a slip forgiven; few named bring their ties, lit while listed.
 - The market shows what the mafia wants next; every good in one grid, its price garbage until its level (mafia-reputation), a tile per kind of upgrade buying its cheapest step opened. A good bought is delivered (mafia-deliveries), its tile bought meanwhile; gear and the container stay buyable. It never scrolls (tested at 1280x720).
 - Garbage is only a look: what the sim says is reached is picked and bought mid-decipher, picking clears it. Alike on every read (`Cipher`); its clock never touches the sim.
-- Levels seen are one count (`BoardSeen.SeeOrders`), so lamp and decipher agree: what was new plays after the tablet's rise, or at once if it was up. Closing or leaving the tab shows it clear; a late guest or a lost file plays nothing.
+- Levels seen are one count (`BoardSeen.SeeOrders`), so lamp and decipher agree: what was new plays after the tablet fades in, or at once if it was up. Closing or leaving the tab shows it clear; a late guest or a lost file plays nothing.
 - Levels met are read on a timer, for a sale moves no `Version` ([market-key](../../../docs/decisions/2026-11-03-market-key.md)); how many were seen is kept in the same file. T and its key open the board, M and its key the market; each switches from the other, puts away from its own.
 - A trade station's screen types while it holds what sells; read every 100 ms, unlit.

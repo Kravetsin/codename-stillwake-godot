@@ -23,6 +23,11 @@ public static class Crew
     public const int LastBreath = 200;
     /// <summary>The ticks of a last breath a unit of lava, shock or blow cuts: the breath a unit of air is worth.</summary>
     public const int LastBreathPerUnit = BreathEvery;
+    /// <summary>
+    /// The ticks a hero is spared from its <c>PairDrone</c> on, as its drone's meeting plays (drone-meeting): no air spent, no last
+    /// breath, cold, heat, hunger, blow or lava; the scene's 24.45 s from E, rounded up.
+    /// </summary>
+    public const int MeetingTicks = 490;
     public const int Colours = 6;
     public const int Exerted = 2;
     /// <summary>The pod's air a breath: twice a calm breath, so a hero's air fills by the pod even in vacuum, slowly; a bare one's holds.</summary>

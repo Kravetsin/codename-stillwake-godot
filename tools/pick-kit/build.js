@@ -13,13 +13,15 @@ const items = path.join(__dirname, '..', '..', 'game', 'art', 'hd', 'items');
 
 const itemLine = kit.split('\n').find(l => l.startsWith('const BAG_ITEMS'));
 const icons = {};
-for (const [, id] of itemLine.matchAll(/'(\w+)'/g)) icons[id] = 'data:image/png;base64,' + fs.readFileSync(path.join(items, id + '.png')).toString('base64');
+if (page.window !== false)   // the bag's pictures, only for a page that has the bag
+  for (const [, id] of itemLine.matchAll(/'(\w+)'/g)) icons[id] = 'data:image/png;base64,' + fs.readFileSync(path.join(items, id + '.png')).toString('base64');
 
 const span = t => `<span class="seg" id="${t.id}">${t.label ? `<span class="lbl">${t.label}</span>` : ''}</span>`;
 const bar = ts => ts.length ? `<div class="bar">\n  ${ts.map(span).join('\n  ')}\n</div>\n` : '';
 const own = n => page.toggles.filter(t => (t.bar || 2) === n);
 const fn = page.page.toString(), expr = /^(async\s+)?(function\b|\(|[\w$]+\s*=>)/.test(fn) ? fn : 'function ' + fn;
-const data = { toggles: page.toggles, pick: page.pick, kitBars: page.kitBars, tile: page.tile };
+const data = { toggles: page.toggles, pick: page.pick, window: page.window !== false, kitBars: page.kitBars, tile: page.tile };
+const win = page.window !== false;   // window: false, no bag: no open schedule and no running hero to toggle
 const [TW, TH] = page.tile || [1000, 540];
 const kitBar = id => !page.kitBars || page.kitBars.includes(id);
 const script = `(() => {\n'use strict';\nconst ICON_SRC = ${JSON.stringify(icons)};\nconst PAGE = ${JSON.stringify(data)};\n${kit}\nstartPage((${expr})());\n})();\n`;
@@ -63,7 +65,7 @@ canvas.view{display:block;width:100%;height:auto;aspect-ratio:${TW}/${TH};border
 <main>
 <h1>${page.heading}</h1>
 ${page.lead.trim()}
-${bar([...['openMode'].filter(kitBar).map(id => ({ id })), ...own(1), ...['heroMode', 'speedMode', 'playMode'].filter(kitBar).map(id => ({ id }))])}${bar(own(2))}<p id="status">Загрузка…</p>
+${bar([...['openMode'].filter(id => win && kitBar(id)).map(id => ({ id })), ...own(1), ...['heroMode', 'speedMode', 'playMode'].filter(id => kitBar(id) && (win || id !== 'heroMode')).map(id => ({ id }))])}${bar(own(2))}<p id="status">Загрузка…</p>
 <div class="grid" id="cands"></div>
 <div class="foot">
   <button id="copy" type="button">Скопировать выбор</button>

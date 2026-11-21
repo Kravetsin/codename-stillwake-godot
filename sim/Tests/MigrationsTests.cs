@@ -87,6 +87,8 @@ public class MigrationsTests
 
         var m = new Registry();
         World.Load(Migrations.Upgrade(old.ToJsonString()), m.All);
+        // The bag a drone gives (drone-companion): peer 0 wore none in 42, so it pairs here.
+        m.Players.Pair(0);
         Assert.True(m.Items.SlotOpen(0, new Items.Place(Content.Inventory.Start)));
     }
 
@@ -400,5 +402,120 @@ public class MigrationsTests
         w.Reload(upgraded.ToJsonString());
         Assert.Equal([(Content.Foods.Ration, 800)], w.M.Crew.HeroOf(0)!.Meals.Select(m => (m.Food, m.Left)));
         Assert.True(w.M.Crew.Hungry(1));
+    }
+
+    [Fact]
+    public void MakesEveryHelmetLampOfAFormatSixtySevenSaveALightDrone()
+    {
+        // A lamp in a slot and one on the floor, its blueprint known: as format 67
+        // had them, the old id in each and the blueprints sorted with it.
+        const string Room = """
+            ##########
+            #........#
+            #.OOOII..#
+            #.OOOII..#
+            #.OOOII..#
+            ##########
+            """;
+        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
+            .GiveItems(0, (Content.LightDrone.Item, 2));
+        w.M.Knowledge.Grant(Content.LightDrone.Item);
+        w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
+        Assert.Empty(w.Refusals);
+        var save = JsonNode.Parse(w.World.Save().Replace("\"lightDrone\"", "\"helmetLamp\""))!.AsObject();
+        save["format"] = 67;
+        var granted = save["slices"]!["knowledge"]!["granted"]!.AsArray();
+        var known = granted.Select(g => g!.GetValue<string>()).Order(StringComparer.Ordinal).ToList();
+        save["slices"]!["knowledge"]!["granted"] = new JsonArray([.. known.Select(k => (JsonNode)k)]);
+        Assert.Contains("helmetLamp", known);
+
+        string upgraded = Migrations.Upgrade(save.ToJsonString());
+        Assert.DoesNotContain("helmetLamp", upgraded);
+        w.Reload(upgraded);
+        Assert.Contains(new Items.Stack(Content.LightDrone.Item, 1), w.M.Items.Inventory(0));
+        Assert.Equal(Content.LightDrone.Item, Assert.Single(w.M.Items.Floor).Item);
+        // Found by its blueprint's place in the sorted list.
+        Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
+    }
+
+    [Fact]
+    public void MakesEveryScannerOfAFormatSixtyEightSaveALightDroneAndKnowsTheMode()
+    {
+        // Two scanners carried and one on the floor, as format 68 had them (the mount it was worn on gone
+        // since 70), the knowledge as it was: after the upgrade each is a drone and the crew knows the scanner mode.
+        const string Room = """
+            ##########
+            #........#
+            #.OOOII..#
+            #.OOOII..#
+            #.OOOII..#
+            ##########
+            """;
+        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true)
+            .GiveItems(0, (Content.LightDrone.Item, 3));
+        w.M.Knowledge.Grant(Content.LightDrone.Item);
+        w.Do(new Items.Drop(new Items.Place(0), 1, w.At(7, 4), 1)).Run(30);
+        Assert.Empty(w.Refusals);
+        var played = JsonNode.Parse(w.World.Save())!.AsObject();
+        var save = JsonNode.Parse(w.World.Save().Replace("\"lightDrone\"", "\"scanner\""))!.AsObject();
+        save["format"] = 68;
+        save["slices"]!["knowledge"] = played["slices"]!["knowledge"]!.DeepClone();
+        Assert.False(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
+
+        string upgraded = Migrations.Upgrade(save.ToJsonString());
+        Assert.DoesNotContain("\"item\":\"scanner\"", upgraded);
+        w.Reload(upgraded);
+        Assert.Equal(2, w.M.Items.Inventory(0).Where(s => s?.Item == Content.LightDrone.Item).Sum(s => s!.Count));
+        Assert.Equal(Content.LightDrone.Item, Assert.Single(w.M.Items.Floor).Item);
+        Assert.True(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
+        Assert.True(w.M.Knowledge.Granted(Content.LightDrone.Item));
+        Assert.Equal(w.M.Knowledge.GrantedIds.Order(StringComparer.Ordinal), w.M.Knowledge.GrantedIds);
+    }
+
+    [Fact]
+    public void LeavesAFormatSixtyEightSaveWithNoScannerUnknowingOfTheModeAndAScannerDeliveryToCome()
+    {
+        var w = new Scenario(Registry.Wreck);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 68;
+        save["slices"]!["knowledge"]!["deliveries"] = JsonNode.Parse("""[{"id":1,"good":"scanner"}]""");
+        save["slices"]!["knowledge"]!["nextDelivery"] = 2;
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.False(w.M.Knowledge.Granted(Content.LightDrone.ScannerMode));
+        Assert.Equal(["scanner"], w.M.Knowledge.Deliveries.Select(d => d.Good));
+    }
+
+    [Fact]
+    public void DropsTheMountSlotOfAFormatSixtyNineSavePairingThePeerWhoseDroneSatThere()
+    {
+        // Format 69's 47 slots: 38 own, head, back, three belt, suit, mount, cape, trash. Peer 3 wore its drone, peer 1 none; on
+        // a surface the same, a closed one passed over.
+        static JsonArray Slots(bool drone)
+        {
+            var slots = new JsonArray([.. Enumerable.Range(0, 47).Select(_ => (JsonNode?)null)]);
+            slots[0] = JsonNode.Parse("""{"item":"scrap","count":2}""");
+            if (drone) slots[44] = JsonNode.Parse("""{"item":"lightDrone","count":1}""");
+            slots[45] = JsonNode.Parse("""{"item":"cape","count":1}""");
+            return slots;
+        }
+        static JsonObject Slices(int peer, bool drone) => new() { ["items"] = new JsonObject { ["inventories"] = new JsonArray(new JsonObject { ["id"] = peer, ["slots"] = Slots(drone) }) } };
+        var ship = Slices(1, drone: false);
+        ship["players"] = new JsonObject { ["colours"] = new JsonArray() };
+        var old = new JsonObject
+        {
+            ["slices"] = ship,
+            ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices(3, drone: true) }, new JsonObject { ["closed"] = true }),
+        };
+        var upgraded = Migrations.Steps[69 - Migrations.Oldest](old);
+        foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
+        {
+            var slots = slices["items"]!["inventories"]![0]!["slots"]!.AsArray();
+            Assert.Equal(Content.Inventory.Total, slots.Count);
+            Assert.Equal("scrap", slots[0]!["item"]!.GetValue<string>());
+            Assert.Equal("cape", slots[Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Content.Cape.Slot)]!["item"]!.GetValue<string>());
+            Assert.DoesNotContain(slots, s => s?["item"]?.GetValue<string>() == "lightDrone");
+        }
+        Assert.Equal([3], upgraded["slices"]!["players"]!["drones"]!.AsArray().Select(p => p!.GetValue<int>()));
     }
 }

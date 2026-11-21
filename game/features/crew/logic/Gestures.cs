@@ -18,6 +18,9 @@ public static class Gestures
     /// </summary>
     public const double PointMost = Math.PI / 2 + 0.35;
 
+    /// <summary>The gesture key's wheel (<see cref="Wheel{T}"/>), from the top clockwise: yes above, no below right, wave below left; a tap points.</summary>
+    public static readonly Gesture[] WheelSides = [Gesture.Yes, Gesture.No, Gesture.Wave];
+
     public static double MsOf(Gesture gesture) => GestureMotions.Of(gesture).Ms;
 
     /// <summary>How much of the arm <paramref name="motion"/> <paramref name="ms"/> in takes from the pose: none at its start and end, eased.</summary>
@@ -114,65 +117,5 @@ public sealed class GesturePlay
             if (sent.Swings != Count) (Kind, At, Count, Ms) = (kind, sent.At, sent.Swings, 0);
         }
         else Kind = null;
-    }
-}
-
-/// <summary>
-/// The gesture key (gestures-for-words): a tap points at the pointer; held, a wheel opens round where the pointer was, a hand per side, and letting
-/// go picks the one the pointer has moved toward, or none from the middle. A quick flick toward one picks it without waiting.
-/// Distances are the screen's pixels, the caller's to scale.
-/// </summary>
-public sealed class GestureWheel
-{
-    /// <summary>A press let go sooner than this is a tap, unless it moved out of the middle; held longer, the wheel shows.</summary>
-    public const double TapMs = 200;
-
-    /// <summary>The middle's radius, where letting go picks nothing, and how far out each hand sits, in pixels at the normal slot size.</summary>
-    public const double Middle = 18, Radius = 54;
-
-    /// <summary>Each side's gesture, from the top clockwise, the wheel shared out evenly: yes above, no below right, wave below left.</summary>
-    public static readonly Gesture[] Sides = [Gesture.Yes, Gesture.No, Gesture.Wave];
-
-    private bool _held;
-    private double _heldMs, _middle = Middle;
-
-    /// <summary>Where the key was pressed, and where the pointer is now, on the screen.</summary>
-    public (double X, double Y) From { get; private set; }
-    public (double X, double Y) Pointer { get; private set; }
-
-    /// <summary>Whether the wheel shows: the key held past a tap.</summary>
-    public bool Open => _held && _heldMs >= TapMs;
-
-    /// <summary>The gesture the pointer has moved toward, picked if the key is let go now; none in the middle.</summary>
-    public Gesture? Toward => SideOf(Pointer.X - From.X, Pointer.Y - From.Y, _middle);
-
-    /// <summary>
-    /// Follows the key, <paramref name="held"/> or not, and the pointer at <paramref name="pointer"/> on the screen, the middle
-    /// <paramref name="middle"/> pixels across: the gesture asked for as the key is let go, if any.
-    /// </summary>
-    public Gesture? Step(bool held, double elapsedMs, (double X, double Y) pointer, double middle)
-    {
-        (Pointer, _middle) = (pointer, middle);
-        if (held)
-        {
-            if (!_held) (_held, _heldMs, From) = (true, 0, pointer);
-            else _heldMs += elapsedMs;
-            return null;
-        }
-        if (!_held) return null;
-        _held = false;
-        return Toward ?? (_heldMs < TapMs ? Gesture.Point : null);
-    }
-
-    /// <summary>
-    /// The side an offset <paramref name="dx"/>, <paramref name="dy"/> from the middle points to, screen down positive: the one whose
-    /// even share of the turn, centred on it, holds the offset's angle; none within the middle.
-    /// </summary>
-    public static Gesture? SideOf(double dx, double dy, double middle)
-    {
-        if (dx * dx + dy * dy < middle * middle) return null;
-        double share = Math.Tau / Sides.Length;
-        int side = (int)Math.Floor((Math.Atan2(dx, -dy) + share / 2) / share);
-        return Sides[(side % Sides.Length + Sides.Length) % Sides.Length];
     }
 }

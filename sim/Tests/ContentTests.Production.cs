@@ -165,8 +165,8 @@ public partial class ContentTests
     // Crafts and stations
 
     /// <summary>
-    /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
-    /// screwdriver (0046, 0107); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
+    /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit, the
+    /// screwdriver (0046, 0107) and the light drone, for scrap (drone-companion); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
     /// among them (2026-10-27-the-cape-is-worn), and the battery, which the assembler makes too (battery-workbench); the Former those parts again, and alone frames, soil (0060), the motor of a
     /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, and the fuel pump, the circuit
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun); the dishes the galley (food-and-the-body).
@@ -176,7 +176,7 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "quiltedHelmet", "cape", "drill", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge", "heatSuit"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "jetpack", "heatedHelmet", "cape", "drill", "grinder", "spear", "sledgehammer", "pickaxe", "grapple", "blastCharge", "heatSuit", "heatHelmet"];
         string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         string[] dishes = [Foods.Porridge, Foods.Hash, Foods.Broth, Foods.Roast, Foods.Stew];
@@ -285,7 +285,8 @@ public partial class ContentTests
     [Fact]
     public void EveryItemACostNamesIsCaughtSmeltedOrCrafted()
     {
-        var had = new HashSet<string>(StringComparer.Ordinal);
+        // What every hero comes aboard with, the drone's core among it, besides.
+        var had = new HashSet<string>(Inventory.Kit.Select(k => k.Item), StringComparer.Ordinal);
         // Every zone's: rock, which soil costs, is broken out of the band's asteroids, not the ship's stream.
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds))
         {
@@ -352,7 +353,8 @@ public partial class ContentTests
     /// <summary>The walk of <see cref="Reachable(IReadOnlyList{Station}, bool, string[])"/>; without <paramref name="bought"/>, nothing the market sells is had.</summary>
     private static (HashSet<string> Items, HashSet<string> Known) Walk(IReadOnlyList<Station> stations, bool planet, bool bought, string[] never)
     {
-        var had = new HashSet<string>(WrecksOwn, StringComparer.Ordinal);
+        // And what every hero comes aboard with: the screwdriver, the drone's core.
+        var had = new HashSet<string>(WrecksOwn.Concat(Inventory.Kit.Select(k => k.Item)), StringComparer.Ordinal);
         if (planet)
         {
             var hunted = PlanetTypes.All.SelectMany(t => t.Creatures).SelectMany(h => Content.Creatures.Get(h.Species).Yields).Select(y => (y.Item, 0));
@@ -453,7 +455,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "iceBlock", "contrabandCrate", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "helmetLamp", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "quiltedHelmet", "regenSuit", "heatSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "fridge", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "parcel", "deliveryCrate", "confiscated", "iceBlock", "contrabandCrate", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "dormantCore", "scanner", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "heatedHelmet", "heatHelmet", "regenSuit", "heatSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -510,7 +512,8 @@ public partial class ContentTests
     public void EveryItemIsReachableFromTheWreck()
     {
         var (had, _) = Reachable(Stations.All, planet: true);
-        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
+        // The drone is never had: a shard of the alien core, its item the companion's card (drone-companion).
+        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id) && id != Content.LightDrone.Item).ToArray());
     }
 
     /// <summary>
@@ -594,7 +597,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "crewShuttle", "electrolyser", "engine", "fuelPump", "grinder", "heatSuit", "igniter", "motor", "nozzle", "quiltedHelmet", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "blastCharge", "broth", "cape", "computer", "crewShuttle", "electrolyser", "engine", "fuelPump", "grinder", "heatHelmet", "heatSuit", "igniter", "motor", "nozzle", "radarAntenna", "railgun", "roast", "salvageDrone", "stew", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();

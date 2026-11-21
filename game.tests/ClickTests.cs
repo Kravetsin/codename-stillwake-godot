@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Items;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Items;
 using Xunit;
 using Spec = Stillwake.Content;

@@ -1,6 +1,6 @@
 # scanner (client): a wreck's hit points as numbers
 
-The scanner is an item worn in the helmet's mount, as the lamp is ([the-scanner](../../../docs/decisions/2026-11-07-the-scanner.md)).
+The scanner is a mode of the light drone a player paired with ([the-scanner](../../../docs/decisions/2026-11-07-the-scanner.md), drone-companion).
 While this player wears it, a hologram over the wreck under the pointer shows what is left of its hit points. The sim knows
 the item only as gear; the readout is the client's, read from the debris module's pieces.
 
@@ -14,7 +14,8 @@ the item only as gear; the readout is the client's, read from the debris module'
 
 ## Rules
 
-- **Only while worn** by this player (`Items.Equipped(own, Helmet.Scanner)`); a friend's scanner shows nothing here.
+- **Only while scanning**: this player's paired light drone in its scanner mode (`HeroView.Scanning`, light-drone); a friend's
+  scan shows nothing here.
 - **Over a pile** in the hold, failing a wreck (`Scan.OfPile`): its `Hp` less its crack, over the middle of its top
   (2026-11-07-pile-hit-points); a pile's readout id is `-1 - cell`, a wreck's its piece's.
 - **Over a wreck**, by the box the hands aim by (`game/shared/logic/WreckAim.cs`: its picture and half a cell), the

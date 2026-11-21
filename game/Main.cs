@@ -273,6 +273,8 @@ public partial class Main : Node2D, ITogether
         Shimmer.Enabled = Settings.Shimmer();
         // The screen as kept; a dev run keeps the window its command line made, so a frame or a recording is its size.
         if (_dev.None) Settings.Apply(Settings.Screen());
+        // --smoothing=4: a frame recorded smoothed, whatever is kept.
+        Settings.Apply(_dev.Value("--smoothing") is { } smoothing ? Smoothings.Named(smoothing) : Settings.Smoothing());
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
@@ -331,7 +333,7 @@ public partial class Main : Node2D, ITogether
             // A canister's cooldown, on the suit gauge's ring and the canister's slots (canister-mark).
             int CanisterIn() => _session is Session s ? _m.Crew.HeroOf(s.Client.Id)?.CanisterIn ?? 0 : 0;
             _items.Panel.CanisterIn = CanisterIn;
-            // Its own layer, above the world: read from whatever registry the session runs now.
+            _items.Panel.Paired = () => _session is not Session s || _m.Players.HasDrone(s.Client.Id);            // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
                 CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
@@ -358,7 +360,9 @@ public partial class Main : Node2D, ITogether
             AddChild(new HurtView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } hurt ? (hurt.Hurts, hurt.Hurt) : null, gauge));
             // The last breath out of air or past a death of the body (body-temperature), whichever ends first.
             AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me
-                ? (Tunnel.Sooner(me.Gasp, _hero?.BodyGasp ?? 0), me.Out) : null, () => _hero?.Shown));
+                ? (Tunnel.Sooner(me.Gasp, _hero?.BodyGasp ?? 0), me.Out) : null, () => _hero?.Shown, () => _hero?.Dizzy ?? 0));
+            // A cutscene's grade over it all, the HUD hidden meanwhile: the drone's meeting (drone-meeting).
+            AddChild(new CutsceneView(() => _hero?.Cutscene ?? (0, 1)));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()
@@ -394,7 +398,9 @@ public partial class Main : Node2D, ITogether
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         // The tablet: put away and putting away as the computer's window.
-        var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0, () => _session?.Client.World);
+        var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0, () => _session?.Client.World, () => _session?.Client.Id ?? 0);
+        // A world shown before the tablet was made, as a dev run's is: warmed now, as ShowWorld warms it otherwise.
+        if (_session != null) tech.Warm(_m);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
@@ -433,6 +439,7 @@ public partial class Main : Node2D, ITogether
             tech.Close();
             handbook.Close();
         });
+        // The drone's soot framing the open drone window, under the edge's keys (drone-frame).
         // The tablet's top edge along the foot: every tablet rises from it, and its keys float over the one that is up, only those that can be used now.
         Func<bool> inWorld = () => _session != null && _hero != null;
         var edge = _edge = new TabletEdge(_hands.Ui, inWorld);
@@ -624,13 +631,18 @@ public partial class Main : Node2D, ITogether
         }
         double grid = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - views;
         SyncLight();
+        // The windows' pictures made in the load's pause: first made on opening, the build menu's cards froze it 140 ms, the board 300.
+        long warmFrom = System.Diagnostics.Stopwatch.GetTimestamp();
+        Features.Building.BuildMenu.Warm();
+        _tablet?.Warm(_m);
+        double warm = System.Diagnostics.Stopwatch.GetElapsedTime(warmFrom).TotalMilliseconds;
         // What a first look at a world or a surface costs (0077: a planet is built in nearly every cell).
         double all = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;
         // What the load left behind collected now, in the pause the load already makes: else the first few collections in play
         // find it alive and copy it, 4 to 7 ms each (GcPace).
         GC.Collect();
         double collected = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - all;
-        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views - land:F0} views, {land:F0} the land behind, {grid:F0} the grid drawn, {all - views - grid - warm:F0} the light, {warm:F0} the windows; {collected:F0} ms collecting");
     }
 
     private void AimCamera(Layout? layout)
@@ -715,8 +727,7 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
-        bool scanning = _m.Items.Equipped(client.Id, Stillwake.Content.Helmet.Scanner);
-        _scanner.Frame(scanning && _hero?.Pointer() is { } pointer
+        _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null, delta * 1000);
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
         _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);

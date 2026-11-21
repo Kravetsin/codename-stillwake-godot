@@ -368,7 +368,7 @@ public class CountsTests
     }
 
     [Fact]
-    public void VersionMovesWithWhatIsObtainedOrNewlyGranted()
+    public void VersionMovesWithWhatIsNewlyFoundOrGrantedNotWithCounts()
     {
         var w = new Scenario(Layout.Empty with { Known = [] });
         var knowledge = w.M.Knowledge;
@@ -377,6 +377,9 @@ public class CountsTests
         knowledge.Sell("wire", 1, 22);
         Assert.Equal(was, knowledge.Version);
         knowledge.Obtain("wire", 1);
+        Assert.Equal(was, knowledge.Version);
+        knowledge.Find(0, "wire");
+        knowledge.Find(0, "wire");
         Assert.Equal(was + 1, knowledge.Version);
         knowledge.Grant("wire");
         Assert.Equal(was + 2, knowledge.Version);

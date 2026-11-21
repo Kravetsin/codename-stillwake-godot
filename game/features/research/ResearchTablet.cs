@@ -43,7 +43,8 @@ public partial class ResearchTablet : CanvasLayer
     /// <param name="send">Sends a command to the session.</param>
     /// <param name="worldId">Which world is played, on every machine: what the board is kept under.</param>
     /// <param name="surfaces">The world played, all its surfaces, for a machine standing on any; null with none played.</param>
-    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId, Func<World?> surfaces)
+    /// <param name="me">The peer playing here: whose board and purchases the tablet shows (own-knowledge).</param>
+    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId, Func<World?> surfaces, Func<int> me)
     {
         (_ui, _inWorld, _world) = (ui, inWorld, world);
         _tips = new TipSpots(ui.Tip);
@@ -53,9 +54,9 @@ public partial class ResearchTablet : CanvasLayer
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
         root.AddChild(_tablet);
-        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, surfaces, _keep));
+        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, surfaces, me, _keep));
         var tab = Content.Research.Tabs.Single(t => t.Id == Content.Research.Market);
-        _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen));
+        _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen, me));
         _page = _board;
         _view.GuiInput += e => _page.Pointer(e);
         _detail.AddChild(_parts.Facts);
@@ -75,7 +76,7 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_market.Body, _view, _detail]) _tablet.OnScreen(part);
         PaintDetail();
         _page.Show(true);
-        _key = new TabletKey(world, surfaces, worldId, _keep, Flash, Toggle, () => Shown && _page == _board);
+        _key = new TabletKey(world, surfaces, worldId, me, _keep, Flash, Toggle, () => Shown && _page == _board);
         MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _key.Affordable);
         AddChild(_key);
     }
@@ -183,14 +184,13 @@ public partial class ResearchTablet : CanvasLayer
         Read(_world()!);
     }
 
-    /// <summary>The tablet at rest in the middle of the window, as large as its art lets it be, and the strips on its screen.</summary>
+    /// <summary>The window across the screen down to the keys (<see cref="TabletPeek.Floor"/>), a margin round it, and the strips on its screen.</summary>
     private void LayOut()
     {
         var screen = _tablet.GetViewportRect().Size;
-        const int s = TabletLayout.ArtScale, around = TabletLayout.ArtAround * s, pad = TabletLayout.Pad;
-        float width = TabletPeek.ScreenWidth(screen.X), height = Mathf.Floor(screen.Y - around - 2 * TabletPeek.Margin);
-        var rest = ((screen - new Vector2(width + around, height + around)) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
-        _tablet.Lay(rest.X, rest.Y, width, height);
+        const int pad = TabletLayout.Pad, margin = TabletPeek.Margin;
+        float width = screen.X - 2 * margin, height = Mathf.Floor(TabletPeek.Floor(screen.Y, EdgeRow.Grown(_ui.Slot)) - margin);
+        _tablet.Lay(margin, margin, width, height);
         _detail.Position = new Vector2(pad, height - pad - DetailTall);
         _detail.Size = new Vector2(width - 2 * pad, DetailTall);
         _parts.Facts.Position = new Vector2(pad, pad);
@@ -200,6 +200,13 @@ public partial class ResearchTablet : CanvasLayer
         _view.Position = new Vector2(pad, pad);
         _view.Size = new Vector2(width - 2 * pad, _detail.Position.Y - 2 * pad);
         _market.Body.Size = new Vector2(width, height);
+    }
+
+    /// <summary>The board and the market made for <paramref name="m"/>'s world as a surface loads, not on the first opening.</summary>
+    public void Warm(Registry m)
+    {
+        _board.Warm(m);
+        _market.Warm(m);
     }
 
     /// <summary>Every page: each restyles only what has changed.</summary>

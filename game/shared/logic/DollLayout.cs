@@ -7,7 +7,6 @@ namespace Stillwake.Game.Shared;
 public enum DollSpot
 {
     Head,
-    Mount,
     Cape,
     Suit,
     Back,
@@ -20,7 +19,7 @@ public enum DollSpot
 
 /// <summary>
 /// The equipment's screen as a doll (gear-tabs, pick B): the hero standing in the middle, facing right, and the slots round it, the
-/// left column the head, the cape and the back, the right the helmet's mount, the suit and the belt's row; each slot's leader
+/// left column the head, the cape and the back, the right the suit and the belt's row; each slot's leader
 /// line reaching the part it dresses. One table for the items feature's gear and crew's Appearance tab, at any slot size: drawn
 /// for the 44 px slot and scaled with it. The screen ends a margin past its last open slot (<see cref="WidthFor"/>): a belt slot
 /// opened widens it, as the clothes under the suit will (body-temperature, phase 3).
@@ -32,7 +31,7 @@ public sealed class DollLayout
 
     /// <summary>The spots of the gear tab: every equipment slot's, once.</summary>
     public static readonly IReadOnlyList<DollSpot> Gear =
-        [DollSpot.Head, DollSpot.Mount, DollSpot.Cape, DollSpot.Suit, DollSpot.Back, DollSpot.Belt1, DollSpot.Belt2, DollSpot.Belt3];
+        [DollSpot.Head, DollSpot.Cape, DollSpot.Suit, DollSpot.Back, DollSpot.Belt1, DollSpot.Belt2, DollSpot.Belt3];
 
     /// <summary>The spots of the Appearance tab: the head's, the suit's and the cape's as the gear's, the weapon effect's by the hand.</summary>
     public static readonly IReadOnlyList<DollSpot> Looks = [DollSpot.Head, DollSpot.Suit, DollSpot.Cape, DollSpot.Hand];
@@ -44,7 +43,6 @@ public sealed class DollLayout
         (DollSpot.Head, 12, 24, (20, 820)),
         (DollSpot.Cape, 12, 96, (-130, 640)),
         (DollSpot.Back, 12, 168, (-120, 510)),
-        (DollSpot.Mount, 230, 24, (160, 980)),
         (DollSpot.Suit, 230, 96, (70, 560)),
         (DollSpot.Belt1, 230, 168, (40, 410)),
         (DollSpot.Belt2, 280, 168, null),

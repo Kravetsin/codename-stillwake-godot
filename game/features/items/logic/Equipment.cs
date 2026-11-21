@@ -52,7 +52,6 @@ public static class Equipment
         var kind = KindOf(place) ?? throw new System.ArgumentException($"{place} is no equipment slot", nameof(place));
         if (kind == "belt") return DollSpot.Belt1 + Of(kind).TakeWhile(p => p != place).Count();
         return kind == Spec.Helmet.Slot ? DollSpot.Head
-            : kind == Spec.Helmet.Mount ? DollSpot.Mount
             : kind == Spec.Suit.Slot ? DollSpot.Suit
             : kind == Spec.Cape.Slot ? DollSpot.Cape
             : kind == "back" ? DollSpot.Back

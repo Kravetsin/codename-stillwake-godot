@@ -31,6 +31,8 @@ public sealed class PlayersState
     [JsonInclude] internal List<Worn> Colours { get; set; } = [];
     /// <summary>The look of each peer that chose one, with a hero or not, in peer order.</summary>
     [JsonInclude] internal List<PeerLook> Looks { get; set; } = [];
+    /// <summary>The peers paired with their light drone (drone-companion), in order: never undone, with a hero or not.</summary>
+    [JsonInclude] internal List<int> Drones { get; set; } = [];
     /// <summary>The skins of each peer that chose any, with a hero or not, in peer order.</summary>
     [JsonIgnore] internal List<PeerSkins> Skins { get; set; } = [];
 
@@ -54,6 +56,8 @@ public interface IPlayersQueries
     Look LookOf(int peer);
     /// <summary>The skins <paramref name="peer"/> chose last, worn at once: none for a peer that never chose, or chose none.</summary>
     IReadOnlyList<string> SkinsOf(int peer);
+    /// <summary>Whether <paramref name="peer"/> has paired with its light drone (drone-companion): its bag rows open, its drone drawn.</summary>
+    bool HasDrone(int peer);
 }
 
 /// <summary>How crew dresses its heroes.</summary>
@@ -74,11 +78,14 @@ public interface IPlayersOps
     void Print(int peer);
     /// <summary><paramref name="peer"/> wears <paramref name="ids"/> from now on, in place of every skin before, with a hero or not.</summary>
     void Skin(int peer, IReadOnlyList<string> ids);
+    /// <summary><paramref name="peer"/> pairs with its light drone for good; the caller checks it has none yet.</summary>
+    void Pair(int peer);
 }
 
 /// <summary>
 /// What is the player's rather than a surface's (0076): the suit colour each hero wears, so two heroes on two
-/// surfaces never meet in one colour, and the look each player chose. One per world, records only: no commands, no systems.
+/// surfaces never meet in one colour, the look each player chose and who has paired with its drone. One per world, records only:
+/// no commands, no systems.
 /// </summary>
 public sealed class PlayersModule : Module<PlayersState>, IPlayersQueries, IPlayersOps
 {
@@ -131,5 +138,15 @@ public sealed class PlayersModule : Module<PlayersState>, IPlayersQueries, IPlay
         int at = State.Skins.FindIndex(s => s.Peer >= peer);
         if (at >= 0 && State.Skins[at].Peer == peer) State.Skins[at] = skins;
         else State.Skins.Insert(at < 0 ? State.Skins.Count : at, skins);
+    }
+
+    public bool HasDrone(int peer) => State.Drones.BinarySearch(peer) >= 0;
+
+    public void Pair(int peer)
+    {
+        int at = State.Drones.BinarySearch(peer);
+        // Paired twice is crew's bug: PairDrone refuses a hero that has its drone.
+        if (at >= 0) throw new InvalidOperationException($"peer {peer} is paired already");
+        State.Drones.Insert(~at, peer);
     }
 }

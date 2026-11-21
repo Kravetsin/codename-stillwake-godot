@@ -115,6 +115,9 @@ public static class BodyAnswers
     /// <summary>How much of the torso's lean the head takes back.</summary>
     public const double HeadSteady = 0.6;
 
+    /// <summary>What share of its look a hero in a still helmet bends its upper body by, standing or walking (light-drone, a try).</summary>
+    public const double LookLean = 0.35;
+
     /// <summary>How far short of straight a leg reaching its foot stays, in pixels, so it is never locked.</summary>
     public const double LegSlack = 0.03;
 

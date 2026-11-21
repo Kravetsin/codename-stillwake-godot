@@ -46,7 +46,7 @@ Icons picked first on a pick page (one each, the searchlight's look on the helme
   (degrees, `Diet.Caps` 20): 20 for 12 000 ticks (10 min), subtracted in `LowOf` as the cape's is. No effect on heat.
 - **Loot magnet** (magnetite 4, coil 2, plate 1): worn on the belt (against the battery); while worn the client's `Reach`
   pulls loose stacks from `Floor.MagnetReach` 6 instead of `PickUpReach` 2.
-- **Searchlight** (crystal 2, helmet lamp 1, wire 2): in the helmet mount, switched by `Run(item, On)` (a run's stack the
+- **Searchlight** (crystal 2, light drone 1, wire 2): in the helmet mount, switched by `Run(item, On)` (a run's stack the
   hand's, or the mount's for a worn electric item); draws 1 from the belt every 3 ticks (the user: not to rival the drill's
   1 a tick); a narrow cone about 3× the lamp's reach with the lamp's light code; off or with an empty belt a plain lamp.
 

@@ -116,29 +116,33 @@ public partial class ContentTests
             int bands = kind is Content.PlanetType planet ? planet.Bands.Count + 1 : 1;
             Assert.True(kind.Temperatures.Count == bands, kind.Id);
         }
+        // Every helmet and suit adds some cold to the bare body's (gear-roles); nothing else does.
         foreach (var item in Content.Items.All)
-            Assert.True((item.Low != null) == (item.Equip == Content.Suit.Slot) && (item.Low ?? int.MinValue) < Content.Temperature.BareLow, item.Id);
+            Assert.True((item.Low != null) == (item.Equip == Content.Suit.Slot || item.Equip == Content.Helmet.Slot) && (item.Low ?? int.MinValue) < 0, item.Id);
         Assert.True(Content.Cape.Warmth > 0);
-        // A suit feels nothing by the hull nor anywhere on the first planet, and space past the field bites it: its reach is its
-        // own (body-temperature).
-        int suit = Content.Items.Get(Content.Suit.Basic).Low!.Value;
+        // The basic pair feels nothing by the hull nor anywhere on the first planet, and space past the field bites it: its reach
+        // is its own (body-temperature).
+        int suit = Content.Temperature.BareLow + Content.Items.Get(Content.Suit.Basic).Low!.Value + Content.Items.Get(Content.Helmet.Basic).Low!.Value;
         Assert.True(suit <= Content.Temperature.Hull && suit > Content.Temperature.Space);
         Assert.True(suit <= Content.PlanetTypes.First.Temperatures.Min() - Content.Sky.First.Chill);
     }
 
     [Fact]
-    public void EveryBodyAndNoneWithstandsColdBelowItsHeatAnAiredRoomInsideBothCapedOrNot()
+    public void EveryOutfitAndNoneWithstandsColdBelowItsHeatAnAiredRoomInsideBothCapedOrNot()
     {
-        // So the cold and the heat are never felt at once, and a sealed room costs no one anything (2026-11-14-heat-limits).
-        var limits = Content.Items.All.Where(i => i.Equip == Content.Suit.Slot)
-            .Select(i => (i.Id, Low: i.Low ?? Content.Temperature.BareLow, High: i.High ?? Content.Temperature.BareHigh))
-            .Append(("none", Content.Temperature.BareLow, Content.Temperature.BareHigh));
-        foreach (var (id, low, high) in limits)
-        {
-            Assert.True(low < high, id);
-            Assert.True(low <= Content.Temperature.Room && Content.Temperature.Room <= high - Content.Cape.Warmth, id);
-        }
+        // So the cold and the heat are never felt at once, and a sealed room costs no one anything (2026-11-14-heat-limits): every
+        // helmet or none with every suit or none, their degrees summed (gear-roles).
+        Content.ItemSpec?[] Of(string slot) => [null, .. Content.Items.All.Where(i => i.Equip == slot)];
+        foreach (var helmet in Of(Content.Helmet.Slot))
+            foreach (var suit in Of(Content.Suit.Slot))
+            {
+                string id = $"{helmet?.Id ?? "none"} + {suit?.Id ?? "none"}";
+                int low = Content.Temperature.BareLow + (helmet?.Low ?? 0) + (suit?.Low ?? 0);
+                int high = Content.Temperature.BareHigh + (helmet?.High ?? 0) + (suit?.High ?? 0);
+                Assert.True(low < high, id);
+                Assert.True(low <= Content.Temperature.Room && Content.Temperature.Room <= high - Content.Cape.Warmth, id);
+            }
         foreach (var item in Content.Items.All)
-            Assert.True(item.High == null || item.Equip == Content.Suit.Slot, item.Id);
+            Assert.True(item.High == null || item.Equip == Content.Suit.Slot || item.Equip == Content.Helmet.Slot, item.Id);
     }
 }

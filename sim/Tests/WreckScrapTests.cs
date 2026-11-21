@@ -30,11 +30,33 @@ public class WreckScrapTests
     {
         var m = new Scenario(World).M;
         var dressed = Dressed().ToHashSet();
-        Assert.Equal(17, dressed.Count(c => Wreck.Dress[c.Y][c.X] == 'T'));
+        Assert.Equal(27, dressed.Count(c => Wreck.Dress[c.Y][c.X] == 'T'));
         Assert.All(dressed, c => Assert.Equal('#', Wreck.Rows[c.Y][c.X]));
         for (int y = 0; y < Wreck.Height; y++)
             for (int x = 0; x < Wreck.Width; x++)
                 Assert.Equal(dressed.Contains((x, y)), m.Grid.WallAt(Cell(x, y))?.Id == "wreckScrap");
+    }
+
+    [Fact]
+    public void TheCoresPathIsOpenAndRunsBetweenPlates()
+    {
+        var m = new Scenario(World).M;
+        Assert.NotEmpty(Wreck.CorePath);
+        foreach (var (row, first, last) in Wreck.CorePath)
+        {
+            Assert.True(first <= last);
+            for (int x = first; x <= last; x++)
+            {
+                var (px, py) = (x + Wreck.Left, row + Wreck.Top);
+                Assert.Equal('.', Wreck.Rows[py][px]);
+                Assert.Null(m.Grid.WallAt(Cell(px, py)));
+            }
+            // Each row of it is held between the plates it tore through.
+            Assert.Equal("wreckScrap", m.Grid.WallAt(Cell(first - 1 + Wreck.Left, row + Wreck.Top))?.Id);
+            Assert.Equal("wreckScrap", m.Grid.WallAt(Cell(last + 1 + Wreck.Left, row + Wreck.Top))?.Id);
+            Assert.Equal('T', Wreck.Dress[row + Wreck.Top][first - 1 + Wreck.Left]);
+            Assert.Equal('T', Wreck.Dress[row + Wreck.Top][last + 1 + Wreck.Left]);
+        }
     }
 
     [Fact]

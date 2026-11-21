@@ -13,16 +13,20 @@ namespace Stillwake.Game.Tests;
 public class SkinCatalogueTests
 {
     private static IEnumerable<string> HelmetPictures =>
-        new[] { Content.Helmet.Basic, Content.Helmet.Heavy, Content.Helmet.Quilted }
+        Content.Items.All.Where(i => i.Equip == Content.Helmet.Slot).Select(i => i.Id)
             .Concat(Skins.All.Where(s => s.Kind == Skins.Head).Select(s => s.Id));
 
     [Fact]
-    public void EveryHelmetPictureHasItsLampAndScannerMounts()
+    public void EveryStillHelmetHasItsShellGlassAndCollar()
     {
+        // light-drone (a try): nothing mounts on a helmet; it sits still on a rubber collar, the head seen through its glass.
         foreach (var helmet in HelmetPictures)
         {
-            Assert.True(LampMounts.On.ContainsKey(helmet), $"{helmet} has no lamp mount");
-            Assert.True(ScannerInk.On.ContainsKey(helmet), $"{helmet} has no scanner row");
+            string drawn = helmet == Content.Helmet.Basic ? "helmet" : helmet;
+            foreach (string part in (string[])["shell", "collar"])
+                Assert.True(Png.Has($"hero_{drawn}_{part}"), $"hero_{drawn}_{part}");
+            Assert.True(Png.Has(helmet == Content.Helmet.Basic ? "hero_visor" : $"hero_{helmet}_visor"), $"{helmet}'s glass");
+            if (BodyFit.Of(helmet).Sealed) Assert.True(Png.Has($"hero_{drawn}_seal"), $"hero_{drawn}_seal");
         }
     }
 

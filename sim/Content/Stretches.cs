@@ -37,8 +37,8 @@ public static class Stretches
     /// <summary>Ticks in a minute.</summary>
     private const int Minute = 60 * 20;
 
-    /// <summary>The ice belt: opened by a warm helmet; ice blocks drift by in place of most of the junk, and outside is 40° colder.</summary>
-    public static readonly Stretch IceBelt = new("iceBelt", [Helmet.Quilted, Helmet.Heavy],
+    /// <summary>The ice belt: opened by the heated helmet (gear-roles); ice blocks drift by in place of most of the junk, and outside is 40° colder.</summary>
+    public static readonly Stretch IceBelt = new("iceBelt", [Helmet.Heated],
         First: new(5 * Minute, 10 * Minute), Gap: new(20 * Minute, 40 * Minute), Duration: new(4 * Minute, 6 * Minute), Chill: 40,
         Warning: 3 * Minute,
         Zone: new DebrisZone("iceBelt", new ByHull(Debris.Margin, Debris.Lead), Every: 120, Jitter: 60, Max: 16, Debris.DriftMin, Debris.DriftMax,

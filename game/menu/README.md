@@ -23,7 +23,7 @@ The title the game opens on and the game menu on Esc (0031); not in the TypeScri
   (`logic/SettingsCategories`), each setting applied at once and kept in `user://settings.cfg` by `platform/Settings`.
   **Sound:** Master, Effects, Music, a slider of 0–10 each (`logic/Volume`, steps in `Sound.cs`): 10 today's mix, each step
   3 dB down, 0 muted; set as it moves, applied at the start. **Graphics:** the screen (a dev run keeps its window), heat
-  shimmer (0075). **Game:** language, slot size (0058), Open logs folder. **Controls** (`BindRows`, 2026-11-04-key-binds):
+  shimmer (0075), smoothing (`Smoothings`). **Game:** language, slot size (0058), Open logs folder. **Controls** (`BindRows`, 2026-11-04-key-binds):
   a click waits for a key, Esc cancels, a key taken is swapped, a fixed one refused; Reset all; a dev run plays the
   defaults. **Hero**, in a world only: the suit's colour (`crew`'s `PickColour`) and Edit look.
 
@@ -31,7 +31,7 @@ The title the game opens on and the game menu on Esc (0031); not in the TypeScri
   shown takes it first, Settings going back to the menu's first page and that page closing it; else
   Esc closes the inventory and its crate and the Handbook and puts the plan away (0022), all at once; only with
   nothing open or in hand does it open the menu.
-- **On the tablet** (`shared/Tablet`), risen from the edge along the foot as the Handbook is, the edge and its keys hidden while it is up. **Resume** closes it. What the tablet's
+- **On the tablet** (`shared/Tablet`), a hologram as the Handbook's (drone-frame), the edge's keys hidden while it shows. **Resume** closes it. What the tablet's
   edge keys open (the Handbook, the tablet) has no line here.
   **Save** writes the world to its folder, the save before kept as its
   backup. **Save & exit to title** saves, leaves (a host's guests let go) and reloads the scene to the

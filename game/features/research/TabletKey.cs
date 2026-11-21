@@ -24,6 +24,7 @@ public partial class TabletKey : Node
     private readonly Func<Registry?> _world;
     private readonly Func<World?> _surfaces;
     private readonly Func<uint> _worldId;
+    private readonly Func<int> _me;
     private readonly BoardKeep _keep;
     private readonly FindFlash _flash;
     private int _unread;
@@ -33,13 +34,14 @@ public partial class TabletKey : Node
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="surfaces">The world played, all its surfaces; null with none.</param>
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
+    /// <param name="me">The peer playing here: whose board is read (own-knowledge), and whose creative mode marks the market done.</param>
     /// <param name="keep">What is kept of the board, shared with the page.</param>
     /// <param name="flash">The flash along the edge, told what is new.</param>
     /// <param name="press">Takes the tablet out on the board or puts it away.</param>
     /// <param name="boardOut">Whether the board is out.</param>
-    public TabletKey(Func<Registry?> world, Func<World?> surfaces, Func<uint> worldId, BoardKeep keep, FindFlash flash, Action press, Func<bool> boardOut)
+    public TabletKey(Func<Registry?> world, Func<World?> surfaces, Func<uint> worldId, Func<int> me, BoardKeep keep, FindFlash flash, Action press, Func<bool> boardOut)
     {
-        (_world, _surfaces, _worldId, _keep, _flash) = (world, surfaces, worldId, keep, flash);
+        (_world, _surfaces, _worldId, _me, _keep, _flash) = (world, surfaces, worldId, me, keep, flash);
         Cap = new EdgeKey("research", press, boardOut, () => _keep.Seen.Lit,
             () => _unread - _flash.Holding is var waiting and > 0 ? waiting : null);
     }
@@ -67,15 +69,16 @@ public partial class TabletKey : Node
         var m = _world();
         if (m == null || _surfaces() is not { } world) return;
         _keep.Of(_worldId());
-        string at = BoardRead.KeyOf(world);
+        int me = _me();
+        string at = BoardRead.KeyOf(world, me);
         if (_readAt != at)
         {
             _readAt = at;
-            _keep.Seen.Read(BoardRead.Of(world));
+            _keep.Seen.Read(BoardRead.Of(world, me));
         }
-        _keep.Seen.ReadOrders(Orders.Count(m.Research.Done));
+        _keep.Seen.ReadOrders(Orders.Count(n => m.Research.Done(me, n)));
         Credits = m.Research.Credits;
-        MarketShows = Credits > 0 || Market.Any(m.Research.Done);
+        MarketShows = Credits > 0 || Market.Any(n => m.Research.Done(me, n));
         Affordable = Market.Any(n => m.Research.BuyProblem(n) == null);
         _unread = _keep.Seen.UnreadBatches;
         _flash.Read(_keep.Seen, _unread, _keep.Seen.Open);

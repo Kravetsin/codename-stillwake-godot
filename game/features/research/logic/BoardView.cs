@@ -44,22 +44,22 @@ public sealed class BoardRead
     public bool Knows(string id) => _known.Contains(id);
 
     /// <summary>
-    /// What the board reads of <paramref name="world"/>: what is obtained and granted, and a machine standing on any of its surfaces, as research grants by
-    /// the machines of the surface it stands on.
+    /// What the board of <paramref name="peer"/> reads of <paramref name="world"/>: what they have held and know (own-knowledge), and a machine standing on any of
+    /// its surfaces, as research grants by the machines of the surface it stands on.
     /// </summary>
-    public static BoardRead Of(World world)
+    public static BoardRead Of(World world, int peer)
     {
         var surfaces = Open(world).Select(s => Registry.On(world, s)).ToList();
         var knowledge = surfaces[0].Knowledge;
-        return new BoardRead(knowledge.Obtained.Select(t => t.Item).ToList(), knowledge.GrantedIds, item => knowledge.ObtainedOf(item) > 0,
+        return new BoardRead([.. knowledge.Found(peer)], knowledge.KnownIds(peer), item => knowledge.HasFound(peer, item),
             kind => surfaces.Any(s => s.Grid.MachinesOf(kind).Count > 0));
     }
 
-    /// <summary>What moves when anything the board reads of <paramref name="world"/> may have: its knowledge's version and every surface's grid's.</summary>
-    public static string KeyOf(World world)
+    /// <summary>What moves when anything <paramref name="peer"/>'s board reads of <paramref name="world"/> may have: its knowledge's version and every surface's grid's.</summary>
+    public static string KeyOf(World world, int peer)
     {
         var knowledge = Registry.On(world, 0).Knowledge;
-        return $"{world.Id}|{knowledge.GetHashCode()}|{knowledge.Version}|" + string.Join(',', Open(world).Select(s => $"{s}:{Registry.On(world, s).Grid.Version}"));
+        return $"{world.Id}|{peer}|{knowledge.GetHashCode()}|{knowledge.Version}|" + string.Join(',', Open(world).Select(s => $"{s}:{Registry.On(world, s).Grid.Version}"));
     }
 
     // A closed surface (a planet left behind) runs no modules.

@@ -15,7 +15,7 @@ public partial class TunnelView : CanvasLayer
     /// <summary>Where on the hero the world sways about and blurs least: this far from its head to its feet, its chest.</summary>
     private const float Chest = 0.35f;
 
-    private static readonly StringName Center = "center", Blur = "blur", Dark = "dark", Sway = "sway", Ghost = "ghost", Swim = "swim", Ink = "ink";
+    private static readonly StringName Center = "center", Blur = "blur", Dark = "dark", Sway = "sway", Ghost = "ghost", Swim = "swim", Ink = "ink", Even = "even";
 
     private const string Shader = """
         shader_type canvas_item;
@@ -27,6 +27,7 @@ public partial class TunnelView : CanvasLayer
         uniform vec2 ghost = vec2(0.0);
         uniform float swim = 0.0;
         uniform float ink = 0.0;
+        uniform float even = 0.0;
         const vec3 brown = vec3(34.0, 12.0, 9.0) / 255.0;
         const vec3 ink_colour = vec3(23.0, 18.0, 15.0) / 255.0;
 
@@ -39,17 +40,21 @@ public partial class TunnelView : CanvasLayer
             vec2 uv = (c + vec2(k * d.x - s * d.y, s * d.x + k * d.y)) / size;
             uv += vec2(sin(uv.y * 9.0 + TIME * 1.7), sin(uv.x * 7.0 + TIME * 1.3)) * swim * vec2(1.0, aspect);
             // Blurred everywhere, the more the farther from the hero, with no line between: at most a picture 40 pixels wide.
+            // Even, as giving blood swims the head (drone-meeting): lighter, the same all over, part sharp, a fainter twin and browning.
             float edge = smoothstep(0.08, 0.7, length(d) / size.x);
-            float lod = blur * log2(size.x / 40.0) * mix(0.35, 1.0, edge);
+            float lod = blur * log2(size.x / 40.0) * mix(mix(0.35, 1.0, edge), 0.45, even);
             vec3 world = textureLod(screen, uv, lod).rgb;
             vec3 twin = textureLod(screen, uv - ghost * vec2(1.0, aspect), lod).rgb;
-            vec3 colour = mix(mix(world, twin, 0.34), brown, dark * mix(0.55, 1.0, edge));
+            vec3 seen = mix(world, twin, mix(0.34, 0.22, even));
+            seen = mix(textureLod(screen, uv, 0.0).rgb, seen, mix(1.0, 0.7 * blur, even));
+            vec3 colour = mix(seen, brown, dark * mix(mix(0.55, 1.0, edge), mix(0.15, 0.6, edge), even));
             COLOR = vec4(mix(colour, ink_colour, ink), 1.0);
         }
         """;
 
     private readonly Func<(int Gasp, int Out)?> _read;
     private readonly Func<Vector2?> _hero;
+    private readonly Func<double> _dizzy;
     private readonly Tunnel _tunnel = new();
     private readonly ColorRect _screen = new();
     private readonly ShaderMaterial _material = new() { Shader = new Shader { Code = Shader } };
@@ -57,9 +62,10 @@ public partial class TunnelView : CanvasLayer
 
     /// <param name="read">This player's hero's last breath and ticks out, or none.</param>
     /// <param name="hero">Its head and feet in the world as drawn, or none.</param>
-    public TunnelView(Func<(int Gasp, int Out)?> read, Func<(Vector2 Head, Vector2 Feet)?> hero)
+    /// <param name="dizzy">How far into the last breath its head swims besides, as giving blood in the drone's meeting does (drone-meeting); never ink.</param>
+    public TunnelView(Func<(int Gasp, int Out)?> read, Func<(Vector2 Head, Vector2 Feet)?> hero, Func<double> dizzy)
     {
-        _read = read;
+        (_read, _dizzy) = (read, dizzy);
         _hero = () => hero() is (var head, var feet) ? head.Lerp(feet, Chest) : null;
         Layer = ScreenLayers.LastBreath;
         _screen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -79,7 +85,7 @@ public partial class TunnelView : CanvasLayer
             var (gasp, @out) = _read() ?? (0, 0);
             _tunnel.Read(gasp, @out);
         }
-        double p = _tunnel.Advance(delta);
+        double breath = _tunnel.Advance(delta), dizzy = _dizzy(), p = Math.Max(breath, dizzy);
         _screen.Visible = p > 0;
         if (!_screen.Visible) return;
         var look = Tunnel.Of(p, _clock);
@@ -93,5 +99,6 @@ public partial class TunnelView : CanvasLayer
         _material.SetShaderParameter(Ghost, new Vector2((float)look.GhostX, (float)look.GhostY));
         _material.SetShaderParameter(Swim, (float)look.Swim);
         _material.SetShaderParameter(Ink, (float)look.Ink);
+        _material.SetShaderParameter(Even, dizzy > breath ? 1f : 0f);
     }
 }

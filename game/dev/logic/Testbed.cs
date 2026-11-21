@@ -24,7 +24,7 @@ public static class Testbed
     /// Every item a hero can carry but the kit it comes aboard with (0107) and suits' helmets and bodies, free at the pod: wreckage is an item only
     /// to drift and burst, never held (0041); the mafia's parcel too, caught for what it brings (2026-11-08-mafia-deliveries).
     /// </summary>
-    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Debris.DeliveryKinds.Contains(i.Id) && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Equip != Suit.Slot && i.Equip != Helmet.Slot);
+    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Debris.DeliveryKinds.Contains(i.Id) && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Id != LightDrone.Item && i.Equip != Suit.Slot && i.Equip != Helmet.Slot);
 
     /// <summary>The farm's items (0060), in the second crate by the grow capsule with the crusher's and planks: the first is full.</summary>
     public static readonly IReadOnlyList<string> Farm = ["seed", "fruit", "glowberry", "soil", "biomass", "biofuel"];
@@ -48,18 +48,18 @@ public static class Testbed
     public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the light drone (0077), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails and the blasting charges, <see cref="Cooking"/> rations and canned meat for the galley, a fridge, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
+    public static IEnumerable<string> InSupply => [Foods.Ration, Foods.CannedMeat, "fridge", "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id, Shots.Thrown.Item];
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), the pickaxe (the-pickaxe), the grappling gun (grapple-climbs), and an arc
     /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make; one of each of the galley's dishes, cooked ahead; and the
-    /// quilted helmet (2026-11-14-quilted-helmet-and-traced-art), to wear without sewing it.
+    /// heated and heat helmets (gear-roles), to wear without making them.
     /// </summary>
-    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), .. Stations.Get("galley").Rows.SelectMany(r => r), Helmet.Quilted];
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, Weapons.Pickaxe.Item, Grapple.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), .. Stations.Get("galley").Rows.SelectMany(r => r), Helmet.Heated, Helmet.HeatProof];
 
     /// <summary>How many rations and canned meat the supply crate holds: enough to cook at the galley a while, its fruit, glowberries, water and fat in the farm's crate.</summary>
     public const int Cooking = 10;
@@ -127,7 +127,7 @@ public static class Testbed
             "  ##KK...LUUUII###!!TTL.kk.cc.ccJ.GG.yy.L.$$..#..L#" + "..^^^^^^^^^^^^..#",
             "  #.OOOQQ.UUUIIRRD!!TT..kk.cc.ccggGG.yy...$$&&DZZ.D" + "..^^^^^^^^^^^^..D",
             "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
-            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D" + "..^^^^^^^^^^^^..D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBB&&DZZ.D" + "..^^^^^^^^^^^^.?D",
             "  #o#########www###############################__##" + "##____________###",
             "  #XXXL.uuqqqwww#n",
             "  #XXX..uuqqqwww#n",

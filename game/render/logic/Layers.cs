@@ -164,17 +164,26 @@ public static class ScreenLayers
     /// <summary>A strike's channel burnt into the view of a hero in its zone (<c>Features.Hazards.BoltView</c>), with the hurts' wash it stands in for.</summary>
     public const int BoltBurn = Hurt;
 
+    /// <summary>The drone's meeting's vision (<c>Features.Crew.MeetingView</c>, drone-meeting): over the world and the visor's fog, the hero moved onto it, under all that is read.</summary>
+    public const int Vision = VisorFog;
+
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
     public const int Hud = 4;
 
     /// <summary>The last breath's tunnel (<c>Features.Crew.TunnelView</c>), over the HUD it blurs, under the bars (2026-11-05-the-last-breath).</summary>
     public const int LastBreath = 5;
 
+    /// <summary>A cutscene's colour grade over all the scene shows, the last breath's tunnel too (<c>Features.Crew.CutsceneView</c>, drone-meeting); the HUD and bars are hidden meanwhile.</summary>
+    public const int Grade = 6;
+
     /// <summary>The bottom of the screen: the build menu, the prompt for E, the overlays' bar.</summary>
     public const int Bars = 10;
 
     /// <summary>The Handbook's window (0066), over the HUD and the bars, under the dev panel and the menu.</summary>
     public const int Handbook = 11;
+
+    /// <summary>The drone's soot framing a drone window (<c>Shared.DroneFrame</c>), over the windows, under the edge's keys.</summary>
+    public const int DroneFrame = 11;
 
     /// <summary>The tablet's top edge and its keys (<c>Shared.TabletEdge</c>), over every tablet, whose top they ride on.</summary>
     public const int TabletEdge = 12;

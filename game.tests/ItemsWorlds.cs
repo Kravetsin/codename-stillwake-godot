@@ -9,12 +9,13 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public static class ItemsWorlds
 {
-    /// <summary>A world from <paramref name="layout"/>, its items' slice changed by <paramref name="edit"/> before it loads.</summary>
+    /// <summary>A world from <paramref name="layout"/>, its items' slice changed by <paramref name="edit"/> before it loads; peer 0 paired, its bag open (drone-companion).</summary>
     public static (Registry M, World World) With(Layout layout, Action<JsonNode> edit)
     {
         var made = new Registry();
         var root = JsonNode.Parse(World.Create(1, layout, made.All).Save())!;
         edit(root["slices"]!["items"]!);
+        root["slices"]!["players"]!["drones"] = new JsonArray(0);
         var m = new Registry();
         return (m, World.Load(root.ToJsonString(), m.All));
     }

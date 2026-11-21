@@ -60,6 +60,12 @@ public sealed record Eat(string Item) : Command;
 public sealed record Purge : Command;
 
 /// <summary>
+/// The sender's hero touches the alien core <paramref name="Core"/> with E (drone-companion): a shard of it becomes the hero's drone,
+/// the pairing its player's for good, its bag rows open. The core stays for the next hero.
+/// </summary>
+public sealed record PairDrone(int Core) : Command;
+
+/// <summary>
 /// The sender's hero passes out of its body's cold or heat (body-temperature): its client keeps the body, from the degrees the sim
 /// says it feels, and sends this as it reaches <c>Temperature.ColdDeath</c> or <c>HeatDeath</c>.
 /// </summary>
@@ -102,8 +108,8 @@ public interface ICrewQueries
     /// </summary>
     bool OpenSky(int cell);
     /// <summary>
-    /// The coldest hero <paramref name="peer"/> withstands, in degrees: its body's <c>Low</c>, or <c>Temperature.BareLow</c> with none,
-    /// <c>Cape.Warmth</c> lower with the cape on.
+    /// The coldest hero <paramref name="peer"/> withstands, in degrees: <c>Temperature.BareLow</c> plus its helmet's and body's
+    /// <c>Low</c> (gear-roles), <c>Cape.Warmth</c> lower with the cape on.
     /// </summary>
     int LowOf(int peer);
     /// <summary>
@@ -112,8 +118,8 @@ public interface ICrewQueries
     /// </summary>
     int Felt(int peer, int cell);
     /// <summary>
-    /// The hottest hero <paramref name="peer"/> withstands, in degrees (2026-11-14-heat-limits): its body's <c>High</c>, or
-    /// <c>Temperature.BareHigh</c> with none, <c>Cape.Warmth</c> lower with the cape on.
+    /// The hottest hero <paramref name="peer"/> withstands, in degrees (2026-11-14-heat-limits): <c>Temperature.BareHigh</c> plus its
+    /// helmet's and body's <c>High</c> (gear-roles), <c>Cape.Warmth</c> lower with the cape on.
     /// </summary>
     int HighOf(int peer);
     /// <summary>
@@ -143,6 +149,8 @@ public interface ICrewQueries
     Rates RatesOf(int peer);
     /// <summary>Whether hero <paramref name="peer"/> is hungry: awake, every meal gone, not creative; its running costs <c>Diet.HungrySprint</c>.</summary>
     bool Hungry(int peer);
+    /// <summary>Whether hero <paramref name="peer"/> is spared all harm and drain now, its drone's meeting playing (drone-meeting).</summary>
+    bool Spared(int peer);
     /// <summary>
     /// Whether hero <paramref name="peer"/>'s suit's mode works: switched on, in a body with <c>Switch</c>; false with no hero
     /// (2026-11-03-the-regen-suit).
@@ -193,7 +201,7 @@ public interface ICrewOps
 }
 
 /// <summary>
-/// Heroes inside the sim: where each one is, as its client says, and how it breathes — room air in a
+/// Heroes inside the sim: where each one is, as its client says, and how it breathes вЂ” room air in a
 /// cell holding it, its own air anywhere else (the suit's, or its lungs bare), passing out when that runs dry
 /// (packages/sim/src/modules/crew).
 /// </summary>
@@ -273,6 +281,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             if (Content.Items.Get(c.Item).Byproducts is { } kept && Loots.Roll(kept, Random) is { Count: > 0 } back)
                 _itemsOps.GiveOrDrop(c.From, back, hero.Cell);
         });
+        Handles<PairDrone>(c => PairProblem(c.From, c.Core), c =>
+        {
+            _playersOps.Pair(c.From);
+            HeroOf(c.From)!.Meets = Content.Crew.MeetingTicks;
+        });
         Handles<Purge>(c => PurgeProblem(c.From), c =>
         {
             var hero = HeroOf(c.From)!;
@@ -287,9 +300,19 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         {
             State.Clock += 1;
             bool breath = State.Clock % Content.Crew.BreathEvery == 0;
+            bool coreLost = CoreLost();
             foreach (var hero in State.Heroes)
             {
+                // The core broken loose, its shards find every hero still without one (drone-companion).
+                if (coreLost && !_players.HasDrone(hero.Id)) _playersOps.Pair(hero.Id);
                 if (hero.CanisterIn > 0) hero.CanisterIn -= 1;
+                // Its drone's meeting playing, nothing drains or harms it, its meals waiting too (drone-meeting).
+                if (hero.Meets > 0)
+                {
+                    hero.Meets -= 1;
+                    hero.Thrusting = false;
+                    continue;
+                }
                 for (int i = hero.Eaten.Count - 1; i >= 0; i--)
                     if (--hero.Eaten[i].Left <= 0) hero.Eaten.RemoveAt(i);
                 if (hero.Out > 0)
@@ -423,7 +446,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Shock(int peer, int units, Harm harm)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0, Meets: 0 } hero || _items.Creative(peer) || units <= 0) return;
         Hurt(hero, harm);
         // The air pays what it holds; the last breath, what it falls short by.
         int beyond = units - hero.Air;
@@ -433,7 +456,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Blow(int peer, int units, Harm harm)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0, Meets: 0 } hero || _items.Creative(peer) || units <= 0) return;
         Shock(peer, Soften(hero, units, Content.Cape.Guard), harm);
     }
 
@@ -504,9 +527,38 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         return hero.Eaten.Count >= Diet.Meals ? "crew.mealsFull" : null;
     }
 
+    /// <summary>
+    /// Why hero <paramref name="peer"/> could not pair with a drone at machine <paramref name="core"/> now: none or passed out
+    /// (<c>crew.noHero</c>), its player paired already (<c>crew.hasDrone</c>), or no alien core there (<c>crew.noCore</c>). Null when it could.
+    /// </summary>
+    public string? PairProblem(int peer, int core)
+    {
+        if (HeroOf(peer) is not { Out: 0 }) return "crew.noHero";
+        if (_players.HasDrone(peer)) return "crew.hasDrone";
+        return _grid.MachineById(core) is { } m && Content.Machines.Is(m.Kind, Content.MachineTrait.Wakes) && !CoreLost() ? null : "crew.noCore";
+    }
+
+    /// <summary>
+    /// Whether the map's alien core broke loose (drone-companion): it has one, and a cell of the floor under it is broken. Then the
+    /// core is gone, and every hero here without a drone is given one as it stands. A map with no core never loses it.
+    /// </summary>
+    public bool CoreLost()
+    {
+        int width = _grid.Width;
+        foreach (var core in _grid.MachinesWith(Content.MachineTrait.Wakes))
+        {
+            var spec = Content.Machines.Get(core.Kind);
+            int below = core.Cell + spec.Height * width;
+            for (int x = 0; x < spec.Width; x++)
+                if (!_grid.Solid(below + x)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>
     // A creative hero never freezes: its client keeps its body well, so one sent anyway is a stale one.
-    public string? SuccumbProblem(int peer) => HeroOf(peer) is not { Out: 0 } || _items.Creative(peer) ? "crew.noHero" : null;
+    // Nor in its drone's meeting, which spares it (drone-meeting).
+    public string? SuccumbProblem(int peer) => HeroOf(peer) is not { Out: 0, Meets: 0 } || _items.Creative(peer) ? "crew.noHero" : null;
 
     public string? PurgeProblem(int peer)
     {
@@ -527,7 +579,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     /// <summary>The map's first lifepod makes heroes at its hatch; a map without one wakes them at its first S.</summary>
     protected override CrewState Init(Layout layout)
     {
-        var pods = layout.Machines().Where(m => Content.Machines.Get(m.Kind).Fixed).Select(m => m.Cell).ToList();
+        var pods = layout.Machines().Where(m => Content.Machines.Get(m.Kind) is { Fixed: true } spec && spec.Is(Content.MachineTrait.AirSource)).Select(m => m.Cell).ToList();
         if (pods.Count == 0) return new() { Spawn = layout.CellsOf('S').DefaultIfEmpty(0).First() };
         var (x, y) = Content.Crew.PodHatch;
         return new() { Pod = pods[0], Spawn = pods[0] + y * layout.Width + x };
@@ -601,12 +653,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     /// <summary><paramref name="beyond"/> cells past the field's line of the <paramref name="span"/> from it to the grid's edge, in thousandths, rounded down; none inside.</summary>
     private static int Share(int beyond, int span) => beyond <= 0 || span <= 0 ? 0 : Math.Min(1000, beyond * 1000 / span);
 
-    public int LowOf(int peer) => Caped(peer, SuitOf(peer)?.Low ?? Content.Temperature.BareLow);
+    public int LowOf(int peer) => Caped(peer, Content.Temperature.BareLow + (Worn(peer, Content.Helmet.Slot)?.Low ?? 0) + (Worn(peer, Content.Suit.Slot)?.Low ?? 0));
 
-    public int HighOf(int peer) => Caped(peer, SuitOf(peer)?.High ?? Content.Temperature.BareHigh);
+    public int HighOf(int peer) => Caped(peer, Content.Temperature.BareHigh + (Worn(peer, Content.Helmet.Slot)?.High ?? 0) + (Worn(peer, Content.Suit.Slot)?.High ?? 0));
 
-    /// <summary>The body slot's item hero <paramref name="peer"/> wears, its suit; null bare.</summary>
-    private Content.ItemSpec? SuitOf(int peer) => _items.WornIn(peer, Content.Suit.Slot) is { } body ? Content.Items.Get(body) : null;
+    /// <summary>The item hero <paramref name="peer"/> wears in the <paramref name="slot"/>, its helmet or suit; null bare.</summary>
+    private Content.ItemSpec? Worn(int peer, string slot) => _items.WornIn(peer, slot) is { } item ? Content.Items.Get(item) : null;
 
     /// <summary>A limit with the cape's warmth taken off it, cold's or heat's alike (2026-11-14-heat-limits).</summary>
     private int Caped(int peer, int limit) => _items.Equipped(peer, Content.Cape.Item) ? limit - Content.Cape.Warmth : limit;
@@ -769,6 +821,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int RefillOf(int peer) => Content.Crew.CanisterRefill + RatesOf(peer).Deep;
 
     public Rates RatesOf(int peer) => HeroOf(peer) is { } hero ? RatesOf(hero) : default;
+
+    public bool Spared(int peer) => HeroOf(peer) is { Meets: > 0 };
 
     public bool Hungry(int peer) => HeroOf(peer) is { Out: 0, Eaten.Count: 0 } && !_items.Creative(peer);
 

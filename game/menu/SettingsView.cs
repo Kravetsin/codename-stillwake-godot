@@ -94,6 +94,8 @@ public partial class SettingsView : VBoxContainer
                 page.AddChild(Row("menu.screen", Choices([("menu.windowed", () => Screen(ScreenMode.Windowed)), ("menu.fullscreen", () => Screen(ScreenMode.Fullscreen)),
                     ("menu.borderless", () => Screen(ScreenMode.Borderless))])));
                 page.AddChild(Row("menu.shimmer", Choices([("menu.on", () => Shimmer(true)), ("menu.off", () => Shimmer(false))])));
+                page.AddChild(Row("menu.smoothing", Choices([("menu.smoothOff", () => Smooth(Smoothing.Off)), ("menu.smooth2", () => Smooth(Smoothing.Two)),
+                    ("menu.smooth4", () => Smooth(Smoothing.Four)), ("menu.smooth8", () => Smooth(Smoothing.Eight))])));
                 break;
             case SettingsCategory.Game:
                 page.AddChild(Row("menu.language", Choices([("menu.langEn", () => _ui.Language.Set(Language.English)), ("menu.langRu", () => _ui.Language.Set(Language.Russian))])));
@@ -196,6 +198,12 @@ public partial class SettingsView : VBoxContainer
         Settings.KeepShimmer(on);
     }
 
+    private static void Smooth(Smoothing smoothing)
+    {
+        Settings.Apply(smoothing);
+        Settings.Keep(smoothing);
+    }
+
     private static void Screen(ScreenMode mode)
     {
         Settings.Apply(mode);
@@ -234,6 +242,11 @@ public partial class SettingsView : VBoxContainer
         Light("menu.windowed", screen == ScreenMode.Windowed);
         Light("menu.fullscreen", screen == ScreenMode.Fullscreen);
         Light("menu.borderless", screen == ScreenMode.Borderless);
+        var smoothing = Settings.Smoothed();
+        Light("menu.smoothOff", smoothing == Smoothing.Off);
+        Light("menu.smooth2", smoothing == Smoothing.Two);
+        Light("menu.smooth4", smoothing == Smoothing.Four);
+        Light("menu.smooth8", smoothing == Smoothing.Eight);
     }
 
     private void Light(string key, bool lit) =>

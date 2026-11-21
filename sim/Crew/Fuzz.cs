@@ -11,7 +11,8 @@ public sealed partial class CrewModule
     /// colour, one past the last now and then, so taken and missing colours are refused; chooses a look; thrusts or stops,
     /// mostly with no jetpack worn, so <c>crew.noJetpack</c> is drawn; breathes a canister, refused with a
     /// full suit or none carried; switches its suit's mode, refused (<c>crew.noSuitMode</c>) unless the items fuzz spawned and
-    /// put on a regen suit; eats a food or a canister, so every refusal of <c>Eat</c> is drawn; purges, refused with nothing eaten; brings a hunt near
+    /// put on a regen suit; eats a food or a canister, so every refusal of <c>Eat</c> is drawn; purges, refused with nothing eaten; pairs
+    /// with a drone (<c>PairDrone</c>); brings a hunt near
     /// (<c>Track</c>); and rarely one leaves.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
@@ -20,8 +21,12 @@ public sealed partial class CrewModule
         if (rng.Below(6) == 0) return new Exert(rng.Below(2) == 0) { From = from };
         if (rng.Below(8) == 0) return new Thrust(rng.Below(2) == 0) { From = from };
         if (rng.Below(12) == 0) return new Refill { From = from };
-        // One draw past the foods purges instead: refused with nothing eaten.
-        if (rng.Below(12) == 0) return rng.Below((ulong)Edible.Length + 1) is var e && e < Edible.Length ? new Eat(Edible[e]) { From = from } : new Purge { From = from };
+        // One draw past the foods purges instead: refused with nothing eaten; two past, pairs with a drone at the map's alien core,
+        // refused paired already or on a map with none (machine 0).
+        if (rng.Below(12) == 0)
+            return rng.Below((ulong)Edible.Length + 2) is var e && e < Edible.Length ? new Eat(Edible[e]) { From = from }
+                : e == (ulong)Edible.Length ? new Purge { From = from }
+                : new PairDrone(_grid.MachinesWith(Content.MachineTrait.Wakes) is [var core, ..] ? core.Id : 0) { From = from };
         if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
         if (rng.Below(60) == 0) return new Succumb { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };

@@ -150,7 +150,7 @@ public class FormerTests
     public void IsBoughtInTheTree()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
-        var former = w.M.Research.Recipes().Single(r => r.Id == "former");
+        var former = w.M.Research.Recipes(0).Single(r => r.Id == "former");
         Assert.False(former.Known);
     }
 }

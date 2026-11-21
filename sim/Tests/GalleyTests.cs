@@ -242,20 +242,20 @@ public class GalleyTests
     public void TheBoardUnderstandsPorridgeWithFruitARationAndAGalleyNotRoast()
     {
         var w = Kitchen(wreck: true).Run();
-        w.M.Knowledge.Obtain(Foods.Fruit, 1);
-        Assert.False(w.Run(5).M.Research.Knows(Foods.Porridge));
-        w.M.Knowledge.Obtain(Foods.Ration, 1);
-        Assert.True(w.Run().M.Research.Knows(Foods.Porridge));
-        Assert.False(w.M.Research.Knows(Foods.Roast));
-        Assert.False(w.M.Research.Knows(Foods.Hash));
+        w.M.Knowledge.Find(0, Foods.Fruit);
+        Assert.False(w.Run(5).M.Research.Knows(0, Foods.Porridge));
+        w.M.Knowledge.Find(0, Foods.Ration);
+        Assert.True(w.Run().M.Research.Knows(0, Foods.Porridge));
+        Assert.False(w.M.Research.Knows(0, Foods.Roast));
+        Assert.False(w.M.Research.Knows(0, Foods.Hash));
     }
 
     [Fact]
     public void NoGalleyNoDishWhateverIsHad()
     {
         var w = new Scenario(Layout.Parse(["##########", "#........#", "##########"], null) with { Known = Content.Research.StartKnown }, doubled: true).Run();
-        w.M.Knowledge.Obtain(Foods.Fruit, 1);
-        w.M.Knowledge.Obtain(Foods.Ration, 1);
-        Assert.False(w.Run(5).M.Research.Knows(Foods.Porridge));
+        w.M.Knowledge.Find(0, Foods.Fruit);
+        w.M.Knowledge.Find(0, Foods.Ration);
+        Assert.False(w.Run(5).M.Research.Knows(0, Foods.Porridge));
     }
 }

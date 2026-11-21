@@ -29,8 +29,8 @@ public partial class BuildMenu : CanvasLayer
     private static readonly Font Mono = Render.Style.Mono;
     private const int FontSize = Tablet.FontSize;
 
-    /// <summary>How far below its dock the tablet is drawn now, in screen pixels.</summary>
-    private int _drop;
+    /// <summary>How far above the screen's foot the window rests, the keys under it, in screen pixels.</summary>
+    private int _lift = Slots.Margin;
 
     private readonly PlanHand _hand;
     private readonly Ui _ui;
@@ -57,10 +57,10 @@ public partial class BuildMenu : CanvasLayer
     /// A wing on the tablet's right side under its stylus while the plan is out: the two layers' keys stacked, the focused
     /// one lit (0110).
     /// </summary>
-    private readonly PlanWing _focus = new(left: false);
+    private readonly PlanWing _focus = new();
     private readonly List<PlanKey> _layerKeys = [];
     /// <summary>A wing the tablet's height on its left side while the plan is out aboard: the modes' keys, Z, X and C, a third of it each, the mode's lit.</summary>
-    private readonly PlanWing _modes = new(left: true);
+    private readonly PlanWing _modes = new();
     private readonly List<PlanKey> _modeKeys = [];
     /// <summary>The layers' keys' side, in screen pixels.</summary>
     private const int LayerKey = 40;
@@ -208,25 +208,25 @@ public partial class BuildMenu : CanvasLayer
         over.AcceptEvent();
     }
 
-    /// <summary>The wings at the dock of the screen, 12 px above the bottom edge, less how far the tablet has slid down: behind it, as it is still wider than they lie apart, until it is up.</summary>
+    /// <summary>The wings beside the window, resting above the keys (<see cref="TabletPeek.Floor"/>).</summary>
     private void Dock()
     {
         // The modes' wing the frame's height on its left; the layers' on its right from its top, the stylus clipped over it.
         var (modes, focus) = (_modes.Size, _focus.Size);
-        _modes.OffsetRight = -(_at.Width / 2) - TabletLayout.BezelSide + PlanWing.Tuck;
+        _modes.OffsetRight = -(_at.Width / 2) - PlanWing.Pad;
         _modes.OffsetLeft = _modes.OffsetRight - modes.X;
-        _modes.OffsetTop = -Slots.Margin - _at.Height + _drop - TabletLayout.BezelAbove;
+        _modes.OffsetTop = -_lift - _at.Height;
         _modes.OffsetBottom = _modes.OffsetTop + modes.Y;
-        _focus.OffsetLeft = _at.Width - _at.Width / 2 + TabletLayout.BezelSide - PlanWing.Tuck;
+        _focus.OffsetLeft = _at.Width - _at.Width / 2 + PlanWing.Pad;
         _focus.OffsetRight = _focus.OffsetLeft + focus.X;
         _focus.OffsetTop = _modes.OffsetTop;
         _focus.OffsetBottom = _focus.OffsetTop + focus.Y;
-        // The hint's screen from the tablet's right edge, just under the layers' wing, down to the screen's foot.
+        // The hint's screen from the window's right edge, just under the layers' wing, down to the window's foot, clear of the keys.
         float grown = _hints.Grown = _pointerHint.Grown = (float)_ui.Slot / Slots.Base;
-        _hints.OffsetLeft = _focus.OffsetLeft + PlanWing.Tuck;
+        _hints.OffsetLeft = _focus.OffsetLeft;
         _hints.OffsetRight = _hints.OffsetLeft + HintWing.Width * grown;
         _hints.OffsetTop = _focus.OffsetBottom + HintBelowWing;
-        _hints.OffsetBottom = Mathf.Max(_drop, _hints.OffsetTop + HintWing.Least * grown);
+        _hints.OffsetBottom = -_lift;
     }
 
     /// <summary>How far under the layers' wing the hint's screen hangs, its brackets bridging the gap.</summary>
@@ -239,8 +239,7 @@ public partial class BuildMenu : CanvasLayer
     private void SizeKeys()
     {
         const int pad = PlanWing.Pad, gap = PlanWing.Gap;
-        int height = TabletLayout.BezelAbove + _at.Height + TabletLayout.BezelBelow;
-        int shown = TabletLayout.BezelAbove + _at.Height + Slots.Margin;
+        int height = _at.Height, shown = _at.Height;
         int mode = (shown - 2 * pad - 2 * gap) / 3 / 2 * 2;
         for (int i = 0; i < _modeKeys.Count; i++)
         {
@@ -248,8 +247,8 @@ public partial class BuildMenu : CanvasLayer
             _modeKeys[i].Size = _modeKeys[i].CustomMinimumSize = new Vector2(_at.Card, mode);
             _modeKeys[i].Position = new Vector2(pad, pad + i * (mode + gap));
         }
-        _modes.Size = new Vector2(pad + _at.Card + pad + PlanWing.Tuck, height);
-        const int layer = LayerKey, clear = PlanWing.Tuck + TabletLayout.StylusOut * TabletLayout.ArtScale + gap;
+        _modes.Size = new Vector2(pad + _at.Card + pad, height);
+        const int layer = LayerKey, clear = pad;
         for (int i = 0; i < _layerKeys.Count; i++)
         {
             _layerKeys[i].Size = _layerKeys[i].CustomMinimumSize = new Vector2(layer, layer);
@@ -266,13 +265,17 @@ public partial class BuildMenu : CanvasLayer
         if (!open && _search.HasFocus()) _search.ReleaseFocus();
         _open.Step(open, delta);
         var window = GetViewport().GetVisibleRect().Size;
-        float restTop = window.Y - Slots.Margin - _at.Height;
-        if (_open.Shown) _open.Lay(window.X / 2 - _at.Width / 2, restTop, _at.Width, _at.Height);
-        else _modes.Visible = _focus.Visible = _hints.Visible = _pointerHint.Visible = false;
-        int drop = _open.Drop(restTop);
-        if (drop != _drop)
+        float restTop = TabletPeek.Floor(window.Y, EdgeRow.Grown(_ui.Slot)) - _at.Height;
+        if (_open.Shown)
         {
-            _drop = drop;
+            _open.Lay(window.X / 2 - _at.Width / 2, restTop, _at.Width, _at.Height);
+            _modes.Modulate = _focus.Modulate = _hints.Modulate = Colors.White with { A = (float)_open.Up };
+        }
+        else _modes.Visible = _focus.Visible = _hints.Visible = _pointerHint.Visible = false;
+        int lift = (int)Mathf.Round(window.Y - restTop - _at.Height);
+        if (lift != _lift)
+        {
+            _lift = lift;
             Dock();
         }
     }
@@ -284,6 +287,12 @@ public partial class BuildMenu : CanvasLayer
         HandCard card => ItemIcons.Icon(card.Item),
         _ => BlueprintArt.Thumbnail(((PlaceTool)tool).Placement),
     };
+
+    /// <summary>Every card's picture made, as a surface loads: made on the first opening, they froze it some 140 ms.</summary>
+    public static void Warm()
+    {
+        foreach (var tool in Tools.All) ThumbOf(tool);
+    }
 
     /// <summary>Whether the menu shows the wiring's or the piping's cards (0110): the plan out in that mode, aboard.</summary>
     private bool ToolMenu => _hand.ToolCards.Count > 0;
@@ -358,7 +367,7 @@ public partial class BuildMenu : CanvasLayer
     {
         bool open = _hand.PlanOut.Get();
         // The bezel's top at its dock, wherever the tablet is in its slide.
-        _ui.MenuTop = open ? GetViewport().GetVisibleRect().Size.Y - Slots.Margin - _at.Height - TabletLayout.BezelAbove : null;
+        _ui.MenuTop = open ? GetViewport().GetVisibleRect().Size.Y - _lift - _at.Height : null;
         if (!open)
         {
             _tips.Show(null);

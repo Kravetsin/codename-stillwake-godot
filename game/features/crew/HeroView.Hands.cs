@@ -71,10 +71,16 @@ public partial class HeroView
         // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
         // The gesture key: a tap points, held its wheel opens by the arrow (gestures-for-words); clicks meanwhile use nothing.
         float wheelScale = _ui.Slot / (float)Slots.Base;
-        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && GetViewport().GuiGetFocusOwner() is not LineEdit;
+        bool typing = GetViewport().GuiGetFocusOwner() is LineEdit;
+        bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && !typing && !_locked;
         var mouse = GetViewport().GetMousePosition();
-        var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), GestureWheel.Middle * wheelScale);
-        _wheelView.Show(_wheel, wheelScale);
+        var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
+        _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
+        // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
+        if (!DroneOpen(_droneMode) && DroneModes.Next(_droneMode, _droneOpen) is { } otherMode) _droneMode = otherMode;
+        bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
+        if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
+        _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
         if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
         _ping.Step(elapsedMs);
@@ -83,7 +89,7 @@ public partial class HeroView
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         // Seated or flying, what is in hand works nothing: no swing, run, shot or canister's breath (Seating.Held).
-        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree && !_wheel.Open;
+        bool acts = !passedOut && !Seating.Held(m, client.Id) && handFree && !_wheel.Open && !_droneWheel.Open;
         bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
         if (seated && pressed && !passedOut)
         {
@@ -95,6 +101,8 @@ public partial class HeroView
         var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, pace, targets, budget);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);
+        // E on the core: the drone's meeting plays from the press, the sim pairing them meanwhile (drone-meeting).
+        if (uses.Commands.Any(c => c is Sim.Crew.PairDrone) && !m.Players.HasDrone(client.Id) && !m.Crew.CoreLost()) MeetHere(client, m);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it; on a square, while any of its plans can be worked.
         bool working = builds && (targets != null ? targets.Any(t => t.Problem == null) : aim is { InReach: true, Work.Problem: null });

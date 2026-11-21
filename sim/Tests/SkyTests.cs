@@ -44,14 +44,13 @@ public class SkyTests
     private static int FeltOf(Scenario w) => w.On(1).Crew.Felt(0, w.On(1).Crew.HeroOf(0)!.Cell);
 
     /// <summary>
-    /// The ship with the strip opened and hero 0 beamed down to it in a helmet and no suit, wearing the cape when <paramref name="caped"/>:
-    /// the strip's mild night is felt only past a bare body's limit (2026-11-17-mild-climate).
+    /// The ship with the strip opened and hero 0 beamed down to it bare, wearing the cape when <paramref name="caped"/>: the strip's
+    /// mild night is felt only past a bare body's limit (2026-11-17-mild-climate); a helmet alone keeps it out (gear-roles).
     /// </summary>
     private static Scenario Down(bool caped = false)
     {
         var w = new Scenario(Ship) { Bare = true };
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
-        w.Wear(0, Content.Helmet.Basic);
         if (caped) w.Wear(0, Content.Cape.Item);
         return w.Do(new Transfer(1)).Run();
     }

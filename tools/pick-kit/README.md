@@ -12,6 +12,7 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | `build.js` | `node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>]`: writes `<out-dir>/index.html`, then checks it |
 | `pages/drone-holo.js` | the worked example: the drone's hologram in the planner sheet's place |
 | `pages/title-tether.js` | a whole-scene page (`scene`): the title screen's scene, a limp hero on a tether |
+| `pages/drone-vision.js` | a page without the bag (`window: false`): the drone's meeting as a vision before the giant core |
 
 ## Rules
 
@@ -33,6 +34,7 @@ the kit's names (`rr`, `css`, `halo`, `SIGN`, `drawDrone`, `plateIdle`, `newHero
 | Field | What |
 | --- | --- |
 | `title`, `heading` | the tab's title, the `h1` |
+| `window` | `false` for a page without the bag: no open schedule, ghost, Tab key or bag pictures, no open-mode or hero buttons; its step places the heroes, who do not run |
 | `lead` | HTML: `<p class="lead">` paragraphs, then `<p class="miss">` saying what the page does not show |
 | `toggles` | `{ id, key, opts: [[label, value], …], label?, bar?, saved?, short? }`: buttons setting `OPT[key]`, its first value the default; `bar: 1` sits beside the kit's own (open mode, hero, speed, pause), others on a second bar; a `saved` one goes into the pick under `key`, named `short` in its text |
 | `pick` | `{ doc, subject, what: [accusative, instrumental] }`: the db doc, the copy text's subject, the candidate's word in the hints |
@@ -53,11 +55,14 @@ Each is optional; the kit calls it with the tile `T` (`T.c` the canvas, `T.S` de
 | --- | --- |
 | `init(T)` | a tile is made: add its own state and heroes (`T.heroes`, drawn in order) |
 | `onScale(T)` | the tile's device scale changed: remake its buffers |
-| `step(T, dt)` | after the hero moved and the window opened or closed, before poses: set `h.e` and `h.hl` (how far each hero holds the planner sheet, at which look), the page's own clocks |
+| `step(T, dt)` | after the hero moved and the window opened or closed, before poses: set `h.e` and `h.hl` (how far each hero holds the planner sheet, at which look), the page's own clocks; a pose of its own on the rig's joints through `h.kn` (how far to the kneel, `KNEEL`), `h.lean` (the body forward about the hip, rad) and `h.rk` / `h.rp` (how far the front hand goes to a point, world px from the feet) |
+| `back(T)` | in place of the kit's starry floor: the page's own world, under the heroes |
 | `aim(T, h)` | a screen point the hero's drone turns its lens to, or null for its lamp's way |
+| `ownDrone(T, h)` | true while the page draws this hero's drone and lamp itself; the kit's spring keeps following `h.d.p` |
 | `overHero(T, h)` | drawn over a hero, under its drone |
 | `platesAway(T, h)` | true when the drone's plates are away and the page draws them |
 | `overDrone(T, h)` | drawn over a hero's drone |
+| `screen(T)` | over the whole finished picture, under the HUD: a screen effect (it may read `T.cv`) |
 | `hud(T)` | the line of text beside the Tab key |
 | `scene(T, dt)` | each frame, in place of the kit's world (floor, hero loop, drone, window, Tab key): the page draws its whole tile |
 
@@ -73,7 +78,8 @@ The second must print `CHECK FAILED`: a check is proven by breaking its rule onc
 
 - `K.at(frame, fn)`, `K.seg(barId, i)` (the i-th button), `K.click(tile, selector)`, `K.ptrAll([x, y] | null)` (the real pointer
   on every tile), `K.forceSeq(frame)` (forced open and close turns at every moment of both);
-- `K.run(frames, (tile, frame) => …)` at 60 fps; `K.fail(text)` fails the check; `K.clicks` holds when the ghost took a stack.
+- `K.run(frames, (tile, frame) => …)` at 60 fps; `K.fail(text)` fails the check; `K.clicks` holds when the ghost took a stack;
+  `K.picked()` is the db doc the current pick writes (without its time), or null before a pick.
 
 The kit adds the errors thrown, the canvas calls, the ghost's clicks and the pick's status line; `CHECK OK` needs no error, no
 `fail`, no external URL, and the page's `true`.

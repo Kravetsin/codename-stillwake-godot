@@ -19,11 +19,26 @@ public sealed record Reputation(int Level, IReadOnlyList<Tally> Base, long BaseW
 /// <summary>A purchase from the mafia on its way (2026-11-08-mafia-deliveries): <c>Good</c> the market node it is for, <c>Id</c> its own, never reused.</summary>
 public sealed record Delivery(int Id, string Good);
 
+/// <summary>What one player has learned for themself (own-knowledge): the items held, in the order first held; what they understood from them, sorted ordinally.</summary>
+public sealed class Learner
+{
+    [JsonInclude] internal int Peer { get; set; }
+    [JsonInclude] internal List<string> Found { get; set; } = [];
+    [JsonInclude] internal List<string> Granted { get; set; } = [];
+    /// <summary><c>Found</c> as a set, for the lookup a slot: derived, never saved.</summary>
+    [JsonIgnore] internal HashSet<string> Held { get; } = new(StringComparer.Ordinal);
+}
+
 /// <summary>The knowledge's slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class KnowledgeState
 {
-    /// <summary>The blueprints and crafts known, granted at the start or bought since, by id, sorted ordinally.</summary>
+    /// <summary>The blueprints, crafts and upgrades every player knows: the map's start and what the crew bought, sorted ordinally (own-knowledge).</summary>
     [JsonInclude] internal List<string> Granted { get; set; } = [];
+    /// <summary>What each player has learned for themself, by peer.</summary>
+    [JsonIgnore] internal List<Learner> Learners { get; set; } = [];
+    /// <summary>Learners as saved: none written while none has learned.</summary>
+    [JsonInclude, JsonPropertyName("learners"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Learner>? SavedLearners { get => Learners.Count > 0 ? Learners : null; set => Learners = value ?? []; }
     /// <summary>The ship's credits.</summary>
     [JsonInclude] internal int Credits { get; set; }
     /// <summary>What the crew has obtained, each item once, in the order first obtained.</summary>
@@ -54,8 +69,20 @@ public sealed class KnowledgeState
 /// <summary>What research and trade read of what the crew knows and has earned.</summary>
 public interface IKnowledgeQueries
 {
-    /// <summary>Whether the blueprint or craft <paramref name="id"/> is known: granted at the start or bought.</summary>
+    /// <summary>Whether every player knows the blueprint, craft or upgrade <paramref name="id"/>: the map's start, or bought by the crew.</summary>
     bool Granted(string id);
+    /// <summary>Whether <paramref name="peer"/> knows <paramref name="id"/>: everyone's, or understood from what they held.</summary>
+    bool Knows(int peer, string id);
+    /// <summary>Whether any player knows <paramref name="id"/>: what the ship's machines and the world's events go by.</summary>
+    bool KnowsAny(string id);
+    /// <summary>What <paramref name="peer"/> knows, the start's and their own, sorted ordinally.</summary>
+    IReadOnlyList<string> KnownIds(int peer);
+    /// <summary>The peers who have learned anything for themselves, in peer order.</summary>
+    IReadOnlyList<int> Learners { get; }
+    /// <summary>The items <paramref name="peer"/> has held, each once, in the order first held.</summary>
+    IReadOnlyList<string> Found(int peer);
+    /// <summary>Whether <paramref name="peer"/> has ever held <paramref name="item"/>.</summary>
+    bool HasFound(int peer, string item);
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
     /// <summary>The blueprints and crafts known, sorted ordinally.</summary>
@@ -91,8 +118,12 @@ public interface IKnowledgeOps
     void Earn(int credits);
     /// <summary>Takes <paramref name="credits"/> from the ship's; the caller checks they are there.</summary>
     void Spend(int credits);
-    /// <summary>The blueprint or craft <paramref name="id"/> is known: kept once, in order.</summary>
+    /// <summary>Every player knows <paramref name="id"/>: kept once, in order. The start's, a purchase's, a test's or a dev run's.</summary>
     void Grant(string id);
+    /// <summary><paramref name="peer"/> has understood <paramref name="id"/>: kept once, in order.</summary>
+    void Grant(int peer, string id);
+    /// <summary><paramref name="peer"/> holds <paramref name="item"/>: found once, in the order first held.</summary>
+    void Find(int peer, string item);
     /// <summary>The crew has obtained <paramref name="count"/> of <paramref name="item"/>; none or less counts for nothing.</summary>
     void Obtain(string item, int count);
     /// <summary><paramref name="count"/> of <paramref name="item"/> has been sold for <paramref name="worth"/> credits in all; none or less counts for nothing.</summary>
@@ -131,9 +162,64 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
     {
         _obtainedAt.Clear();
         for (int i = 0; i < State.Obtained.Count; i++) _obtainedAt[State.Obtained[i].Item] = i;
+        _learners.Clear();
+        foreach (var learner in State.Learners)
+        {
+            _learners.Add(learner.Peer);
+            learner.Held.Clear();
+            learner.Held.UnionWith(learner.Found);
+        }
     }
 
-    public bool Granted(string id) => State.Granted.BinarySearch(id, StringComparer.Ordinal) >= 0;
+    /// <summary>The peers in <c>Learners</c>, in peer order: derived.</summary>
+    private readonly List<int> _learners = [];
+
+    public bool Granted(string id) => In(State.Granted, id);
+
+    private static bool In(List<string> sorted, string id) => sorted.BinarySearch(id, StringComparer.Ordinal) >= 0;
+
+    private Learner? LearnerOf(int peer)
+    {
+        foreach (var learner in State.Learners)
+            if (learner.Peer == peer) return learner;
+        return null;
+    }
+
+    /// <summary><paramref name="peer"/>'s record, made empty in peer order on first need.</summary>
+    private Learner Learner(int peer)
+    {
+        if (LearnerOf(peer) is { } had) return had;
+        var made = new Learner { Peer = peer };
+        int at = State.Learners.FindIndex(l => l.Peer > peer);
+        if (at < 0) at = State.Learners.Count;
+        State.Learners.Insert(at, made);
+        _learners.Insert(at, peer);
+        return made;
+    }
+
+    public bool Knows(int peer, string id) => Granted(id) || LearnerOf(peer) is { } l && In(l.Granted, id);
+
+    public bool KnowsAny(string id)
+    {
+        if (Granted(id)) return true;
+        foreach (var learner in State.Learners)
+            if (In(learner.Granted, id)) return true;
+        return false;
+    }
+
+    public IReadOnlyList<string> KnownIds(int peer)
+    {
+        if (LearnerOf(peer) is not { Granted.Count: > 0 } l) return State.Granted;
+        var all = State.Granted.Concat(l.Granted).Distinct(StringComparer.Ordinal).ToList();
+        all.Sort(StringComparer.Ordinal);
+        return all;
+    }
+
+    public IReadOnlyList<int> Learners => _learners;
+
+    public IReadOnlyList<string> Found(int peer) => LearnerOf(peer)?.Found ?? [];
+
+    public bool HasFound(int peer, string item) => LearnerOf(peer) is { } l && l.Held.Contains(item);
 
     public int Credits => State.Credits;
 
@@ -192,6 +278,23 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
         Version++;
     }
 
+    public void Grant(int peer, string id)
+    {
+        if (Knows(peer, id)) return;
+        var granted = Learner(peer).Granted;
+        granted.Insert(~granted.BinarySearch(id, StringComparer.Ordinal), id);
+        Version++;
+    }
+
+    public void Find(int peer, string item)
+    {
+        if (LearnerOf(peer) is { } had && had.Held.Contains(item)) return;
+        var learner = Learner(peer);
+        learner.Found.Add(item);
+        learner.Held.Add(item);
+        Version++;
+    }
+
     public void Obtain(string item, int count)
     {
         if (count <= 0) return;
@@ -202,7 +305,6 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
             _obtainedAt[item] = State.Obtained.Count;
             State.Obtained.Add(new Tally(item, count));
         }
-        Version++;
     }
 
     public void Sell(string item, int count, long worth)

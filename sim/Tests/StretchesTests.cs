@@ -70,12 +70,17 @@ public class StretchesTests
         Assert.Contains("\"sky\":{\"time\":0}", w.World.Save());
     }
 
-    [Theory]
-    [InlineData("quiltedHelmet")]
-    [InlineData("heavyHelmet")]
-    public void EitherWarmHelmetAloneOpensTheBeltWhichComesAtItsFirstWarnsRunsAndEnds(string helmet)
+    [Fact]
+    public void TheHeavyHelmetOpensNothingNowItIsNoWarmerThanTheBasic()
     {
-        var w = Obtain(Ship().Run(), helmet).Run();
+        var w = Obtain(Ship().Run(), Content.Helmet.Heavy).Run(2000);
+        Assert.Empty(S(w).Opened);
+    }
+
+    [Fact]
+    public void TheHeatedHelmetAloneOpensTheBeltWhichComesAtItsFirstWarnsRunsAndEnds()
+    {
+        var w = Obtain(Ship().Run(), Content.Helmet.Heated).Run();
         Assert.Equal([Belt.Id], S(w).Opened);
         Assert.Equal(Belt.Id, S(w).Next);
         int first = S(w).NextIn;
@@ -105,7 +110,7 @@ public class StretchesTests
     [Fact]
     public void TheRailgunObtainedDuringTheBeltBringsTheDriftNextAndNeverBeforeTheBeltEnds()
     {
-        var w = Obtain(Ship().Run(), Content.Helmet.Quilted);
+        var w = Obtain(Ship().Run(), Content.Helmet.Heated);
         RunUntil(w, () => Now(w).Stretch == Belt.Id);
         Obtain(w, Content.Shots.Railgun.Item).Run();
         Assert.Equal([Belt.Id, Drift.Id], S(w).Opened);
@@ -123,7 +128,7 @@ public class StretchesTests
     [Fact]
     public void AnOlderSaveWithTheHelmetLongObtainedGetsItsFirstStretchAtItsFirstNeverOnItsFirstTick()
     {
-        var w = Obtain(Ship().Run(), Content.Helmet.Heavy).Run(50);
+        var w = Obtain(Ship().Run(), Content.Helmet.Heated).Run(50);
         Assert.Contains("\"opened\"", w.World.Save());
         // As a save from before stretches: the sky its hour alone.
         string older = Regex.Replace(w.World.Save(), "\"sky\":\\{[^}]*\\}", "\"sky\":{\"time\":0}");
@@ -140,9 +145,9 @@ public class StretchesTests
     {
         var w = Ship();
         w.Do(new Enter(Beyond)).Do(new SetCreative(true)).Run();
-        w.Do(new Spawn(Content.Helmet.Quilted, 1)).Do(new Spawn(Content.Shots.Railgun.Item, 1)).Run(20);
+        w.Do(new Spawn(Content.Helmet.Heated, 1)).Do(new Spawn(Content.Shots.Railgun.Item, 1)).Run(20);
         Assert.Empty(w.Refusals);
-        Assert.Contains(w.M.Items.Inventory(0), s => s?.Item == Content.Helmet.Quilted);
+        Assert.Contains(w.M.Items.Inventory(0), s => s?.Item == Content.Helmet.Heated);
         Assert.Empty(S(w).Opened);
         Assert.Null(S(w).Next);
     }
@@ -150,7 +155,7 @@ public class StretchesTests
     [Fact]
     public void StretchNowOpensItAndBringsItAfterItsWarningInPlaceOfTheOneChosen()
     {
-        var w = Obtain(Ship().Run(), Content.Helmet.Quilted).Run();
+        var w = Obtain(Ship().Run(), Content.Helmet.Heated).Run();
         Assert.Equal(Belt.Id, S(w).Next);
         w.Do(new StretchNow(Drift.Id)).Run();
         Assert.Empty(w.Refusals);
@@ -196,7 +201,7 @@ public class StretchesTests
     public void ARunningStretchSavesLoadsAndPlaysOnTheSame()
     {
         var w = Ship();
-        Obtain(w, Content.Helmet.Quilted).Do(new StretchNow(Belt.Id)).Run(Belt.Warning + 10);
+        Obtain(w, Content.Helmet.Heated).Do(new StretchNow(Belt.Id)).Run(Belt.Warning + 10);
         Assert.Equal(Belt.Id, Now(w).Stretch);
         var loaded = Ship().Reload(w.World.Save());
         Assert.Equal(w.World.Hash(), loaded.World.Hash());

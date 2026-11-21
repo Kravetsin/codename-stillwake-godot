@@ -32,7 +32,7 @@ public sealed partial class HazardsModule
     {
         var s = State;
         if (s.FlareIn > 0 && --s.FlareIn == 0) StrikeFlare(FlareRules);
-        if (s.FlareIn != 0 || s.Calm || Rules.Flares is not { } flare || !_research.Knows(MagneticFlares.ArmedBy)) return;
+        if (s.FlareIn != 0 || s.Calm || Rules.Flares is not { } flare || !_research.KnowsAny(MagneticFlares.ArmedBy)) return;
         s.FlareIn = flare.EveryMin + (int)Random.Below((uint)(flare.EveryMax - flare.EveryMin + 1));
     }
 

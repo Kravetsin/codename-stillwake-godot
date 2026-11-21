@@ -25,7 +25,7 @@ A living document: what is decided about the game and what is still open. Techni
 - **Places and their dangers:** the starting space is mild — debris, light meteors every few minutes
   that break a weak hull now and then, and now and then a random event such as a great cluster of
   debris or another wreck. Harder places bring their own dangers (see meteors below). As the crew gets further, the ship
-  drifts through stretches of space, seen coming for three minutes: the ice belt, once a warm helmet is found, bitter cold
+  drifts through stretches of space, seen coming for three minutes: the ice belt, once the heated helmet is found, bitter cold
   and ice to mine; the contraband drift, once the railgun is, the mafia's crates that bring the catchers
   ([stretches-of-space](decisions/2026-11-15-stretches-of-space.md)).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
@@ -33,25 +33,25 @@ A living document: what is decided about the game and what is still open. Techni
 - **Who:** a scavenger who was a slave aboard a ship, thin, in what was issued, a tracker still on the leg.
 - **Start:** the hero is left alive in the torn-off scoop of a scavenger, and has to make it livable to
   survive: an iron room whose air the lifepod makes, a lock each way, the open hold on the left and on the right a
-  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). Everything is caught as debris: a furnace built of caught salvage burns
+  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). In the landing's floor lies an alien core: E on it shows the hero a vision and gives them their companion, a light drone, for good ([drone-companion](decisions/2026-11-21-drone-companion.md), [drone-meeting](decisions/2026-11-21-drone-meeting.md)). Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
 - **The world** is 2048×1024 cells of space with the wreck in its middle; the ship is built only
   within the middle 1024×512, the build zone, and the space round it is there to fly out into
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
-- **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The black
+- **Room is bought:** a hero starts with the hotbar alone, the drone opening two rows of bag ([drone-companion](decisions/2026-11-21-drone-companion.md)), one belt slot, and two slots in a trade station. The black
   market's rings sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
-- **Things are learned by having them:** a blueprint or craft is understood once one of each of its parts has been caught, made,
+- **Things are learned by having them,** each player for themselves: a blueprint or craft is understood once that player has had one of each of its parts caught, made,
   taken apart, dug, felled or looted, and a craft once a machine making it stands
-  too; known stays known. The wreck knows nothing from its start: the first walls at the first chunk. The tablet holds a board that writes
-  itself: a note for each thing found, threads to pale shapes of what is closest to done, each saying what it lacks; a note picked
+  too; known stays known, and a purchase is known to everyone ([own-knowledge](decisions/2026-11-21-own-knowledge.md)). The wreck knows nothing from its start: the first walls at the first chunk. A hologram holds a board that writes
+  itself: a note for each thing this player found, threads to pale shapes of what is closest to done, each saying what it lacks; a note picked
   shows what it takes, where it is made and what it goes into ([the-board](decisions/2026-11-05-the-board.md)).
 - **Salvage is sold:** a trade station, of plates, wire and a found circuit so it comes after the first benches
   ([trade-station-later](decisions/2026-11-06-trade-station-later.md)), sends what is put in it off by capsule, thirty seconds till its credits come back, however
   much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. What things are worth
   is worked out from their recipes ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). Credits buy only on the black market,
-  the tablet's other page: room, and what cannot be made. Every good is shown, its price ciphered until the mafia's
+  the hologram's other page: room, and what cannot be made. Every good is shown, its price ciphered until the mafia's
   reputation reaches its level; a level rises by selling, what it wants at full worth and anything else at a seventh
   ([market-grid](decisions/2026-11-03-market-grid.md), [mafia-reputation](decisions/2026-11-08-mafia-reputation.md)).
   A purchase drifts in along a trade station's row, to be caught or broken open: an upgrade a parcel, the rest a crate; gear
@@ -73,10 +73,10 @@ A living document: what is decided about the game and what is still open. Techni
   their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space
   ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). It also makes its room's air as a first generator, with no power, so
   the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
-- **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet adds its air past the lungs' 20, the body
-  withstands the cold down to its limit, −110° for the basic ([body-temperature](decisions/2026-11-18-body-temperature.md)); the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
+- **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet adds its air past the lungs' 20, and both
+  add degrees of cold and heat to the bare body's, −110° and +50° for the basic pair ([body-temperature](decisions/2026-11-18-body-temperature.md), [gear-roles](decisions/2026-11-21-gear-roles.md)); the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
   helmet adds 80 to the basic 25 (totals 100 and 45, [air-segments](decisions/2026-11-15-air-segments.md)), sold on the black market by the jetpack's time ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)); between
-  them the quilted helmet's +50, sewn at the workbench round the basic one of a planet's cloth ([quilted-helmet](decisions/2026-11-14-quilted-helmet-and-traced-art.md)).
+  them the heated helmet's +50, made at the workbench round the basic one, good to −150° and so the ice belt's; the heat helmet and heat suit, of mica and alloy, stand +80° ([gear-roles](decisions/2026-11-21-gear-roles.md)).
   A canister breathed gives 20, then not another for 25 s; more air a canister is food's, not gear's
   ([food-and-the-body](decisions/2026-11-12-food-and-the-body.md)). A hero has three meal slots: each food lasts
   minutes and changes the body's rates (calm: a breath costs less; deep: a canister gives more); with all three
@@ -146,7 +146,7 @@ A living document: what is decided about the game and what is still open. Techni
   the body to a tenth on a dial beside the charge's and the meals' ([hud-dials](decisions/2026-11-18-hud-dials.md)).
 - **Night on a planet:** a day of twenty minutes, the last six of them night. At night the open sky is 20° colder: a bare hero with no
   back wall behind feels it; caves, tunnels and back walls shelter. Dusk dims the light a minute before, and the dark is lit
-  by the helmet lamp ([night-chills](decisions/2026-11-07-night-chills.md)); the sun crosses the sky by the hour
+  by the light drone ([night-chills](decisions/2026-11-07-night-chills.md)); the sun crosses the sky by the hour
   ([moving-sun](decisions/2026-11-18-moving-sun.md)). Storms come: the dust's grit grinds a suit's air out in the open, the
   rain's lightning strikes every 12–18 s ([mild-surface](decisions/2026-11-18-mild-surface.md)).
 - **Hunting:** a planet's grazers, met in small herds of one kind, drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
@@ -171,7 +171,7 @@ A living document: what is decided about the game and what is still open. Techni
   side by side make one surface; the hero's parts are pictures too, moved and turned smoothly by
   its rig.
 - **Look: simple textures carried by light.** Light also tells the ship's state: an unpowered room is
-  dark but for helmet lamps, a venting room flashes red, starlight comes in through windows.
+  dark but for light drones, a venting room flashes red, starlight comes in through windows.
 - **Oxygen works like a power grid.** It comes as liquid: canisters are poured into tanks, and a powered
   vaporizer turns the liquid of the tanks piped to its input into air for the vents piped to its output
   ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); canisters are salvaged, not made
@@ -214,7 +214,7 @@ A living document: what is decided about the game and what is still open. Techni
   and motion: a room losing air pulses red, pipes carrying oxygen glow, a low suit reddens the
   screen's edges, air escaping through the hull is seen leaving. Text is on demand, in overlays and by
   the pointer.
-- **Light comes from sources, air has a view of its own.** Lamps on the power network, helmet lamps
+- **Light comes from sources, air has a view of its own.** Lamps on the power network, light drones
   and starlight through windows light the ship; a dark room means no light, never no air. Air is
   seen in its own view, as in Oxygen Not Included: the air overlay, cell by cell.
 - **Meteors belong to places.** Each place throws meteors of some power at the hull from the side the
