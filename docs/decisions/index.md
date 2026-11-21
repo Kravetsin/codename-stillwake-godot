@@ -417,3 +417,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted |  |
 | [own-knowledge](2026-11-21-own-knowledge.md) | Each player learns for themself; purchases are the crew's | accepted |  |
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
+| [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
