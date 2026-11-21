@@ -46,7 +46,7 @@ public class SpiderAboardTests
             return r with { Left = M + r.Left, Top = M + r.Top };
         }
 
-        /// <summary>Peer <paramref name="peer"/>'s hero's feet in cell (<paramref name="x"/>, <paramref name="y"/>), as its client reports it.</summary>
+        /// <summary>Peer <paramref name="peer"/>'s hero's body's middle in cell (<paramref name="x"/>, <paramref name="y"/>), as its client reports it.</summary>
         public Aboard Hero(int x, int y, int peer = 0)
         {
             W.Do(new Enter(Cell(x, y)) { From = peer });
@@ -80,6 +80,9 @@ public class SpiderAboardTests
 
     private static bool Awake(Creature c) => c.Posture is not (Posture.Docked or Posture.Waking);
 
+    /// <summary>The row a hero standing on floor row <paramref name="floor"/> reports: its body's middle's (<c>Hero.BodyCell</c>), 2.6 cells over its feet.</summary>
+    private static int Body(int floor) => floor - 3;
+
     /// <summary>A spider whose room has an inner door on its left, and that door.</summary>
     private static (Creature Spider, Vessel.Compartment Room, (int X, int Y) Door) WithLeftDoor(Aboard a)
     {
@@ -93,14 +96,14 @@ public class SpiderAboardTests
     {
         var a = new Aboard();
         var (spider, room, door) = WithLeftDoor(a);
-        int feet = room.Floor - 1;
+        int body = Body(room.Floor);
         a.W.Do(new SetDoor(a.Cell(door.X, door.Y), true));
-        a.Hero(door.X - 3, feet).Run(60);
+        a.Hero(door.X - 3, body).Run(60);
         Assert.False(a.Shut(door.X, door.Y));
         Assert.Equal(Posture.Docked, spider.Posture);
-        a.Hero(door.X, feet).Run(30).Hero(door.X + 1, feet).Run(30);
+        a.Hero(door.X, body).Run(30).Hero(door.X + 1, body).Run(30);
         Assert.Equal(Posture.Docked, spider.Posture);
-        a.Hero(room.Left, feet).Run();
+        a.Hero(room.Left, body).Run();
         Assert.Equal(Posture.Waking, spider.Posture);
         Assert.All(a.Spiders.Where(s => s != spider), s => Assert.Equal(Posture.Docked, s.Posture));
         a.Run(Wake - 2);
@@ -144,18 +147,18 @@ public class SpiderAboardTests
     public void KilledItGivesTheSentrysYields() => Assert.Equal(Spec.Sentry.Yields, Spec.Spider.Yields);
 
     /// <summary>Woken by a step into its room, then its hero gone into the room on its left behind the door between, shut.</summary>
-    private static (Aboard A, Creature Spider, (int X, int Y) Door, int Feet) BehindADoor()
+    private static (Aboard A, Creature Spider, (int X, int Y) Door, int Body) BehindADoor()
     {
         var a = new Aboard();
         var (spider, room, door) = WithLeftDoor(a);
-        int feet = room.Floor - 1;
-        a.Hero(room.Left + 1, feet).Run(Wake + 1);
+        int body = Body(room.Floor);
+        a.Hero(room.Left + 1, body).Run(Wake + 1);
         Assert.True(Awake(spider));
-        a.Hero(door.X - 4, feet);
+        a.Hero(door.X - 4, body);
         if (!a.Shut(door.X, door.Y)) a.W.Do(new SetDoor(a.Cell(door.X, door.Y), false));
         a.Run();
         Assert.True(a.Shut(door.X, door.Y));
-        return (a, spider, door, feet);
+        return (a, spider, door, body);
     }
 
     [Fact]
@@ -172,17 +175,17 @@ public class SpiderAboardTests
     [Fact]
     public void ADoorOpenedAndShutAgainWhileItPriesStartsItsWaitOver()
     {
-        var (a, spider, door, feet) = BehindADoor();
+        var (a, spider, door, body) = BehindADoor();
         Assert.True(a.RunTill(() => spider.Recall(ProwlDrive.PryKey) != 0, 300));
         int since = spider.Recall(ProwlDrive.PrySince);
         a.Run(Prowl.Pry / 2);
         // Opened, its hero gone back behind it: it turns away; shut again once the door rests, the hero beyond it again.
         a.W.Do(new SetDoor(a.Cell(door.X, door.Y), true));
-        a.Hero(spider.X / U + 6, feet).Run();
+        a.Hero(spider.X / U + 6, body).Run();
         Assert.Equal(0, spider.Recall(ProwlDrive.PryKey));
         a.Run(Content.Doors.SwingTicks);
         a.W.Do(new SetDoor(a.Cell(door.X, door.Y), false));
-        a.Hero(door.X - 4, feet).Run();
+        a.Hero(door.X - 4, body).Run();
         Assert.True(a.Shut(door.X, door.Y));
         int shut = a.V.Creatures.Clock;
         Assert.True(a.RunTill(() => !a.Shut(door.X, door.Y), 400));
@@ -213,18 +216,36 @@ public class SpiderAboardTests
         var a = new Aboard();
         var spider = a.Spiders.MaxBy(s => s.Y)!;
         var room = a.Room(spider);
-        a.Hero(room.Left + 1, room.Floor - 1).Run(Wake + 1);
+        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1);
         Assert.True(Awake(spider));
         // The hero up a deck, in the room over the well: the spider climbs the well, prying its hatch.
         var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Where(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1).Single();
-        a.Hero(hatch.X + 6, hatch.Y - 1);
+        a.Hero(hatch.X + 6, Body(hatch.Y));
         int up = a.Level(hatch.Y - 1);
         Assert.True(a.RunTill(() => a.Level(spider.Y / U - 1) == up && a.Grounded(spider) && spider.Posture != Posture.Climbing, 900),
             $"at {spider.X},{spider.Y} {spider.Posture}");
         Assert.False(a.Shut(hatch.X, hatch.Y));
         // Back down: it drops down through the hatch.
-        a.Hero(room.Left + 2, room.Floor - 1);
+        a.Hero(room.Left + 2, Body(room.Floor));
         Assert.True(a.RunTill(() => a.Level(spider.Y / U - 1) == a.Level(room.Floor - 1) && a.Grounded(spider), 900), $"at {spider.X},{spider.Y} {spider.Posture}");
+    }
+
+    [Fact]
+    public void ItPouncesAtTheMiddleOfItsHerosBodyNotOverHisHead()
+    {
+        var a = new Aboard();
+        var spider = a.Spiders.MaxBy(s => s.Y)!;
+        var room = a.Room(spider);
+        a.Hero(room.Left + 1, Body(room.Floor));
+        Assert.True(a.RunTill(() => spider.Act is { Move: 0, Phase: ActPhase.WindUp }, 300), $"it never crouched: {spider.Posture}");
+        // Crouched, its hero steps eight cells off on its floor: it flies at him there.
+        int x = spider.X / U + (spider.X / U - room.Left > room.Width / 2 ? -8 : 8);
+        a.Hero(x, Body(room.Floor));
+        Assert.True(a.RunTill(() => spider.Act is { Phase: ActPhase.Active }, Spec.Sentry.Moves.OfType<Spec.Pounce>().Single().WindUp + 1));
+        // Its flight's line, from its middle, passes within half a cell of his body's middle, 2.6 cells over his feet.
+        long dx = x * U + U / 2 - spider.X, dy = room.Floor * U - Content.Hero.Height / 2 - (spider.Y - Spec.Spider.Body.Height * U / 2);
+        long cross = spider.VX * dy - spider.VY * dx, run = (long)spider.VX * spider.VX + (long)spider.VY * spider.VY;
+        Assert.True(cross * cross <= U / 2 * (U / 2) * run, $"flying {spider.VX},{spider.VY} from {spider.X},{spider.Y} at a hero {dx},{dy} off");
     }
 
     [Fact]
@@ -233,9 +254,9 @@ public class SpiderAboardTests
         var a = new Aboard();
         var spider = a.Spiders.MaxBy(s => s.Y)!;
         var room = a.Room(spider);
-        a.Hero(room.Left + 1, room.Floor - 1).Run(Wake + 1);
+        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1);
         int far = room.Left + room.Width + 12;
-        a.Hero(far, room.Floor - 1).Run(400);
+        a.Hero(far, Body(room.Floor)).Run(400);
         Assert.True(Awake(spider));
         Assert.True(Math.Abs(spider.X / U - far) < Math.Abs(room.Left + room.Width / 2 - far), $"at {spider.X / U}, its hero at {far}");
     }
@@ -246,7 +267,7 @@ public class SpiderAboardTests
         var a = new Aboard();
         var spider = a.Spiders.MaxBy(s => s.Y)!;
         var room = a.Room(spider);
-        a.Hero(room.Left + 1, room.Floor - 1).Run(Wake + 1).Hero(room.Left + room.Width + 12, room.Floor - 1).Run(20);
+        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1).Hero(room.Left + room.Width + 12, Body(room.Floor)).Run(20);
         // Out past the way in, into space: aboard no more.
         var door = Shipyard.WayIn(a.Vessel);
         a.Hero(M + door.X - 4, M + door.Y + Content.Vessels.Open - 1).Run(40);
@@ -306,7 +327,7 @@ public class SpiderAboardTests
             {
                 // The hero somewhere aboard, on a room's floor; now and then a blow on a spider, a doorway set.
                 var r = rooms[(int)rng.Below((uint)rooms.Count)];
-                w.Do(new Enter((M + r.Floor - 1) * v.Grid.Width + M + r.Left + (int)rng.Below((uint)r.Width)));
+                w.Do(new Enter((M + Body(r.Floor)) * v.Grid.Width + M + r.Left + (int)rng.Below((uint)r.Width)));
                 var all = v.Creatures.Creatures;
                 if (rng.Below(3) == 0 && all.Count > 0) w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item));
                 if (rng.Below(3) == 0)
@@ -359,18 +380,18 @@ public class SpiderAboardTests
         var spider = v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id).MaxBy(c => c.Y)!;
         var dock = v.Creatures.Docks[CreaturesModule.DockOf(spider)!.Value];
         var room = vessel.Compartments[dock.Room];
-        int feet = M + room.Floor - 1, id = spider.Id;
+        int body = M + Body(room.Floor), id = spider.Id;
         // Woken by a step in, its hero then behind the door on its left, shut: a pry.
-        Both(new Enter(feet * width + M + room.Left + 1));
+        Both(new Enter(body * width + M + room.Left + 1));
         Run(Wake + 5);
         int door = (M + room.Top) * width + M + room.Left - 2;
-        Both(new Enter(feet * width + M + room.Left - 6));
+        Both(new Enter(body * width + M + room.Left - 6));
         if (Doorways.IsOpen(v.Grid.StructureAt(door))) Both(new SetDoor(door, false));
         Run(Prowl.Pry + 60);
         Both(new Strike(id, Content.Weapons.Axe.Item));
         // Up a deck: a hunt up the well.
         var hatch = vessel.Hatches.Where(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1).Single();
-        Both(new Enter((M + hatch.Y - 1) * width + M + hatch.X + 6));
+        Both(new Enter((M + Body(hatch.Y)) * width + M + hatch.X + 6));
         Run(60);
         Both(new Enter(a.Crew.Spawn) { From = 1 });
         Both(new Transfer(surface) { From = 1 });

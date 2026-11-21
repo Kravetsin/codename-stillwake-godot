@@ -26,11 +26,13 @@ internal static class SpireHall
     }
 
     public static int Post(Scenario w, string kind) => w.On(1).Building.Plants.First(p => p.Kind == kind).Cell;
+    /// <summary>The row a hero standing on the hall's floor (row 56) reports: its body's middle's (<c>Hero.BodyCell</c>).</summary>
+    public const int Body = 53;
 
-    public static Scenario InHall(this Scenario w, int peer = 0) => w.Do(new Enter(Cell(w, 25, 55)) { From = peer }).Run();
+    public static Scenario InHall(this Scenario w, int peer = 0) => w.Do(new Enter(Cell(w, 25, Body)) { From = peer }).Run();
 
     /// <summary>The hero beside the end wall, in the rock outside it, as one digging its own way in.</summary>
-    public static Scenario BesideWall(this Scenario w) => w.Do(new Enter(Cell(w, -2, 55))).Run();
+    public static Scenario BesideWall(this Scenario w) => w.Do(new Enter(Cell(w, -2, Body))).Run();
 
     public static Scenario RunTill(this Scenario w, Func<bool> done, int most = 400)
     {
@@ -136,7 +138,7 @@ public class SpireGuardTests
     public void ItCrouchesThenFliesStraightAndStopsFlushAtAWall()
     {
         var (w, a, _) = Posted();
-        w.Do(new Enter(Cell(w, 25, 55))).RunTill(() => a.Act != null);
+        w.Do(new Enter(Cell(w, 25, Body))).RunTill(() => a.Act != null);
         Assert.Equal((Posture.WindUp, Pounce.WindUp), (a.Posture, a.Act!.Left));
         var (x, y) = (a.X, a.Y);
         w.Run(Pounce.WindUp - 1);
@@ -176,7 +178,7 @@ public class SpireGuardTests
     public void AHitCostsFiveAndLeavesItStuckAndAStuckGuardHitsNobody()
     {
         var (w, a, _) = Posted(breathing: false);
-        w.Do(new Enter(Cell(w, 25, 55))).RunTill(() => a.Act is { Phase: ActPhase.Active });
+        w.Do(new Enter(Cell(w, 25, Body))).RunTill(() => a.Act is { Phase: ActPhase.Active });
         int suit = Suit(w);
         Assert.Null(M(w).Creatures.HitByProblem(a.Id));
         w.Do(new HitBy(a.Id)).Run();
@@ -383,7 +385,7 @@ public class SpireGuardTests
     public void AGuardsFlightAndItsMemorySurviveALoad()
     {
         var (w, a, _) = Posted();
-        w.Do(new Enter(Cell(w, 25, 55))).RunTill(() => a.Act is { Phase: ActPhase.Active });
+        w.Do(new Enter(Cell(w, 25, Body))).RunTill(() => a.Act is { Phase: ActPhase.Active });
         int id = a.Id;
         w.Reload();
         var loaded = Guards(w).Single(g => g.Id == id);
