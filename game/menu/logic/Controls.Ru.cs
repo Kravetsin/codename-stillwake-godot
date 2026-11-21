@@ -28,7 +28,7 @@ public static partial class Ru
         ["bind.modeBuild"] = "Режим стройки",
         ["bind.modeWiring"] = "Режим проводов",
         ["bind.modePiping"] = "Режим труб",
-        ["bind.tablet"] = "Планшет",
+        ["bind.tablet"] = "Изучения",
         ["bind.market"] = "Чёрный рынок",
         ["bind.handbook"] = "Справочник",
         ["bind.air"] = "Слой воздуха",

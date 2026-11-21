@@ -88,7 +88,7 @@ public static partial class En
         ["research.goal.build"] = "build",
         ["research.goal.make"] = "make",
         ["research.atLifepod"] = "At the lifepod",
-        ["research.key"] = "Tablet ({key:tablet})",
+        ["research.key"] = "Research ({key:tablet})",
         ["research.marketKey"] = "Black market ({key:market})",
         ["research.creditsTip"] = "Credits: what salvage sold for, spent at the black market",
         ["research.gate.order1"] = "Level 1",

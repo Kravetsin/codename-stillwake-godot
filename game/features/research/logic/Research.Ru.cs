@@ -88,7 +88,7 @@ public static partial class Ru
         ["research.goal.build"] = "построить",
         ["research.goal.make"] = "сделать",
         ["research.atLifepod"] = "В спасательной капсуле",
-        ["research.key"] = "Планшет ({key:tablet})",
+        ["research.key"] = "Изучения ({key:tablet})",
         ["research.marketKey"] = "Чёрный рынок ({key:market})",
         ["research.creditsTip"] = "Кредиты: выручка за проданный лом, тратятся на чёрном рынке",
         ["research.gate.order1"] = "Уровень 1",
