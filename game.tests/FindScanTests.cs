@@ -168,5 +168,51 @@ public class FindScanTests
         Assert.Equal(1, scan.Holding);
     }
 
+    /// <summary>The scan learned at the tenth wreck (drone-lessons): its loot first, then the form's icon, no visit; one batch on the key.</summary>
+    [Fact]
+    public void AFormLearnedByADeedComesAfterTheBatchsItemsWithNoVisit()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(new BoardBatch(BoardSeen.CauseFound, ["iron"], ["iron", "scanner"]));
+        scan.Read(Board, batches, open: false);
+        Assert.Equal(1, scan.Holding);
+        scan.Step(FindScan.Lead + FindScan.Rise + FindScan.Sweep + 1e-6, drone: true);
+        Assert.Null(scan.Visiting);
+        Assert.Equal("scanner", scan.Over!.Value.Item);
+    }
+
+    /// <summary>The lamp learned passing a lamp: the drone first visits it, then the form comes in over the head as a find does.</summary>
+    [Fact]
+    public void AFormLearnedFromAMachineIsVisitedFirstThenScannedOverTheHead()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(new BoardBatch(BoardSeen.CauseOpened, [], ["droneLamp"]));
+        scan.Read(Board, batches, open: false);
+        Assert.Equal(1, scan.Holding);
+        scan.Step(FindScan.Lead + FindScan.Visit / 2, drone: true);
+        Assert.Equal(new FindVisit("droneLamp", 0.5), scan.Visiting!.Value with { Progress = System.Math.Round(scan.Visiting!.Value.Progress, 6) });
+        Assert.Null(scan.Over);
+        Assert.Equal(0, scan.Records);
+        scan.Step(FindScan.Visit / 2 + FindScan.Rise + FindScan.Sweep / 2, drone: true);
+        Assert.Null(scan.Visiting);
+        Assert.Equal("droneLamp", scan.Over!.Value.Item);
+        Assert.Equal(0.5, scan.Over!.Value.Sweep!.Value, 6);
+        scan.Step(FindScan.Sweep / 2 + FindScan.Fold + FindScan.Fly + 1e-6, drone: true);
+        Assert.Equal(0, scan.Holding);
+        Assert.False(FindScan.Form("iron", out _));
+        Assert.True(FindScan.Form("droneAlarms", out bool near) && near);
+    }
+
+    [Fact]
+    public void WithNoDroneAFormLandsAtOnce()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(new BoardBatch(BoardSeen.CauseOpened, [], ["droneAlarms"]));
+        scan.Read(Board, batches, open: false);
+        scan.Step(0.01, drone: false);
+        Assert.Null(scan.Visiting);
+        Assert.Equal(0, scan.Holding);
+    }
+
     private static FindRecord Rounded(FindRecord r) => r with { Fold = System.Math.Round(r.Fold, 6) };
 }

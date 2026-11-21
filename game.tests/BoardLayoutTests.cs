@@ -24,6 +24,23 @@ public class BoardLayoutTests
         Assert.True(strays.Count == 0, $"not on the board: {string.Join(", ", strays)}");
     }
 
+    /// <summary>«Спутник» (drone-lessons): the drone's forms, a known one shown, the rest a «?» with no pencil, nothing missing named, no market mark.</summary>
+    [Fact]
+    public void TheCompanionDistrictHoldsTheFormsAndAnUnknownOneGivesNoHint()
+    {
+        Assert.Equal(Stillwake.Content.Lessons.Forms, BoardDistricts.All.Single(d => d.Id == "companion").Things);
+        var read = new BoardRead([], ["scanner"], _ => true, _ => true);
+        Assert.Equal(BoardState.Known, BoardView.StateOf("scanner", read));
+        foreach (var form in (string[])["droneLamp", "droneAlarms"])
+        {
+            Assert.True(BoardThings.Form(form));
+            Assert.Equal(BoardState.Unknown, BoardView.StateOf(form, read));
+            Assert.Equal(0, BoardView.PencilOf(form, read));
+            Assert.Empty(BoardView.MissingOf(form, read));
+            Assert.False(BoardThings.Market(form));
+        }
+    }
+
     [Fact]
     public void EveryDistrictHasACaption() =>
         Assert.All(BoardDistricts.All, d => Assert.True(En.Table.ContainsKey($"research.district.{d.Id}"), d.Id));

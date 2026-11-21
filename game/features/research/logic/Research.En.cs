@@ -74,6 +74,7 @@ public static partial class En
         ["research.district.farm"] = "Farm and food",
         ["research.district.walls"] = "Walls and structures",
         ["research.district.gear"] = "Tools and gear",
+        ["research.district.companion"] = "Companion",
         ["research.finds"] = "Finds",
         ["research.finds.readAll"] = "Read all",
         ["research.finds.none"] = "Nothing yet.",

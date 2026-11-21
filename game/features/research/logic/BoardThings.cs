@@ -24,9 +24,12 @@ public static class BoardThings
 
     private static readonly Dictionary<string, BoardThing> ById = All.GroupBy(t => t.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
-    /// <summary>Every id with a frame: items but containers, wreckage and the like, then blueprints and crafts.</summary>
+    /// <summary>Every id with a frame: items but containers, wreckage and the like, then blueprints and crafts, then the drone's forms (drone-lessons).</summary>
     public static readonly IReadOnlyList<string> Ids =
-        [.. Content.Items.All.Where(i => i.Group != ItemGroup.Other).Select(i => i.Id).Concat(All.Select(t => t.Id)).Distinct(StringComparer.Ordinal)];
+        [.. Content.Items.All.Where(i => i.Group != ItemGroup.Other).Select(i => i.Id).Concat(All.Select(t => t.Id)).Concat(Lessons.Forms).Distinct(StringComparer.Ordinal)];
+
+    /// <summary>Whether <paramref name="id"/> is a form the drone learns (drone-lessons): drawn as its thread icon, never pencilled in.</summary>
+    public static bool Form(string id) => Lessons.Forms.Contains(id, StringComparer.Ordinal);
 
     /// <summary>The machine kinds that make or work something.</summary>
     public static readonly IReadOnlyList<string> Machines = [.. Stations.All.Select(s => s.Machine).Distinct(StringComparer.Ordinal)];

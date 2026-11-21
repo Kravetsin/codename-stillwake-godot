@@ -74,6 +74,7 @@ public static partial class Ru
         ["research.district.farm"] = "Ферма и еда",
         ["research.district.walls"] = "Стены и постройки",
         ["research.district.gear"] = "Инструменты и снаряжение",
+        ["research.district.companion"] = "Спутник",
         ["research.finds"] = "Находки",
         ["research.finds.readAll"] = "Прочитать всё",
         ["research.finds.none"] = "Пока ничего.",

@@ -8,7 +8,8 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// The drone scanning a find (<see cref="FindScan"/>, find-scan), seen by this player only: the item's icon as the bag draws it over the hero's head, the
 /// scan's line swept down it on two threads from the drone's eye, the icon folding into one ember, and the ember flying on its thread to the research
-/// key, which flares as it lands. The icon and the sweep are on the HUD's layer, under the windows; the flight and the flare over the edge's keys.
+/// key, which flares as it lands. A form learned from a machine (drone-lessons) is first visited: the drone flies over the machine and sweeps it the
+/// same way. The icon and the sweep are on the HUD's layer, under the windows; the flight and the flare over the edge's keys.
 /// </summary>
 public partial class FindScanView : Node
 {
@@ -26,7 +27,8 @@ public partial class FindScanView : Node
     private readonly Func<Rect2?> _key;
     private readonly Func<Vector2?> _head, _eye;
     private readonly Func<int> _slot;
-    private readonly Action<Vector2?> _stare;
+    private readonly Action<Vector2?> _stare, _visit;
+    private readonly Func<string, Rect2?> _teacher;
     private readonly CanvasLayer _hud = new() { Layer = ScreenLayers.Hud }, _edge = new() { Layer = ScreenLayers.TabletEdge };
     /// <summary>The icons, as the bag draws them; the sweep and the folding embers, added; the flying embers and the key's flare, added.</summary>
     private readonly Node2D _icons = new() { TextureFilter = CanvasItem.TextureFilterEnum.Nearest }, _swept = new(), _flown = new();
@@ -34,6 +36,11 @@ public partial class FindScanView : Node
     private bool _drawn;
     /// <summary>This frame's point over the head the icons sit on and the drone's eye, screen px; null without them.</summary>
     private Vector2? _overAt, _eyeAt;
+    /// <summary>The machine the drone is visiting this frame, screen px, and how far the visit has gone; null for none.</summary>
+    private (Rect2 Box, double Progress)? _visiting;
+
+    /// <summary>How far over a visited machine's top the drone hangs, world px; when in its visit the sweep starts and how long it takes, shares of it.</summary>
+    private const float Hover = 10, SweepFrom = 0.4f, SweepFor = 0.5f;
 
     /// <param name="scan">When it plays, read by the research key.</param>
     /// <param name="inWorld">Whether a world is played.</param>
@@ -43,9 +50,12 @@ public partial class FindScanView : Node
     /// <param name="eye">Where its drone's eye is, world px; null while no drone floats by it.</param>
     /// <param name="slot">The bag's slot's side, screen px: an icon is as large as in the bag.</param>
     /// <param name="stare">Where the drone keeps its eye, world px: on the icon it scans; null for none.</param>
-    public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<Vector2?> eye, Func<int> slot, Action<Vector2?> stare)
+    /// <param name="teacher">The box, world px, of the machine near the hero a form is learned from; null for none.</param>
+    /// <param name="visit">Where the drone flies to, world px, while it visits a machine; null for none.</param>
+    public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<Vector2?> eye, Func<int> slot, Action<Vector2?> stare,
+        Func<string, Rect2?> teacher, Action<Vector2?> visit)
     {
-        (_scan, _inWorld, _art, _key, _head, _eye, _slot, _stare) = (scan, inWorld, art, key, head, eye, slot, stare);
+        (_scan, _inWorld, _art, _key, _head, _eye, _slot, _stare, _teacher, _visit) = (scan, inWorld, art, key, head, eye, slot, stare, teacher, visit);
         foreach (var added in (ReadOnlySpan<Node2D>)[_swept, _flown]) added.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         _icons.Draw += DrawIcons;
         _swept.Draw += DrawSwept;
@@ -67,7 +77,10 @@ public partial class FindScanView : Node
         var canvas = GetViewport().GetCanvasTransform();
         _overAt = head is { } neck ? canvas * (neck - new Vector2(0, Above)) : null;
         _eyeAt = eye is { } e ? canvas * e : null;
-        _stare(_scan.Over is { } over && _overAt is { } at ? canvas.AffineInverse() * Centre(at, over.Item, over.In) : null);
+        var box = world && _scan.Visiting is { } visit ? _teacher(visit.Form) is { } b ? (b, visit.Progress) : ((Rect2, double)?)null : null;
+        _visiting = box is { } v ? (canvas * v.Item1, v.Item2) : null;
+        _visit(box is { } at2 ? new Vector2(at2.Item1.GetCenter().X, at2.Item1.Position.Y - Hover) : null);
+        _stare(box is { } seen ? seen.Item1.GetCenter() : _scan.Over is { } over && _overAt is { } at ? canvas.AffineInverse() * Centre(at, over.Item, over.In) : null);
         bool on = _scan.Busy;
         if (on || _drawn)
         {
@@ -76,6 +89,23 @@ public partial class FindScanView : Node
             _flown.QueueRedraw();
         }
         _drawn = on;
+    }
+
+    /// <summary>
+    /// The box, world px, of the machine on <paramref name="m"/>'s surface <paramref name="peer"/>'s hero learns <paramref name="form"/> from, the
+    /// nearest within reach (drone-lessons); null for none, or a form learned by a deed.
+    /// </summary>
+    public static Rect2? TeacherOf(Sim.Registry m, int peer, string form)
+    {
+        if (m.Crew.HeroOf(peer) is not { } hero) return null;
+        foreach (var lesson in Stillwake.Content.Lessons.All)
+            if (lesson.Form == form && lesson.Source is Stillwake.Content.Near near && m.Lessons.Teacher(hero.Cell, near.Machine) is { } machine)
+            {
+                var spec = Stillwake.Content.Machines.Get(machine.Kind);
+                int w = m.Grid.Width;
+                return new Rect2(new Vector2(machine.Cell % w, machine.Cell / w) * Camera.Cell, new Vector2(spec.Width, spec.Height) * Camera.Cell);
+            }
+        return null;
     }
 
     /// <summary>An item's icon's side, as the bag draws it.</summary>
@@ -111,27 +141,22 @@ public partial class FindScanView : Node
         int side = Side(item);
         float size = side * scale;
         if (size < 0.5f || alpha <= 0.003f) return;
-        _icons.DrawTextureRect(ItemIcons.Icon(item, side), new Rect2(centre - Vector2.One * size / 2, Vector2.One * size), false, new Color(1, 1, 1, alpha));
+        // A drone's form shows its thread icon (drone-lessons), an item its bag picture.
+        var picture = FormPictures.Of(item, side) ?? ItemIcons.Icon(item, side);
+        _icons.DrawTextureRect(picture, new Rect2(centre - Vector2.One * size / 2, Vector2.One * size), false, new Color(1, 1, 1, alpha));
     }
 
     /// <summary>The scan's line swept down the icon, a thread to each of its ends from the drone's eye; each record's ember kindling as it folds.</summary>
     private void DrawSwept()
     {
+        if (_visiting is { } visiting && (visiting.Progress - SweepFrom) / SweepFor is var swept and > 0 and < 1)
+            SweepAcross(visiting.Box, (float)swept);
         if (_overAt is not { } at) return;
         if (_scan.Over is { Sweep: { } sweep and > 0 and < 1 } over)
         {
             var centre = Centre(at, over.Item, over.In);
-            float half = Side(over.Item) / 2f, y = MathF.Round(centre.Y - half + (float)sweep * 2 * half) + 0.5f, reach = half * 17 / 16;
-            Vector2 a = new(centre.X - reach, y), e = new(centre.X + reach, y);
-            if (_eyeAt is { } eye)
-            {
-                _swept.DrawLine(eye, a, Ember with { A = 0.12f }, 1);
-                _swept.DrawLine(eye, e, Ember with { A = 0.12f }, 1);
-            }
-            _swept.DrawLine(a, e, Ember with { A = 0.1f }, 3);
-            _swept.DrawLine(a, e, Ember with { A = 0.85f }, 1);
-            Square(_swept, a, 2, Hot);
-            Square(_swept, e, 2, Hot);
+            float half = Side(over.Item) / 2f, reach = half * 17 / 16;
+            SweepAcross(new Rect2(centre.X - reach, centre.Y - half, 2 * reach, 2 * half), (float)sweep);
         }
         for (int i = 0; i < _scan.Records; i++)
         {
@@ -141,6 +166,22 @@ public partial class FindScanView : Node
             Halo(_swept, from, 5 + 6 * fold, 0.3f + 0.4f * fold);
             Square(_swept, from, Pixel * (0.6f + 0.4f * fold), Hot);
         }
+    }
+
+    /// <summary>The scan's line swept down <paramref name="box"/>, an icon's or a visited machine's, <paramref name="swept"/> of the way, a thread to each end from the drone's eye.</summary>
+    private void SweepAcross(Rect2 box, float swept)
+    {
+        float y = MathF.Round(box.Position.Y + swept * box.Size.Y) + 0.5f;
+        Vector2 a = new(box.Position.X, y), e = new(box.End.X, y);
+        if (_eyeAt is { } eye)
+        {
+            _swept.DrawLine(eye, a, Ember with { A = 0.12f }, 1);
+            _swept.DrawLine(eye, e, Ember with { A = 0.12f }, 1);
+        }
+        _swept.DrawLine(a, e, Ember with { A = 0.1f }, 3);
+        _swept.DrawLine(a, e, Ember with { A = 0.85f }, 1);
+        Square(_swept, a, 2, Hot);
+        Square(_swept, e, 2, Hot);
     }
 
     /// <summary>Each ember flying on its thread to the key, a tail behind it; the key's flare as one lands, a ring spreading off it.</summary>

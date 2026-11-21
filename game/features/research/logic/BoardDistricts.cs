@@ -50,6 +50,8 @@ public static class BoardDistricts
             "fireAxe", "railgun", "powerDriver", "accumulator", "battery", "heatSuit", "jetpack", "cape", "regenSuit", "suit",
             "heatedHelmet", "heatHelmet", "heavyHelmet", "lightDrone", "helmet",
         ]),
+        // The drone's forms (drone-lessons), «Спутник»: known ones show, the rest a «?» with no hint.
+        new("companion", 1, Stillwake.Content.Lessons.Forms),
     ];
 
     private static readonly Dictionary<string, string> ById = All.SelectMany(d => d.Things.Select(t => (t, d.Id))).GroupBy(p => p.t, StringComparer.Ordinal)

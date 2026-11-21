@@ -848,6 +848,9 @@ public partial class Figure : Node2D
     /// <summary>A point of the world its drone's eye stays on, in pixels, over its lamp's aim: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare { get; set; }
 
+    /// <summary>A point of the world its drone flies to, in pixels: over a machine it learns a form from (drone-lessons); null for none.</summary>
+    public Vector2? DroneVisit { get; set; }
+
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
 
@@ -1852,6 +1855,7 @@ public partial class Figure : Node2D
                 ModeLook = lens,
                 Out = !awake,
                 Signing = signing,
+                Visit = !overDrone && DroneVisit is { } visit ? new Vec(visit.X, visit.Y) : null,
             };
             var intent = _will.Pick(senses, elapsedMs);
             _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);

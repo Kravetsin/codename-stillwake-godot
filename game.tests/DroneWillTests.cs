@@ -31,6 +31,21 @@ public class DroneWillTests
         Assert.True(InHome(settle.Goal, Anchor));
     }
 
+    /// <summary>A machine to learn from (drone-lessons): flown to and looked at, under a window and a dart, over a perch; never a dart, never red.</summary>
+    [Fact]
+    public void AVisitOutranksAPerchButNotAWindowOrADart()
+    {
+        var will = Will();
+        var machine = new Vec(300, 180);
+        var visit = will.Pick(Still with { Visit = machine }, 16);
+        Assert.Equal(machine, visit.Goal);
+        Assert.True(visit.Look.X < 0);
+        Assert.False(visit.Darting);
+        Assert.Equal(0, visit.Tint);
+        Assert.Equal(WindowAt, will.Pick(Still with { Visit = machine, Window = WindowAt }, 16).Goal);
+        Assert.Equal(Meteor.At, will.Pick(Still with { Visit = machine, Meteor = Meteor }, 16).Goal);
+    }
+
     [Fact]
     public void ADartLastsWhileItsDangerDoesThenItReturnsAndNeverDartsTwiceAtTheSameOne()
     {

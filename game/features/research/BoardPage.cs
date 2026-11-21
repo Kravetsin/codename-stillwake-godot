@@ -1052,6 +1052,11 @@ public sealed class BoardPage : ITabletPage
     private void FactsOf(string id, Control facts)
     {
         bool note = Had(id);
+        if (BoardThings.Form(id))
+        {
+            if (note) facts.AddChild(Text(T($"item.{id}.about"), Style.Slate500));
+            return;
+        }
         var thing = BoardThings.Of(id);
         var link = TechLinks.Of(id);
         if (link.Takes.Count > 0)
@@ -1097,6 +1102,8 @@ public sealed class BoardPage : ITabletPage
     private Tip TipOf(string id)
     {
         if (!Had(id)) return new Tip(_strip.NameOf(id));
+        // A drone's form is no item: its name and what it does (drone-lessons).
+        if (BoardThings.Form(id)) return new Tip(_strip.NameOf(id), [new TipLine(T($"item.{id}.about"), Tone.Dim)]);
         if (_strip.PlacementOf(id) is not { } placement) return new Tip(_strip.NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
         if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));

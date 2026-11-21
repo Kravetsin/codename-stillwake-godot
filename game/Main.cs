@@ -458,7 +458,8 @@ public partial class Main : Node2D, ITogether
         }
         AddChild(edge);
         AddChild(new FindScanView(tech.Scan, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null,
-            () => _hero?.Shown?.Head, () => _hero?.DroneScan?.Eye, () => _hands.Ui.Slot, at => { if (_hero != null) _hero.DroneStare = at; }));
+            () => _hero?.Shown?.Head, () => _hero?.DroneScan?.Eye, () => _hands.Ui.Slot, at => { if (_hero != null) _hero.DroneStare = at; },
+            form => _session is Session s ? FindScanView.TeacherOf(_m, s.Client.Id, form) : null, at => { if (_hero != null) _hero.DroneVisit = at; }));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {

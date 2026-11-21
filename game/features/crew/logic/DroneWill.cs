@@ -10,7 +10,8 @@ public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spr
 /// <summary>
 /// What a light drone senses this frame (drone-motion ADR), pixels of the world: its hero's anchor and surface, where it
 /// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the meteor
-/// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing.
+/// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing; the machine it visits to learn a form from
+/// (drone-lessons).
 /// </summary>
 public readonly record struct DroneSenses(
     Vec Anchor,
@@ -23,14 +24,15 @@ public readonly record struct DroneSenses(
     Vec? Hunter = null,
     bool Low = false,
     bool Out = false,
-    bool Signing = false);
+    bool Signing = false,
+    Vec? Visit = null);
 
 /// <summary>What the drone wants this frame: where to fly, where its lens looks (a unit vector), how red it is, 0..1, and whether it darts.</summary>
 public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool Darting);
 
 /// <summary>
-/// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near,
-/// held still while its hero signs, else a perch of its own by the anchor, picked again when bored.
+/// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near, a machine it
+/// visits to learn from (drone-lessons), held still while its hero signs, else a perch of its own by the anchor, picked again when bored.
 /// A hunter leans it his way. Its own <see cref="Random"/> picks the perches: they differ between screens, as decoration may.
 /// </summary>
 public sealed class DroneWill
@@ -74,6 +76,7 @@ public sealed class DroneWill
             // Passed out, its hero cannot be left: it keeps to the anchor, looking its own way.
             (goal, look) = senses.Out ? (anchor, _perchLook)
                 : danger is { } there ? (there, Toward(senses.At, there, _perchLook))
+                : senses.Visit is { } visit ? (visit, Toward(senses.At, visit, _perchLook))
                 : _signHeld is { } held ? (DroneFlight.Plus(anchor, held), _perchLook)
                 : (DroneFlight.Plus(anchor, _perch), _perchLook);
             if (senses.Hunter is { } hunter) goal = DroneFlight.Plus(goal, DroneFlight.Scaled(Toward(anchor, hunter, default), T.Lean));
