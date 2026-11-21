@@ -849,7 +849,13 @@ public partial class Figure : Node2D
     public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Seats, _drone.LensBox.GetCenter(), _drone.Tint) : null;
 
     /// <summary>What the scanner's gauge does now: whether it reads a thing, and how far each dot is out from its mark (<see cref="LightDrone.Gauge"/>).</summary>
-    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _drone.Gauge(reads, away);
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away)
+    {
+        _droneReads = reads;
+        _drone.Gauge(reads, away);
+    }
+
+    private bool _droneReads;
 
     /// <summary>A point of the world its drone's eye stays on, in pixels, over its lamp's aim: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare { get; set; }
@@ -1865,6 +1871,8 @@ public partial class Figure : Node2D
                 Out = !awake,
                 Signing = signing,
                 Visit = !overDrone && DroneVisit is { } visit ? new Vec(visit.X, visit.Y) : null,
+                Icon = Senses.Icon || DroneStare != null || DroneVisit != null,
+                Reads = _droneReads,
             };
             var intent = _will.Pick(senses, elapsedMs);
             if (DroneAlarm is { } red) intent = intent with { Tint = Math.Max(intent.Tint, red) };

@@ -65,6 +65,29 @@ public class DroneSwarmTests
         }
     }
 
+    /// <summary>A thought (drone-thoughts): its share of sparks on its picture over the core, unturned, the rest orbiting; another thought is a change.</summary>
+    [Fact]
+    public void AThoughtTakesItsShareOntoItsPictureOverTheCore()
+    {
+        var swarm = new DroneSwarm();
+        foreach (var thought in (DroneThought[])[DroneThought.Cold, DroneThought.Love])
+        {
+            swarm.Become(SwarmShape.Thought, 0.4f, 1, thought: thought);
+            Assert.Equal(thought, swarm.Thought);
+            double t = 6;
+            int taken = 0;
+            for (int i = 0; i < Sparks; i++)
+            {
+                var spark = swarm.SparkAt(i, 0.4f, t);
+                if (Math.Abs(spark.X - DroneSwarm.Orbit(i, (float)t).X) < 1e-4f && Math.Abs(spark.Y - DroneSwarm.Orbit(i, (float)t).Y) < 1e-4f) continue;
+                taken++;
+                Assert.True(OffShape(swarm, SwarmShape.Thought, 0, spark.X, spark.Y, t) < 1e-3f, $"spark {i} off the {thought}");
+                Assert.True(spark.Y < -DroneInk.ThoughtAbove + DroneInk.ThoughtSize + 1e-3f, $"spark {i} under the {thought}");
+            }
+            Assert.InRange(taken, (int)(Sparks * DroneInk.ThoughtShare * 0.8), (int)(Sparks * DroneInk.ThoughtShare * 1.2));
+        }
+    }
+
     [Fact]
     public void TheReticleTakesEverySparkByThePicksSharesOneSittingOnEachMark()
     {

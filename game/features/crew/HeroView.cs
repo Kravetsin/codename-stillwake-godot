@@ -263,9 +263,23 @@ public partial class HeroView : Node2D
     public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _figure.DroneGauge(reads, away);
 
     /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
-    public Vector2? DroneStare { set => _figure.DroneStare = value; }
+    public Vector2? DroneStare
+    {
+        set
+        {
+            _figure.DroneStare = value;
+            _droneFinds = value != null;
+        }
+    }
     /// <summary>A point of the world this hero's drone flies to: over a machine it learns a form from (drone-lessons); null for none.</summary>
-    public Vector2? DroneVisit { set => _figure.DroneVisit = value; }
+    public Vector2? DroneVisit
+    {
+        set
+        {
+            _figure.DroneVisit = value;
+            _droneVisits = value != null;
+        }
+    }
     /// <summary>The form this hero's drone shows off by the head, just learned, and how many seconds into the show (drone-lessons); null for none.</summary>
     public (string Form, double Seconds)? DroneBecoming { private get; set; }
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
@@ -656,7 +670,19 @@ public partial class HeroView : Node2D
         (_figure.HeadLamp, _figure.Scanner) = DroneBecoming is { } becoming ? DroneModes.Becoming(becoming.Form) : DroneModes.Shown(_figure.Paired, _droneMode, _knows);
         _figure.DroneAlarm = DroneBecoming is { } alarms && alarms.Form == Stillwake.Content.LightDrone.AlarmsMode ? DroneModes.AlarmPulse(alarms.Seconds) : null;
         _figure.DroneWindow = _ui.DroneWindow;
-        _figure.Senses = DroneSensesOf(m, client.Id, _surface);
+        _figure.Senses = DroneSensesOf(m, client.Id, _surface) with
+        {
+            Own = true,
+            Alarms = _knows(Stillwake.Content.LightDrone.AlarmsMode),
+            Cold = m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)),
+            Heat = m.Crew.Heat(client.Id, _current.BodyCell(grid.Width)),
+            Wonder = DroneWonderOf(m, known, elapsedMs),
+            Icon = DroneBecoming != null,
+            Finding = _droneFinds && !_droneVisits,
+            Proud = DroneProud(),
+            Woke = woke,
+            Quiet = _locked || seat != null,
+        };
         _ui.DroneAt = _figure.DroneLens is { } droneLens ? (droneLens.GetCenter().X, droneLens.GetCenter().Y) : null;
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;

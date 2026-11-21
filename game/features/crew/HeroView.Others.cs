@@ -280,6 +280,42 @@ public partial class HeroView
         return new DroneSenses(default, default, surface, Meteor: meteor, Bolt: bolt, Hunter: hunter, Low: low);
     }
 
+    // Its own drone's cues for its thoughts (drone-thoughts): an item's icon scanned, a lesson's machine visited, the form it last showed off.
+    private bool _droneFinds, _droneVisits;
+    private string? _droneShowed;
+    private DroneWonder? _wonder;
+    private double _wonderMs;
+
+    /// <summary>
+    /// The nearest machine within <c>Lessons.Wonder</c> of <paramref name="hero"/> that teaches a form its player does not know (drone-thoughts),
+    /// its top's middle in px; looked for twice a second, not each frame.
+    /// </summary>
+    private DroneWonder? DroneWonderOf(Registry m, Sim.Crew.Hero? hero, double elapsedMs)
+    {
+        if ((_wonderMs -= elapsedMs) > 0) return _wonder;
+        _wonderMs = WonderEveryMs;
+        _wonder = null;
+        if (hero == null) return null;
+        int width = m.Grid.Width;
+        foreach (var lesson in Content.Lessons.All)
+            if (lesson.Source is Content.Near near && !_knows(lesson.Form) && m.Lessons.Teacher(hero.Cell, near.Machine, Content.Lessons.Wonder) is { } machine)
+            {
+                var spec = Content.Machines.Get(machine.Kind);
+                _wonder = new DroneWonder(machine.Cell, new Vec((machine.Cell % width + spec.Width / 2.0) * Rig.Cell, machine.Cell / width * Rig.Cell));
+                break;
+            }
+        return _wonder;
+    }
+
+    private const double WonderEveryMs = 500;
+
+    /// <summary>Whether a deed lesson's show just ended this frame (drone-thoughts): the drone is proud.</summary>
+    private bool DroneProud()
+    {
+        string? was = _droneShowed;
+        _droneShowed = DroneBecoming?.Form;
+        return was != null && _droneShowed == null && Content.Lessons.All.Any(l => l.Form == was && l.Source is Content.Deed);
+    }
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>
         DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod,

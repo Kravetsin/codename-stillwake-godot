@@ -162,6 +162,82 @@ function soot(c, D, t, front) {
   c.restore();
 }
 
+// ---------- the drone's thoughts and moods (drone-thoughts), the pick «Контур»: tools/pick-kit/pages/drone-moods.js, candidate outline ----------
+// Its pictures (PICT) as the pick drew them, a box -1..1 (y down), the alarms as drone-thoughts.js drew them too; its clock, its flows,
+// its heat and how each mood moves the body (MOTION), in the pick's px over the world and seconds. Written to DroneInk.cs.
+// The pictures of the pick «Контур» (drone-moods.js, candidate outline), each polylines in a box -1..1, y down; the alarms' icon is its meteor.
+function thoughtPictures() {
+  const TAU = Math.PI * 2;
+  const arcP = (cx, cy, rx, ry, a0, a1, n = 18) => { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return p; };
+  const circ = (cx, cy, r, n = 22) => arcP(cx, cy, r, r, 0, TAU, n);
+  const heart = (cx, cy, s, n = 36) => { const p = []; for (let i = 0; i <= n; i++) { const a = i / n * TAU; p.push([cx + s * 16 * Math.pow(Math.sin(a), 3) / 17, cy - s * (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)) / 17 - .15 * s]); } return p; };
+  const G = {};
+  G.cold = [];
+  for (let i = 0; i < 3; i++) { const a = Math.PI / 2 + i * Math.PI / 3; G.cold.push([[-Math.cos(a), -Math.sin(a)], [Math.cos(a), Math.sin(a)]]); }
+  for (let i = 0; i < 6; i++) { const a = Math.PI / 2 + i * Math.PI / 3, P = [Math.cos(a) * .56, Math.sin(a) * .56], b = q => [P[0] + Math.cos(q) * .32, P[1] + Math.sin(q) * .32]; G.cold.push([b(a - .9), P, b(a + .9)]); }
+  const C = [-.42, .42], rock = [];
+  [.36, .3, .38, .29, .35, .31, .37].forEach((r, i) => { const a = i / 7 * TAU + .3; rock.push([C[0] + Math.cos(a) * r, C[1] + Math.sin(a) * r]); });
+  rock.push(rock[0].slice());
+  const d = [.7071, -.7071], n = [.7071, .7071];
+  G.meteor = [rock, ...[[-.24, .75], [0, 1.05], [.24, .7]].map(([o, L]) => { const s = [C[0] + d[0] * .44 + n[0] * o, C[1] + d[1] * .44 + n[1] * o]; return [s, [s[0] + d[0] * L, s[1] + d[1] * L]]; })];
+  G.lightning = [[[.3, -1], [-.34, .08], [.14, .08], [-.28, 1]], [[-.28, 1], [-.27, .66]], [[-.28, 1], [-.02, .8]]];
+  G.heat = [-.55, 0, .55].map((x0, j) => { const p = []; for (let i = 0; i <= 16; i++) { const y = .72 - i / 16 * 1.66; p.push([x0 + .16 * Math.sin((.72 - y) * 5 + j * .6), y]); } return p; });
+  G.heat.push([[-.95, .95], [.95, .95]]);
+  G.curious = [arcP(0, -.44, .4, .4, Math.PI - .15, TAU + 1.05, 18).concat([[0, .1], [0, .4]]), circ(0, .8, .08, 8)];
+  G.bored = [-.6, 0, .6].map(x => circ(x, .2, .16, 10));
+  G.love = [heart(0, 0, 1)];
+  G.pride = [[[-.9, .6], [-.95, -.45], [-.45, .05], [0, -.72], [.45, .05], [.95, -.45], [.9, .6], [-.9, .6]], [[-.9, .32], [.9, .32]]];
+  return G;
+}
+
+function thoughtGlyphs() {
+  const G = thoughtPictures();
+  const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
+  const lines = ls => `[\n${ls.map(l => `        [${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}],`).join('\n')}\n    ]`;
+  const NAMES = [['Meteor', 'meteor', 'The meteor coming: a rock and three streaks behind it.'], ['Bolt', 'lightning', 'The bolt: a zigzag and its arrowhead.'],
+    ['Cold', 'cold', 'The cold: a snowflake of six arms.'], ['Heat', 'heat', 'The heat: three wavy rising lines over the ground.'],
+    ['Curious', 'curious', 'Curious: a question mark.'], ['Bored', 'bored', 'Bored: three dots.'], ['Love', 'love', 'Love: a heart.'], ['Pride', 'pride', 'Pride: a crown.']];
+  return `    /// <summary>
+    /// A thought or mood over the drone, the pick «Контур» (drone-moods.js, candidate outline): its picture, box -1..1 y down, stands ThoughtAbove pick px
+    /// over the core, ThoughtSize a unit; it forms over ThoughtIn, holds ThoughtHold, falls apart over ThoughtOut, s; its sparks flow along it at AlarmFlow
+    /// or MoodFlow, pick px a second.
+    /// </summary>
+    public const float ThoughtAbove = 50, ThoughtSize = 22, ThoughtIn = 0.4f, ThoughtHold = 1.5f, ThoughtOut = 0.4f, AlarmFlow = 42, MoodFlow = 18;
+
+    /// <summary>A thought's sparks' heat: an alarm's middle, swing and pace; a mood's, its sparks a step apart; a mood's threads this much of an alarm's.</summary>
+    public const float AlarmSpark = 0.75f, AlarmSparkSwing = 0.25f, AlarmSparkPace = 13, MoodSpark = 0.42f, MoodSparkSwing = 0.18f, MoodSparkPace = 4, MoodSparkStep = 1.7f, MoodThread = 0.7f;
+
+    /// <summary>An alarm's red as its picture shows: Low of it and Swing more, Beats a second.</summary>
+    public const float AlarmLow = 0.6f, AlarmSwing = 0.4f, AlarmBeats = 2.4f;
+
+    /// <summary>How a mood moves the body (the pick's MOTION), pick px over the world, radians and s: it comes in and goes over MoodIn.</summary>
+    public const float MoodIn = 0.5f;
+
+    /// <summary>Curious leans this far toward what it looks at, rises, and tilts its orbits.</summary>
+    public const float CuriousLean = 5, CuriousRise = 2, CuriousTilt = 0.45f;
+
+    /// <summary>A find: it hops this high at this pace, rocks, swells, hurries its orbits and glows.</summary>
+    public const float FindHop = 7, FindHopPace = 7, FindRock = 0.1f, FindSwell = 0.08f, FindHurry = 1.4f, FindGlow = 0.3f;
+
+    /// <summary>Bored: it sways at a pace, sinks, rocks at a pace, looks about and down, slows its orbits and dims.</summary>
+    public const float BoredSway = 5, BoredSwayPace = 0.9f, BoredSink = 6, BoredRock = 0.18f, BoredRockPace = 0.7f, BoredLookPace = 0.6f, BoredLookDown = 1.2f, BoredSlow = 0.65f, BoredDim = 0.3f;
+
+    /// <summary>Love: it presses to the helmet (LoveBehind, LoveOver world px from its middle, HelmetUp over the neck), bobs, tilts back, slows and glows.</summary>
+    public const float LoveBehind = 4.5f, LoveOver = 6.25f, HelmetUp = 6.2f, LoveBob = 1.5f, LoveBobPace = 3, LoveTilt = 0.2f, LoveSlow = 0.3f, LoveGlow = 0.2f;
+
+    /// <summary>Pride: it rises, swells, looks up and a little back, hurries its orbits and glows.</summary>
+    public const float PrideRise = 9, PrideSwell = 0.14f, PrideLookX = -0.3f, PrideLookY = -1, PrideHurry = 0.3f, PrideGlow = 0.25f;
+
+    /// <summary>
+    /// Dimmed, its orbits fade by OrbitDim of it, its coal's halo by HaloDim, its cracks and eye by CoalDim, its eye shrinks by EyeDim, its sparks cool
+    /// by SparkDim; a glow adds GlowHalo to the coal's halo.
+    /// </summary>
+    public const float OrbitDim = 0.5f, HaloDim = 0.5f, CoalDim = 0.7f, EyeDim = 0.5f, SparkDim = 0.6f, GlowHalo = 0.25f;
+
+${NAMES.map(([name, id, says]) => `    /// <summary>${says}</summary>
+    public static readonly float[][] Glyph${name} = ${lines(G[id])};`).join('\n\n')}`;
+}
+
 // ---------- the threads body (drone-threads), the pick «Нити»: tools/pick-kit/pages/drone-embers.js, candidate threads ----------
 // Its shapes' polylines and its numbers, as the pick drew them, written to the game (DroneInk.cs): the game moves and lights them.
 // Pick px: about the drone the kit draws drone_core at DS·DSC = 0.63 px a unit, the game at 0.25 world px; over the world 4 a world
@@ -185,6 +261,7 @@ function threadsInk() {
   fan.push(arcP(0, 0, 19, 19, -.8, .8, 14));
   const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
   const lines = ls => `[\n${ls.map(l => `        [${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}],`).join('\n')}\n    ]`;
+  const glyphs = thoughtGlyphs();
   const cs = `// Generated by tools/anime-art/subjects/drone.js: export again, never edit.
 namespace Stillwake.Game.Shared;
 
@@ -209,8 +286,8 @@ public static class DroneInk
     /// <summary>The orbits' pace, radians a second: the first's, each next's more, all hurried by Hurry; the middle one runs the other way.</summary>
     public const float OrbitPace = 0.8f, OrbitPaceMore = 0.25f, OrbitHurry = 2.2f;
 
-    /// <summary>A shape's share of the sparks; a thought's.</summary>
-    public const float Share = 0.8f, ThoughtShare = 0.72f;
+    /// <summary>A shape's share of the sparks; a thought's (drone-moods.js's <c>share</c>).</summary>
+    public const float Share = 0.8f, ThoughtShare = 0.7f;
 
     /// <summary>A mode's or a gesture's shape forms and falls apart in this long, s; a spark into it starts late by its share of Lag over Span, out of it by LagOut over SpanOut.</summary>
     public const float Form = 0.6f, Lag = 0.45f, Span = 0.55f, LagOut = 0.4f, SpanOut = 0.6f;
@@ -310,6 +387,8 @@ public static class DroneInk
 
     /// <summary>A hit: how long it lasts, s; the heat it adds to the lit; the row's shudder, px, and its pace; how far a burst ember flies, least and more, px over the hit, how far it falls; its heat by what it lost, less the hit's share.</summary>
     public const float Hit = 0.8f, HitHeat = 0.6f, Shudder = 1.4f, ShudderPace = 60, BurstSpeed = 14, BurstMore = 16, BurstFall = 34, BurstHeat = 1.2f;
+
+${glyphs}
 }
 `;
   writeText('../../shared/logic/DroneInk.cs', cs);
@@ -379,6 +458,7 @@ function iconsInk() {
     ['Circle', 'A wheel side\'s rim and the wheel\'s middle.', [arc(0, 0, 1, 48)]],
     ['Square', 'An edge key\'s rim.', [roundSq(.24)]],
     ['Cross', 'The cross over a mode not known yet.', [[[-.42, -.42], [.42, .42]], [[.42, -.42], [-.42, .42]]]],
+    ['Alarms', 'The alarms: the meteor coming, as the thought over the drone draws it.', thoughtPictures().meteor],
   ];
   const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
   const run = l => `[${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}]`;
