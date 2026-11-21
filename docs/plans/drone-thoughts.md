@@ -1,116 +1,90 @@
-# Plan: the drone's thoughts
-
-Not built. Designed by design-author, cut by design-reviewer; the user's choices (2026-11-21) applied. A thought is a glyph the
-drone «Нити» draws with its own sparks over itself ([drone-threads](../decisions/2026-11-21-drone-threads.md)): no plates, no
-hologram. It shows only once the drone has learned the alarms ([drone-lessons](../decisions/2026-11-21-drone-lessons.md)).
-
-## Decided (the user, 2026-11-21)
-
-- First thoughts: the dart's meteor and bolt, cold, heat. No grit: the storm shows itself.
-- Cold and heat show again each 3° deeper ("for the player that is already felt"), so `Step` is 3°.
-- Only the player's own drone thinks: no friend's thoughts, nothing from `HeroView.Others`.
-- Creative mode shows them too, so they can be tried there (the user tests in creative).
-- The look is the pick «Контур» (`tools/pick-kit/pages/drone-moods.js`, candidate `outline`, db doc `picks/droneMoods`): a
-  glyph is an outline of threads with a current of sparks along it, drawn out in 0.4 s, held 1.5 s, wound back in 0.4 s. An
-  alarm glows red, pulsing 2.4 times a second, its sparks running 42 px/s; a mood smoulders, its sparks at 18 px/s.
-- The moods kept: curious, find, bored, love, pride (fear, sleep and confused cut).
+# Design: the drone's thoughts and moods
 
 ## Problem
+Players find out a place is deadly only after the damage starts: the body has cooled, or the meteor has landed. The drone
+flies beside the hero and never shows what it senses or feels, so it reads as a lamp, not a companion.
 
-A player learns that a place is deadly only after the damage has started: the body has cooled, the meteor has landed. The drone
-flies beside the hero all the time and never says what it senses, nor how it feels about what its player does.
+## Decided (the user, 2026-11-21)
+- Thoughts: the dart's meteor and bolt, cold, heat; no grit. Cold and heat re-show each 3° deeper. Own drone only.
+  Creative shows them. Thoughts show only once the player knows the alarms form (learned from emergency lamps).
+- Moods, look «Контур» (`tools/pick-kit/pages/drone-moods.js`, `outline`): curious, find, bored, love, pride. Not fear,
+  sleep, confused.
 
 ## Player experience
+1. Just after pairing, the drone tilts toward a red emergency lamp off screen and draws a question mark of sparks
+   (curious). The hero walks there, and the drone learns the alarms.
+2. Beyond the hull's warmth, a snowflake of sparks rises over the drone, holds, and unwinds. Three degrees colder, again.
+3. A meteor comes. The drone darts at it, red, and holds the meteor glyph until the impact.
+4. Each new item: the drone hops while it scans the icon (find). After the scan lesson, it rises and swells under a crown
+   (pride).
+5. After a minute standing still, three dots show and it sinks and dims (bored). Waking after a death, a heart shows and
+   it presses to the helmet (love).
 
-1. **The alarms learned.** Passing the wreck's emergency lamps, the drone learns the alarms. Until then it thinks nothing.
-2. **Into the cold and back.** The hero walks out of the hull's warm zone. As `Felt` rises above 0, a snowflake is drawn over
-   the drone, holds and winds back in. Three degrees colder further out, it shows again. Back inside, nothing. Out again
-   within 20 s, nothing; after 20 s it shows again.
-3. **A meteor while running.** The drone darts and reddens as it does today; the meteor glyph comes as it darts, stays until
-   the impact, then winds in.
-4. **Two at once.** A snowflake shows when a bolt glows: the snowflake winds in, the bolt comes. After the bolt, the snowflake
-   comes again if the hero is still in the cold.
-5. **Moods.** The drone tilts at a lamp it could learn from (curious), bounces at a find (find), sinks and drifts when nothing
-   happens for long (bored), presses to the helmet when the hero comes back after a long time apart or is reborn (love), and
-   swells when it learns a form by watching (pride).
-
-What goes wrong: a hero stepping in and out at the warm zone's edge gets one snowflake, then quiet. In the cold with the bag
-open, nothing shows until the bag closes.
-
-## The moods (proposed triggers, the user to confirm)
-
-| Mood | Glyph and motion (the page's) | When |
-| --- | --- | --- |
-| curious | a question mark; tilts aside, the eye askance | near something it could learn from and does not know: a teaching machine within `Lessons.Reach`, once a visit |
-| find | two stars; bounces, looks at the find, orbits faster | a find, or a form learned (after the find scan's beat) |
-| bored | three dots; sinks, drifts lazily, orbits slower | the drone's idle timer: nothing done and nothing shown for a long while |
-| love | a heart; presses to the helmet, looks at the hero | back by the hero after a long time apart, or the hero reborn |
-| pride | a crown; rises, swells, the eye up | a form learned by watching (a deed lesson: the scan) |
+Goes wrong: in the cold with the bag open, nothing shows. When the bag closes, the snowflake shows if still cold.
 
 ## Out of scope
+- Grit, low air, hunting, hunger and lava as thoughts: the HUD and the drone's red tint show them.
+- Fear, sleep, confused. Love after a long time apart: the drone is never away longer than a lesson. A find star.
+- A friend's drone thinking or feeling. Sounds, text, a mute setting. Anything sent, saved or hashed.
 
-- Low air (`Danger.Read`): the air bar and the drone's red pulse show it.
-- Hunted (`Crew.Hunted`): the tracker blinks, the catchers are marked, the drone leans toward the hunter.
-- Hunger, lava: their own dials and glow already show them.
-- Grit, friends' thoughts, sounds, text, a mute setting, anything sent or saved.
+## Scale
+Only your own drone, your own hero's cell and the teaching machines within `Wonder`. A few thoughts a minute at most;
+curious and bored at most once every 2 minutes.
 
 ## Approach
+Client only, Godot-free. `DroneWill` owns a new `DroneThoughts`; `DroneSenses` gains the cues and `DroneIntent` the glyph
+and how far it has formed. `HeroView` sets the cues for your own figure only.
+- Gate: `Research.Knows(you, AlarmsMode)`; always true in creative.
+- Cold, heat: `Crew.Felt` and `Crew.Heat` at the body cell; level `ceil(degrees / Step)`. Shows when the level rises above
+  the last shown; that mark drops only after the level stayed lower for `ForgetMs`.
+- Meteor, bolt: while the will darts.
+- Curious: a machine that teaches a form you do not know, within `Wonder` cells (`Lessons.Teacher` gains a reach argument;
+  the sim keeps `Reach`). Once per machine, the eye on it.
+- Find: while `FindScan.Over` sweeps an item, the drone hops only; the icon is the picture.
+- Pride: a deed lesson ends. Bored: the anchor stays within `BoredBox` for `BoredAfterMs`, the hero awake, no window open;
+  once until it leaves the box. Love: `HeroView`'s `woke`.
 
-Thoughts live in the will, client only. `DroneWill` owns a Godot-free `DroneThoughts`; `DroneIntent` gains the thought being
-shown and its weight, 0 to 1. `DroneSenses` gains `Cold` (`Crew.Felt`) and `Heat` (`Crew.Heat`) at the body cell `BodyHeat`
-uses, and `Alarms`, whether this player knows `LightDrone.AlarmsMode`. Meteor (`Hazards.Incoming`) and bolt (`Hazards.Strike`)
-thoughts belong to the dart. Moods read what the client already has: the find scan's records, `Lessons.Teacher`, the will's
-idle time, the hero's distance and rebirth.
+One shape over the drone at a time (review cut): a thought or mood starts only when nothing higher is showing (a window,
+the dart, a gesture, a thought before a mood), and is never resumed once cut. Moods wait while the scan reads. Nothing
+shows while the hero is passed out, in the meeting or seated.
 
-- **Gate:** no thought while the alarms are unknown. The dart itself stays innate.
-- **Rank:** the dart's danger, then cold or heat, then the moods.
-- **Level:** cold and heat count `ceil(degrees / Step)`; a dart's danger counts once per hazard; a mood once per its cause.
-- **When a thought shows:** when its level is higher than the level last shown. The last-shown level drops to the current one
-  only after it has been lower for `ForgetMs`.
-- **One thought at a time.** A higher-ranked one interrupts the one showing, which winds in over `CutMs` and counts as not
-  shown. A lower-ranked one waits and is dropped if it no longer applies.
-- **None while** a window is open, the hero gestures, is passed out, or is in the drone meeting.
+Cold and heat show when the level rises above the highest shown; that mark resets only at level 0 (review cut: no
+`ForgetMs`). Love and pride play at once; curious and bored each have a plain cooldown.
 
-On the client, `LightDrone` draws a thought as a shape of `DroneSwarm` (drone-threads: "the thoughts add glyphs to the same
-table"): its polylines exported from `tools/anime-art/subjects/drone.js` into `DroneInk`, above the core, a gesture's fan's
-place. The mood's motion is the will's: a tilt, a bounce, a sink, a press, a swell. The alarms' board icon (`FormIcons.Alarms`, a
-stand-in) becomes the alarm glyph.
+Look «Контур»: 8 glyph polylines that `drone.js` exports into `DroneInk`. In 0.4 s, hold 1.5 s, out 0.4 s. Alarms red at
+42 px/s; moods soft at 18 px/s; each mood moves the body as the pick showed.
 
-Tunables live in the client (`DroneThoughts.Tune`), as in drone-motion: `Step` 3°, `ForgetMs` 20 000, `DrawS` 0.4, `HoldS` 1.5,
-`WindS` 0.4, `CutMs` 100; the moods' idle and apart times to settle in play.
+Tunables in `DroneThoughts.Tune`: `Step` 3°, `ForgetMs` 20 000, `MoodGapMs` 120 000, `BoredAfterMs` 60 000, `BoredBox`
+8 px. `Lessons.Wonder` (40 cells) in `sim/Content` beside `Reach`.
 
 ## Determinism and co-op
-
-Nothing enters the sim and nothing is sent: only this player's drone thinks, from the shared sim's queries. No `Random`.
+Nothing enters the sim; `Teacher` only gains an argument. No `Random`. A friend's drone shows neither thoughts nor moods.
+A late joiner's levels start at zero.
 
 ## Trade-offs accepted
-
-- Minutes at one level of cold bring one snowflake; after that the thermometer and the frost carry it. A hint, not a gauge.
-- The bag open in the cold: the snowflake shows after it closes; the player chose to pause.
-- A bolt under a roof still shows: the dart already does this (drone-motion).
-- A friend never sees your drone think.
+- Minutes at one level of cold → one snowflake; then the thermometer carries it.
+- Love or pride behind a long open window → shows late, never lost.
+- Curious about a lamp behind a wall → the drone looks through walls (drone-motion).
+- A cold thought takes the lamp mirror's sparks for about 2 s → warnings outrank the mode.
+- Pride once per player today (the scan is the only deed lesson).
 
 ## Tests
-
-- Scenarios (game.tests, seeded will, scripted senses):
-  - No thought before the alarms are known; the dart still darts.
-  - Entering the cold: one draw, hold and wind; 60 s more brings nothing.
-  - One `Step` colder: it shows again. Out and in within `ForgetMs`: nothing; after it: again. Heat likewise.
-  - A dart's thought holds while the danger is reported, then winds in; never twice for one hazard.
-  - A bolt interrupts the snowflake; it comes back if still cold, is dropped if not. A mood waits behind both.
-  - Window, gesture, passed out: nothing shows; a place thought shows after the window closes.
-  - Creative shows them; a hazard beyond `Notice` or on another surface shows nothing.
-  - Each mood from its trigger, once per cause.
-- Invariants (FsCheck, random streams of senses): at most one thought at a time; a kind never shows twice at the same level
-  within `ForgetMs`.
+- Scenarios (game.tests, seeded will, scripted senses): cold once, again one Step deeper, nothing within ForgetMs; heat
+  alike; no gate nothing; creative shows; dart glyph holds; a bolt interrupts the snowflake, which returns; a gesture,
+  window or icon over the head holds cold back; curious once per machine within Wonder; bored after BoredAfterMs, again
+  only after moving; love on waking, pride after a deed lesson; nothing for a friend.
+- Sim: `Teacher` at reach 40 finds a lamp 30 cells away; the module still teaches only within `Reach`.
+- Scenario tests only (review cut). Pin: the wreck's upper emergency lamp (about 39.7 cells from the core) is within
+  `Wonder`.
 
 ## Cost
+About 400 lines plus 250 of tests: crew `DroneWill`, `DroneSenses`, `DroneSwarm`, `LightDrone`, `HeroView`, `Figure`, new
+`DroneThoughts`; `drone.js` glyphs; `Lessons.Teacher` reach; `Lessons.Wonder`.
 
-- No sim changes. Client crew: `DroneWill`, `DroneSenses`, `DroneIntent`, `DroneSwarm`, `LightDrone`; new `logic/DroneThoughts`;
-  `DroneInk` regenerated with nine glyphs.
-- About 300 lines plus 250 of tests.
+## Settled
+- Both emergency lamps are 35–40 cells from the core, beyond `Reach` 24: the alarms are not learned at pairing, so
+  curious points the way first. `Wonder` 40 is needed.
+- A mode in use does not stop boredom (lead's call; the user may say otherwise).
 
-## Open questions
-
-- **The start of a hunt.** The tracker starts blinking and catchers come: a thought then, or is leaning toward the hunter enough?
-- **The moods' triggers** above are proposals: the user confirms them, and the idle and apart times, before building.
+- Bored (the user, 2026-11-21): a minute standing still, as designed (`BoredAfterMs`, `BoredBox`), not the perch timer.
+- Love: on waking after a death (the user did not object).
