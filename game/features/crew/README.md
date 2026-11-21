@@ -180,7 +180,7 @@ This hero and others', client-authoritative (0002).
 - **Drill, grinder, cutter** (0054, 0055): held runs (`Run`), hits a `Pace`, the cutter by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
 - **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
-  (light-drone): E on the core pairs (drone-companion, drone-meeting); F next mode, held a wheel; projects the bag,
+  (light-drone, drone-threads): E on the core pairs (drone-companion, drone-meeting); F next mode, held a wheel; projects the bag,
   plans (drone-frame); trails, warns (drone-motion).
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
   climbed, short jumps mantle.
