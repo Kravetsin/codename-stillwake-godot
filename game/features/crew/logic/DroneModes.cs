@@ -15,6 +15,9 @@ public static class DroneModes
     /// <summary>The wheel's sides, from the top clockwise.</summary>
     public static readonly DroneMode[] Sides = [DroneMode.Lamp, DroneMode.Scan];
 
+    /// <summary>A wheel side's thread icon (thread-icons).</summary>
+    public static Shared.IconLines IconOf(DroneMode mode) => mode == DroneMode.Scan ? Shared.IconInk.Scan : Shared.IconInk.Lamp;
+
     /// <summary>The node that opens <paramref name="mode"/>.</summary>
     public static string NodeOf(DroneMode mode) => mode switch
     {

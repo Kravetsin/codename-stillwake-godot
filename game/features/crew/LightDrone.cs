@@ -24,8 +24,6 @@ public partial class LightDrone : Node2D
     /// <summary>Its embers' hot orange (the picks' <c>EMBER</c>), an alarm's red, a spark's dark.</summary>
     internal static readonly Color Ember = Rgb(I.Ember);
     private static readonly Color Red = Rgb(I.Red), Dark = Rgb(I.Dark);
-    /// <summary>The mode wheel's lamp and scan colours.</summary>
-    internal static readonly Color Lamp = new(1f, 0.831f, 0.588f), Scan = new(0.463f, 0.925f, 0.808f);
 
     private static Texture2D? _core;
     private readonly DroneFlight _flight = new();

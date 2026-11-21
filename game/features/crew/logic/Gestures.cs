@@ -21,6 +21,15 @@ public static class Gestures
     /// <summary>The gesture key's wheel (<see cref="Wheel{T}"/>), from the top clockwise: yes above, no below right, wave below left; a tap points.</summary>
     public static readonly Gesture[] WheelSides = [Gesture.Yes, Gesture.No, Gesture.Wave];
 
+    /// <summary>A wheel side's thread icon (thread-icons).</summary>
+    public static Shared.IconLines IconOf(Gesture gesture) => gesture switch
+    {
+        Gesture.Yes => Shared.IconInk.Yes,
+        Gesture.No => Shared.IconInk.No,
+        Gesture.Wave => Shared.IconInk.Wave,
+        _ => throw new ArgumentException($"No wheel side {gesture}", nameof(gesture)),
+    };
+
     public static double MsOf(Gesture gesture) => GestureMotions.Of(gesture).Ms;
 
     /// <summary>How much of the arm <paramref name="motion"/> <paramref name="ms"/> in takes from the pose: none at its start and end, eased.</summary>
