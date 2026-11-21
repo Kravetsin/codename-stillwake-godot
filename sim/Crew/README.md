@@ -12,7 +12,7 @@
 
 Heroes: where each is (as its client says), how it breathes, passing out.
 
-- **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`, `Solid`, the core); `Items` (`Equipped`, `WornIn`,
+- **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`, `Solid`, the core, op `Clear`); `Items` (`Equipped`, `WornIn`,
   `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `HasDrone`, ops); `Sky` (`Now`).
 - **State** (`CrewState`, all saved): `Spawn` — the first lifepod's hatch (`Content.Crew.PodHatch`), else the
   first `S`, else cell 0; `Pod` — its top-left or null (`Fixed`); `Clock`; `Heroes` — by peer id, in id
@@ -42,27 +42,22 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 - **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
   sets `CanisterIn` to `Crew.CanisterCooldown` (not in creative), counted down.
 - **The drone** (drone-companion): `PairDrone(Core)` `Pair`s for good; `Meets` spares the hero `Crew.MeetingTicks`: no
-  breath, meals, thrust, harm, `Succumb` (drone-meeting). `CoreLost` (a floor cell under the core gone) pairs all.
+  breath, meals, thrust, harm, `Succumb` (drone-meeting). `CoreLost` (a floor cell under the core gone) clears it for good, pairs all.
 - **Meals** (food-and-the-body): `Hero.Meals`, up to `Diet.Meals`, ticks `Left` counted down. `Eat(Item)` adds one or,
   in its last `Diet.RefreshWithin`, refreshes it; a print holds none, hungry (hungry-respawn). A fruit eaten rolls its `Byproducts`,
   given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep units to a canister. `Purge` empties them, counting `Purges`. Thousandths
   go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
   `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
-- **The last breath** (the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, counted
-  down; air back (regen too) ends it, a covered breath only with no grit or lava. Lava, shocks and blows
-  past the air cut `Crew.LastBreathPerUnit` a unit; running, thrust nothing.
-- **Passing out is death**: a spent last breath passes the hero out for `Crew.PassOut` ticks (tool stopped),
-  then is made at the spawn, full, dressed, hungry; `LeaveBody` leaves all but gear at its cell. It
-  clears the air, `CanisterIn`, meals, `Owed`, `Worked`.
+- **The last breath** (the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, counted down; air back (regen too) ends it, a covered breath only with no grit or lava. Lava, shocks and blows past the air cut `Crew.LastBreathPerUnit` a unit; running, thrust nothing.
+- **Passing out is death**: a spent last breath passes the hero out for `Crew.PassOut` ticks (tool stopped), then is made at the spawn, full, dressed, hungry; `LeaveBody` leaves all but gear at its cell. It clears the air, `CanisterIn`, meals, `Owed`, `Worked`.
 - **Degrees** (temperature-gradients, body-temperature): `TemperatureAt`: `Temperature.Deep` off the grid, `Room` aired; afloat
   `Hull` in the zone, `Temperatures[0]` at the field's line, `Deep` at the grid's edge; on a planet `Terrain.TemperatureOf`, open
   sky (band 0, no `BackAt`) `Chill` colder. `Felt` under `LowOf`, `Heat` over `HighOf` (`Bare*` + helmet's + suit's, gear-roles; `Cape.Warmth`
   lower) cost no air: they move the client's body, whose death is `Succumb`. `PaceAt`, `GritAt`: a storm's
-  `Pace`, `Grit` there, unaired; the grit paid from the suit after the regen suit (mild-surface).
+  `Pace`, `Grit` there, unaired; grit paid from the suit after the regen suit (mild-surface).
 - **Lava burns**: lava at the cell or `Lava.Reach` rows under (`Burns`) costs the suit `Lava.Burn` more a breath.
-- **A shock** (`Shock`) and **a blow** (`Blow`, from Creatures) take units from an awake hero's air, the rest
-  from its last breath; none in creative. They and lava are hurts
-  (hurts-are-shown): `Hero.Hurts` counts them, `Hero.Hurt` holds the last's `Harm`.
+- **A shock** (`Shock`) and **a blow** (`Blow`, Creatures') take units from an awake hero's air, then its
+  last breath; none in creative. They and lava are hurts (hurts-are-shown): `Hero.Hurts` counts them, `Hero.Hurt` holds the last's `Harm`.
 - **The cape** (the-cape-is-worn) spares `Cape.Guard`‰ of a blow, the rest in `Hero.Spared`; a blow
   lands before the breath.
 - **The wanted meter** (catcher-loot): `Loot(peer, yield)` adds `Market.WorthOf` to an awake, not creative hero's
@@ -76,8 +71,7 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `CapacityOf`, `PartsOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `PaceAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`, `OpenSky`;
   `SuitOn`, `SuitModeProblem`, `SuccumbProblem`; `SignalOf(peer)`, `Hunted(peer)`, `Spared(peer)`;
-  `HeroOf(id)` or null; `Heroes`, live, in id order. On the
-  module: `Burns`, `GritAt`, `RefillProblem`, `EatProblem`, `PurgeProblem`, `PairProblem`, `CoreLost`: the client sends none they refuse.
+  `HeroOf(id)` or null; `Heroes`, live, in id order. On the module: `Burns`, `GritAt`, `RefillProblem`, `EatProblem`, `PurgeProblem`, `PairProblem`, `CoreLost`: the client sends none they refuse.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, `ChooseSkins(Ids)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero` (or out), `crew.suitFull`, `crew.canisterCooling`, `items.notEnough`; `Eat(Item)` — `crew.noHero` (or out), `crew.notFood`,
