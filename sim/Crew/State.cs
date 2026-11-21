@@ -123,6 +123,8 @@ public sealed class CrewState
     [JsonInclude] internal int? Pod { get; set; }
     /// <summary>Ticks run: breaths come every <c>Crew.BreathEvery</c> of them.</summary>
     [JsonInclude] internal int Clock { get; set; }
+    /// <summary>Whether the map's alien core broke loose with the floor under it, and is gone for good (drone-companion).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool CoreLost { get; set; }
     /// <summary>Every hero, in id order.</summary>
     [JsonInclude] internal List<Hero> Heroes { get; set; } = [];
 }
