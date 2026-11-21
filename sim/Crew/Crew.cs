@@ -211,6 +211,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     private readonly IAtmosphereQueries _air;
     private readonly IGridQueries _grid;
+    private readonly IGridOps _gridOps;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
     private readonly IPlayersQueries _players;
@@ -220,9 +221,10 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
 
     public CrewModule(
-        IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
-        ISkyQueries sky)
+        IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players,
+        IPlayersOps playersOps, ISkyQueries sky)
     {
+        _gridOps = gridOps;
         _players = players;
         _playersOps = playersOps;
         _sky = sky;
@@ -300,7 +302,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         {
             State.Clock += 1;
             bool breath = State.Clock % Content.Crew.BreathEvery == 0;
-            bool coreLost = CoreLost();
+            LoseCore();
+            bool coreLost = State.CoreLost;
             foreach (var hero in State.Heroes)
             {
                 // The core broken loose, its shards find every hero still without one (drone-companion).
@@ -539,10 +542,14 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     }
 
     /// <summary>
-    /// Whether the map's alien core broke loose (drone-companion): it has one, and a cell of the floor under it is broken. Then the
-    /// core is gone, and every hero here without a drone is given one as it stands. A map with no core never loses it.
+    /// Whether the map's alien core broke loose (drone-companion): a cell of the floor under it was broken, however. Then the core is
+    /// gone for good, a floor laid back or not, and every hero here without a drone is given one as it stands. A map with no core
+    /// never loses it.
     /// </summary>
-    public bool CoreLost()
+    public bool CoreLost() => State.CoreLost;
+
+    /// <summary>The core taken off the map, lost, once a cell of the floor under it is broken: its place is free to build in.</summary>
+    private void LoseCore()
     {
         int width = _grid.Width;
         foreach (var core in _grid.MachinesWith(Content.MachineTrait.Wakes))
@@ -550,9 +557,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             var spec = Content.Machines.Get(core.Kind);
             int below = core.Cell + spec.Height * width;
             for (int x = 0; x < spec.Width; x++)
-                if (!_grid.Solid(below + x)) return true;
+            {
+                if (_grid.Solid(below + x)) continue;
+                _gridOps.Clear(core.Cell, "machine");
+                State.CoreLost = true;
+                return;
+            }
         }
-        return false;
     }
 
     /// <summary>Why hero <paramref name="peer"/> could not purge: none, or out (<c>crew.noHero</c>), or nothing eaten (<c>crew.noMeals</c>). Null when it could.</summary>

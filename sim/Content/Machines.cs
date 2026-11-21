@@ -330,8 +330,8 @@ public static class Machines
 
     /// <summary>
     /// Whether a machine of <paramref name="kind"/> stands on what is under it (2026-11-07-machines-stand): all but the hung ones, the
-    /// debris net on its hull and the drop pod on its launch platform, which have rules of their own.
+    /// debris net on its hull, the drop pod on its launch platform and the alien core, lost with its floor, which have rules of their own.
     /// </summary>
     public static bool Stands(string kind) =>
-        ByKind.ContainsKey(kind) && !Is(kind, MachineTrait.Hangs | MachineTrait.Catches | MachineTrait.Lands);
+        ByKind.ContainsKey(kind) && !Is(kind, MachineTrait.Hangs | MachineTrait.Catches | MachineTrait.Lands | MachineTrait.Wakes);
 }

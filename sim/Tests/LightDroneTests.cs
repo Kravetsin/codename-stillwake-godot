@@ -123,6 +123,50 @@ public class LightDroneTests
         Assert.Equal("crew.noCore", w.M.Crew.PairProblem(3, core.Id) is "crew.noHero" ? "crew.noCore" : w.M.Crew.PairProblem(3, core.Id));
     }
 
+    /// <summary>
+    /// The floor under the core is taken apart like any floor, the core holding none: the core is gone from the map, every hero is
+    /// paired, and a floor laid there again brings nothing back, its place free to build in.
+    /// </summary>
+    [Fact]
+    public void TakingTheFloorUnderTheCoreApartLosesItForGoodAndFreesItsPlace()
+    {
+        var w = Aboard();
+        var core = w.M.Grid.MachineById(Core(w))!;
+        int under = core.Cell + Machines.Get(LightDrone.CoreMachine).Height * w.M.Grid.Width;
+        w.Do(new SetCreative(true)).Do(new Building.SetInstant(true)).Do(new Building.Deconstruct(under, "structure")).Run(2);
+        Assert.Empty(w.Refusals);
+        Assert.False(w.M.Grid.Solid(under));
+        Assert.True(w.M.Crew.CoreLost());
+        Assert.True(w.M.Players.HasDrone(0));
+        Assert.Empty(w.M.Grid.MachinesOf(LightDrone.CoreMachine));
+        Assert.Null(w.M.Grid.MachineAt(core.Cell));
+        // The floor laid back, the core stays lost: a hero waking later is still paired.
+        w.Do(new Building.PlacePlan(under, new Grid.Placement("structure", "floor"))).Run();
+        Assert.True(w.M.Grid.Solid(under));
+        w.Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run(2);
+        Assert.True(w.M.Crew.CoreLost());
+        Assert.True(w.M.Players.HasDrone(1));
+    }
+
+    /// <summary>In the wreck itself, every cell of the floor under the core can be taken apart, and any one of them loses it.</summary>
+    [Fact]
+    public void InTheWreckEachCellOfTheCoresFloorIsTakenApartAndLosesIt()
+    {
+        var probe = new Scenario(Registry.Wreck) { Unpaired = true };
+        var core = probe.M.Grid.MachineById(Core(probe))!;
+        var spec = Machines.Get(LightDrone.CoreMachine);
+        for (int x = 0; x < spec.Width; x++)
+        {
+            var w = new Scenario(Registry.Wreck) { Unpaired = true };
+            w.Do(new Enter(w.M.Crew.Spawn)).Do(new SetCreative(true)).Do(new Building.SetInstant(true)).Run();
+            int under = core.Cell + spec.Height * w.M.Grid.Width + x;
+            w.Do(new Building.Deconstruct(under, "structure")).Run(2);
+            Assert.Empty(w.Refusals);
+            Assert.True(w.M.Crew.CoreLost(), $"the cell {x} under the core taken apart, the core stayed");
+            Assert.True(w.M.Players.HasDrone(0));
+        }
+    }
+
     /// <summary>A map with no core never loses one: its heroes stay unpaired.</summary>
     [Fact]
     public void AMapWithNoCoreNeverPairsByItself()
