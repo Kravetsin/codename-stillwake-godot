@@ -9,12 +9,6 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public static class DroneSign
 {
-    /// <summary>The old hologram's alpha and how deep its flicker dips: the drone window's motes still use them.</summary>
-    public const double Alpha = 0.85, FlickerDepth = 0.18;
-
-    /// <summary>The old hologram's pale cyan, hex: the drone window's motes still use it.</summary>
-    public const string Tint = "a8eeff";
-
     /// <summary>The gesture <paramref name="motion"/> plays, as the figure is given it; none for a motion no gesture has.</summary>
     public static Gesture? KindOf(GestureMotion motion)
     {

@@ -92,9 +92,9 @@ public static class DroneInk
     /// <summary>The spyglass's mouth, where the scan's sparks leave for the gauge.</summary>
     public const float MouthX = 21.5f, MouthY = 0;
 
-    /// <summary>A window's frame, screen px and s: its rows and how far apart (and each square's gap); the most a row holds; a square's dark and glow sides.</summary>
+    /// <summary>A window's frame, screen px and s: its rows and how far apart (and each square's gap); the most a row holds; a square's dark and glow sides, flying its side and heat.</summary>
     public const int FrameRows = 2, FrameMost = 1024;
-    public const float FrameGap = 3.4f, Square = 1.8f, SquareGlow = 1.6f;
+    public const float FrameGap = 3.4f, Square = 1.8f, SquareGlow = 1.6f, Flying = 1.7f, FlyingHeat = 0.75f;
 
     /// <summary>Its clock: the last square lands at Fly, each flying One; the screen comes over Inside; closing, it goes in Close, the squares home in Back.</summary>
     public const float Fly = 0.75f, One = 0.3f, InsideFrom = 0.8f, InsideTo = 1, Close = 0.15f, Back = 0.75f;

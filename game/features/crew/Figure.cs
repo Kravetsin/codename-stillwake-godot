@@ -364,7 +364,6 @@ public partial class Figure : Node2D
         _crown.AddChild(_scanner);
         // light-drone (a try): the lamp and the scanner float by the head instead, the helmet carrying neither.
         AddChild(_drone);
-        AddChild(_motes);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -776,8 +775,8 @@ public partial class Figure : Node2D
     private readonly LightDrone _drone = new();
 
     /// <summary>
-    /// Whether a drone window of its hero's is open, and how far its soot is out, 0..1 (drone-frame): while open, its drone flies
-    /// before it and projects the window over itself (<see cref="SheetHolo"/>).
+    /// Whether a drone window of its hero's is open, and how far its frame is out, 0..1 (drone-frame): while open, its drone flies
+    /// before it, its shapes let go.
     /// </summary>
     public (bool Open, double Out) DroneWindow
     {
@@ -787,13 +786,7 @@ public partial class Figure : Node2D
 
     private (bool Open, double Out) _droneWindow;
 
-    private readonly DroneMotes _motes = new();
     private readonly PlanPoint _point = new();
-    private readonly double _holoSeed = Random.Shared.NextDouble() * 100;
-    private double _holoIn;
-    private bool _holoComing, _droneThere;
-    /// <summary>How far its motes are from a window's cloud to the plans' grid, 0..1.</summary>
-    private double _holoGrid;
 
     /// <summary>Whether its drone projects a drone window before it (drone-holo): its lamp and scanner off meanwhile.</summary>
     public bool Projects { get; private set; }
@@ -1587,18 +1580,11 @@ public partial class Figure : Node2D
         // Working a plan the screwdriver takes the front hand; the planner waits till it is done.
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
-        // With its drone by it (drone-holo), a drone window or the plan out sends the drone before the hero, its mode off, projecting
-        // motes over itself once there: a drifting cloud for a window, a blueprint's grid for plans, each plan placed pointed at by
-        // the near hand and flown to by a mote. Without one, the plan is the paper sheet in hand.
+        // With its drone by it (drone-holo), a drone window or the plan out sends the drone before the hero, its mode off and its
+        // shapes let go (drone-threads), each plan placed pointed at by the near hand. Without one, the plan is the paper sheet in hand.
         bool projecting = _drone.Visible;
         bool planOut = projecting && holdsPlan, windowOut = projecting && _droneWindow.Open && !holdsPlan;
-        // Out of sight they take the shape at once; shown, they ease from one to the other.
-        if (planOut || windowOut) _holoGrid = _holoIn > 0 ? DroneMotesLook.Reshape(_holoGrid, planOut, elapsedMs) : planOut ? 1 : 0;
-        // The motes come on once the drone is there, never on its way past the face, and stay on as it follows.
-        bool holoOn = (planOut || windowOut) && _droneThere;
-        _holoIn = SheetHoloLook.Step(_holoIn, holoOn, elapsedMs);
-        _holoComing = holoOn;
-        bool overDrone = planOut || windowOut || projecting && _holoIn > 0;
+        bool overDrone = planOut || windowOut;
         Projects = overDrone;
         bool holding = !projecting && holdsPlan && Poses.HoldsIn(pose) && !working;
         // The plan out, the near hand holds nothing: it shows the drone where plans go.
@@ -1864,7 +1850,6 @@ public partial class Figure : Node2D
             var intent = _will.Pick(senses, elapsedMs);
             _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
             _droneLost = false;
-            _droneThere = before != null && (_droneThere || _drone.Off < SheetHoloLook.OverArrived);
             _drone.Projecting = overDrone;
             _drone.Sign(signing ? Gesture : null);
         }
@@ -1883,7 +1868,6 @@ public partial class Figure : Node2D
             float glow = GlowStrength * (float)(1 + 1.5 * thrust);
             _glow.Colour = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow);
         }
-        _motes.Show(overDrone ? _holoIn : 0, _holoComing, _holoGrid, _drone.GlobalPosition + new Vector2(0, (float)-SheetHoloLook.OverRise), _drone.LensBox.GetCenter(), _timeMs, _holoSeed);
         _tool.Visible = working;
         if (working)
         {

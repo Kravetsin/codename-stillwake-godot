@@ -3,126 +3,94 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The drone's soot spread round a window's outline (drone-frame, the pick «Угли»'s <c>frameOf</c>).</summary>
+/// <summary>Where the drone's sparks land round a window (drone-frame, «Нити»): two rows of squares, counted from the near corner.</summary>
 public class SootFrameTests
 {
-    /// <summary>The bag, the build menu, the board and a small window, screen px.</summary>
-    private static readonly (float W, float H)[] Sizes = [(380, 200), (1120, 470), (1800, 1000), (40, 30)];
+    private static readonly (float X, float Y)[] Box = [(0, 0), (300, 0), (300, 172), (0, 172)];
 
-    private static (float X, float Y)[] Rect(float x, float y, float w, float h) => [(x, y), (x + w, y), (x + w, y + h), (x, y + h)];
-
-    private static float Apart((float X, float Y) a, (float X, float Y) b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+    private static (float X, float Y)[] Rotated(int by) => Enumerable.Range(0, 4).Select(k => Box[(k + by) % 4]).ToArray();
 
     [Fact]
-    public void ASpotSitsInEveryCorner()
+    public void TwoRowsASquareEveryGapTheSecondOneGapIn()
     {
-        foreach (var (w, h) in Sizes)
-            for (int near = 0; near < 4; near++)
-            {
-                var outline = Rect(20, 30, w, h);
-                var spots = SootFrame.Spots(outline, near);
-                foreach (var corner in outline)
-                    Assert.Contains(Enumerable.Range(0, spots.Count), i => Apart(spots.Spot(i), corner) < 1e-3f);
-            }
-    }
-
-    [Fact]
-    public void GapsAreEvenAndWithin14To32()
-    {
-        foreach (var (w, h) in Sizes)
+        var spots = SootFrame.Spots(Box, 0);
+        int outer = Enumerable.Range(0, spots.Count).Count(i => spots.Row(i) == 0);
+        int inner = spots.Count - outer;
+        Assert.Equal((int)MathF.Round(2 * (300 + 172) / DroneInk.FrameGap), outer);
+        Assert.Equal((int)MathF.Round(2 * (300 - 2 * DroneInk.FrameGap + 172 - 2 * DroneInk.FrameGap) / DroneInk.FrameGap), inner);
+        for (int i = 0; i < spots.Count; i++)
         {
-            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
-            var gaps = Enumerable.Range(0, spots.Count).Select(i => Apart(spots.Spot(i), spots.Spot((i + 1) % spots.Count))).ToArray();
-            Assert.All(gaps, g => Assert.InRange(g, SootRun.Tune.GapMin - 1e-3f, SootRun.Tune.GapMax + 1e-3f));
-            // Along one edge every gap is the same: the spots split it evenly.
-            for (int i = 0; i + 1 < gaps.Length; i++)
-            {
-                var (a, b, c) = (spots.Spot(i), spots.Spot(i + 1), spots.Spot((i + 2) % spots.Count));
-                bool straight = MathF.Abs((b.X - a.X) * (c.Y - b.Y) - (b.Y - a.Y) * (c.X - b.X)) < 1e-2f;
-                if (straight) Assert.Equal(gaps[i], gaps[i + 1], 2);
-            }
+            var (x, y) = spots.Spot(i);
+            float off = spots.Row(i) * DroneInk.FrameGap;
+            // On its row's edge: as far in from the box as its row, never further.
+            float fromEdge = MathF.Min(MathF.Min(x, 300 - x), MathF.Min(y, 172 - y));
+            Assert.Equal(off, fromEdge, 3);
         }
     }
 
     [Fact]
-    public void OrderStartsAtTheCornerNearestTheDrone()
+    public void ARowNeverHoldsMoreThanTheMost()
     {
-        var outline = Rect(100, 50, 380, 200);
-        // The drone low and to the right: the bottom-right corner is the nearest.
-        int near = SootFrame.NearCorner(outline, (700, 400));
-        Assert.Equal(2, near);
+        var huge = new (float X, float Y)[] { (0, 0), (5000, 0), (5000, 3000), (0, 3000) };
+        var spots = SootFrame.Spots(huge, 0);
+        Assert.Equal(DroneInk.FrameMost, Enumerable.Range(0, spots.Count).Count(i => spots.Row(i) == 0));
+        Assert.Equal(DroneInk.FrameMost, Enumerable.Range(0, spots.Count).Count(i => spots.Row(i) == 1));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void TheNearCornerLeavesFirstTheFarthestLast(int near)
+    {
+        var outline = Box;
         var spots = SootFrame.Spots(outline, near);
-        Assert.Equal(outline[2], spots.Spot(0));
-        Assert.Equal(outline[2], spots.Corner);
-        // Rank 0 both ways sits at the near corner: the corner itself one way, its neighbour back along the outline the other.
-        Assert.Equal((0, 1), (spots.Rank(0), spots.Way(0)));
-        Assert.Equal((0, -1), (spots.Rank(spots.Count - 1), spots.Way(spots.Count - 1)));
-        Assert.True(Apart(spots.Spot(spots.Count - 1), outline[2]) < SootRun.Tune.GapMax + 1e-3f);
-        // Each way, the rank rises with the distance along the outline from the corner.
-        foreach (int way in (int[])[1, -1])
+        var corner = outline[near];
+        // The first square is the near corner's and leaves at once.
+        Assert.Equal(corner, spots.Spot(0));
+        Assert.Equal(0, spots.Lag(0));
+        Assert.Equal(0, spots.Per(0));
+        var opposite = outline[(near + 2) % 4];
+        for (int i = 0; i < spots.Count; i++)
         {
-            var ranked = Enumerable.Range(0, spots.Count).Where(i => spots.Way(i) == way).OrderBy(spots.Rank).ToArray();
-            Assert.Equal(Enumerable.Range(0, ranked.Length), ranked.Select(spots.Rank));
-            for (int k = 1; k < ranked.Length; k++) Assert.True(spots.Along(ranked[k]) > spots.Along(ranked[k - 1]));
+            Assert.InRange(spots.Lag(i), 0, 1);
+            var (x, y) = spots.Spot(i);
+            // Round the box the shorter way, how far it is goes with how late it leaves.
+            float round = MathF.Abs(x - corner.X) + MathF.Abs(y - corner.Y);
+            if (spots.Row(i) == 0) Assert.Equal(round / ((300 + 172) / 1f), spots.Lag(i), 2);
         }
-        Assert.Equal(spots.Perimeter / 2, Enumerable.Range(0, spots.Count).Max(spots.Along), 2);
-    }
-
-    /// <summary>How far <paramref name="p"/> is from the rectangle's outline at nought, <paramref name="w"/> by <paramref name="h"/>.</summary>
-    private static float OffOutline((float X, float Y) p, float w, float h)
-    {
-        float dx = MathF.Max(MathF.Max(-p.X, p.X - w), 0), dy = MathF.Max(MathF.Max(-p.Y, p.Y - h), 0);
-        if (dx > 0 || dy > 0) return MathF.Sqrt(dx * dx + dy * dy);
-        return MathF.Min(MathF.Min(p.X, w - p.X), MathF.Min(p.Y, h - p.Y));
+        int last = Enumerable.Range(0, spots.Count).Where(i => spots.Row(i) == 0).MaxBy(spots.Lag);
+        Assert.Equal(opposite.X, spots.Spot(last).X, 1);
+        Assert.Equal(opposite.Y, spots.Spot(last).Y, 1);
     }
 
     [Fact]
-    public void EachNodeRestsInABandAlongTheOutline()
+    public void EitherWindingIsFramedInside()
     {
-        foreach (var (w, h) in Sizes)
+        var reversed = Box.Reverse().ToArray();
+        var spots = SootFrame.Spots(reversed, 0);
+        for (int i = 0; i < spots.Count; i++)
         {
-            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
-            for (int i = 0; i < spots.Count; i++)
-                Assert.True(OffOutline(spots.Home(i), w, h) <= SootRun.Tune.NetSpread + 1e-3f, $"{w}×{h}: node {i} off the band");
+            var (x, y) = spots.Spot(i);
+            Assert.InRange(x, -1e-3f, 300.001f);
+            Assert.InRange(y, -1e-3f, 172.001f);
         }
     }
 
-    [Fact]
-    public void EveryNodeIsLinkedOnceToEachNeighbourNearBy()
-    {
-        foreach (var (w, h) in Sizes)
-        {
-            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
-            var links = Enumerable.Range(0, spots.Links).Select(spots.Link).ToArray();
-            Assert.Equal(links.Length, links.Distinct().Count());
-            Assert.All(links, l => Assert.True(l.A < l.B));
-            Assert.All(links, l => Assert.True(Apart(spots.Home(l.A), spots.Home(l.B)) < SootRun.Tune.NetSearch));
-            for (int i = 0; i < spots.Count; i++) Assert.Contains(links, l => l.A == i || l.B == i);
-        }
-    }
+    [Theory]
+    [InlineData(-50, -40, 0)]
+    [InlineData(400, -10, 1)]
+    [InlineData(350, 250, 2)]
+    [InlineData(-5, 200, 3)]
+    public void TheNearCornerIsTheOneNearestTheDrone(float x, float y, int corner) => Assert.Equal(corner, SootFrame.NearCorner(Box, (x, y)));
 
     [Fact]
-    public void TheNetLiesFlatAlongTheOutline()
+    public void AnOutlineStartingElsewhereLaysTheSameSquaresFromTheSameCorner()
     {
-        // Picked 2026-11-19, trimmed for fewer steep lines: 9 in 10 links run within 30° of their edge (the pick's own net, 78 %).
-        foreach (var (w, h) in Sizes.Take(3))
-        {
-            var spots = SootFrame.Spots(Rect(0, 0, w, h), 2);
-            int flat = 0;
-            for (int j = 0; j < spots.Links; j++)
-            {
-                var (a, b) = (spots.Home(spots.Link(j).A), spots.Home(spots.Link(j).B));
-                float dx = MathF.Abs(a.X - b.X), dy = MathF.Abs(a.Y - b.Y);
-                if (MathF.Min(dx, dy) <= MathF.Tan(MathF.PI / 6) * MathF.Max(dx, dy)) flat++;
-            }
-            Assert.True(flat >= 0.9f * spots.Links, $"{w}×{h}: only {flat} of {spots.Links} links lie flat");
-        }
-    }
-
-    [Fact]
-    public void ABigBoardTakesMoreThan170Spots()
-    {
-        var spots = SootFrame.Spots(Rect(0, 0, 1800, 1000), 0);
-        Assert.True(spots.Count > 170, $"only {spots.Count}");
+        var a = SootFrame.Spots(Box, 2);
+        var b = SootFrame.Spots(Rotated(1), 1);
+        Assert.Equal(a.Count, b.Count);
+        for (int i = 0; i < a.Count; i++) Assert.Equal(a.Spot(i), b.Spot(i));
     }
 }
