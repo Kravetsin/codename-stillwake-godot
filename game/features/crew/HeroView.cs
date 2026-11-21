@@ -249,12 +249,22 @@ public partial class HeroView : Node2D
     private readonly Func<string, bool> _knows;
     private readonly Func<DroneMode, bool> _droneOpen;
 
-    private bool Knows(string node) => _m != null && _client != null && _m.Research.Knows(_client.Id, node);
+    /// <summary>Whether this player knows <paramref name="node"/>; a drone's form only once its lesson has played (<see cref="FormsOpen"/>).</summary>
+    private bool Knows(string node) => _m != null && _client != null && _m.Research.Knows(_client.Id, node)
+        && (!Stillwake.Content.Lessons.Forms.Contains(node) || _forms.Opened(node));
+
+    private readonly FormsOpen _forms = new();
+
+    /// <summary>Whether a lesson of a drone's form is still to play or playing, as the research key shows it (drone-lessons); none: never.</summary>
+    public Func<string, bool>? FormHeld { private get; set; }
 
     private bool DroneOpen(DroneMode mode) => DroneModes.Opened(mode, _knows);
 
-    /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
-    public bool Scanning => _figure.Scanner && !_figure.Projects;
+    /// <summary>
+    /// Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows. Not while it shows the
+    /// scan off, just learned: the look, not the work.
+    /// </summary>
+    public bool Scanning => _figure.Scanner && !_figure.Projects && DroneBecoming == null;
 
     /// <summary>This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is away.</summary>
     public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
@@ -475,6 +485,7 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
+        _forms.Step(client.World, form => m.Research.Knows(client.Id, form), form => FormHeld?.Invoke(form) ?? false, m.Items.Creative(client.Id), elapsedMs);
         // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting).
         _locked = _meetings.ContainsKey(client.Id);
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).

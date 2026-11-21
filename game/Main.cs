@@ -289,7 +289,7 @@ public partial class Main : Node2D, ITogether
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = DevScript();
-            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins), FormHeld = form => _tablet?.Scan.Holds(form) == true });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
             // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.

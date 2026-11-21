@@ -222,6 +222,13 @@ public sealed class FindScan
         }
     }
 
+    /// <summary>Whether a lesson of <paramref name="form"/> is still to play or playing, its icon not yet landed on the key: the form not open yet.</summary>
+    public bool Holds(string form)
+    {
+        bool Of(Find find) => find.IsLesson && find.Item == form;
+        return _over is { } over && Of(over) || _waiting.Exists(Of) || _records.Exists(Of);
+    }
+
     /// <summary>How many records are on their way.</summary>
     public int Records => _records.Count;
 
