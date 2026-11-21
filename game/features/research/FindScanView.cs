@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Stillwake.Game.Features.Scanner;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 
@@ -8,8 +9,9 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// The drone scanning a find (<see cref="FindScan"/>, find-scan), seen by this player only: the item's icon as the bag draws it over the hero's head, the
 /// scan's line swept down it on two threads from the drone's eye, the icon folding into one ember, and the ember flying on its thread to the research
-/// key, which flares as it lands. A form learned from a machine (drone-lessons) is first visited: the drone flies over the machine and sweeps it the
-/// same way. The icon and the sweep are on the HUD's layer, under the windows; the flight and the flare over the edge's keys.
+/// key, which flares as it lands. A form learned (drone-lessons) is a lesson first: the drone flies to the thing it learned from, fixes its eye on it
+/// and fills the scanner's row of ember dots over it, then shows the new form by the head. The icon, the sweep and the dots are on the HUD's layer,
+/// under the windows; the flight and the flare over the edge's keys.
 /// </summary>
 public partial class FindScanView : Node
 {
@@ -19,43 +21,52 @@ public partial class FindScanView : Node
     /// </summary>
     private const float Above = 14, Gap = 6, RiseBy = 6, Pixel = 3, Spread = 14;
 
+    /// <summary>How far over the top of the thing a lesson is learned from the drone hangs, world px.</summary>
+    private const float Hover = 10;
+
+    /// <summary>The fill of a lesson's dots is read as this many parts, so the last dot lit kindles smoothly.</summary>
+    private const int FillParts = 1000;
+
     private static readonly Color Ember = new(DroneInk.Ember.R / 255f, DroneInk.Ember.G / 255f, DroneInk.Ember.B / 255f), Hot = Ember.Lerp(Colors.White, 0.45f);
 
     private readonly FindScan _scan;
     private readonly Func<bool> _inWorld;
     private readonly Func<Rect2> _art;
     private readonly Func<Rect2?> _key;
-    private readonly Func<Vector2?> _head, _eye;
+    private readonly Func<Vector2?> _head;
+    private readonly Func<(Vector2 Mouth, Vector2 Eye, float Tint)?> _drone;
     private readonly Func<int> _slot;
     private readonly Action<Vector2?> _stare, _visit;
+    private readonly Action<(string Form, double Seconds)?> _becoming;
     private readonly Func<string, Rect2?> _teacher;
     private readonly CanvasLayer _hud = new() { Layer = ScreenLayers.Hud }, _edge = new() { Layer = ScreenLayers.TabletEdge };
     /// <summary>The icons, as the bag draws them; the sweep and the folding embers, added; the flying embers and the key's flare, added.</summary>
     private readonly Node2D _icons = new() { TextureFilter = CanvasItem.TextureFilterEnum.Nearest }, _swept = new(), _flown = new();
+    /// <summary>A lesson's dots filling over the thing: the scanner's own row (<see cref="ScanDots"/>).</summary>
+    private readonly ScannerView _dots = new();
     /// <summary>Whether anything was drawn last frame: what puts it out may be the research key, between two of its frames.</summary>
     private bool _drawn;
     /// <summary>This frame's point over the head the icons sit on and the drone's eye, screen px; null without them.</summary>
     private Vector2? _overAt, _eyeAt;
-    /// <summary>The machine the drone is visiting this frame, screen px, and how far the visit has gone; null for none.</summary>
-    private (Rect2 Box, double Progress)? _visiting;
-
-    /// <summary>How far over a visited machine's top the drone hangs, world px; when in its visit the sweep starts and how long it takes, shares of it.</summary>
-    private const float Hover = 10, SweepFrom = 0.4f, SweepFor = 0.5f;
+    /// <summary>The form of the lesson playing and the thing it is learned from, world px, found as it begins; null for none.</summary>
+    private string? _lesson;
+    private Rect2? _thing;
 
     /// <param name="scan">When it plays, read by the research key.</param>
     /// <param name="inWorld">Whether a world is played.</param>
     /// <param name="art">Where the tablet the keys ride lies on the screen: an ember flies to its top's middle while the research key does not show.</param>
     /// <param name="key">Where the research key is on the screen; null while it does not show.</param>
     /// <param name="head">Where this player's hero's neck is, world px; null while it is not drawn.</param>
-    /// <param name="eye">Where its drone's eye is, world px; null while no drone floats by it.</param>
+    /// <param name="drone">Its drone's spyglass mouth and eye, world px, and how red it burns; null while no drone floats by it.</param>
     /// <param name="slot">The bag's slot's side, screen px: an icon is as large as in the bag.</param>
-    /// <param name="stare">Where the drone keeps its eye, world px: on the icon it scans; null for none.</param>
-    /// <param name="teacher">The box, world px, of the machine near the hero a form is learned from; null for none.</param>
-    /// <param name="visit">Where the drone flies to, world px, while it visits a machine; null for none.</param>
-    public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<Vector2?> eye, Func<int> slot, Action<Vector2?> stare,
-        Func<string, Rect2?> teacher, Action<Vector2?> visit)
+    /// <param name="stare">Where the drone keeps its eye, world px: on the icon it scans, the thing it learns from; null for none.</param>
+    /// <param name="teacher">The box, world px, of the thing a form is learned from: the machine near the hero, the wreck last broken; null for none.</param>
+    /// <param name="visit">Where the drone flies to, world px, while it learns from a thing; null for none.</param>
+    /// <param name="becoming">The form the drone shows off by the head, and how many seconds into the show; null for none.</param>
+    public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<(Vector2 Mouth, Vector2 Eye, float Tint)?> drone,
+        Func<int> slot, Action<Vector2?> stare, Func<string, Rect2?> teacher, Action<Vector2?> visit, Action<(string Form, double Seconds)?> becoming)
     {
-        (_scan, _inWorld, _art, _key, _head, _eye, _slot, _stare, _teacher, _visit) = (scan, inWorld, art, key, head, eye, slot, stare, teacher, visit);
+        (_scan, _inWorld, _art, _key, _head, _drone, _slot, _stare, _teacher, _visit, _becoming) = (scan, inWorld, art, key, head, drone, slot, stare, teacher, visit, becoming);
         foreach (var added in (ReadOnlySpan<Node2D>)[_swept, _flown]) added.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         _icons.Draw += DrawIcons;
         _swept.Draw += DrawSwept;
@@ -65,22 +76,20 @@ public partial class FindScanView : Node
         _edge.AddChild(_flown);
         AddChild(_hud);
         AddChild(_edge);
+        AddChild(_dots);
     }
 
     public override void _Process(double delta)
     {
         bool world = _inWorld();
         var head = world ? _head() : null;
-        var eye = world ? _eye() : null;
-        _scan.Step(delta, eye != null);
+        var drone = world ? _drone() : null;
+        _scan.Step(delta, drone != null);
         _hud.Visible = _edge.Visible = world;
         var canvas = GetViewport().GetCanvasTransform();
         _overAt = head is { } neck ? canvas * (neck - new Vector2(0, Above)) : null;
-        _eyeAt = eye is { } e ? canvas * e : null;
-        var box = world && _scan.Visiting is { } visit ? _teacher(visit.Form) is { } b ? (b, visit.Progress) : ((Rect2, double)?)null : null;
-        _visiting = box is { } v ? (canvas * v.Item1, v.Item2) : null;
-        _visit(box is { } at2 ? new Vector2(at2.Item1.GetCenter().X, at2.Item1.Position.Y - Hover) : null);
-        _stare(box is { } seen ? seen.Item1.GetCenter() : _scan.Over is { } over && _overAt is { } at ? canvas.AffineInverse() * Centre(at, over.Item, over.In) : null);
+        _eyeAt = drone is { } d ? canvas * d.Eye : null;
+        Learn(world ? _scan.Learning : null, head, drone, delta);
         bool on = _scan.Busy;
         if (on || _drawn)
         {
@@ -92,19 +101,45 @@ public partial class FindScanView : Node
     }
 
     /// <summary>
-    /// The box, world px, of the machine on <paramref name="m"/>'s surface <paramref name="peer"/>'s hero learns <paramref name="form"/> from, the
-    /// nearest within reach (drone-lessons); null for none, or a form learned by a deed.
+    /// A lesson's stages: the drone sent to the thing and its eye fixed on it while it goes and scans, the dots filling over it as it scans, the form
+    /// shown off by the head after; with no thing found, the dots fill over the head. Out of a lesson, the drone looks at the icon over the head.
     /// </summary>
-    public static Rect2? TeacherOf(Sim.Registry m, int peer, string form)
+    private void Learn(FindLesson? lesson, Vector2? head, (Vector2 Mouth, Vector2 Eye, float Tint)? drone, double delta)
+    {
+        if (lesson?.Form != _lesson) (_lesson, _thing) = (lesson?.Form, null);
+        // Looked for until found while the drone sets off: the wreck broken may be seen gone a frame after its lesson.
+        if (lesson is { Stage: LessonStage.Go } going && _thing == null) _thing = _teacher(going.Form);
+        bool away = lesson is { Stage: LessonStage.Go or LessonStage.Study };
+        var thing = away ? _thing : null;
+        _visit(thing is { } to ? new Vector2(to.GetCenter().X, to.Position.Y - Hover) : null);
+        var canvas = GetViewport().GetCanvasTransform();
+        _stare(thing is { } seen ? seen.GetCenter()
+            : !away && _scan.Over is { } over && _overAt is { } at ? canvas.AffineInverse() * Centre(at, over.Item, over.In) : null);
+        _becoming(lesson is { Stage: LessonStage.Become } becoming ? (becoming.Form, becoming.Progress * FindScan.Become) : null);
+        // The dots read the thing's top, or the head's point, in cells.
+        Vector2? read = thing is { } box ? new Vector2(box.GetCenter().X, box.Position.Y) : head is { } neck ? neck - new Vector2(0, Above) : null;
+        var readout = lesson is { Stage: LessonStage.Study } study && read is { } r
+            ? new Readout(-1, r.X / Camera.Cell, r.Y / Camera.Cell, (int)(study.Progress * FillParts), FillParts)
+            : (Readout?)null;
+        _dots.Frame(readout, drone, delta * 1000);
+    }
+
+    /// <summary>
+    /// The box, world px, of the thing on <paramref name="m"/>'s surface <paramref name="peer"/>'s hero learns <paramref name="form"/> from
+    /// (drone-lessons): the nearest machine within reach for a lesson by a machine, <paramref name="lastBroken"/> for one by a deed; null for none.
+    /// </summary>
+    public static Rect2? TeacherOf(Sim.Registry m, int peer, string form, Rect2? lastBroken)
     {
         if (m.Crew.HeroOf(peer) is not { } hero) return null;
         foreach (var lesson in Stillwake.Content.Lessons.All)
-            if (lesson.Form == form && lesson.Source is Stillwake.Content.Near near && m.Lessons.Teacher(hero.Cell, near.Machine) is { } machine)
-            {
-                var spec = Stillwake.Content.Machines.Get(machine.Kind);
-                int w = m.Grid.Width;
-                return new Rect2(new Vector2(machine.Cell % w, machine.Cell / w) * Camera.Cell, new Vector2(spec.Width, spec.Height) * Camera.Cell);
-            }
+        {
+            if (lesson.Form != form) continue;
+            if (lesson.Source is not Stillwake.Content.Near near) return lastBroken;
+            if (m.Lessons.Teacher(hero.Cell, near.Machine) is not { } machine) return null;
+            var spec = Stillwake.Content.Machines.Get(machine.Kind);
+            int w = m.Grid.Width;
+            return new Rect2(new Vector2(machine.Cell % w, machine.Cell / w) * Camera.Cell, new Vector2(spec.Width, spec.Height) * Camera.Cell);
+        }
         return null;
     }
 
@@ -149,8 +184,6 @@ public partial class FindScanView : Node
     /// <summary>The scan's line swept down the icon, a thread to each of its ends from the drone's eye; each record's ember kindling as it folds.</summary>
     private void DrawSwept()
     {
-        if (_visiting is { } visiting && (visiting.Progress - SweepFrom) / SweepFor is var swept and > 0 and < 1)
-            SweepAcross(visiting.Box, (float)swept);
         if (_overAt is not { } at) return;
         if (_scan.Over is { Sweep: { } sweep and > 0 and < 1 } over)
         {
@@ -168,7 +201,7 @@ public partial class FindScanView : Node
         }
     }
 
-    /// <summary>The scan's line swept down <paramref name="box"/>, an icon's or a visited machine's, <paramref name="swept"/> of the way, a thread to each end from the drone's eye.</summary>
+    /// <summary>The scan's line swept down an icon's <paramref name="box"/>, <paramref name="swept"/> of the way, a thread to each end from the drone's eye.</summary>
     private void SweepAcross(Rect2 box, float swept)
     {
         float y = MathF.Round(box.Position.Y + swept * box.Size.Y) + 0.5f;

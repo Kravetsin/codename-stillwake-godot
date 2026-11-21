@@ -168,51 +168,116 @@ public class FindScanTests
         Assert.Equal(1, scan.Holding);
     }
 
-    /// <summary>The scan learned at the tenth wreck (drone-lessons): its loot first, then the form's icon, no visit; one batch on the key.</summary>
+    private static BoardBatch Learned(string form) => new(BoardSeen.CauseOpened, [], [form]);
+
+    /// <summary>
+    /// The lamp learned passing a lamp (drone-lessons): the drone goes to it, scans it 3 s, shows the lamp by the head 1.5 s, and only then
+    /// does the form's icon come in over the head and fly to the key as a find's, which flares longer.
+    /// </summary>
     [Fact]
-    public void AFormLearnedByADeedComesAfterTheBatchsItemsWithNoVisit()
+    public void ALessonGoesScansAndBecomesBeforeItsIconFliesAndItsLandingFlaresLonger()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(Learned("droneLamp"));
+        scan.Read(Board, batches, open: false);
+        Assert.Equal(1, scan.Holding);
+        scan.Step(FindScan.Lead + FindScan.Go / 2, drone: true);
+        Assert.Equal(new FindLesson("droneLamp", LessonStage.Go, 0.5), Rounded(scan.Learning!.Value));
+        Assert.Null(scan.Over);
+        scan.Step(FindScan.Go / 2 + FindScan.Study / 2, drone: true);
+        Assert.Equal(new FindLesson("droneLamp", LessonStage.Study, 0.5), Rounded(scan.Learning!.Value));
+        scan.Step(FindScan.Study / 2 + FindScan.Become / 2, drone: true);
+        Assert.Equal(new FindLesson("droneLamp", LessonStage.Become, 0.5), Rounded(scan.Learning!.Value));
+        Assert.Null(scan.Over);
+        Assert.Equal(1, scan.Holding);
+        scan.Step(FindScan.Become / 2 + FindScan.Rise + FindScan.Sweep / 2, drone: true);
+        Assert.Null(scan.Learning);
+        Assert.Equal("droneLamp", scan.Over!.Value.Item);
+        Assert.Equal(0.5, scan.Over!.Value.Sweep!.Value, 6);
+        scan.Step(FindScan.Sweep / 2 + FindScan.Fold + FindScan.Fly + 1e-6, drone: true);
+        Assert.Equal(0, scan.Holding);
+        Assert.Equal(1, scan.Glow, 3);
+        scan.Step(FindScan.Flare * 2, drone: true);
+        Assert.InRange(scan.Glow, 0.1, 0.5);
+        scan.Step(FindScan.LessonFlare, drone: true);
+        Assert.False(scan.Busy);
+    }
+
+    /// <summary>The scan learned at the tenth wreck: its lesson comes before the wreck's loot, the batch counted once.</summary>
+    [Fact]
+    public void ALessonComesBeforeItsBatchsItems()
     {
         var (scan, batches) = Seen();
         batches.Add(new BoardBatch(BoardSeen.CauseFound, ["iron"], ["iron", "scanner"]));
         scan.Read(Board, batches, open: false);
         Assert.Equal(1, scan.Holding);
-        scan.Step(FindScan.Lead + FindScan.Rise + FindScan.Sweep + 1e-6, drone: true);
-        Assert.Null(scan.Visiting);
-        Assert.Equal("scanner", scan.Over!.Value.Item);
-    }
-
-    /// <summary>The lamp learned passing a lamp: the drone first visits it, then the form comes in over the head as a find does.</summary>
-    [Fact]
-    public void AFormLearnedFromAMachineIsVisitedFirstThenScannedOverTheHead()
-    {
-        var (scan, batches) = Seen();
-        batches.Add(new BoardBatch(BoardSeen.CauseOpened, [], ["droneLamp"]));
-        scan.Read(Board, batches, open: false);
+        scan.Step(FindScan.Lead + 0.01, drone: true);
+        Assert.Equal("scanner", scan.Learning!.Value.Form);
+        scan.Step(FindScan.Lesson + FindScan.Rise + FindScan.Sweep, drone: true);
+        Assert.Equal("iron", scan.Over!.Value.Item);
         Assert.Equal(1, scan.Holding);
-        scan.Step(FindScan.Lead + FindScan.Visit / 2, drone: true);
-        Assert.Equal(new FindVisit("droneLamp", 0.5), scan.Visiting!.Value with { Progress = System.Math.Round(scan.Visiting!.Value.Progress, 6) });
-        Assert.Null(scan.Over);
+    }
+
+    /// <summary>Finds while a lesson plays wait behind it, an ember from the eye too: nothing cuts it short.</summary>
+    [Fact]
+    public void FindsDuringALessonWaitBehindIt()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(Learned("droneAlarms"));
+        scan.Read(Board, batches, open: false);
+        scan.Step(FindScan.Lead + FindScan.Go + 0.5, drone: true);
+        batches.Add(Found("iron"));
+        batches.Add(new BoardBatch(BoardSeen.CauseBuilt, ["workbench"], ["workbench"]));
+        scan.Read(Board, batches, open: false);
+        Assert.Equal(3, scan.Holding);
+        scan.Step(FindScan.Study, drone: true);
+        Assert.Equal(LessonStage.Become, scan.Learning!.Value.Stage);
         Assert.Equal(0, scan.Records);
-        scan.Step(FindScan.Visit / 2 + FindScan.Rise + FindScan.Sweep / 2, drone: true);
-        Assert.Null(scan.Visiting);
-        Assert.Equal("droneLamp", scan.Over!.Value.Item);
-        Assert.Equal(0.5, scan.Over!.Value.Sweep!.Value, 6);
-        scan.Step(FindScan.Sweep / 2 + FindScan.Fold + FindScan.Fly + 1e-6, drone: true);
+        scan.Step(FindScan.Become - 0.7, drone: true);
+        Assert.Equal(0, scan.Records);
+        scan.Step(0.4, drone: true);
+        Assert.Equal("droneAlarms", scan.Over!.Value.Item);
+        Assert.Equal(1, scan.Records);
+        Assert.Null(scan.RecordAt(0).Item);
+        scan.Step(FindScan.Rise + FindScan.Sweep, drone: true);
+        Assert.Equal("iron", scan.Over!.Value.Item);
+    }
+
+    /// <summary>The tablet opened mid-lesson puts out the finds, but the lesson plays on, off the key's number, and one learned while it is open plays too.</summary>
+    [Fact]
+    public void OpeningTheTabletKeepsTheLessons()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(Learned("droneLamp"));
+        batches.Add(Found("iron"));
+        scan.Read(Board, batches, open: false);
+        scan.Step(FindScan.Lead + FindScan.Go + 0.5, drone: true);
+        batches.Add(Learned("droneAlarms"));
+        scan.Read(Board, batches, open: true);
+        Assert.Equal(("droneLamp", LessonStage.Study), (scan.Learning!.Value.Form, scan.Learning!.Value.Stage));
         Assert.Equal(0, scan.Holding);
-        Assert.False(FindScan.Form("iron", out _));
-        Assert.True(FindScan.Form("droneAlarms", out bool near) && near);
+        scan.Read(Board, batches, open: false);
+        scan.Step(FindScan.Lesson + FindScan.Rise + FindScan.Sweep, drone: true);
+        Assert.Equal("droneAlarms", scan.Learning!.Value.Form);
+        scan.Step(FindScan.Lesson + FindScan.Rise + FindScan.Sweep + FindScan.Fold + FindScan.Fly, drone: true);
+        Assert.Equal(0, scan.Records);
+        scan.Step(FindScan.LessonFlare + 0.01, drone: true);
+        Assert.False(scan.Busy);
     }
 
     [Fact]
-    public void WithNoDroneAFormLandsAtOnce()
+    public void WithNoDroneALessonLandsAtOnce()
     {
         var (scan, batches) = Seen();
-        batches.Add(new BoardBatch(BoardSeen.CauseOpened, [], ["droneAlarms"]));
+        batches.Add(Learned("droneAlarms"));
         scan.Read(Board, batches, open: false);
         scan.Step(0.01, drone: false);
-        Assert.Null(scan.Visiting);
+        Assert.Null(scan.Learning);
         Assert.Equal(0, scan.Holding);
+        Assert.Equal(1, scan.Glow, 3);
     }
+
+    private static FindLesson Rounded(FindLesson l) => l with { Progress = System.Math.Round(l.Progress, 6) };
 
     private static FindRecord Rounded(FindRecord r) => r with { Fold = System.Math.Round(r.Fold, 6) };
 }

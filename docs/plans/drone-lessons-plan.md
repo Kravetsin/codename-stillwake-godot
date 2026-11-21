@@ -18,9 +18,12 @@ Builds [drone-lessons.md](drone-lessons.md). Try stage: filtered tests, local co
 5. **Save** — fixture for 70 first, `SaveFormat` 71, step 70 → 71 adds an empty `lessons` slice aboard and on every
    open surface.
 6. **Client** — forms on the board: a `companion` district («Спутник») of the three forms, a frame each, the picture
-   the form's thread icon rasterised (`FormPictures`); unknown is the board's plain «?», no pencil, no hint. The find
-   beat: a batch whose things hold a form plays that form's icon over the head; for a near form the drone first flies
-   to the closest such machine on the hero's surface and sweeps it (`DroneSenses.Visit`). Friends' beams read their own
+   the form's thread icon rasterised (`FormPictures`); unknown is the board's plain «?», no pencil, no hint. A form
+   learned is a lesson, a longer beat ahead of its batch's items (`FindScan`, client only): the drone goes to the thing
+   (0.6 s; the closest teaching machine, or the wreck last seen broken, `DroneSenses.Visit`), fixes its eye on it and
+   fills the scanner's 26 dots over it (3 s), shows the form by the head (1.5 s: the lamp lit, the scan out, the
+   alarms pulsing red), then its icon flies to the key as a find's, the key flaring 1.2 s. Finds wait behind it; the
+   tablet opening puts out finds, not lessons; with no thing found the dots fill over the head. Friends' beams read their own
    `Knows`. Mode texts say learned, not bought. The alarms gate: only the id and its lesson; thoughts are not built.
 7. **Dev flag** — `--lessons`: the wreck's pod room, a hero paired beside an emergency lamp, ten engine blocks drifting
    by to break, nine broken already.
@@ -41,7 +44,8 @@ Builds [drone-lessons.md](drone-lessons.md). Try stage: filtered tests, local co
 | Invariant: after random walks and breaks, a peer knows a form exactly when its source was met | `[Property]`, proved to bite |
 | Migration 70 → 71 | `MigrationsTests` (the fixture) |
 | Board: the companion district holds the forms, unknown shows «?» | `game.tests` `BoardLayoutTests`, `BoardViewTests` |
-| Find beat: a form batch plays its icon, a near one visits first | `game.tests` `FindScanTests` |
+| Lesson beat: stages and times, before its batch's items, finds wait behind, the tablet keeps it, long flare | `game.tests` `FindScanTests` |
+| The form shown off: lamp, scan, alarms' red pulse | `game.tests` `DroneModesTests` |
 
 ## Deliberately not done
 

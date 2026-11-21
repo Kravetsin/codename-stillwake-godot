@@ -32,8 +32,11 @@ public sealed class LessonsScenario : DevScenario
     /// <summary>The wreck to break: a hull section, six cells by four, held still past where the hero stops, in thousandths of a cell.</summary>
     private const int PieceX = 59_000, PieceY = 4_000, Peer = 0;
 
+    /// <summary>A lesson's beat and the key's long flare (<see cref="Features.Research.FindScan"/>), 7.7 s, in ticks and a little over.</summary>
+    private const int LessonTicks = 170;
+
     private HeroAutopilot? _script;
-    private bool _creative;
+    private bool _creative, _broken;
     private long? _learned, _next;
 
     public override Layout? Map => Corridor;
@@ -79,10 +82,20 @@ public sealed class LessonsScenario : DevScenario
             client.Send(new Sim.Items.SetCreative(true));
         }
         long tick = client.World.Tick;
-        // Once the alarms are learned and their scan has played, the sledgehammer falls on the piece at its pace till it breaks.
-        if (_learned == null && m.Knowledge.Knows(client.Id, Spec.LightDrone.AlarmsMode)) _learned = tick;
-        if (_learned is not { } learned || tick < learned + 100 || tick < _next) return;
-        if (m.Debris.Pieces.FirstOrDefault() is not { } piece) return;
+        // Once the alarms are learned and their lesson has played, the sledgehammer falls on the piece at its pace till it breaks.
+        if (_learned == null && m.Knowledge.Knows(client.Id, Spec.LightDrone.AlarmsMode))
+        {
+            _learned = tick;
+            log($"alarms learned at tick {tick}");
+        }
+        if (_learned is not { } learned || tick < learned + LessonTicks) return;
+        if (m.Debris.Pieces.FirstOrDefault() is not { } piece)
+        {
+            if (!_broken) log($"the tenth broken, the scan learned, at tick {tick}");
+            _broken = true;
+            return;
+        }
+        if (tick < _next) return;
         _next = tick + Spec.Weapons.Sledgehammer.Pace;
         client.Send(new Sim.Debris.HewPieces(Spec.Weapons.Sledgehammer.Item, [piece.Id]));
     }

@@ -9,15 +9,20 @@ public readonly record struct FindRecord(string? Item, double Fold, double? Fly)
 /// <summary>What is over the hero's head: the item, how far its icon has come in, 0..1, and how far the scan has swept it, top to bottom, 0..1; null before the sweep.</summary>
 public readonly record struct FindOver(string Item, double In, double? Sweep);
 
-/// <summary>A form being learned from a machine (drone-lessons): the form, and how far the drone's visit to the machine has gone, 0..1.</summary>
-public readonly record struct FindVisit(string Form, double Progress);
+/// <summary>Where a lesson is (drone-lessons): the drone going to the thing it learns from, scanning it, then showing the form it learned by the head.</summary>
+public enum LessonStage { Go, Study, Become }
+
+/// <summary>A form being learned (drone-lessons): the form, its stage and how far that stage has gone, 0..1.</summary>
+public readonly record struct FindLesson(string Form, LessonStage Stage, double Progress);
 
 /// <summary>
 /// The drone scanning a find (find-scan, the pick «Голограмма» made plain), seen by this player only: an item first had shows its icon over the hero's head,
 /// the drone's scan sweeps it, it folds into one ember and the ember flies to the research key, which flares as it lands and its number takes the batch.
 /// Items had together come one after another, each record leaving after its own scan. A batch with no item (a machine built, a blueprint) is an ember from
-/// the eye. A form the drone learned (drone-lessons) comes as its thread icon after the batch's items; one learned from a machine is first visited:
-/// the drone flies to the machine and sweeps it. With no drone a find lands at once. Times are seconds.
+/// the eye. A form the drone learned (drone-lessons) is a lesson, a longer beat before the batch's items: the drone goes to the thing it learned from,
+/// scans it, shows the new form by the head, and only then does the form's icon come in over the head as a find's; its landing flares the key longer.
+/// Nothing cuts a lesson short: finds wait behind it, and opening the tablet puts out the finds but not the lessons. With no drone a find lands at once.
+/// Times are seconds.
 /// </summary>
 public sealed class FindScan
 {
@@ -27,68 +32,65 @@ public sealed class FindScan
     /// </summary>
     public const double Lead = 0.05, Rise = 0.3, Sweep = 0.45, Fold = 0.15, Fly = 0.4, Flare = 0.45;
 
-    /// <summary>How long the drone's visit to a teaching machine takes, out and sweeping it, before the form's icon comes in over the head.</summary>
-    public const double Visit = 1.4;
+    /// <summary>A lesson's stages before its icon comes in: the drone going to the thing, scanning it, showing the form by the head; the key's longer flare.</summary>
+    public const double Go = 0.6, Study = 3.0, Become = 1.5, LessonFlare = 1.2;
 
-    private sealed class Find(string? item, bool counts, bool visits = false)
+    /// <summary>A lesson's stages together.</summary>
+    public const double Lesson = Go + Study + Become;
+
+    private sealed class Find(string? item, bool counts, bool lesson = false)
     {
         public string? Item { get; } = item;
-        /// <summary>Whether its record brings its batch onto the key's number: the first of the batch.</summary>
-        public bool Counts { get; } = counts;
-        /// <summary>Whether the drone first visits the machine it was learned from.</summary>
-        public bool Visits { get; } = visits;
-        /// <summary>When its visit began, else when it began coming in over the head; once it folds, when its fold began.</summary>
+        /// <summary>Whether its record brings its batch onto the key's number: the first of the batch. A lesson kept as the tablet opens no longer does.</summary>
+        public bool Counts { get; set; } = counts;
+        /// <summary>Whether it is a form learned: a lesson before its icon.</summary>
+        public bool IsLesson { get; } = lesson;
+        /// <summary>When its lesson began, else when it began coming in over the head; once it folds, when its fold began.</summary>
         public double Start;
-        public double VisitS, RiseS;
+        public double LessonS, RiseS;
     }
 
-    /// <summary>Whether <paramref name="id"/> is a drone's form; <paramref name="near"/>, whether it is learned from a machine.</summary>
-    public static bool Form(string id, out bool near)
-    {
-        foreach (var lesson in Stillwake.Content.Lessons.All)
-            if (lesson.Form == id)
-            {
-                near = lesson.Source is Stillwake.Content.Near;
-                return true;
-            }
-        near = false;
-        return false;
-    }
-
-    private readonly Queue<Find> _waiting = new();
+    private readonly List<Find> _waiting = [];
     private readonly List<Find> _eyes = [], _records = [];
     private Find? _over;
-    private double _clock, _landed = double.NegativeInfinity;
+    private double _clock, _landed = double.NegativeInfinity, _lessonLanded = double.NegativeInfinity;
     private object? _seen;
     private BoardBatch? _last;
 
     /// <summary>
     /// A read of the board's batches, oldest first: <paramref name="seen"/> is whose, so another world's starts over with nothing new. Open, the tablet
-    /// shows it all: nothing plays and what played goes.
+    /// shows it all: the finds go and those found meanwhile play nothing, but a lesson plays on, no longer counted, and one learned meanwhile plays too.
     /// </summary>
     public void Read(object seen, IReadOnlyList<BoardBatch> batches, bool open)
     {
         int from = After(batches);
         var last = batches.Count > 0 ? batches[^1] : null;
-        if (seen != _seen || open)
+        if (seen != _seen)
         {
             (_seen, _last) = (seen, last);
             Clear();
             return;
         }
+        if (open) PutOutFinds();
         for (int i = from; i < batches.Count; i++)
         {
             var batch = batches[i];
-            bool counted = batch.Cause == BoardSeen.CauseFound && batch.By.Count > 0;
-            if (counted)
-                for (int k = 0; k < batch.By.Count; k++) _waiting.Enqueue(new Find(batch.By[k], k == 0));
+            // The first of a batch counts; a lesson first, then the items found.
+            bool counts = !open;
             foreach (var thing in batch.Things)
-                if (Form(thing, out bool near))
+                if (BoardThings.Form(thing))
                 {
-                    _waiting.Enqueue(new Find(thing, !counted, near));
-                    counted = true;
+                    _waiting.Add(new Find(thing, counts, lesson: true));
+                    counts = false;
                 }
-            if (!counted) _eyes.Add(new Find(null, true));
+            if (open) continue;
+            if (batch.Cause == BoardSeen.CauseFound)
+                foreach (var item in batch.By)
+                {
+                    _waiting.Add(new Find(item, counts));
+                    counts = false;
+                }
+            if (counts) _eyes.Add(new Find(null, true));
         }
         _last = last;
     }
@@ -107,21 +109,25 @@ public sealed class FindScan
         // What was read came before this step: it starts from then.
         double read = _clock;
         _clock += seconds;
-        foreach (var eye in _eyes)
+        // An ember from the eye waits while the drone is away on a lesson.
+        if (!drone || Learning == null)
         {
-            if (!drone) Land();
-            else
+            foreach (var eye in _eyes)
             {
-                eye.Start = read;
-                _records.Add(eye);
+                if (!drone) Land(eye);
+                else
+                {
+                    eye.Start = read;
+                    _records.Add(eye);
+                }
             }
+            _eyes.Clear();
         }
-        _eyes.Clear();
         if (_over == null) Next(read + Lead, Rise, drone);
         // The one over the head folds as its sweep ends, its record leaving, and the next comes in as it folds.
-        while (_over is { } over && _clock >= over.Start + over.VisitS + over.RiseS + Sweep)
+        while (_over is { } over && _clock >= over.Start + over.LessonS + over.RiseS + Sweep)
         {
-            over.Start += over.VisitS + over.RiseS + Sweep;
+            over.Start += over.LessonS + over.RiseS + Sweep;
             _records.Add(over);
             _over = null;
             Next(over.Start, Fold, drone);
@@ -129,28 +135,47 @@ public sealed class FindScan
         for (int i = _records.Count - 1; i >= 0; i--)
         {
             if (_clock < _records[i].Start + Fold + Fly) continue;
-            Land();
+            Land(_records[i]);
             _records.RemoveAt(i);
         }
     }
 
-    /// <summary>The next item waiting comes in from <paramref name="at"/> over <paramref name="rise"/> s; with no drone, each lands at once.</summary>
+    /// <summary>The next waiting comes in from <paramref name="at"/> over <paramref name="rise"/> s; with no drone, each lands at once.</summary>
     private void Next(double at, double rise, bool drone)
     {
-        while (_waiting.TryDequeue(out var next))
+        while (_waiting.Count > 0)
         {
+            var next = _waiting[0];
+            _waiting.RemoveAt(0);
             if (!drone)
             {
-                Land();
+                Land(next);
                 continue;
             }
-            // A visit ends far from the head: its icon comes in the whole way.
-            (next.Start, next.VisitS, next.RiseS, _over) = (at, next.Visits ? Visit : 0, next.Visits ? Rise : rise, next);
+            // A lesson's icon comes in from the drone back by the head: the whole way.
+            (next.Start, next.LessonS, next.RiseS, _over) = (at, next.IsLesson ? Lesson : 0, next.IsLesson ? Rise : rise, next);
             return;
         }
     }
 
-    private void Land() => _landed = _clock;
+    private void Land(Find find)
+    {
+        if (find.IsLesson) _lessonLanded = _clock;
+        else _landed = _clock;
+    }
+
+    /// <summary>The tablet opened: every find goes, the lessons play on, no longer counted.</summary>
+    private void PutOutFinds()
+    {
+        _waiting.RemoveAll(f => !f.IsLesson);
+        _records.RemoveAll(f => !f.IsLesson);
+        _eyes.Clear();
+        if (_over is { IsLesson: false }) _over = null;
+        foreach (var find in (ReadOnlySpan<List<Find>>)[_waiting, _records])
+            foreach (var kept in find) kept.Counts = false;
+        if (_over != null) _over.Counts = false;
+        _landed = double.NegativeInfinity;
+    }
 
     private void Clear()
     {
@@ -158,7 +183,7 @@ public sealed class FindScan
         _eyes.Clear();
         _records.Clear();
         _over = null;
-        _landed = double.NegativeInfinity;
+        _landed = _lessonLanded = double.NegativeInfinity;
     }
 
     /// <summary>The batches not yet on the key's number: the key's number is the unread less these.</summary>
@@ -174,19 +199,28 @@ public sealed class FindScan
         }
     }
 
-    /// <summary>Whether anything shows: an icon over the head, a record on its way, the key's flare.</summary>
+    /// <summary>Whether anything shows: a lesson, an icon over the head, a record on its way, the key's flare.</summary>
     public bool Busy => _over != null || _records.Count > 0 || Glow > 0;
 
-    /// <summary>The icon over the head and how far it is scanned; null for none, and while the drone is away on a visit. The drone looks at it meanwhile.</summary>
-    public FindOver? Over => _over is { Item: { } item } over && _clock >= over.Start + over.VisitS
-        ? new FindOver(item, Smooth(Math.Clamp((_clock - over.Start - over.VisitS) / over.RiseS, 0, 1)),
-            _clock - over.Start - over.VisitS - over.RiseS is var swept and >= 0 ? Math.Min(1, swept / Sweep) : null)
+    /// <summary>The icon over the head and how far it is scanned; null for none, and through a lesson's stages. The drone looks at it meanwhile.</summary>
+    public FindOver? Over => _over is { Item: { } item } over && _clock >= over.Start + over.LessonS
+        ? new FindOver(item, Smooth(Math.Clamp((_clock - over.Start - over.LessonS) / over.RiseS, 0, 1)),
+            _clock - over.Start - over.LessonS - over.RiseS is var swept and >= 0 ? Math.Min(1, swept / Sweep) : null)
         : null;
 
-    /// <summary>The form whose machine the drone is visiting, and how far; null for none.</summary>
-    public FindVisit? Visiting => _over is { Item: { } form, VisitS: > 0 } over && _clock < over.Start + over.VisitS
-        ? new FindVisit(form, Math.Clamp((_clock - over.Start) / over.VisitS, 0, 1))
-        : null;
+    /// <summary>The lesson in its stages before its icon, and how far; null for none.</summary>
+    public FindLesson? Learning
+    {
+        get
+        {
+            if (_over is not { IsLesson: true, Item: { } form } over) return null;
+            double t = Math.Max(0, _clock - over.Start);
+            return t >= Lesson ? null
+                : t < Go ? new FindLesson(form, LessonStage.Go, t / Go)
+                : t < Go + Study ? new FindLesson(form, LessonStage.Study, (t - Go) / Study)
+                : new FindLesson(form, LessonStage.Become, (t - Go - Study) / Become);
+        }
+    }
 
     /// <summary>How many records are on their way.</summary>
     public int Records => _records.Count;
@@ -199,8 +233,8 @@ public sealed class FindScan
         return new FindRecord(record.Item, Math.Clamp(since / Fold, 0, 1), since < Fold ? null : EaseIn(Math.Min(1, (since - Fold) / Fly)));
     }
 
-    /// <summary>How brightly the key flares, 1 as a record lands, fading to 0.</summary>
-    public double Glow => Math.Max(0, 1 - (_clock - _landed) / Flare);
+    /// <summary>How brightly the key flares, 1 as a record lands, fading to 0: over <see cref="Flare"/>, over <see cref="LessonFlare"/> for a lesson's.</summary>
+    public double Glow => Math.Max(Math.Max(0, 1 - (_clock - _landed) / Flare), Math.Max(0, 1 - (_clock - _lessonLanded) / LessonFlare));
 
     private static double Smooth(double t) => t * t * (3 - 2 * t);
 
