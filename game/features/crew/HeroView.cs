@@ -758,7 +758,7 @@ public partial class HeroView : Node2D
     private void Rammed(Client client, Registry m)
     {
         int tick = client.World.Tick;
-        if (!_ramGuard.Open(tick) || Rams.Contact(m.Creatures.Creatures, _current) is not { } c || m.Creatures.HitByProblem(c.Id) != null) return;
+        if (!_ramGuard.Open(tick) || Rams.RamOf(m, client.Id, _current) is not { } c) return;
         client.Send(new Stillwake.Sim.Creatures.HitBy(c.Id));
         _ramGuard.Sent(tick);
         int away = Rams.Away(c, _current);
@@ -784,7 +784,7 @@ public partial class HeroView : Node2D
         _arcsSeen.RemoveWhere(id => !arcs.Any(a => a.Id == id));
         foreach (var arc in arcs)
         {
-            if (!Rams.Hits(arc, _current, _arcsSeen) || m.Creatures.BoltedProblem(client.Id, arc.Id) != null) continue;
+            if (!Rams.Bolts(m, client.Id, arc, _current, _arcsSeen)) continue;
             client.Send(new Stillwake.Sim.Creatures.Bolted(arc.Id));
             int away = arc.X1 >= arc.X0 ? 1 : -1;
             _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(null, arc.Projectile));
