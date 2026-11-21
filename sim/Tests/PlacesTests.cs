@@ -193,8 +193,8 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
-        // A part only some vessels of the class carry (a tanker's spheres): contacts found till the last carries it.
-        bool Carries(Contact k) => Shipyard.Describe(Vessels.Class(cls)!, k.Seed).Outside.Any(f => Vessels.FirstLook(f.Kind) == kind);
+        // A part only some vessels of the class carry (a tanker's spheres), or a wreck kept: contacts found till the last carries it.
+        bool Carries(Contact k) => Shipyard.Build(Vessels.Class(cls)!, k.Seed, k.Wreck).Vessel.Outside.Any(f => Vessels.FirstLook(f.Kind) == kind);
         for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(k => k.Class == cls && Carries(k)); i++) w.Do(new Find(cls)).Run();
         Assert.True(Carries(w.M.Places.Contacts.Last(k => k.Class == cls)));
         var (_, id) = Visited(cls, w);
@@ -284,36 +284,6 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         int cell = Vessels.Margin / 2 * v.Grid.Width + Vessels.Margin / 2;
         v.Grid.Place(cell, new Placement("machine", kind));
         Hammered(w, v, v.Grid.MachineAt(cell)!);
-    }
-
-    [Fact]
-    public void AMachineAnEventThrewOutLiesInSpaceOnTheVesselWorldAndTheSledgehammerBreaksItForWhatItGives()
-    {
-        var w = new Scenario(Registry.Wreck);
-        w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
-        var liner = Vessels.Class("liner")!;
-        WreckStep[] chain = [new(WreckKind.Explosion, false), new(WreckKind.Asteroid, false)];
-        // The machines the chain laid in space: none where the intact vessel had one, none holding loot, so all it gives is its cost.
-        List<Vessel.Fitting> Thrown(uint seed)
-        {
-            var intact = Shipyard.Build(liner, seed, []).Parts.Where(p => p.Layer == "machine").Select(p => (p.Kind, p.X, p.Y)).ToHashSet();
-            return [.. Shipyard.Build(liner, seed, chain).Vessel.Outside.Where(f => !intact.Contains((f.Kind, f.X, f.Y)) && f.Loot.Count == 0)];
-        }
-        for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(k => k.Class == "liner" && Thrown(k.Seed).Count > 0); i++)
-            w.Do(new Find("liner", chain)).Run();
-        var contact = w.M.Places.Contacts.Last(k => k.Class == "liner");
-        var thrown = Thrown(contact.Seed);
-        Assert.NotEmpty(thrown);
-        var (_, id) = Visited("liner", w);
-        var v = w.On(id);
-        foreach (var f in thrown)
-        {
-            var part = v.Grid.MachineAt(InFrame(v, f.X, f.Y));
-            Assert.Equal(f.Kind, part?.Kind);
-            Assert.Null(v.Grid.BackAt(part!.Cell));
-        }
-        Hammered(w, v, v.Grid.MachineAt(InFrame(v, thrown[0].X, thrown[0].Y))!);
     }
 
     /// <summary>

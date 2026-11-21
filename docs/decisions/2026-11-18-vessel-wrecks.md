@@ -37,7 +37,7 @@ picked the look on a mockup drawn from real stamped vessels: https://claude.ai/a
 - **One builder:** `Shipyard.Build(cls, seed, forced)` returns `Built(Vessel, VesselWreck?, Parts)`: described, stamped, wrecked
   (`Hulk`, a port of the mockup's geometry on integers), every caller on it (`Places.Opened`, `World.Open`, the client's dress,
   lights, signs, beacons, looks and motion); `Stamp` internal. Draws are the vessel's own streams: 3 the wreck, 4 + i event i,
-  9 scavenging, 10 what is thrown, so an intact vessel stamps as before.
+  9 scavenging, so an intact vessel stamps as before.
 - **Forced chains are data:** `Find(Class, Wreck?, Wrecked?)` (`Wrecked` a dev's ask for a wrecked or an intact vessel: the seed drawn again till `IsWreck` agrees) → `Contact.Wreck` → `ISurfaces.Visit`/`Open` and the shuttle's `Voyage` →
   `Surface.Wreck` (saved), each null for the seed's own; an empty chain is intact; a step not allowed at its turn is skipped.
   Every peer and a late joiner build the same. The dev flag `--vessel=<class> --wrecked=blast,fire,rock:old` forces one.
@@ -46,12 +46,13 @@ picked the look on a mockup drawn from real stamped vessels: https://claude.ai/a
   and never re-runs the damage: looks painted once per 32-cell chunk (`game/features/wreck`), motes as one multimesh a kind and
   chunk swaying in their shader, drifters (shards, bits, stones), sparks and vents from the chunks in view.
 - **After the user played it** (2026-11-20):
-  - *Nothing hangs.* A machine keeps the side it was stamped resting on (a floor, a ceiling, a hull); once the chain is done, one
-    holding by fewer cells of that side than stamped is thrown, again till all hold. A stone lies only on a floor under its whole
+  - *Nothing breakable stands in the air or floats* (2026-11-21, the user: thrown machines laid in space read unreal). A machine
+    keeps the side it was stamped resting on: a lamp's or a chandelier's ceiling (`Hulk.Hangs`), else its floor whenever anything
+    held it there (a tall tank stands on its floor, never by the wall beside it), else the side most held (an outside part off the
+    hull: a truss, its container, a sphere, a nozzle, the boom). Once the chain is done, one holding by fewer cells of that side
+    than stamped is lost, again till all hold. What an event throws out or knocks loose is lost too, never laid nor drawn. Only
+    decoration is outside the hull's support: motes, shards, bits, stones, dust, ice. A stone lies only on a floor under its whole
     width. Scavengers leave the plates a part rests on.
-  - *What an event throws is a machine of the vessel world*, laid upright in space at the free spot nearest where it flew (within
-    `ThrownSearch` cells, a cell clear of the hull and every part, never in the arrival room's ring), broken by tools for what it
-    gives; an old group keeps `ThrownOldPercent` (30) of them, the rest drifted off. Lamps and stones thrown are only lost.
   - *A room a breach opened is not dark* (hidden-rooms): what joins space shows from the first look; sealed rooms stay dark till seen.
   - *Lamps* burn as an abandoned vessel's: the airlock's lit, one flickering, `LampRedPercent` lit, the rest dead; a wreck's lit
     ones red, an intact vessel's white. A lamp an event carved is gone.

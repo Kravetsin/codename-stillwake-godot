@@ -28,8 +28,8 @@ and the built vessel alone; the damage is never run again here. Namespace `Featu
   An old group keeps a sixth of its motes (rivets two in five), twice as spread, ice dull, no embers; a third of its drifters,
   farther out; no sparks, vents or glows.
 - **Motion:** motes by the mockup's clouds, fans, room dots and trails; dust in a lit lamp's or ember's reach warm; ice and fuel
-  glinting; embers flickering; drifters (shards, bits, stones) sway on their scatter line and turn, decoration only; a machine
-  thrown out is the sim's, laid in space; fresh events spark at torn edges and cut cables; vents from burst pipes, torn pipes and a tanker's broken bay.
+  glinting; embers flickering; drifters (shards, bits, stones) sway on their scatter line and turn, decoration only, the
+  only thing outside the hull's support (a machine thrown out is lost in the sim); fresh events spark at torn edges and cut cables; vents from burst pipes, torn pipes and a tanker's broken bay.
 - **Lamps** are the light feature's (`VesselLights`): as an abandoned vessel's (dead, one flickering, the rest lit), a wreck's
   lit ones red; one an event carved is gone.
 - **Layers:** room looks at `WreckRooms`, hull looks at `WreckOver`, motes and drifters at `WreckMotes`, sparks, embers and

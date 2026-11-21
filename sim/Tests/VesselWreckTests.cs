@@ -278,7 +278,7 @@ public class VesselWreckTests(ITestOutputHelper output)
             Assert.True(++fires < 200, "a fire burns some compartment each time");
         }
         Assert.True(fires >= 1);
-        var b = hulk.Laid(entry, [.. Enumerable.Range(0, fires).Select(i => (false, i))], false, [], new Rng(new RngState { S = 9 }));
+        var b = hulk.Laid(entry, [.. Enumerable.Range(0, fires).Select(i => (false, i))], false, []);
         var burnt = b.Wreck!.Events.SelectMany(e => e.Compartments).ToHashSet();
         var (sx, sy) = Shipyard.Door(b);
         for (int c = 0; c < v.Compartments.Count; c++)
@@ -432,9 +432,20 @@ public class VesselWreckTests(ITestOutputHelper output)
         return n;
     }
 
-    /// <summary>Whether <paramref name="p"/> touches nothing on any side: thrown off, drifting.</summary>
-    private static bool Drifts(VesselPart p, Dictionary<(int, int), int> held, int self) =>
-        Enumerable.Range(0, 4).All(side => Touching(p, side, held, self) == 0);
+    /// <summary>
+    /// The side <paramref name="p"/> rests on and by how many cells, as the hulk reads a stamped part: a lamp's ceiling, else below
+    /// whenever anything holds it there, else the side most held; -1 for none.
+    /// </summary>
+    private static (int Side, int Count) Rest(VesselPart p, Dictionary<(int, int), int> held, int self)
+    {
+        int above = Touching(p, 1, held, self), under = Touching(p, 0, held, self);
+        if (Hulk.Hangs(p.Kind) && above > 0) return (1, above);
+        if (under > 0) return (0, under);
+        var best = (Side: -1, Count: 0);
+        for (int side = 1; side < 4; side++)
+            if (Touching(p, side, held, self) > best.Count) best = (side, Touching(p, side, held, self));
+        return best;
+    }
 
     private static Dictionary<(int, int), int> Held(IReadOnlyList<VesselPart> parts)
     {
@@ -445,19 +456,25 @@ public class VesselWreckTests(ITestOutputHelper output)
         return held;
     }
 
+    /// <summary>Every class's own wrecks, and three-event chains forced on a liner and a tanker.</summary>
+    public static TheoryData<string, string> Wrecked() => new()
+    {
+        { "shuttle", "" }, { "freighter", "" }, { "liner", "" }, { "tanker", "" },
+        { "liner", "blast,rock,break" }, { "liner", "rock,rock,break" }, { "tanker", "blast,rock,break" }, { "tanker", "rock,blast,rock" },
+    };
+
     [Theory]
-    [InlineData("shuttle")]
-    [InlineData("freighter")]
-    [InlineData("liner")]
-    [InlineData("tanker")]
-    public void NothingHangsOverMissingSupportAfterTheEvents(string id)
+    [MemberData(nameof(Wrecked))]
+    public void NothingBreakableStandsInTheAirOrFloatsAfterTheEvents(string id, string chain)
     {
         var cls = C(id);
-        int checkedParts = 0;
+        var kinds = new Dictionary<string, WreckKind> { ["blast"] = WreckKind.Explosion, ["rock"] = WreckKind.Asteroid, ["break"] = WreckKind.Break };
+        WreckStep[]? forced = chain == "" ? null : [.. chain.Split(',').Select(k => new WreckStep(kinds[k], false))];
+        int paired = 0;
         for (uint seed = 1; seed <= 200; seed++)
         {
             var intact = Shipyard.Build(cls, seed, []).Parts;
-            var b = Shipyard.Build(cls, seed, null, 100);
+            var b = Shipyard.Build(cls, seed, forced, 100);
             var (was, now) = (Held(intact), Held(b.Parts));
             var rests = new Dictionary<(string, int, int), (int Side, int Count)>();
             var cut = b.Wreck?.Events.Select(e => e.Break).FirstOrDefault(x => x != null);
@@ -465,9 +482,6 @@ public class VesselWreckTests(ITestOutputHelper output)
             {
                 var p = intact[i];
                 if (p.Layer != "machine") continue;
-                var best = (Side: -1, Count: 0);
-                for (int side = 0; side < 4; side++)
-                    if (Touching(p, side, was, i) > best.Count) best = (side, Touching(p, side, was, i));
                 // A break moved each half (WreckBreak): read the intact part where it went, those by the ragged cut left out.
                 var (mx, my) = (p.X, p.Y);
                 if (cut is { } k)
@@ -476,59 +490,26 @@ public class VesselWreckTests(ITestOutputHelper output)
                     if (p.X + w > k.Column - reach && p.X < k.Column + reach) continue;
                     (mx, my) = p.X < k.Column ? (p.X - k.Gap / 2, p.Y + k.SternRows) : (p.X + k.Gap - k.Gap / 2, p.Y + k.BowRows);
                 }
-                rests[(p.Kind, mx, my)] = best;
+                rests[(p.Kind, mx, my)] = Rest(p, was, i);
             }
             for (int i = 0; i < b.Parts.Count; i++)
             {
                 var p = b.Parts[i];
                 if (p.Layer != "machine") continue;
-                if (p.Kind == Content.Vessels.Stone)
-                    Assert.Equal(Content.Machines.Get(p.Kind).Width, Touching(p, 0, now, i));
-                else if (rests.TryGetValue((p.Kind, p.X, p.Y), out var rest) && rest.Side >= 0 && !Drifts(p, now, i))
+                int width = Content.Machines.Get(p.Kind).Width;
+                var (side, count) = Rest(p, now, i);
+                Assert.True(side >= 0, $"seed {seed}: {p} floats");
+                if (rests.TryGetValue((p.Kind, p.X, p.Y), out var stamped))
                 {
-                    Assert.True(Touching(p, rest.Side, now, i) >= rest.Count, $"seed {seed}: {p} holds by {Touching(p, rest.Side, now, i)} of {rest.Count}");
-                    checkedParts++;
+                    // Held as it was stamped: a floor under all it stood on, a lamp's ceiling, an outside part's hull.
+                    Assert.True(stamped.Side >= 0 && Touching(p, stamped.Side, now, i) >= stamped.Count, $"seed {seed}: {p} held {Touching(p, Math.Max(0, stamped.Side), now, i)}, stamped {stamped}");
+                    paired++;
                 }
+                else if (!Hulk.Hangs(p.Kind) && Content.Vessels.Outside.All(o => Content.Vessels.FirstLook(o.Kind) != Content.Vessels.FirstLook(p.Kind)))
+                    Assert.True(side == 0 && count == width, $"seed {seed}: {p} stands on {count} of {width}");
             }
         }
-        Assert.True(checkedParts > 1000);
+        Assert.True(paired > 1000, $"{paired} paired");
     }
 
-    /// <summary>The machines of <paramref name=b/> the events threw out: in space (no back wall, no wall under any cell), not where the intact vessel had them.</summary>
-    private static List<VesselPart> Thrown(VesselClass cls, uint seed, Built b)
-    {
-        var intact = Shipyard.Build(cls, seed, []).Parts.Where(p => p.Layer == "machine").Select(p => (p.Kind, p.X, p.Y)).ToHashSet();
-        var filled = b.Parts.Where(p => p.Layer == "back" || p.Kind == "wall").Select(p => (p.X, p.Y)).ToHashSet();
-        return [.. b.Parts.Where(p => p.Layer == "machine" && p.Kind != Content.Vessels.Stone && !intact.Contains((p.Kind, p.X, p.Y))
-            && Shipyard.Covers(p).All(c => !filled.Contains(c)))];
-    }
-
-    [Fact]
-    public void WhatAnEventThrowsOutLiesInSpaceAsAMachineClearOfTheArrivalRoomAnOldGroupKeepingAThird()
-    {
-        int fresh = 0, old = 0;
-        foreach (var id in (string[])["liner", "tanker"])
-            for (uint seed = 1; seed <= 30; seed++)
-            {
-                var cls = C(id);
-                var b = Shipyard.Build(cls, seed, Chain(WreckKind.Explosion, WreckKind.Asteroid));
-                var thrown = Thrown(cls, seed, b);
-                var held = Held(b.Parts);
-                fresh += thrown.Count;
-                var (sx, sy) = Shipyard.Door(b);
-                var room = b.Vessel.Compartments.First(c => c.Holds(sx, sy));
-                int ring = Wrecks.ProtectRing;
-                foreach (var p in thrown)
-                {
-                    Assert.Contains(b.Vessel.Outside, f => f.Kind == p.Kind && f.X == p.X && f.Y == p.Y);
-                    Assert.True(Drifts(p, held, b.Parts.ToList().IndexOf(p)), $"{p} touches the hull or a part");
-                    Assert.All(Shipyard.Covers(p), c => Assert.False(c.X >= room.Left - ring && c.X <= room.Left + room.Width - 1 + ring
-                        && c.Y >= room.Top - ring && c.Y <= room.Floor + ring, $"{p} in the arrival ring"));
-                }
-                NoTwoPartsOverlap(b.Parts);
-                old += Thrown(cls, seed, Shipyard.Build(cls, seed, [new(WreckKind.Explosion, true), new(WreckKind.Asteroid, true)])).Count;
-            }
-        Assert.True(fresh > 30, $"{fresh} thrown");
-        Assert.InRange((double)old / fresh, Wrecks.ThrownOldPercent / 100.0 - 0.15, Wrecks.ThrownOldPercent / 100.0 + 0.15);
-    }
 }

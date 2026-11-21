@@ -17,7 +17,7 @@ public static partial class Shipyard
     /// The chain is <paramref name="forced"/>'s steps in order, each skipped where it is not allowed at its turn (an empty one an intact
     /// vessel); with none, a wreck <c>WreckPercent</c> times in a hundred, its count drawn in the class's <c>Events</c>, each next event
     /// drawn evenly from those allowed on the ship as it stands. Draws are the vessel's own streams: the wreck 3, event <c>i</c>'s
-    /// geometry 4 + i, scavenging 9, what was thrown 10; an intact vessel draws only whether it is a wreck, so stamps as before.
+    /// geometry 4 + i, scavenging 9; an intact vessel draws only whether it is a wreck, so stamps as before.
     /// </summary>
     public static Built Build(VesselClass cls, uint seed, IReadOnlyList<WreckStep>? forced = null) => Build(cls, seed, forced, Wrecks.WreckPercent);
 
@@ -69,7 +69,7 @@ public static partial class Shipyard
         for (int i = 0; i < chain.Count; i++)
             old[i] = forced != null ? (i > 0 && groups[i] == groups[i - 1] ? old[i - 1] : asked[i]) : groups[i] != groups[^1] || !lastFresh;
         IReadOnlyList<WreckPatch> patches = old[0] ? hulk.Strip(Draws(cls, seed, 9)) : [];
-        return hulk.Laid(entry, [.. Enumerable.Range(0, chain.Count).Select(i => (old[i], groups[i]))], old[0], patches, Draws(cls, seed, 10));
+        return hulk.Laid(entry, [.. Enumerable.Range(0, chain.Count).Select(i => (old[i], groups[i]))], old[0], patches);
     }
 
     /// <summary>
