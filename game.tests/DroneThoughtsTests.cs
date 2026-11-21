@@ -147,17 +147,25 @@ public class DroneThoughtsTests
         Assert.Contains(DroneThought.Curious, shown);
     }
 
+    /// <summary>A player gone from the keyboard sees it only if it lasts: bored till the hero moves, back after any cut while it still stands.</summary>
     [Fact]
-    public void BoredAfterStandingStillAMinuteAgainOnlyAfterMoving()
+    public void BoredAfterStandingStillAMinuteTillTheHeroMovesBackAfterACut()
     {
         var will = Will();
         Assert.DoesNotContain(DroneThought.Bored, Run(will, Mine, Tune.BoredAfterMs - 1000, 100));
         Assert.Contains(DroneThought.Bored, Run(will, Mine, 2000, 100));
-        Assert.DoesNotContain(DroneThought.Bored, Run(will, Mine, 3 * Tune.MoodGapMs, 100)[30..]);
+        Assert.All(Run(will, Mine, 3 * 60_000, 100), s => Assert.Equal(DroneThought.Bored, s));
+        Assert.Equal(DroneThought.Bored, will.Thoughts.Forming);
+        Assert.All(Run(will, Mine with { Window = new Vec(416, 250) }, 1000), s => Assert.Null(s));
+        Assert.Equal(DroneThought.Bored, Run(will, Mine, 100)[^1]);
+        Assert.Contains(DroneThought.Love, Run(will, Mine with { Woke = true }, 100));
+        Assert.Equal(DroneThought.Bored, Run(will, Mine, 8000)[^1]);
         var moved = new Vec(Anchor.X + 3 * Tune.BoredBox, Anchor.Y);
-        Assert.Contains(DroneThought.Bored, Run(will, Mine with { Anchor = moved, At = moved }, Tune.BoredAfterMs + 1000, 100));
+        var away = Mine with { Anchor = moved, At = moved };
+        Assert.Contains(null, Run(will, away, 1000));
+        Assert.DoesNotContain(DroneThought.Bored, Run(will, away, Tune.BoredAfterMs - 2000, 100));
+        Assert.Contains(DroneThought.Bored, Run(will, away, 3000, 100));
     }
-
     [Fact]
     public void LoveOnWakingPressesItToTheHelmetAndWaitsBehindAWindowNeverLost()
     {
