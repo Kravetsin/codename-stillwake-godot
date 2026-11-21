@@ -200,9 +200,9 @@ function thoughtGlyphs() {
   return `    /// <summary>
     /// A thought or mood over the drone, the pick «Контур» (drone-moods.js, candidate outline): its picture, box -1..1 y down, stands ThoughtAbove pick px
     /// over the core, ThoughtSize a unit; it forms over ThoughtIn, holds ThoughtHold, falls apart over ThoughtOut, s; its sparks flow along it at AlarmFlow
-    /// or MoodFlow, pick px a second.
+    /// or MoodFlow, pick px a second. The pick's 0.4, 1.5 and 0.4 s were too quick to make the shape out in play: twice the hold.
     /// </summary>
-    public const float ThoughtAbove = 50, ThoughtSize = 22, ThoughtIn = 0.4f, ThoughtHold = 1.5f, ThoughtOut = 0.4f, AlarmFlow = 42, MoodFlow = 18;
+    public const float ThoughtAbove = 50, ThoughtSize = 22, ThoughtIn = 0.5f, ThoughtHold = 3, ThoughtOut = 0.5f, AlarmFlow = 42, MoodFlow = 18;
 
     /// <summary>A thought's sparks' heat: an alarm's middle, swing and pace; a mood's, its sparks a step apart; a mood's threads this much of an alarm's.</summary>
     public const float AlarmSpark = 0.75f, AlarmSparkSwing = 0.25f, AlarmSparkPace = 13, MoodSpark = 0.42f, MoodSparkSwing = 0.18f, MoodSparkPace = 4, MoodSparkStep = 1.7f, MoodThread = 0.7f;

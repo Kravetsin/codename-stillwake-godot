@@ -54,6 +54,19 @@ public class DroneThoughtsTests
         Assert.Contains(thought, Run(will, Body(heat, Tune.Step), 100));
     }
 
+    /// <summary>Stared at in play, the pick's 1.5 s hold was too short to make the shape out: it forms in half a second, holds three, falls apart in half.</summary>
+    [Fact]
+    public void APictureFormsHoldsThreeSecondsAndFallsApart()
+    {
+        var will = Will();
+        Run(will, Chilled, 3450);
+        Assert.Equal(DroneThought.Cold, will.Thoughts.Forming);
+        Run(will, Chilled, 100);
+        Assert.Null(will.Thoughts.Forming);
+        Assert.Equal(DroneThought.Cold, will.Thoughts.Showing);
+        Assert.Contains(null, Run(will, Chilled, 550));
+    }
+
     [Fact]
     public void WithoutTheAlarmsKnownNoAlarmShowsYetTheMoodsDo()
     {
@@ -116,6 +129,7 @@ public class DroneThoughtsTests
         Run(will, Chilled, Through);
         Assert.DoesNotContain(DroneThought.Cold, Run(will, Chilled, Through));
     }
+
     [Fact]
     public void CuriousOnceAMachineWithinWonderAndNotTwiceInAGap()
     {
@@ -124,10 +138,10 @@ public class DroneThoughtsTests
         var intent = will.Pick(Mine with { Wonder = lamp }, 16);
         Assert.Equal(DroneThought.Curious, intent.Thought);
         Assert.True(intent.Look.X < 0);
-        Assert.DoesNotContain(DroneThought.Curious, Run(will, Mine with { Wonder = lamp }, Tune.MoodGapMs + 10_000, 100)[30..]);
+        Assert.DoesNotContain(DroneThought.Curious, Run(will, Mine with { Wonder = lamp }, Tune.MoodGapMs + 10_000, 100)[50..]);
         var other = new DroneWonder(77, new Vec(600, 150));
         will = Will();
-        Run(will, Mine with { Wonder = lamp }, 3000);
+        Run(will, Mine with { Wonder = lamp }, 5000);
         var shown = Run(will, Mine with { Wonder = other }, Tune.MoodGapMs, 100);
         Assert.DoesNotContain(DroneThought.Curious, shown[..^50]);
         Assert.Contains(DroneThought.Curious, shown);
