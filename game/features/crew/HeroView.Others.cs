@@ -101,6 +101,7 @@ public partial class HeroView
             shown.Figure.Paired = m.Players.HasDrone(id);
             (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
             shown.Figure.DroneWindow = (seen.Projects, 0);
+            shown.Figure.Senses = DroneSensesOf(m, id, here, seen.Busy, friend: true);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
@@ -256,6 +257,30 @@ public partial class HeroView
 
     /// <summary>A point in the world's pixels, in thousandths of a cell.</summary>
     private static (double X, double Y) Thousandths(Vector2 at) => (at.X / Rig.Cell * Hero.Unit, at.Y / Rig.Cell * Hero.Unit);
+
+    /// <summary>
+    /// What hero <paramref name="id"/>'s drone senses of the world (drone-motion), its hero on <paramref name="surface"/>, its hands
+    /// <paramref name="busy"/>: the work point, the meteor coming and the bolt glowing here, the catcher hunting it, and for a
+    /// <paramref name="friend"/> its low air. The sim's queries read as they are; nothing is sent.
+    /// </summary>
+    private DroneSenses DroneSensesOf(Registry m, int id, int surface, Busy? busy, bool friend)
+    {
+        int width = m.Grid.Width;
+        // This view's sim is the surface its own hero stands on (Main.Follow): its hazards are that surface's.
+        Vec Middle(int cell) => new((cell % width + 0.5) * Rig.Cell, (cell / width + 0.5) * Rig.Cell);
+        var meteor = m.Hazards.Incoming is { } coming ? new DroneDanger(coming.Cell, Middle(coming.Cell), _surface) : (DroneDanger?)null;
+        var bolt = m.Hazards.Strike is { } strike ? new DroneDanger(strike.Cell, Middle(strike.Cell), _surface, strike.Spread) : (DroneDanger?)null;
+        Vec? hunter = null;
+        if (m.Crew.Hunted(id) && m.Creatures.HunterOf(id) is { } c)
+        {
+            double unit = Stillwake.Sim.Creatures.CreaturesModule.Unit, height = Content.Creatures.Get(c.Species).Body.Height;
+            hunter = new Vec(c.X / unit * Rig.Cell, (c.Y / unit - height / 2) * Rig.Cell);
+        }
+        Vec? work = busy is { Work: Handwork.Work or Handwork.Chop or Handwork.Beam or Handwork.Drill, At: var at }
+            ? new Vec((double)at.X / Hero.Unit * Rig.Cell, (double)at.Y / Hero.Unit * Rig.Cell) : null;
+        bool low = friend && Danger.Read(m.Crew, m.Atmosphere, id).Danger == SuitDanger.Low;
+        return new DroneSenses(default, default, surface, Work: work, Meteor: meteor, Bolt: bolt, Hunter: hunter, Friend: friend, Low: low);
+    }
 
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>

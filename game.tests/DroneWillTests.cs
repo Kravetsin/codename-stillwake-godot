@@ -1,0 +1,189 @@
+using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
+using Xunit;
+using T = Stillwake.Game.Features.Crew.DroneFlight.Tune;
+
+namespace Stillwake.Game.Tests;
+
+/// <summary>The light drone's mind (docs/plans/drone-motion.md): what it flies to, where it looks and when it turns red.</summary>
+public class DroneWillTests
+{
+    private static readonly Vec Anchor = new(400, 200);
+    private static readonly DroneSenses Still = new(Anchor, Anchor, Surface: 1);
+    private static readonly Vec WindowAt = new(416, 250), WorkAt = new(440, 215);
+    private static readonly DroneDanger Meteor = new(7, new Vec(480, 120), 1);
+
+    private static DroneWill Will(int seed = 1) => new(new Random(seed));
+
+    private static bool InHome(Vec goal, Vec anchor) => Math.Abs(goal.X - anchor.X) <= T.HomeX + 1e-9 && Math.Abs(goal.Y - anchor.Y) <= T.HomeY + 1e-9;
+
+    private static double Apart(Vec a, Vec b) => DroneFlight.Length(DroneFlight.Minus(a, b));
+
+    [Fact]
+    public void AWindowOutranksADartADartTheWorkTheWorkAPerch()
+    {
+        var will = Will();
+        var all = Still with { Window = WindowAt, Work = WorkAt, Meteor = Meteor };
+        Assert.Equal(WindowAt, will.Pick(all, 16).Goal);
+        var dart = will.Pick(all with { Window = null }, 16);
+        Assert.Equal(Meteor.At, dart.Goal);
+        Assert.True(dart.Darting);
+        var watch = will.Pick(all with { Window = null, Meteor = null }, 16);
+        Assert.True(Apart(watch.Goal, WorkAt) is > T.WatchApart - 1e-9 and < T.WatchApart + 1e-9);
+        Assert.False(watch.Darting);
+        // No work for longer than the grace: back to a perch.
+        DroneIntent settle = default;
+        for (int ms = 0; ms <= T.WatchGraceMs + 16; ms += 16) settle = will.Pick(Still, 16);
+        Assert.True(InHome(settle.Goal, Anchor));
+    }
+
+    [Fact]
+    public void ADartLastsWhileItsDangerDoesThenItReturnsAndNeverDartsTwiceAtTheSameOne()
+    {
+        var will = Will();
+        var coming = Still with { Meteor = Meteor };
+        for (int ms = 0; ms < 3000; ms += 16)
+        {
+            var intent = will.Pick(coming, 16);
+            Assert.Equal(Meteor.At, intent.Goal);
+            Assert.True(intent.Darting);
+        }
+        // A bolt replaces the dart under way; once it is gone the meteor, still coming, never darts it again.
+        var bolt = new DroneDanger(9, new Vec(Anchor.X - 3 * Rig.Cell, 40), 1, Spread: 1);
+        var replaced = will.Pick(coming with { Bolt = bolt }, 16);
+        Assert.Equal(new Vec(bolt.At.X, Anchor.Y), replaced.Goal);
+        var back = will.Pick(coming, 16);
+        Assert.False(back.Darting);
+        Assert.True(InHome(back.Goal, Anchor));
+        Assert.Equal(0, back.Tint);
+        // Landed, it returns home; the next meteor darts it anew.
+        Assert.True(InHome(will.Pick(Still, 16).Goal, Anchor));
+        Assert.True(will.Pick(Still with { Meteor = Meteor with { Cell = 8 } }, 16).Darting);
+    }
+
+    [Fact]
+    public void ADartsDangerFlashesItRedAndAWindowHoldsItInPlaceLookingAtTheDanger()
+    {
+        var will = Will();
+        double reddest = 0;
+        for (int ms = 0; ms < 1000; ms += 16)
+        {
+            var intent = will.Pick(Still with { Meteor = Meteor, Window = WindowAt, At = WindowAt }, 16);
+            Assert.Equal(WindowAt, intent.Goal);
+            Assert.False(intent.Darting);
+            var way = DroneFlight.Minus(Meteor.At, WindowAt);
+            Assert.Equal(DroneFlight.Scaled(way, 1 / DroneFlight.Length(way)), intent.Look);
+            reddest = Math.Max(reddest, intent.Tint);
+        }
+        Assert.True(reddest > 0.9);
+        Assert.Equal(new Vec(0, -1), will.Pick(Still with { Window = WindowAt }, 16).Look);
+    }
+
+    [Fact]
+    public void AHunterLeansItHisWayUnderADartButNotInAWindow()
+    {
+        var hunter = new Vec(Anchor.X - 200, Anchor.Y);
+        var plain = Will(3).Pick(Still with { Meteor = Meteor }, 16);
+        var leaning = Will(3).Pick(Still with { Meteor = Meteor, Hunter = hunter }, 16);
+        Assert.Equal(new Vec(plain.Goal.X - T.Lean, plain.Goal.Y), leaning.Goal);
+        Assert.Equal(WindowAt, Will(3).Pick(Still with { Window = WindowAt, Hunter = hunter }, 16).Goal);
+        Assert.Equal(Will(3).Pick(Still, 16).Goal, Will(3).Pick(Still with { Hunter = null }, 16).Goal);
+    }
+
+    [Fact]
+    public void AMeteorBeyondNoticeABoltOutsideItsZoneAndAHazardOfAnotherSurfaceAreIgnored()
+    {
+        var far = Meteor with { At = new Vec(Anchor.X + T.Notice + 1, Anchor.Y) };
+        Assert.False(Will().Pick(Still with { Meteor = far }, 16).Darting);
+        Assert.True(Will().Pick(Still with { Meteor = far with { At = new Vec(Anchor.X + T.Notice - 1, Anchor.Y) } }, 16).Darting);
+        var outside = new DroneDanger(9, new Vec(Anchor.X + (2 + T.BoltMargin + 1) * Rig.Cell, 40), 1, Spread: 2);
+        Assert.False(Will().Pick(Still with { Bolt = outside }, 16).Darting);
+        Assert.True(Will().Pick(Still with { Bolt = outside with { Spread = 3 } }, 16).Darting);
+        Assert.False(Will().Pick(Still with { Meteor = Meteor with { Surface = 2 } }, 16).Darting);
+        Assert.False(Will().Pick(Still with { Bolt = outside with { Spread = 3, Surface = 0 } }, 16).Darting);
+    }
+
+    [Fact]
+    public void OnlyAFriendsDroneLowOnAirPulsesRedAndPassedOutItKeepsToTheAnchor()
+    {
+        double Reddest(DroneSenses senses)
+        {
+            var will = Will();
+            double most = 0;
+            for (int ms = 0; ms < T.PulseMs * 2; ms += 16) most = Math.Max(most, will.Pick(senses, 16).Tint);
+            return most;
+        }
+        Assert.True(Reddest(Still with { Friend = true, Low = true }) > 0.9);
+        Assert.Equal(0, Reddest(Still with { Low = true }));
+        Assert.Equal(0, Reddest(Still with { Friend = true }));
+        Assert.True(Reddest(Still with { Friend = true, Low = true, Out = true, Meteor = Meteor }) > 0.9);
+        var will = Will();
+        for (int ms = 0; ms < 20000; ms += 16)
+        {
+            var intent = will.Pick(Still with { Out = true, Meteor = Meteor, Work = WorkAt }, 16);
+            Assert.Equal(Anchor, intent.Goal);
+            Assert.False(intent.Darting);
+        }
+    }
+
+    [Fact]
+    public void ItWatchesTheWorkThroughShortGapsThenRests()
+    {
+        var will = Will();
+        var working = Still with { Work = WorkAt };
+        bool Watches(DroneSenses senses) => Apart(will.Pick(senses, 16).Goal, WorkAt) < T.WatchApart + 1e-6;
+        Assert.True(Watches(working));
+        double ms = 16;
+        // Strokes with gaps under the grace between them: watched throughout, till its time is up.
+        for (; ms + 16 < T.WatchMs; ms += 16)
+            Assert.True(Watches((int)(ms / 400) % 2 == 0 ? working : Still), $"stopped watching at {ms} ms");
+        for (; ms < T.WatchMs + 32; ms += 16) Watches(working);
+        // Rested, it does not watch though the work goes on.
+        for (double rest = 0; rest < T.WatchRestMs - 32; rest += 16) Assert.False(Watches(working), $"watched again {rest} ms into its rest");
+        bool again = false;
+        for (int i = 0; i < 10; i++) again |= Watches(working);
+        Assert.True(again);
+        // A gap longer than the grace ends a watch.
+        var other = Will(5);
+        other.Pick(working, 16);
+        for (double gap = 0; gap <= T.WatchGraceMs; gap += 16) other.Pick(Still, 16);
+        Assert.True(InHome(other.Pick(Still, 16).Goal, Anchor));
+    }
+
+    [Fact]
+    public void StandingAMinuteItRePerchesWhenBoredAndStaysHome()
+    {
+        foreach (int seed in (int[])[1, 2, 3])
+        {
+            var will = Will(seed);
+            var flight = new DroneFlight();
+            var goal = will.Pick(Still, 16).Goal;
+            double since = 0, sat = 0;
+            int perches = 0;
+            for (int ms = 16; ms < 60000; ms += 16)
+            {
+                var intent = will.Pick(Still with { At = flight.At }, 16);
+                flight.Step(Anchor, default, intent.Goal, false, intent.Darting, 16);
+                Assert.True(InHome(intent.Goal, Anchor));
+                Assert.True(Math.Abs(flight.At.X - Anchor.X) <= T.HomeX + 0.5 && Math.Abs(flight.At.Y - Anchor.Y) <= T.HomeY + 0.5,
+                    $"flew out of its home to {flight.At}");
+                since += 16;
+                if (intent.Goal != goal) (goal, sat, since, perches) = (intent.Goal, Math.Max(sat, since), 0, perches + 1);
+            }
+            Assert.InRange(sat, T.BoredMinMs - 16, T.BoredMaxMs + 16);
+            Assert.InRange(perches, 60000 / T.BoredMaxMs, 60000 / T.BoredMinMs + 1);
+        }
+    }
+
+    [Fact]
+    public void InLampAndScanTheLensFollowsThePointerWhateverItDoes()
+    {
+        var aim = new Vec(0.6, 0.8);
+        var will = Will();
+        Assert.Equal(aim, will.Pick(Still with { ModeLook = aim }, 16).Look);
+        Assert.Equal(aim, will.Pick(Still with { ModeLook = aim, Work = WorkAt }, 16).Look);
+        Assert.Equal(aim, will.Pick(Still with { ModeLook = aim, Work = WorkAt, Meteor = Meteor }, 16).Look);
+        var free = Will().Pick(Still with { Meteor = Meteor }, 16).Look;
+        Assert.NotEqual(aim, free);
+    }
+}

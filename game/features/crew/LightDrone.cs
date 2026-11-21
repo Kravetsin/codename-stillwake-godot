@@ -49,7 +49,7 @@ public partial class LightDrone : Node2D
     private static readonly Color Holo = new(DroneSign.Tint), ArcColour = new(SootRun.Tune.Hot), ArcCore = ArcColour.Lerp(Colors.White, SootRun.Tune.ArcPale);
 
     private static Texture2D? _core, _plates;
-    private readonly DroneFloat _float = new();
+    private readonly DroneFlight _flight = new();
     private readonly DroneSwarm _swarm = new();
     private readonly Plate[] _placed = new Plate[DroneSwarm.Tune.Plates];
     private readonly Mote[] _motes = new Mote[DroneSwarm.Tune.Motes];
@@ -67,8 +67,19 @@ public partial class LightDrone : Node2D
     /// <summary>How long it takes to turn most of the way to a new aim, in ms.</summary>
     private const double TurnMs = 90;
 
+    /// <summary>Its bob as it flies, pixels up and down, and how long one takes, ms.</summary>
+    private const double BobPx = 1, BobMs = 1800;
+
+    /// <summary>The red its lens and soot turn in an alarm (drone-motion): no light of its own.</summary>
+    private static readonly Color Alarm = new(1f, 0.22f, 0.16f);
+
+    /// <summary>How far its soot reddens at the alarm's height, of the way to <see cref="Alarm"/>.</summary>
+    private const float SootRed = 0.55f;
+
     private float _angle;
     private double _timeMs;
+    /// <summary>How red it is now, 0..1 (<see cref="DroneIntent.Tint"/>).</summary>
+    private float _tint;
 
     public LightDrone()
     {
@@ -106,8 +117,11 @@ public partial class LightDrone : Node2D
         _glow.QueueRedraw();
     }
 
-    /// <summary>How far it floats from its place, pixels, as last followed.</summary>
-    public double Off => _float.Off;
+    /// <summary>How far it flies from its goal, pixels, as last followed.</summary>
+    public double Off => _flight.Off;
+
+    /// <summary>Where it flies, pixels of the world, without its bob.</summary>
+    public Vec At => _flight.At;
 
     /// <summary>Whether it scans rather than shines: the scanner worn, not the drone.</summary>
     public bool Scanning { get; set; }
@@ -118,8 +132,11 @@ public partial class LightDrone : Node2D
     /// <summary>Whether it projects a drone window over itself (drone-holo): its mode off, its lens the hologram's, its plates fanned to it.</summary>
     public bool Projecting { get; set; }
 
-    /// <summary>Its lens's colour: the hologram's projecting, else its mode's.</summary>
+    /// <summary>Its lens's colour: the hologram's projecting, else its mode's; untinted by an alarm.</summary>
     internal Color LensColour => Projecting ? Holo : Scanning ? Scan : Idle ? Dark : Lamp;
+
+    /// <summary>Its lens as drawn: its colour, reddened by an alarm.</summary>
+    private Color LensShown => LensColour.Lerp(Alarm, _tint);
 
     /// <summary>
     /// Whether a drone window is <paramref name="open"/> or its soot still out by <paramref name="soot"/>, 0..1 (drone-frame): either
@@ -138,19 +155,26 @@ public partial class LightDrone : Node2D
         }
     }
 
-    /// <summary>Floats it after the neck at <paramref name="neck"/>, or to <paramref name="instead"/>, its lens turned <paramref name="toward"/>, a unit vector.</summary>
-    public void Follow(Vector2 neck, int facing, Vector2 toward, double elapsedMs, double timeMs, Vector2? instead = null)
+    /// <summary>
+    /// Flies it by its hero's <paramref name="anchor"/>, moving at <paramref name="hero"/> px/ms, as its will wants
+    /// (<paramref name="intent"/>), with no reach in a <paramref name="window"/>: its lens eased toward the look, red as the tint.
+    /// </summary>
+    public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs)
     {
-        var (x, y) = _float.Follow((neck.X, neck.Y), facing, elapsedMs, timeMs, instead is { } place ? (place.X, place.Y) : null);
-        GlobalPosition = new Vector2((float)x, (float)y);
-        // It turns after the pointer, eased, never snapping across.
-        float off = Mathf.Wrap(Mathf.Atan2(toward.Y, toward.X) - _angle, -Mathf.Pi, Mathf.Pi);
+        var at = _flight.Step(anchor, hero, intent.Goal, window, intent.Darting, elapsedMs);
+        GlobalPosition = new Vector2((float)at.X, (float)(at.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)));
+        // It turns after its look, eased, never snapping across.
+        float off = Mathf.Wrap(Mathf.Atan2((float)intent.Look.Y, (float)intent.Look.X) - _angle, -Mathf.Pi, Mathf.Pi);
         _angle = Mathf.Wrap(_angle + off * (float)(1 - Math.Exp(-elapsedMs / TurnMs)), -Mathf.Pi, Mathf.Pi);
+        _tint = (float)intent.Tint;
         _timeMs = timeMs;
     }
 
-    /// <summary>The field's colour: the hologram's while the plates fan to a sign, else the lens's.</summary>
-    private Color Field => _swarm.Shape == SwarmShape.Sign ? Holo : Scanning ? Scan : Idle ? Dark : Lamp;
+    /// <summary>Forgets where it flew, hidden: shown again, it starts at its goal.</summary>
+    public void Lose() => _flight.Lose();
+
+    /// <summary>The field's colour: the hologram's while the plates fan to a sign, else the lens's; reddened by an alarm.</summary>
+    private Color Field => (_swarm.Shape == SwarmShape.Sign ? Holo : Scanning ? Scan : Idle ? Dark : Lamp).Lerp(Alarm, _tint);
 
     /// <summary>In the pick's order: soot behind, plates behind, the core and its lens, soot before, plates before.</summary>
     public override void _Draw()
@@ -159,7 +183,7 @@ public partial class LightDrone : Node2D
         DrawSoot(front: false);
         for (int i = 0; i < _placed.Length; i++)
             if (!_placed[i].Front) DrawPlate(this, i, _placed[i], Vector2.Zero);
-        DrawCore(this, Vector2.Zero, angle, LensColour);
+        DrawCore(this, Vector2.Zero, angle, LensShown);
         DrawSoot(front: true);
         for (int i = 0; i < _placed.Length; i++)
             if (_placed[i].Front) DrawPlate(this, i, _placed[i], Vector2.Zero);
@@ -187,15 +211,16 @@ public partial class LightDrone : Node2D
 
     /// <summary>
     /// A mote of soot, its middle at (<paramref name="x"/>, <paramref name="y"/>), its side <paramref name="s"/>: a dark rim, its tone,
-    /// a lit top on the larger ones; all <paramref name="alpha"/> as opaque.
+    /// a lit top on the larger ones; all <paramref name="alpha"/> as opaque, <paramref name="red"/> of the way to the alarm's red.
     /// </summary>
-    internal static void Mote(Triangles into, float x, float y, float s, bool dark, float alpha = 1)
+    internal static void Mote(Triangles into, float x, float y, float s, bool dark, float alpha = 1, float red = 0)
     {
         x -= s / 2;
         y -= s / 2;
-        into.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, Faded(dark ? RimDark : RimLight, alpha));
-        into.Rect(x, y, s, s, Faded(dark ? SootDark : SootLight, alpha));
-        if (s > LitFrom) into.Rect(x, y, s, LitTop, Faded(SootTop, alpha));
+        Color Tinted(Color colour) => red > 0 ? colour.Lerp(Alarm with { A = colour.A }, red) : colour;
+        into.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, Faded(Tinted(dark ? RimDark : RimLight), alpha));
+        into.Rect(x, y, s, s, Faded(Tinted(dark ? SootDark : SootLight), alpha));
+        if (s > LitFrom) into.Rect(x, y, s, LitTop, Faded(Tinted(SootTop), alpha));
     }
 
     private static Color Faded(Color colour, float alpha) => alpha >= 1 ? colour : new Color(colour, colour.A * alpha);
@@ -208,7 +233,7 @@ public partial class LightDrone : Node2D
         {
             var mote = _motes[i];
             if (mote.Front != front || !_swarm.Kept(i)) continue;
-            Mote(_soot, mote.X, mote.Y, mote.Side, mote.Dark);
+            Mote(_soot, mote.X, mote.Y, mote.Side, mote.Dark, red: _tint * SootRed);
         }
         _soot.Flush(GetCanvasItem());
     }
@@ -290,7 +315,7 @@ public partial class LightDrone : Node2D
         var colour = Field;
         // The lens's haze, added as the pick's halo: ring over ring, the sum fading out from the glass.
         var lens = Vector2.FromAngle(_angle) * LensAhead;
-        var lensColour = LensColour;
+        var lensColour = LensShown;
         for (int k = LensHazeRings; k >= 1; k--) _glow.DrawCircle(lens, LensHaze * k / LensHazeRings, new Color(lensColour, LensHazeAlpha / LensHazeRings));
         foreach (var plate in _placed)
         {

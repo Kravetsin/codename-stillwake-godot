@@ -814,8 +814,30 @@ public partial class Figure : Node2D
     }
     private bool? _droneShown;
 
-    /// <summary>Where its drone flies instead of its place by the head, pixels of the world, its lens turned toward a unit vector (drone-meeting); none for its place.</summary>
-    public (Vector2 At, Vector2 Toward)? DroneTo { get; set; }
+    /// <summary>
+    /// What its drone senses of its hero's world this frame (drone-motion): the surface, the work point, the meteor and bolt, the
+    /// hunter, a friend's low air. The figure adds its own: the anchor, the window, the lens's aim, passed out, signing.
+    /// </summary>
+    public DroneSenses Senses { get; set; }
+
+    /// <summary>Its drone's mind, its perches its own: they may differ between screens.</summary>
+    private readonly DroneWill _will = new(new Random());
+    /// <summary>Whether its drone was hidden since it last flew: shown again, it starts at its anchor.</summary>
+    private bool _droneLost = true;
+    /// <summary>Whether it lies or tumbles as last shown: its drone's anchor is over the body's middle then.</summary>
+    private bool _lying;
+
+    /// <summary>Its drone's anchor as drawn now, pixels of the world (<see cref="DroneFlight.Anchor"/>).</summary>
+    public Vector2 DroneAnchor
+    {
+        get
+        {
+            var neck = _helmet.GlobalPosition;
+            var waist = _waist.GlobalPosition;
+            var anchor = DroneFlight.Anchor(new Vec(neck.X, neck.Y), _frame.GlobalPosition.X, _lying ? new Vec(waist.X, waist.Y) : null);
+            return new Vector2((float)anchor.X, (float)anchor.Y);
+        }
+    }
 
     /// <summary>How opaque its drone is, 0..1: a friend's new drone fading in by its head as its meeting ends (drone-meeting).</summary>
     public float DroneFade { set => _drone.Modulate = new Color(1, 1, 1, value); }
@@ -1816,19 +1838,38 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend);
         _sealBent.Show(_fit.SealBy(_gaze));
+        _lying = !awake;
         if (_drone.Visible)
         {
-            // Projecting, it floats before the hero's waist, bare as it used to frame a window, its lens up to its motes.
-            var toward = overDrone ? Vector2.Up : HeadLampToward;
+            // Projecting, it flies before the hero's waist, bare as it used to frame a window, its lens up to its motes; else it
+            // flies by its own will (drone-motion), its lens on the pointer in lamp and scan.
             var feet = _frame.ToGlobal(Vector2.Zero);
             Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;
-            if (DroneTo is { } meeting) (toward, before) = (meeting.Toward, meeting.At);
-            _drone.Follow(_helmet.GlobalPosition, hero.Facing, toward, elapsedMs, _timeMs, before);
+            var anchor = DroneAnchor;
+            if (_droneLost)
+            {
+                _drone.Lose();
+                _will.Reset();
+            }
+            Vec? lens = !overDrone && (_lampWorn || _scannerWorn) && HeadLampToward is var toward ? new Vec(toward.X, toward.Y) : null;
+            var senses = Senses with
+            {
+                Anchor = new Vec(anchor.X, anchor.Y),
+                At = _droneLost ? new Vec(anchor.X, anchor.Y) : _drone.At,
+                Window = before is { } window ? new Vec(window.X, window.Y) : null,
+                ModeLook = lens,
+                Out = !awake,
+                Signing = signing,
+            };
+            var intent = _will.Pick(senses, elapsedMs);
+            _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
+            _droneLost = false;
             _droneThere = before != null && (_droneThere || _drone.Off < SheetHoloLook.OverArrived);
             _drone.Projecting = overDrone;
             _drone.Window(overDrone, 0);
             _drone.Sign(signing ? Gesture : null);
         }
+        else _droneLost = true;
         ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
