@@ -34,7 +34,6 @@ public partial class LightDrone : Node2D
     /// <summary>The core and the sparks' dark, mixed; the threads, tails and coal, added: both in pick px.</summary>
     private readonly Node2D _body = new(), _glow = new();
     private readonly Triangles _dark = new(I.Sparks * 4, I.Sparks * 6), _light = new(2048, 3072);
-    private readonly DroneHolo _sign = new();
     /// <summary>How long it takes to turn most of the way to a new aim, in ms.</summary>
     private const double TurnMs = 90;
 
@@ -65,19 +64,25 @@ public partial class LightDrone : Node2D
         }
         _body.Draw += DrawBody;
         _glow.Draw += DrawGlow;
-        AddChild(_sign);
     }
 
     /// <summary>
-    /// Shows the gesture playing on its hero as a hologram over it (<see cref="DroneSign"/>) and sends its sparks into the shape it
-    /// owes now, after <see cref="Follow"/> each frame; none hides it.
+    /// Sends its sparks into the shape it owes now, after <see cref="Follow"/> each frame: the fan of the gesture playing on its hero
+    /// (<see cref="DroneSign"/>; its motion, how far in, where a point points in world px), else its mode's.
     /// </summary>
     public void Sign((GestureMotion Motion, double Ms, Vector2 At)? gesture)
     {
-        var toward = Vector2.FromAngle(_angle);
-        _sign.Show(gesture, toward * I.EyeAhead * I.Px, toward, _timeMs);
         double t = _timeMs / 1000;
-        _swarm.Become(DroneSwarm.ShapeOf(Projecting, _sign.Visible, Scanning, Idle), _angle, t);
+        var kind = gesture is { } playing ? DroneSign.KindOf(playing.Motion) : null;
+        float? pointed = null;
+        if (kind is { } shown && gesture is { } sign)
+        {
+            // A point at the drone itself heads the fan where the eye looks.
+            var line = sign.At - GlobalPosition;
+            if (line.Length() < 1) line = Vector2.FromAngle(_angle);
+            pointed = DroneSign.Turned(shown, (line.X, line.Y));
+        }
+        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle), _angle, t, pointed);
         for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, _angle, t);
         _body.QueueRedraw();
         _glow.QueueRedraw();

@@ -25,7 +25,7 @@ public partial class DroneMotes : Node2D
         TopLevel = true;
         (ZAsRelative, ZIndex) = (false, Layers.Drones);
         Visible = false;
-        Material = DroneHolo.Holo(grey: false);
+        Material = Holo();
         AddChild(_glow);
     }
 
@@ -70,5 +70,16 @@ public partial class DroneMotes : Node2D
     {
         if (side <= 0 || alpha <= 0.004f) return;
         DrawRect(new Rect2(at.X - side / 2, at.Y - side / 2, side, side), Tint with { A = alpha });
+    }
+
+    /// <summary>The edge keys' hologram shader, unlit here in the world as the drone is: the same code with <c>unshaded</c> added.</summary>
+    private static ShaderMaterial Holo()
+    {
+        const string Mode = "render_mode blend_add;";
+        var code = GD.Load<Shader>("res://shared/holo.gdshader").Code;
+        if (!code.Contains(Mode, System.StringComparison.Ordinal)) throw new System.InvalidOperationException("holo.gdshader's render_mode changed");
+        var material = new ShaderMaterial { Shader = new Shader { Code = code.Replace(Mode, "render_mode blend_add, unshaded;", System.StringComparison.Ordinal) } };
+        material.SetShaderParameter("grey", false);
+        return material;
     }
 }
