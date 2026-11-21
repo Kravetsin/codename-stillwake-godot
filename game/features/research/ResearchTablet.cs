@@ -124,7 +124,8 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Takes it out on <paramref name="page"/>.</summary>
     private void Open(ITabletPage page)
     {
-        if (Shown) return;
+        // A drone window: before the pairing it does not open (drone-companion).
+        if (Shown || !DroneWindows.Opens(page == _market ? DroneWindowKind.Market : DroneWindowKind.Board, _ui.Paired())) return;
         _ui.Hand.Set(Holding.Free);
         _keep.Seen.Opened();
         if (page != _page) Choose(page);

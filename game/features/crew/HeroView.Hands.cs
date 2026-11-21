@@ -226,11 +226,11 @@ public partial class HeroView
         _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
         ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
-        // The computer opens its own window; every other machine its slots under the inventory.
+        // The computer opens its own window; every other machine its slots under the inventory, a drone window: none before the pairing (drone-companion).
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
             if (Content.Machines.Is(machine.Kind, Content.MachineTrait.Computer)) _ui.OpenComputer.Set(open);
-            else _ui.OpenCrate.Set(open);
+            else if (DroneWindows.Opens(DroneWindowKind.Machine, m.Players.HasDrone(client.Id))) _ui.OpenCrate.Set(open);
         }
         // A crate or a computer stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);

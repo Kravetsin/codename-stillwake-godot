@@ -78,4 +78,12 @@ public class EdgeRowTests
     [Fact]
     public void TheEdgeHoldsTheAirTheBuildTheBoardTheMarketAndTheJournalNoSuitKey() =>
         Assert.Equal(["air", "build", "research", "market", "journal"], EdgeRow.Keys);
+
+    [Fact]
+    public void TheRowShowsOnlyInAWorldOnceTheDroneIsPaired()
+    {
+        Assert.False(EdgeRow.Shown(inWorld: true, paired: false));
+        Assert.False(EdgeRow.Shown(inWorld: false, paired: true));
+        Assert.True(EdgeRow.Shown(inWorld: true, paired: true));
+    }
 }

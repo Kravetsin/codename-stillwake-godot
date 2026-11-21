@@ -89,7 +89,7 @@ public partial class TabletEdge : CanvasLayer
 
     public override void _Process(double delta)
     {
-        bool shown = _inWorld();
+        bool shown = EdgeRow.Shown(_inWorld(), _ui.Paired());
         _root.Visible = shown;
         _ui.EdgeKeysLeft = EdgeRow.RimLeft(_root.GetViewportRect().Size.X, _slots.Count, EdgeRow.Grown(_ui.Slot));
         if (!shown)
