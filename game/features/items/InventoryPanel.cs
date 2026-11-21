@@ -71,17 +71,14 @@ public partial class InventoryPanel : CanvasLayer
     private Control _inventory = null!;
     /// <summary>Whether the bag was built paired.</summary>
     private bool _builtPaired;
-    /// <summary>How far the paired bag's glass and contents have come out as the drone's soot frames it (drone-frame).</summary>
-    private readonly SootFade _bagFade = new();
-    /// <summary>The paired bag's outline on the screen, handed to the soot every frame.</summary>
-    private readonly (float X, float Y)[] _bagOutline = new (float, float)[4];
+    /// <summary>The paired bag's clock and the open machine's, as the drone's corners frame them (drone-frame).</summary>
+    private readonly CornerClock _bagClock = new(), _machineClock = new();
     /// <summary>How far the open screens have come on: their content fades in as the build tablet's does (0073).</summary>
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
     private MachineFrame? _frame;
-    /// <summary>The open machine's hologram under every panel, and the machine's box in world pixels it beams from.</summary>
+    /// <summary>The open machine's hologram under every panel: its glass, whole, by the drone's corners.</summary>
     private MachineHolo? _holo;
-    private Rect2 _holoBox;
     /// <summary>How far the hologram windows trail the hero, and where the hero was on the last frame, in the world's pixels.</summary>
     private readonly HoloSway _sway = new();
     private (float X, float Y)? _heroWas;
@@ -238,8 +235,11 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Whether the inventory or a crate is open: what Esc closes before it opens the menu.</summary>
     public bool Shown => _open || Crate != null;
 
-    /// <summary>Whether the bag shows: while it is open, and the paired bag while its glass fades out after (drone-frame).</summary>
-    private bool BagShown => Shown || (_inventory is HoloWindow && _bagFade.Shown);
+    /// <summary>
+    /// Whether the bag shows: while it is open, and the paired bag while its glass fades out after (drone-frame); never before the
+    /// pairing, when only the gear opens (drone-companion).
+    /// </summary>
+    private bool BagShown => (Shown || (_inventory is HoloWindow && _bagClock.Shown)) && DroneWindows.Opens(DroneWindowKind.Bag, Paired?.Invoke() ?? true);
 
     /// <summary>
     /// A picked stack whose slot still holds its item, while the panels are open: one emptied meanwhile by another player at
@@ -257,10 +257,13 @@ public partial class InventoryPanel : CanvasLayer
         AddChild(_over);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         Build();
-        _ui.Soot.Taken += SootTaken;
     }
 
-    public override void _ExitTree() => _ui.Soot.Taken -= SootTaken;
+    public override void _ExitTree()
+    {
+        _ui.Windows.Drop(_bagClock);
+        _ui.Windows.Drop(_machineClock);
+    }
 
     /// <summary>The hotbar, the inventory, the equipment and the stack in hand, at the slot size chosen now.</summary>
     private void Build()
@@ -356,7 +359,7 @@ public partial class InventoryPanel : CanvasLayer
         row.AddChild(slots);
         row.AddChild(keys);
         window.AddChild(row);
-        // Its glass and contents come in as the soot frames it.
+        // Its glass and contents come in as the drone's corners frame it.
         window.Glass(0, 0);
         _bagColumn.AddChild(_inventory = window);
     }

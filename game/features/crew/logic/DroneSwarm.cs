@@ -230,7 +230,7 @@ public sealed class DroneSwarm
     /// <summary>The kit's seeds for the drone's embers (<c>DR.P</c>, seed 530): each one's phase and spread, its side, heat and tone drawn and dropped.</summary>
     private static (float, float)[] DrawSeeds()
     {
-        var draw = new SootRng(530);
+        var draw = new PickRng(530);
         var seeds = new (float, float)[I.Sparks];
         for (int i = 0; i < seeds.Length; i++)
         {
@@ -279,6 +279,26 @@ public sealed class DroneSwarm
             var q = _segments[lo];
             float e = Math.Clamp((d - q.At) / q.Length, 0, 1);
             return (q.Ax + (q.Bx - q.Ax) * e, q.Ay + (q.By - q.Ay) * e, (q.Bx - q.Ax) / q.Length, (q.By - q.Ay) / q.Length);
+        }
+    }
+
+    /// <summary>The pick page's <c>rng</c>: a xorshift seeded as its was, draws 0..1.</summary>
+    private struct PickRng
+    {
+        private uint _s;
+
+        public PickRng(uint seed)
+        {
+            _s = unchecked((uint)((ulong)seed * 2654435761UL));
+            if (_s == 0) _s = 1;
+        }
+
+        public float Next()
+        {
+            _s ^= _s << 13;
+            _s ^= _s >> 17;
+            _s ^= _s << 5;
+            return (float)(_s / 4294967296.0);
         }
     }
 }

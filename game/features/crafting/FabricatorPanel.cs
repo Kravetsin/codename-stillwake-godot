@@ -87,7 +87,8 @@ public partial class FabricatorPanel : CanvasLayer
     private MachineFrame _panel = null!;
     /// <summary>The open station's hologram under the panel, and the station's box in world pixels it beams from.</summary>
     private readonly MachineHolo _holo = new();
-    private Rect2 _holoBox;
+    /// <summary>Its window's clock as the drone's corners frame it (drone-frame).</summary>
+    private readonly CornerClock _clock = new();
     /// <summary>A slot's side, <see cref="Ui.Slot"/> as the slots were last built.</summary>
     private int _slot;
     /// <summary>The slots, each saying what it is in the one tooltip.</summary>
@@ -235,17 +236,21 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The open station's hologram, a frame on: the panel's controls shown as the pens trace it, the panel trailing the hero
-    /// as the items feature's windows do (<c>Ui.HoloSway</c>). A machine the items feature shows makes it go at once;
-    /// shut, it plays back where the panel was.
+    /// The open station's window, a frame on (drone-frame): the drone's corners lay round it and its glass and controls come in whole
+    /// as they do, the panel trailing the hero as the items feature's windows do (<c>Ui.HoloSway</c>). A machine the items feature
+    /// shows makes it go at once; shut, it fades where the panel was.
     /// </summary>
     private void Hologram(double delta)
     {
         _panel.Sway(new Vector2(_ui.HoloSway.X, _ui.HoloSway.Y));
         var shown = HoloReveal.None;
-        if (_panel.Visible && Open is var (pod, _)) shown = _holo.Step(delta, new MachineHolo.Target(pod, _panel.GetGlobalRect(), _holoBox, _panel.Tone));
+        var at = _panel.Visible && Open != null ? _panel.GetGlobalRect() : default;
+        bool laid = at.Size is { X: > 0, Y: > 0 };
+        _clock.Step(delta, laid);
+        if (laid) _ui.Windows.Hand(_clock, (at.Position.X, at.Position.Y, at.Size.X, at.Size.Y), _clock);
+        if (_panel.Visible && Open is var (pod, _)) shown = _holo.Step(delta, new MachineHolo.Target(pod, at, default, _panel.Tone), _clock.Screen);
         else if (_ui.OpenCrate.Get() != null) _holo.Snap();
-        else _holo.Step(delta, null);
+        else _holo.Step(delta, null, _clock.Screen);
         _panel.Reveal(shown);
     }
 
@@ -341,7 +346,6 @@ public partial class FabricatorPanel : CanvasLayer
         _slot = _ui.Slot;
         _panel.Describe(T($"station.{station.Machine}"), Content.Machines.Get(station.Machine).Draws);
         _panel.Tone = HoloShape.ToneOf(Content.Machines.Get(station.Machine));
-        _holoBox = MachineHolo.BoxOf(_grid, pod);
         var places = Crafts.Places(station);
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();

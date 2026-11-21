@@ -31,6 +31,10 @@ public partial class LightDrone : Node2D
     private readonly DroneFlight _flight = new();
     private readonly DroneSwarm _swarm = new();
     private readonly Spark[] _sparks = new Spark[I.Sparks];
+    /// <summary>Its flurry while projecting (drone-frame), and its sparks this frame.</summary>
+    private readonly DroneFlurry _flurry = new();
+    private readonly Spark[] _flurrySparks = new Spark[DroneFlurry.Count];
+    private double _elapsedMs;
     /// <summary>The core and the sparks' dark, mixed; the threads, tails and coal, added: both in pick px.</summary>
     private readonly Node2D _body = new(), _glow = new();
     private readonly Triangles _dark = new(I.Sparks * 4, I.Sparks * 6), _light = new(2048, 3072);
@@ -84,6 +88,8 @@ public partial class LightDrone : Node2D
         }
         _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle), _angle, t, pointed);
         for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, _angle, t);
+        _flurry.Step(_elapsedMs / 1000, Projecting);
+        for (int i = 0; i < _flurrySparks.Length; i++) _flurrySparks[i] = _flurry.At(i, t);
         _body.QueueRedraw();
         _glow.QueueRedraw();
     }
@@ -134,6 +140,7 @@ public partial class LightDrone : Node2D
         _angle = Mathf.Wrap(_angle + off * (float)(1 - Math.Exp(-elapsedMs / TurnMs)), -Mathf.Pi, Mathf.Pi);
         _tint = (float)intent.Tint;
         _timeMs = timeMs;
+        _elapsedMs = elapsedMs;
     }
 
     /// <summary>Forgets where it flew and what it formed, hidden: shown again, it starts at its goal, idle.</summary>
@@ -160,6 +167,9 @@ public partial class LightDrone : Node2D
         const float Side = I.Spark;
         foreach (var spark in _sparks)
             if (spark.Front == front) _dark.Rect(spark.X - Side / 2, spark.Y - Side / 2, Side, Side, Dark);
+        if (_flurry.Shown > 0)
+            foreach (var spark in _flurrySparks)
+                if (spark.Front == front) _dark.Rect(spark.X - Side / 2, spark.Y - Side / 2, Side, Side, Dark);
         _dark.Flush(_body.GetCanvasItem());
     }
 
@@ -190,6 +200,8 @@ public partial class LightDrone : Node2D
                 _light.Quad(new Vector2(spark.FromX, spark.FromY), new Vector2(spark.X, spark.Y), I.ThreadLine, new Color(hot, I.ThreadAlpha));
             Tail(_light, spark, Math.Min(1, spark.Heat + _tint * I.AlarmHeat), hot);
         }
+        if (_flurry.Shown > 0)
+            foreach (var spark in _flurrySparks) Tail(_light, spark, spark.Heat, hot);
         Coal(_light, Vector2.Zero, _angle, hot, (float)t);
         _light.Flush(_glow.GetCanvasItem());
     }

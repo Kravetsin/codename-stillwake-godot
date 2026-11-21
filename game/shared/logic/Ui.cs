@@ -335,14 +335,18 @@ public sealed class Ui
     /// </summary>
     public (float X, float Y, float W, float H)? DroneLens { get; set; }
 
-    /// <summary>
-    /// The drone windows' claims on the drone's soot (drone-frame): each hands its outline every frame, the newest open owns it.
-    /// </summary>
-    public SootClaims Soot { get; } = new();
+    /// <summary>The drone's windows (drone-frame): each hands its place and clock every frame; the drone's frame corners each one shown.</summary>
+    public DroneWindows Windows { get; } = new();
 
     /// <summary>
-    /// Whether a drone window is open, and how far its soot is out, 0..1 (drone-frame). Set by <c>DroneFrame</c> every frame;
-    /// <c>crew</c> draws the drone bare while either is so. Local: friends never see it.
+    /// Whether this player's drone is paired (drone-companion): before, of the drone's windows only the gear opens
+    /// (<see cref="DroneWindows.Opens"/>). Set by the game; paired with no world, as a dev room's demo is.
+    /// </summary>
+    public Func<bool> Paired { get; set; } = () => true;
+
+    /// <summary>
+    /// Whether a drone window is open, and how far its screen is out, 0..1 (drone-frame). Set by <c>DroneFrame</c> every frame;
+    /// <c>crew</c> brings the drone to the waist while either is so. Local: friends never see it.
     /// </summary>
     public (bool Open, double Out) DroneWindow { get; set; }
 

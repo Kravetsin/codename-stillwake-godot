@@ -92,15 +92,23 @@ public static class DroneInk
     /// <summary>The spyglass's mouth, where the scan's sparks leave for the gauge.</summary>
     public const float MouthX = 21.5f, MouthY = 0;
 
-    /// <summary>A window's frame, screen px and s: its rows and how far apart (and each square's gap); the most a row holds; a square's dark and glow sides, flying its side and heat.</summary>
-    public const int FrameRows = 2, FrameMost = 1024;
-    public const float FrameGap = 3.4f, Square = 1.8f, SquareGlow = 1.6f, Flying = 1.7f, FlyingHeat = 0.75f;
+    /// <summary>
+    /// A drone window's frame, the pick «Уголки» (drone-windows.js, candidate corners), screen px and s: its corners this far out of the
+    /// window, each bracket's arms this long; a spark reaches corner k (clockwise from the top left) at Reach + k·ReachLag, the screen
+    /// coming in from ScreenFrom over ScreenIn; closing, the screen goes in ScreenOut, the corners home in Home.
+    /// </summary>
+    public const float CornerOut = 5, Arm = 22, Reach = 0.1f, ReachLag = 0.01f, ScreenFrom = 0.03f, ScreenIn = 0.1f, ScreenOut = 0.08f, Home = 0.12f;
 
-    /// <summary>Its clock: the last square lands at Fly, each flying One; the screen comes over Inside; closing, it goes in Close, the squares home in Back.</summary>
-    public const float Fly = 0.75f, One = 0.3f, InsideFrom = 0.8f, InsideTo = 1, Close = 0.15f, Back = 0.75f;
+    /// <summary>A shot spark's side and its line back to the eye; a landed corner's halo, its radius and alpha, gone over Landing.</summary>
+    public const float Shot = 1.6f, ShotLine = 0.4f, ShotAlpha = 0.2f, LandHalo = 12, LandHaloAlpha = 0.6f, Landing = 0.15f;
 
-    /// <summary>A landed square's shimmer: its least, its wave's height, how many waves round, their pace, how sharp; its noise.</summary>
-    public const float ShimmerLeast = 0.14f, Shimmer = 0.7f, ShimmerWaves = 6, ShimmerPace = 4, ShimmerSharp = 6, ShimmerNoise = 0.1f, ShimmerNoisePace = 0.4f;
+    /// <summary>A bracket's wide and fine lines; its corner's glowing square and heat; the sparks on each arm, their pace round it, each corner's later, their heat and how much it fades along.</summary>
+    public const float BracketWide = 2.2f, BracketWideAlpha = 0.07f, BracketFine = 0.6f, BracketFineAlpha = 0.45f, CornerSquare = 2.4f, CornerHeat = 0.9f;
+    public const int ArmSparks = 3;
+    public const float ArmPace = 1.3f, ArmLater = 0.17f, ArmHeat = 0.9f, ArmFade = 0.7f;
+
+    /// <summary>The faint thread from the eye to each landed corner (off unless asked): its width and alpha, a spark creeping along it at Creep, each corner's later, its heat.</summary>
+    public const float CornerThread = 0.35f, CornerThreadAlpha = 0.08f, Creep = 0.9f, CreepLater = 0.25f, CreepHeat = 0.55f;
 
     /// <summary>The scan's gauge, pick px over the world: its dots, how far apart, their side, how far over the wreck's top.</summary>
     public const int Dots = 26;

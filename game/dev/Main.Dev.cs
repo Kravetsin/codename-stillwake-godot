@@ -135,6 +135,8 @@ public partial class Main
         }
         // F8 tries every helmet turning each way (helmets-fit-the-suit).
         if (!_dev.None) AddChild(new Dev.HelmetTurnKey());
+        // F10 the drone's threads to its windows' corners, in the plain game too (drone-frame).
+        AddChild(new Dev.DroneThreadsKey());
         if (Has("--fx-bench")) AddChild(new Dev.FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new Dev.FrameLog(vsync: Has("--frames=vsync")));
         if (_dev.Given("--ablate") is { } ablate) AddChild(new Dev.ProcessAblation(ablate == "" ? null : ablate));

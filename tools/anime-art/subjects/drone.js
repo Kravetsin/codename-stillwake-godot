@@ -255,15 +255,23 @@ public static class DroneInk
     /// <summary>The spyglass's mouth, where the scan's sparks leave for the gauge.</summary>
     public const float MouthX = 21.5f, MouthY = 0;
 
-    /// <summary>A window's frame, screen px and s: its rows and how far apart (and each square's gap); the most a row holds; a square's dark and glow sides, flying its side and heat.</summary>
-    public const int FrameRows = 2, FrameMost = 1024;
-    public const float FrameGap = 3.4f, Square = 1.8f, SquareGlow = 1.6f, Flying = 1.7f, FlyingHeat = 0.75f;
+    /// <summary>
+    /// A drone window's frame, the pick «Уголки» (drone-windows.js, candidate corners), screen px and s: its corners this far out of the
+    /// window, each bracket's arms this long; a spark reaches corner k (clockwise from the top left) at Reach + k·ReachLag, the screen
+    /// coming in from ScreenFrom over ScreenIn; closing, the screen goes in ScreenOut, the corners home in Home.
+    /// </summary>
+    public const float CornerOut = 5, Arm = 22, Reach = 0.1f, ReachLag = 0.01f, ScreenFrom = 0.03f, ScreenIn = 0.1f, ScreenOut = 0.08f, Home = 0.12f;
 
-    /// <summary>Its clock: the last square lands at Fly, each flying One; the screen comes over Inside; closing, it goes in Close, the squares home in Back.</summary>
-    public const float Fly = 0.75f, One = 0.3f, InsideFrom = 0.8f, InsideTo = 1, Close = 0.15f, Back = 0.75f;
+    /// <summary>A shot spark's side and its line back to the eye; a landed corner's halo, its radius and alpha, gone over Landing.</summary>
+    public const float Shot = 1.6f, ShotLine = 0.4f, ShotAlpha = 0.2f, LandHalo = 12, LandHaloAlpha = 0.6f, Landing = 0.15f;
 
-    /// <summary>A landed square's shimmer: its least, its wave's height, how many waves round, their pace, how sharp; its noise.</summary>
-    public const float ShimmerLeast = 0.14f, Shimmer = 0.7f, ShimmerWaves = 6, ShimmerPace = 4, ShimmerSharp = 6, ShimmerNoise = 0.1f, ShimmerNoisePace = 0.4f;
+    /// <summary>A bracket's wide and fine lines; its corner's glowing square and heat; the sparks on each arm, their pace round it, each corner's later, their heat and how much it fades along.</summary>
+    public const float BracketWide = 2.2f, BracketWideAlpha = 0.07f, BracketFine = 0.6f, BracketFineAlpha = 0.45f, CornerSquare = 2.4f, CornerHeat = 0.9f;
+    public const int ArmSparks = 3;
+    public const float ArmPace = 1.3f, ArmLater = 0.17f, ArmHeat = 0.9f, ArmFade = 0.7f;
+
+    /// <summary>The faint thread from the eye to each landed corner (off unless asked): its width and alpha, a spark creeping along it at Creep, each corner's later, its heat.</summary>
+    public const float CornerThread = 0.35f, CornerThreadAlpha = 0.08f, Creep = 0.9f, CreepLater = 0.25f, CreepHeat = 0.55f;
 
     /// <summary>The scan's gauge, pick px over the world: its dots, how far apart, their side, how far over the wreck's top.</summary>
     public const int Dots = 26;
@@ -280,8 +288,104 @@ public static class DroneInk
   writeText('../../shared/logic/DroneInk.cs', cs);
 }
 
+// ---------- the thread icons, the pick «Одна нить»: tools/pick-kit/pages/thread-icons.js, candidate oneThread ----------
+// The F wheel's modes, the H wheel's gestures and the edge keys' motifs, each a run of polylines in a box -1..1 (y down), and the one
+// thread through them all (the pick's joinOne): its points and which a bridge reaches. Written to the game (IconInk.cs); drawn there.
+function iconsInk() {
+  const TAU = Math.PI * 2;
+  const bez = (a, b, d, s) => { const k = 1 - s; return [k * k * a[0] + 2 * k * s * b[0] + s * s * d[0], k * k * a[1] + 2 * k * s * b[1] + s * s * d[1]]; };
+  const arc = (cx, cy, r, n = 28, a0 = 0, a1 = TAU) => { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return p; };
+  function roundSq(rc) {
+    const p = [];
+    for (const [cx, cy, a0] of [[1 - rc, -1 + rc, -Math.PI / 2], [1 - rc, 1 - rc, 0], [-1 + rc, 1 - rc, Math.PI / 2], [-1 + rc, -1 + rc, Math.PI]])
+      for (let i = 0; i <= 4; i++) { const a = a0 + i / 4 * Math.PI / 2; p.push([cx + Math.cos(a) * rc, cy + Math.sin(a) * rc]); }
+    p.push(p[0].slice()); return p;
+  }
+  function svg(d, n = 8) {
+    const tk = d.match(/[MLCQZ]|-?\d*\.?\d+/g), out = []; let cur = null, p = [0, 0], st = [0, 0], i = 0, cmd = '';
+    const num = () => +tk[i++];
+    while (i < tk.length) {
+      if (/[MLCQZ]/.test(tk[i])) cmd = tk[i++];
+      if (cmd === 'M') { p = [num(), num()]; st = p; cur = [p]; out.push(cur); cmd = 'L'; }
+      else if (cmd === 'L') { p = [num(), num()]; cur.push(p); }
+      else if (cmd === 'Q') { const a = [num(), num()], b = [num(), num()]; for (let k = 1; k <= n; k++) cur.push(bez(p, a, b, k / n)); p = b; }
+      else if (cmd === 'C') {
+        const a = [num(), num()], b = [num(), num()], e = [num(), num()];
+        for (let k = 1; k <= n; k++) { const s = k / n, m = 1 - s; cur.push([m * m * m * p[0] + 3 * m * m * s * a[0] + 3 * m * s * s * b[0] + s * s * s * e[0], m * m * m * p[1] + 3 * m * m * s * a[1] + 3 * m * s * s * b[1] + s * s * s * e[1]]); }
+        p = e;
+      } else if (cmd === 'Z') { cur.push(st.slice()); p = st; }
+    }
+    return out.map(q => q.map(([x, y]) => [(x - 8) / 8, (y - 8) / 8]));
+  }
+  const rrD = (x, y, w, h, r) => `M ${x + r} ${y} L ${x + w - r} ${y} Q ${x + w} ${y} ${x + w} ${y + r} L ${x + w} ${y + h - r} Q ${x + w} ${y + h} ${x + w - r} ${y + h} L ${x + r} ${y + h} Q ${x} ${y + h} ${x} ${y + h - r} L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} Z`;
+  const motif = ds => ds.flatMap(d => svg(d));
+  // One thread through every part: each next part from the nearer of its ends, the step into it a bridge.
+  function joinOne(polys) {
+    const left = polys.slice(1).map(p => p.slice()), cur = polys[0].slice(), bridges = [];
+    while (left.length) {
+      const e = cur[cur.length - 1]; let best = 0, rev = false, bd = 1e9;
+      left.forEach((p, i) => { const d0 = Math.hypot(e[0] - p[0][0], e[1] - p[0][1]), d1 = Math.hypot(e[0] - p[p.length - 1][0], e[1] - p[p.length - 1][1]); if (d0 < bd) { bd = d0; best = i; rev = false; } if (d1 < bd) { bd = d1; best = i; rev = true; } });
+      let p = left.splice(best, 1)[0]; if (rev) p = p.slice().reverse();
+      bridges.push(cur.length);
+      for (const q of p) cur.push(q);
+    }
+    return { one: cur, bridges };
+  }
+  const THUMB = [[-.5, .85], [-.5, .05], [-.22, -.02], [-.2, -.55], [-.12, -.85], [.02, -.92], [.14, -.82], [.12, -.35], [.1, -.05], [.55, -.05], [.68, .08], [.62, .25], [.7, .38], [.63, .55], [.68, .7], [.55, .85], [-.5, .85]];
+  const FIST = [THUMB, [[.1, .25], [.6, .25]], [[.1, .45], [.62, .45]], [[.1, .65], [.6, .65]], [[-.85, 0], [-.62, 0], [-.62, .88], [-.85, .88], [-.85, 0]]];
+  const ICONS = [
+    ['Lamp', 'The lamp: a lens ringed by rays, its rays one zigzag.', [Array.from({ length: 17 }, (_, k) => { const a = k / 16 * TAU - Math.PI / 2, r = k % 2 ? .52 : .95; return [Math.cos(a) * r, Math.sin(a) * r]; }), arc(0, 0, .24, 16)]],
+    ['Scan', 'The scan: a ring a line sweeps round, a trail behind it.', [arc(0, 0, .88, 36), [[0, 0], [Math.cos(-Math.PI / 4) * .88, Math.sin(-Math.PI / 4) * .88]], arc(0, 0, .58, 10, -Math.PI / 4 - 1.1, -Math.PI / 4), arc(0, 0, .16, 12)]],
+    ['Yes', 'Yes: a fist, its thumb up.', FIST],
+    ['No', 'No: the fist, its thumb down.', FIST.map(p => p.map(([x, y]) => [x, -y]))],
+    ['Wave', 'A wave: an open hand, two arcs by it.', [[[-.42, .92], [-.48, .3], [-.86, -.08], [-.78, -.22], [-.4, .02], [-.38, -.68], [-.26, -.8], [-.14, -.68], [-.12, -.16], [-.08, -.86], [.04, -.96], [.17, -.86], [.15, -.16], [.22, -.74], [.34, -.82], [.45, -.7], [.38, -.08], [.48, -.46], [.58, -.52], [.68, -.42], [.56, .3], [.36, .92], [-.42, .92]],
+      arc(.1, -.3, .8, 6, -.9, -.1), arc(.1, -.3, .98, 6, -.85, -.15)]],
+    ['Air', 'The air key: three gusts.', motif(['M 0.5 5.9 C 4 5.3 8 6.1 11.4 5.5 C 14.3 5.0 14.5 1.4 12.0 1.3 C 10.5 1.25 9.9 2.7 10.9 3.4', 'M 1.6 8.7 C 5.5 8.1 10.5 9.1 15.5 8.3', 'M 0.5 11.5 C 3.8 10.9 7.2 11.7 9.6 11.6 C 12.5 11.5 12.8 15.1 10.4 15.25 C 8.9 15.35 8.3 13.9 9.3 13.2'])],
+    ['Build', 'The build key: a wall of bricks.', motif([rrD(0.4, 1.8, 7.1, 3.5, .55), 'M 8.4 1.8 L 14.6 1.8 Q 15.6 1.8 15.6 3.0 L 15.6 4.7 Q 15.6 5.3 15.0 5.3 L 8.95 5.3 Q 8.4 5.3 8.4 4.75 L 8.4 2.35 Q 8.4 1.8 8.95 1.8 Z',
+      rrD(0.4, 6.2, 3.1, 3.5, .5), rrD(4.4, 6.25, 7.2, 3.5, .55), rrD(12.5, 6.2, 3.1, 3.5, .5), rrD(0.4, 10.6, 7.1, 3.5, .55),
+      'M 8.4 10.75 L 15.05 10.75 Q 15.6 10.75 15.6 11.3 L 15.6 13.75 Q 15.6 14.25 15.05 14.25 L 8.95 14.25 Q 8.4 14.25 8.4 13.7 L 8.4 12.2 L 9.6 10.75 Z'])],
+    ['Research', 'The board\'s key: a bulb.', motif(['M 5.3 10.8 C 2.4 9.3 1.8 5.4 3.8 3.0 C 5.8 0.6 10.2 0.6 12.2 3.0 C 14.2 5.4 13.6 9.3 10.7 10.8 L 10.4 12.2 L 5.6 12.2 Z', rrD(5.5, 12.7, 5, 1.6, .3),
+      'M 6.7 14.8 L 9.3 14.8 L 8.7 15.8 L 7.3 15.8 Z', 'M 6.5 9.8 L 7 6.6 L 8 8.2 L 9 6.6 L 9.5 9.8'])],
+    ['Market', 'The market\'s key: a drop of oil, or a sack.', motif(['M 8 0.8 Q 8.5 2.6 9.7 3.7 Q 14.9 6.5 14.3 11.0 Q 13.5 15.2 8 15.4 Q 2.5 15.2 1.7 11.0 Q 1.1 6.5 6.3 3.7 Q 7.5 2.6 8 0.8 Z', 'M 8 4.6 Q 4.0 7.4 4.6 11.2 Q 5.2 14.0 8 14.4', 'M 8 4.6 Q 12.0 7.4 11.4 11.2 Q 10.8 14.0 8 14.4'])],
+    ['Journal', 'The Handbook\'s key: an open book.', motif(['M 7.75 4.6 Q 4.8 2.7 0.6 3.3 L 0.4 13.4 Q 4.6 12.7 7.75 14.7 Z', 'M 8.25 4.6 Q 11.2 2.7 15.4 3.3 L 15.6 13.4 Q 11.4 12.7 8.25 14.7 Z',
+      'M 2.6 6.4 Q 4.6 6.0 6.6 6.8', 'M 2.6 9.0 Q 4.6 8.6 6.6 9.4', 'M 9.4 6.8 Q 11.4 6.0 13.4 6.4', 'M 9.4 9.4 Q 11.4 8.6 13.4 9.0'])],
+    ['Circle', 'A wheel side\'s rim and the wheel\'s middle.', [arc(0, 0, 1, 48)]],
+    ['Square', 'An edge key\'s rim.', [roundSq(.24)]],
+    ['Cross', 'The cross over a mode not known yet.', [[[-.42, -.42], [.42, .42]], [[.42, -.42], [-.42, .42]]]],
+  ];
+  const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
+  const run = l => `[${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}]`;
+  const icons = ICONS.map(([name, says, polys]) => {
+    const { one, bridges } = joinOne(polys);
+    return `    /// <summary>${says}</summary>
+    public static readonly IconLines ${name} = new(
+        [
+${polys.map(p => `            ${run(p)},`).join('\n')}
+        ],
+        ${run(one)},
+        [${bridges.join(', ')}]);`;
+  });
+  const cs = `// Generated by tools/anime-art/subjects/drone.js: export again, never edit.
+namespace Stillwake.Game.Shared;
+
+/// <summary>
+/// The thread icons as the pick «Одна нить» drew them (thread-icons.js, candidate oneThread): each icon's parts as polylines in a box
+/// -1..1, y down, each a run of x, y pairs; the one thread through them all; and the points of it a bridge reaches.
+/// </summary>
+public static class IconInk
+{
+    /// <summary>A waiting key's pulse, a second.</summary>
+    public const float Pulse = 1.2f;
+
+${icons.join('\n\n')}
+}
+`;
+  writeText('../../shared/logic/IconInk.cs', cs);
+}
+
 Subjects.drone = function () {
   threadsInk();
+  iconsInk();
   const cs = CoreBox * K, coreSheet = document.createElement('canvas');
   [coreSheet.width, coreSheet.height] = [cs, cs];
   const cc = coreSheet.getContext('2d');
@@ -350,8 +454,8 @@ Subjects.drone = function () {
     out(name, cv);
   }
 };
-// The threads' numbers alone, for a run with no browser (they need no canvas).
-Subjects.drone.ink = threadsInk;
+// The threads' numbers and the icons alone, for a run with no browser (they need no canvas).
+Subjects.drone.ink = () => { threadsInk(); iconsInk(); };
 
 // ---------- the giant core (drone-vision.js), drawn at GiantR px a unit ----------
 const GiantR = 54, GiantBox = 672;

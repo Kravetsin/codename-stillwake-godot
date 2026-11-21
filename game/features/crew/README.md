@@ -74,6 +74,7 @@ This hero and others', client-authoritative (0002).
 | `logic/DroneModes.cs` | modes |
 | `logic/DroneSign.cs` | sign |
 | `logic/DroneSwarm.cs` | swarm |
+| `logic/DroneFlurry.cs` | flurry |
 | `logic/SheetHoloLook.cs` | projects |
 | `logic/PlanPoint.cs` | points |
 | `CoreGlow.cs` | core |

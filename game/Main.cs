@@ -333,7 +333,7 @@ public partial class Main : Node2D, ITogether
             // A canister's cooldown, on the suit gauge's ring and the canister's slots (canister-mark).
             int CanisterIn() => _session is Session s ? _m.Crew.HeroOf(s.Client.Id)?.CanisterIn ?? 0 : 0;
             _items.Panel.CanisterIn = CanisterIn;
-            _items.Panel.Paired = () => _session is not Session s || _m.Players.HasDrone(s.Client.Id);            // Its own layer, above the world: read from whatever registry the session runs now.
+            _items.Panel.Paired = _hands.Ui.Paired = () => _session is not Session s || _m.Players.HasDrone(s.Client.Id);            // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
                 CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
@@ -452,7 +452,12 @@ public partial class Main : Node2D, ITogether
         edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, suitOn), "suit.key", () => suitOn() || _session is Session s && _m.Crew.SuitModeProblem(s.Client.Id) == null);
         edge.Put(handbook.Cap, "handbook.key");
         edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
-        foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
+        // The drone projects these: its corners frame them (drone-frame).
+        foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet])
+        {
+            tablet.Corners = _hands.Ui.Windows;
+            edge.Follow(tablet);
+        }
         AddChild(edge);
         AddChild(new FindFlashView(tech.Flash, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));

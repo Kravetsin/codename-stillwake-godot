@@ -95,6 +95,19 @@ public class HoloMotionTests
         Assert.Equal(1.0, HoloPen.At(HoloLook.SettleFrom + HoloLook.SettleFor).Settle);
     }
 
+    [Fact]
+    public void HeldByADroneWindowsCornersItShowsAsTheirScreenDoesAndForgetsItsMachineOnceGone()
+    {
+        var holo = new HoloMotion();
+        holo.Hold(7, 0.4);
+        Assert.Equal((7, 0.4, true), (holo.Machine, holo.Progress, holo.Opening));
+        holo.Hold(null, 0.2);
+        Assert.Equal((7, 0.2, false), (holo.Machine, holo.Progress, holo.Opening));
+        holo.Hold(null, 0);
+        Assert.Null(holo.Machine);
+        Assert.False(holo.Shown);
+    }
+
     private static HoloMotion Open(int machine)
     {
         var holo = new HoloMotion();
