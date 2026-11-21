@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The drone's flurry while a drone window is out (drone-frame): at the hero's waist, a few of its sparks dart about it at random in a
+/// The drone's flurry while a drone window is out (drone-windows): at the hero's waist, a few of its sparks dart about it at random in a
 /// small oval, as the old hologram's motes drifted over it, risen out of the core as it comes and sunk back as it goes. Pick px about
 /// the core and seconds of the client's clock; client only.
 /// </summary>

@@ -208,7 +208,7 @@ public partial class InventoryPanel
 
     /// <summary>
     /// The open machine's hologram, a frame on: its window's controls shown as the pens trace it. A station's own window, not the
-    /// drone's (drone-companion): no corners. A machine another feature shows (a queued station's) makes it go at once; shut, it
+    /// drone's (drone-windows): no corners. A machine another feature shows (a queued station's) makes it go at once; shut, it
     /// plays back where the window was.
     /// </summary>
     private void Hologram(double delta)
@@ -222,7 +222,7 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The paired bag in the drone's corners (drone-frame): its place handed to the frame while it shows, its glass and contents
+    /// The paired bag in the drone's corners (drone-windows): its place handed to the frame while it shows, its glass and contents
     /// coming in with the corners, out as they fly home. Unpaired, the wrist's bag is no drone window.
     /// </summary>
     private void BagFrame(double delta)

@@ -4,7 +4,7 @@ using I = Stillwake.Game.Shared.DroneInk;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// A drone window's clock (drone-frame, the pick «Уголки»): opening, a spark from the drone's eye reaches each corner in
+/// A drone window's clock (drone-windows, the pick «Уголки»): opening, a spark from the drone's eye reaches each corner in
 /// <see cref="DroneInk.Reach"/>, each next corner a little later, and the screen comes in from <see cref="DroneInk.ScreenFrom"/> over
 /// <see cref="DroneInk.ScreenIn"/>, readable at about a tenth of a second; shut, the screen goes in <see cref="DroneInk.ScreenOut"/> as the
 /// corners fly home in <see cref="DroneInk.Home"/>. Turned back midway, the corners go on from where they are. Client only.
@@ -61,7 +61,7 @@ public sealed class CornerClock
 }
 
 /// <summary>
-/// The drone's frame round a drone window (drone-frame, the pick «Уголки»), screen px: no border, four ember brackets just outside its
+/// The drone's frame round a drone window (drone-windows, the pick «Уголки»), screen px: no border, four ember brackets just outside its
 /// corners, each made by a spark shot from the drone's eye, sparks running along its arms. The pick's faint threads from the eye to
 /// the corners and the shots' lines back to it show only when asked (<see cref="Threads"/>, a dev key): what stretches across the
 /// screen from the drone is to go. Client only.

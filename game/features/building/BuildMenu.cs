@@ -340,7 +340,7 @@ public partial class BuildMenu : CanvasLayer
         // Esc puts the plan away through Shared.Escape, before it opens the game menu.
         if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
         bool planning = _hand.PlanOut.Get();
-        // Plan mode is a drone window: before the pairing B takes nothing out (drone-companion).
+        // Plan mode is a drone window: before the pairing B takes nothing out (drone-windows).
         if (key.Is(Bind.Build))
         {
             if (!planning && !DroneWindows.Opens(DroneWindowKind.Plan, _ui.Paired())) return;

@@ -104,7 +104,7 @@ public partial class HandbookPanel : CanvasLayer
     /// <summary>Takes it out on the section chosen last, putting away what is open or in hand.</summary>
     public void Open()
     {
-        // A drone window: before the pairing it does not open (drone-companion).
+        // A drone window: before the pairing it does not open (drone-windows).
         if (_open || !DroneWindows.Opens(DroneWindowKind.Handbook, _ui.Paired())) return;
         Opening?.Invoke();
         _ui.Hand.Set(Holding.Free);

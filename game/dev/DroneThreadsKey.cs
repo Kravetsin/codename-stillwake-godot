@@ -5,7 +5,7 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// F10 in any run, the plain game too: the drone's faint threads to its windows' corners on or off (<see cref="CornerFrame.Threads"/>,
-/// drone-frame), said a moment in a corner, to compare them in play.
+/// drone-windows), said a moment in a corner, to compare them in play.
 /// </summary>
 public partial class DroneThreadsKey : CanvasLayer
 {

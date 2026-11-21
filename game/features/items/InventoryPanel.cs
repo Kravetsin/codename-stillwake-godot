@@ -71,7 +71,7 @@ public partial class InventoryPanel : CanvasLayer
     private Control _inventory = null!;
     /// <summary>Whether the bag was built paired.</summary>
     private bool _builtPaired;
-    /// <summary>The paired bag's clock as the drone's corners frame it (drone-frame).</summary>
+    /// <summary>The paired bag's clock as the drone's corners frame it (drone-windows).</summary>
     private readonly CornerClock _bagClock = new();
     /// <summary>How far the open screens have come on: their content fades in as the build tablet's does (0073).</summary>
     private readonly TabletMotion _motion = new();
@@ -236,10 +236,10 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Whether the inventory or a crate is open: what Esc closes before it opens the menu.</summary>
     public bool Shown => _open || Crate != null;
 
-    /// <summary>Whether the bag's column and the machine open under it show: while open, and the paired bag while its glass fades out after (drone-frame).</summary>
+    /// <summary>Whether the bag's column and the machine open under it show: while open, and the paired bag while its glass fades out after (drone-windows).</summary>
     private bool BagShown => Shown || (_inventory is HoloWindow && _bagClock.Shown);
 
-    /// <summary>Whether the bag opens: before the pairing only the gear and a station's window do (drone-companion).</summary>
+    /// <summary>Whether the bag opens: before the pairing only the gear and a station's window do (drone-windows).</summary>
     private bool BagOpens => DroneWindows.Opens(DroneWindowKind.Bag, Paired?.Invoke() ?? true);
 
     /// <summary>
@@ -726,7 +726,7 @@ public partial class InventoryPanel : CanvasLayer
         }
         BuildCrate();
         _shown.Visible = BagShown;
-        // Before the pairing a station's window opens alone, no bag over it (drone-companion).
+        // Before the pairing a station's window opens alone, no bag over it (drone-windows).
         if (_bagColumn.Visible != BagOpens) _bagColumn.Visible = BagOpens;
         _body.Visible = Shown;
         _creative.Visible = reading.Creative;

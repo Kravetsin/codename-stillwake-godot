@@ -45,7 +45,7 @@ public partial class Tablet : Panel
     public Rect2 Covers => _edge.GetGlobalRect();
 
     /// <summary>
-    /// The drone's windows, for a tablet the drone projects (drone-frame): it comes and goes by the drone's corners
+    /// The drone's windows, for a tablet the drone projects (drone-windows): it comes and goes by the drone's corners
     /// (<see cref="CornerClock"/>), handing its place to them. Null for one that is not the drone's, the game menu's.
     /// </summary>
     public DroneWindows? Corners { get; set; }

@@ -29,7 +29,7 @@ public partial class LightDrone : Node2D
     private readonly DroneFlight _flight = new();
     private readonly DroneSwarm _swarm = new();
     private readonly Spark[] _sparks = new Spark[I.Sparks];
-    /// <summary>Its flurry while projecting (drone-frame), and its sparks this frame.</summary>
+    /// <summary>Its flurry while projecting (drone-windows), and its sparks this frame.</summary>
     private readonly DroneFlurry _flurry = new();
     private readonly Spark[] _flurrySparks = new Spark[DroneFlurry.Count];
     private double _elapsedMs;

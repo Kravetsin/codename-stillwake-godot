@@ -450,7 +450,7 @@ public partial class Main : Node2D, ITogether
         edge.Put(tech.MarketCap, "research.marketKey", () => tech.MarketCapShows);
         edge.Put(handbook.Cap, "handbook.key");
         edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
-        // The drone projects these: its corners frame them (drone-frame).
+        // The drone projects these: its corners frame them (drone-windows).
         foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet])
         {
             tablet.Corners = _hands.Ui.Windows;

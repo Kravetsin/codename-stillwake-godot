@@ -1843,7 +1843,7 @@ public partial class Figure : Node2D
         _lying = !awake;
         if (_drone.Visible)
         {
-            // Projecting, it flies before the hero's waist, its sparks in a flurry about it (drone-frame); else it flies by its own
+            // Projecting, it flies before the hero's waist, its sparks in a flurry about it (drone-windows); else it flies by its own
             // will (drone-motion), its lens on the pointer in lamp and scan.
             var feet = _frame.ToGlobal(Vector2.Zero);
             Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;

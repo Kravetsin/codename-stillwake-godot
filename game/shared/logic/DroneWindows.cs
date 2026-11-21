@@ -28,7 +28,7 @@ public enum DroneWindowKind
 }
 
 /// <summary>
-/// The drone's open windows (drone-frame): every drone window hands its place on the screen and its clock each frame, and the
+/// The drone's open windows (drone-windows): every drone window hands its place on the screen and its clock each frame, and the
 /// drone's frame (<c>DroneFrame</c>) lays its corners round each one shown, however many at once. Client only.
 /// </summary>
 public sealed class DroneWindows
@@ -38,7 +38,7 @@ public sealed class DroneWindows
 
     private readonly List<Window> _windows = [];
 
-    /// <summary>Whether a window of <paramref name="kind"/> opens: before the drone is paired only the gear and a station's own do (drone-companion).</summary>
+    /// <summary>Whether a window of <paramref name="kind"/> opens: before the drone is paired only the gear and a station's own do (drone-windows).</summary>
     public static bool Opens(DroneWindowKind kind, bool paired) => kind is DroneWindowKind.Gear or DroneWindowKind.Station || paired;
 
     /// <summary>Every window handed, in the order they first were.</summary>
