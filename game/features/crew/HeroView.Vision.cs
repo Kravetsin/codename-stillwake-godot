@@ -26,6 +26,9 @@ public partial class HeroView
 
     private Envisioned? _vision;
 
+    /// <summary>How much brighter the hero's figure is drawn in the void than its pictures.</summary>
+    private const float Lifted = 1.25f;
+
     /// <summary>The form whose vision this player's lesson is at, and how many seconds into it (form-vision, from the research key); null for none.</summary>
     public (string Form, double Seconds)? DroneVision { private get; set; }
 
@@ -40,6 +43,9 @@ public partial class HeroView
 
     /// <summary>Whether this player is in a form's vision this frame.</summary>
     public bool Envisions => _vision != null;
+
+    /// <summary>How this player's vision's layer is zoomed over the screen this frame, the world to the screen; none outside one. The scanner's gauge follows it.</summary>
+    public Transform2D? VisionLayer => _vision?.View.Vision.Transform;
 
     /// <summary>
     /// What the scanner reads in a scanner's vision this frame: an id of its own for each piece, over the middle of its top in cells, its hit points
@@ -73,6 +79,7 @@ public partial class HeroView
         if (_vision is not { } ended) return;
         _vision = null;
         Place(_figure, this);
+        _figure.Modulate = Colors.White;
         ended.View.QueueFree();
     }
 
@@ -98,5 +105,7 @@ public partial class HeroView
         figure.Transform = new Transform2D(0, new Vector2(hero.Facing, 1), 0, FeetOf(hero) - new Vector2(0, (float)FormVision.Float(vision.U).Lift));
         vision.View.Show(frame, FeetOf(hero), hero.Facing, vision.Home, elapsedMs);
         Cutscene = (0, frame.Hud);
+        // Off the world's lights his dark suit would sink into the void: brightened a little as it comes.
+        figure.Modulate = Colors.White.Lerp(new Color(Lifted, Lifted, Lifted), (float)frame.Veil);
     }
 }

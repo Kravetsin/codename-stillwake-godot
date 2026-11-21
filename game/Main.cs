@@ -736,6 +736,7 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("debris");
         // In a scanner's vision (form-vision) it reads the vision's pieces, over the vision, which the HUD's layer is moved off with.
         _scanner.Layer = _hero?.Envisions == true ? ScreenLayers.VisionGauge : ScreenLayers.Hud;
+        (_scanner.FollowViewportEnabled, _scanner.Transform) = _hero?.VisionLayer is { } zoomed ? (false, zoomed) : (true, Transform2D.Identity);
         _scanner.Frame(_hero?.VisionRead is { } vision ? new Features.Scanner.Readout(vision.Id, vision.X, vision.Y, vision.Left, vision.Max)
             : _hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null,

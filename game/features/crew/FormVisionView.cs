@@ -30,8 +30,8 @@ public partial class FormVisionView : Node2D
     /// <summary>How many sides the vignette's ring has.</summary>
     private const int ShadeSides = 48;
 
-    /// <summary>The screen layer the vision is drawn on, over the world, following the camera: the hero's figure goes onto it meanwhile.</summary>
-    public CanvasLayer Vision { get; } = new() { Layer = ScreenLayers.Vision, FollowViewportEnabled = true, Visible = false };
+    /// <summary>The screen layer the vision is drawn on, over the world, zoomed to it (<see cref="Zoomed"/>): the hero's figure goes onto it meanwhile.</summary>
+    public CanvasLayer Vision { get; } = new() { Layer = ScreenLayers.Vision, Visible = false };
 
     private static readonly Dictionary<string, Texture2D> Pictures = [];
 
@@ -65,7 +65,7 @@ public partial class FormVisionView : Node2D
             (_void, -20, false), (_under, -11, true), (_things, -10, false), (_threads, -9, true), (_shade, 40, false),
         })
             _stage.AddChild(Unlit(node, z, adds));
-        _things.TextureFilter = TextureFilterEnum.LinearWithMipmaps;
+        _things.TextureFilter = TextureFilterEnum.Nearest;
         Vision.AddChild(_drone);
         _void.Draw += DrawVoid;
         _under.Draw += DrawUnder;
@@ -100,7 +100,9 @@ public partial class FormVisionView : Node2D
         _stage.Transform = stage;
         var toPage = stage.AffineInverse();
         var viewport = GetViewport();
-        var seen = viewport.GetCanvasTransform().AffineInverse() * viewport.GetVisibleRect();
+        var screen = viewport.GetVisibleRect();
+        Vision.Transform = Zoomed(stage, viewport.GetCanvasTransform(), screen, (float)frame.Veil);
+        var seen = Vision.Transform.AffineInverse() * screen;
         _page = new Rect2(toPage * seen.Position, Vector2.Zero).Expand(toPage * seen.End)
             .Expand(toPage * new Vector2(seen.Position.X, seen.End.Y)).Expand(toPage * new Vector2(seen.End.X, seen.Position.Y));
 
@@ -123,6 +125,18 @@ public partial class FormVisionView : Node2D
             _read = (ReadId + read.Piece, top.X / Camera.Cell, top.Y / Camera.Cell, read.Left, read.Max);
         }
         foreach (var node in (ReadOnlySpan<Node2D>)[_void, _under, _things, _threads, _shade]) node.QueueRedraw();
+    }
+
+    /// <summary>
+    /// The vision's layer over the screen: as the void comes, from the world's camera to the vision's own zoom (<see cref="FormVision.Zoom"/>), the
+    /// pick's frame's middle eased to the screen's; whole screen px while it shows.
+    /// </summary>
+    private static Transform2D Zoomed(Transform2D stage, Transform2D camera, Rect2 screen, float veil)
+    {
+        var middle = stage * (W(FormVision.Frame) / 2);
+        float zoom = Mathf.Lerp(camera.X.Length(), FormVision.Zoom(screen.Size.Y), veil);
+        var at = (camera * middle).Lerp(screen.GetCenter(), veil) - middle * zoom;
+        return new Transform2D(new Vector2(zoom, 0), new Vector2(0, zoom), at.Round());
     }
 
     /// <summary>The pick's px to the world's: its hero's feet on <paramref name="feet"/>, a world px four of its, mirrored for a hero facing right (the pick's faces left).</summary>
@@ -191,6 +205,10 @@ public partial class FormVisionView : Node2D
     {
         float v = (float)_f.Veil;
         _tri.Clear();
+        // A soft cold light behind the hero, so his figure reads against the void (the pick draws him at his own colours on its black).
+        var middle = W(FormVision.Feet) - new Vector2(0, (float)((FormVision.Float(_f.U).Lift + FormVision.HeroTall / 2) * FormVision.PerWorldPx));
+        Halo(middle, 200, Star, 0.14f * v);
+        Halo(middle, 110, Star, 0.1f * v);
         if (_f.Lamp is { } lamp && _f.First is { } hung)
         {
             float lit = (float)lamp.Light * v;

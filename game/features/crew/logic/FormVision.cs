@@ -66,6 +66,15 @@ public static class FormVision
     /// <summary>Pick px a world px (the kit's zoom).</summary>
     public const double PerWorldPx = 4;
 
+    /// <summary>How tall the hero stands, world px: about five cells (0104).</summary>
+    public const double HeroTall = 40;
+
+    /// <summary>
+    /// The vision's zoom on a screen <paramref name="height"/> px tall, screen px a world px: a whole number of them a picture's px (the pick's
+    /// <see cref="PerWorldPx"/>), so its pictures stay crisp, the hero about a quarter of the screen's height; 4 on a 720 px screen, 8 on 1080.
+    /// </summary>
+    public static float Zoom(double height) => (float)(PerWorldPx * Math.Max(1, Math.Round(height / 4 / HeroTall / PerWorldPx)));
+
     /// <summary>Where the hero's feet are in the pick's frame, and the pick's frame's size.</summary>
     public static readonly Vec Feet = new(780, 470), Frame = new(1000, 540);
 
