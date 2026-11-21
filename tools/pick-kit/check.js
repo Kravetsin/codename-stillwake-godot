@@ -1,5 +1,6 @@
 // The stub check (README.md): runs a built page's script in Node against a stub DOM and a canvas that throws on a
-// non-finite number, a bad colour or a source rectangle outside its image, then hands the page's check its tools.
+// non-finite number, a bad colour or a source rectangle outside its image and reads back solid white, then hands
+// the page's check its tools.
 const calls = { n: 0, by: {} };
 const bad = m => { throw new Error(m); };
 const ctx = () => new Proxy({ canvas: null, globalAlpha: 1 }, {
@@ -13,6 +14,7 @@ const ctx = () => new Proxy({ canvas: null, globalAlpha: 1 }, {
     if (k === 'createPattern') return () => ({ pattern: true });
     if (k === 'measureText') return () => ({ width: 10 });
     if (k === 'createImageData') return (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) });
+    if (k === 'getImageData') return (x, y, w, h) => { if (![x, y, w, h].every(isFinite)) bad('non-finite getImageData'); return { width: w, height: h, data: new Uint8ClampedArray(w * h * 4).fill(255) }; };   // reads back solid white
     return (...a) => {
       calls.n++; calls.by[k] = (calls.by[k] || 0) + 1;
       for (const v of a) if (typeof v === 'number' && !isFinite(v)) bad('non-finite arg to ' + String(k) + ': ' + a.join(','));

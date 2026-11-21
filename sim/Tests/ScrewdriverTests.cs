@@ -20,7 +20,7 @@ public class ScrewdriverTests
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
 
     [Fact]
-    public void AHeroComesAboardWithTheScrewdriverAloneOnceAndItsPlayerBuildsAPlanWithIt()
+    public void AHeroComesAboardWithTheScrewdriverOnceAndItsPlayerBuildsAPlanWithIt()
     {
         var w = new Scenario(Room);
         int cell = w.M.Grid.Width * (w.M.Grid.Height / 2) + w.M.Grid.Width / 2;

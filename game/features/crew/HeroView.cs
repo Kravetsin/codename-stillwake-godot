@@ -239,9 +239,25 @@ public partial class HeroView : Node2D
     /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
     private bool _switchSuit;
     /// <summary>The gesture key and its wheel (gestures-for-words), the wheel drawn, and the gesture this hero plays.</summary>
-    private readonly GestureWheel _wheel = new();
-    private readonly GestureWheelView _wheelView = new();
+    private readonly Wheel<Gesture> _wheel = new(Gestures.WheelSides);
+    private readonly WheelView _wheelView = new();
     private readonly GesturePlay _gesture = new();
+    /// <summary>
+    /// The drone key and its wheel of the worn light drone's modes (light-drone), drawn, and the mode it is in: the client's, never saved,
+    /// a new game or a reload on the lamp. A mode opens with its node, known to the crew or to a hero in creative mode.
+    /// </summary>
+    private readonly Wheel<DroneMode> _droneWheel = new(DroneModes.Sides);
+    private readonly WheelView _droneWheelView = new();
+    private DroneMode _droneMode = DroneMode.Lamp;
+    private readonly Func<string, bool> _knows;
+    private readonly Func<DroneMode, bool> _droneOpen;
+
+    private bool Knows(string node) => _m != null && _client != null && _m.Research.Knows(_client.Id, node);
+
+    private bool DroneOpen(DroneMode mode) => DroneModes.Opened(mode, _knows);
+
+    /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
+    public bool Scanning => _figure.Scanner && !_figure.Projects;
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
@@ -291,6 +307,9 @@ public partial class HeroView : Node2D
         AddChild(_outline);
         AddChild(_glyph);
         AddChild(_wheelView);
+        AddChild(_droneWheelView);
+        _knows = Knows;
+        _droneWheel.Opens = _droneOpen = DroneOpen;
         AddChild(_pingView);
         AddChild(_prompt);
         AddChild(_act);
@@ -405,9 +424,9 @@ public partial class HeroView : Node2D
     public IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)> HeadLamps()
     {
         _headLamps.Clear();
-        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward, _figure.HeadAt));
+        if (_figure.Shines && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward, _figure.HeadAt));
         foreach (var (_, shown) in _shownOthers)
-            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward, shown.Figure.HeadAt));
+            if (shown.Figure.Visible && shown.Figure.Shines) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward, shown.Figure.HeadAt));
         return _headLamps;
     }
 
@@ -433,6 +452,8 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
+        // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting).
+        _locked = _meetings.ContainsKey(client.Id);
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         InPod = Seating.InPod(m, client.Id);
@@ -474,7 +495,8 @@ public partial class HeroView : Node2D
         // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
         // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.
         if (known == null || woke || m.Items.Creative(client.Id)) _body.Reset();
-        else if (!passedOut && !_body.Gone
+        // Spared by its drone's meeting, the body holds as it is till it ends (drone-meeting).
+        else if (!passedOut && !_body.Gone && !m.Crew.Spared(client.Id)
             && _body.Step(elapsedMs / 1000, m.Crew.Felt(client.Id, _current.BodyCell(grid.Width)), m.Crew.Heat(client.Id, _current.BodyCell(grid.Width))))
             client.Send(new Sim.Crew.Succumb());
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
@@ -506,7 +528,7 @@ public partial class HeroView : Node2D
                 ? Hero.ThrustToward(taken.X, taken.Y, _current.Middle, pointed)
                 : null;
             if (thrust != null) _thrust = thrust;
-            var input = passedOut || seat != null
+            var input = passedOut || seat != null || _locked
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
                 : taken with
                 {
@@ -558,9 +580,9 @@ public partial class HeroView : Node2D
         if (Report.ThrustOf(m.Crew, client.Id, _venting) is { } thrusts) client.Send(thrusts);
         HearThrust(elapsedMs);
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
-        if (_breathe && !passedOut) Breathe(client, m);
+        if (_breathe && !passedOut && !_locked) Breathe(client, m);
         _breathe = false;
-        if (_eat is { } food && !passedOut) Eat(client, m, food);
+        if (_eat is { } food && !passedOut && !_locked) Eat(client, m, food);
         _eat = null;
         if (m.Crew.HeroOf(client.Id) is { } sick && Purged(client.Id, sick.Purges))
         {
@@ -575,7 +597,9 @@ public partial class HeroView : Node2D
         _switchSuit = false;
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
-        bool holdsPlan = HoldsPlan && !passedOut;
+        bool holdsPlan = HoldsPlan && !passedOut && !_locked;
+        // A drone window open, friends see the drone project it before the hero (drone-holo).
+        bool projects = _ui.DroneWindow.Open && !passedOut && !_locked;
         _clockMs += elapsedMs;
         _beamLeftMs = Math.Max(0, _beamLeftMs - elapsedMs);
         _sendTo = client;
@@ -604,8 +628,13 @@ public partial class HeroView : Node2D
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space; in water it swims so.
         var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding || ship.Wet(drawn.BodyCell(ship.Width)), passedOut);
+        if (MeetAt is double meetAt)
+        {
+            MeetAt = null;
+            MeetHere(client, m, meetAt);
+        }
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
-        UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
+        UseHands(client, m, shown, pointer, passedOut || _locked, pose, elapsedMs, handFree: !HoldsPlan);
         _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
@@ -614,8 +643,12 @@ public partial class HeroView : Node2D
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
-        _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
-        _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
+        _figure.Paired = m.Players.HasDrone(client.Id);
+        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
+        _figure.DroneWindow = _ui.DroneWindow;
+        _figure.Senses = DroneSensesOf(m, client.Id, _surface);
+        _ui.DroneAt = _figure.DroneLens is { } droneLens ? (droneLens.GetCenter().X, droneLens.GetCenter().Y) : null;
+        _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
         _figure.EffectSkin = SkinEffects.Of(effect);
         // The suit frosts over or scorches with the body, not the place (body-temperature, picks F2 and H3).
@@ -625,8 +658,12 @@ public partial class HeroView : Node2D
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);
+        (pose, look) = InMeeting(client.Id, _figure, drawn, pose, look);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
+        ShowMeeting(client.Id, _figure, m);
+        HoldCore(client.Id);
         _figure.Visible = seat == null;
+        _ui.DroneLens = _figure.Visible && !passedOut && _figure.DroneLens is { } lens ? (lens.Position.X, lens.Position.Y, lens.Size.X, lens.Size.Y) : null;
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _venting && _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
         var shownHero = drawn;
@@ -642,7 +679,7 @@ public partial class HeroView : Node2D
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode), projects), _steps * Hero.StepMs);
         ShowPings(m);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();

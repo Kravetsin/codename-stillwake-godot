@@ -91,6 +91,8 @@ public partial class Figure : Node2D
     /// inside, the shell and glass, and what rides on its crown; and the collar, over the near arm's shoulder, which never turns.
     /// </summary>
     private readonly Node2D _face = new(), _shellTurn = new(), _crown = new(), _collar;
+    /// <summary>The face's mask, its helmet's glass (<see cref="GlassOnly"/>).</summary>
+    private readonly Sprite2D _glass = new() { Centered = false };
     /// <summary>The helmet worn's fit, its pivot from the neck, and the way the head looks, radians, as last drawn.</summary>
     private HelmetFit _fit = BodyFit.Whole;
     /// <summary>The way every helmet was tried as it was last fitted (<see cref="BodyFit.Trial"/>): fitted again when it changes.</summary>
@@ -341,12 +343,12 @@ public partial class Figure : Node2D
         _faceLight.AddChild(_faceLit = new Sprite2D { Centered = false, Offset = _facePart.Offset, Material = Added });
         (_beard, _hair) = (Part("beard", joint: "hair"), Part("hair", joint: "hair"));
         (_shell, _visor, _collarPart) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"), Part("collar", joint: "helmet"));
-        _helmetPictures = [Bent(_headPart), Bent(_facePart), Bent(_headLit), Bent(_faceLit), Bent(_shell), Bent(_visor), Bent(_collarPart)];
-        _seal = Part("seal", joint: "helmet");
+        _helmetPictures = [Bent(_headPart), Bent(_facePart), Bent(_headLit), Bent(_faceLit), Bent(_shell), Bent(_visor), Bent(_collarPart)]; _seal = Part("seal", joint: "helmet");
         _sealBent = Bent(_seal);
         foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair }) _face.AddChild(n);
         foreach (var n in new Node2D[] { _shell, _visor }) _shellTurn.AddChild(n);
-        foreach (var n in new Node2D[] { _face, _seal, _shellTurn, _crown }) _helmet.AddChild(n);
+        _glass.AddChild(_face);
+        foreach (var n in new Node2D[] { _glass, _seal, _shellTurn, _crown }) _helmet.AddChild(n);
         _collar.AddChild(_collarPart);
         _crown.AddChild(_eyes);
         Gives(_eyes, _eyesGlow);
@@ -360,6 +362,9 @@ public partial class Figure : Node2D
         Lit.Set(_scanner);
         _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
         _crown.AddChild(_scanner);
+        // light-drone (a try): the lamp and the scanner float by the head instead, the helmet carrying neither.
+        AddChild(_drone);
+        AddChild(_motes);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -457,6 +462,9 @@ public partial class Figure : Node2D
         _beamTo.Clear();
         for (int i = 0; i < cells.Count && i < BeamsMost; i++) _beamTo.Add(cells[i]);
         _beamMs = BeamMs;
+        // With its drone by it, the near hand points the drone at the first (drone-holo).
+        if (!_drone.Visible || cells.Count == 0) return;
+        _point.Placed((cells[0].X, cells[0].Y));
     }
 
     /// <summary>A point of the world from the front shoulder, in the arms' own frame: the body as it is placed, turned, lifted and faced.</summary>
@@ -621,6 +629,15 @@ public partial class Figure : Node2D
     /// <summary>How far more it leans than its pose, radians, forward positive, settled as the pose's lean is.</summary>
     public double Lean { get; set; }
 
+    /// <summary>How it is bent kneeling (drone-meeting), in <see cref="Pose.Kneel"/>; none kneels fully, upright.</summary>
+    public Kneeling? Kneel { get; set; }
+
+    /// <summary>Where its near hand reaches, pixels of the world, and how far of the way, 0..1 (drone-meeting); none for no reach.</summary>
+    public (Vector2 To, double Share)? Reach { get; set; }
+
+    /// <summary>Its near fist's middle as last drawn, pixels of the world: where blood bursts from in the drone's meeting.</summary>
+    public Vector2 Palm { get; private set; }
+
     /// <summary>The back fist's item, the fuse sparking over it, and the item hung at the belt with its strap.</summary>
     private readonly Sprite2D _offHeld = new() { Centered = false, Visible = false }, _fuse = new() { Centered = false, Visible = false, Material = Unshaded },
         _belt = new() { Centered = false, Visible = false };
@@ -712,21 +729,36 @@ public partial class Figure : Node2D
     }
     private string _capePicture = Stillwake.Content.Cape.Item;
 
-    /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow and shines, only on a helmet.</summary>
+    /// <summary>Whether the hero is paired with the drone (drone-companion): it floats by the head, shining or scanning only in a mode it has.</summary>
+    public bool Paired
+    {
+        get => _paired;
+        set
+        {
+            if (value == _paired) return;
+            _paired = value;
+            ShowDrone();
+        }
+    }
+    private bool _paired;
+
+    /// <summary>Whether the hero wears the helmet lamp (0077): its light drone floats by the head and shines (light-drone, a try).</summary>
     public bool HeadLamp
     {
-        get => _headLamp.Visible;
+        get => _lampWorn;
         set
         {
             _lampWorn = value;
-            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
+            _headLamp.Visible = false;
+            _faceLight.Visible = _lampWorn && _helmetWorn != null;
+            ShowDrone();
         }
     }
 
-    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): along the helmet's crown, in the lamp's mount; only on a helmet.</summary>
+    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): its light drone floats by the head (light-drone, a try).</summary>
     public bool Scanner
     {
-        get => _scanner.Visible;
+        get => _scannerWorn;
         set
         {
             if (value == _scannerWorn) return;
@@ -735,10 +767,105 @@ public partial class Figure : Node2D
         }
     }
 
+    /// <summary>
+    /// Where the hero points, pixels of the world, for the drone to shine at; none for a friend, whose drone shines where its
+    /// head looks.
+    /// </summary>
+    public Vector2? LampAim { get; set; }
+
+    private readonly LightDrone _drone = new();
+
+    /// <summary>
+    /// Whether a drone window of its hero's is open, and how far its soot is out, 0..1 (drone-frame): while open, its drone flies
+    /// before it and projects the window over itself (<see cref="SheetHolo"/>).
+    /// </summary>
+    public (bool Open, double Out) DroneWindow
+    {
+        get => _droneWindow;
+        set => _droneWindow = value;
+    }
+
+    private (bool Open, double Out) _droneWindow;
+
+    private readonly DroneMotes _motes = new();
+    private readonly PlanPoint _point = new();
+    private readonly double _holoSeed = Random.Shared.NextDouble() * 100;
+    private double _holoIn;
+    private bool _holoComing, _droneThere;
+    /// <summary>How far its motes are from a window's cloud to the plans' grid, 0..1.</summary>
+    private double _holoGrid;
+
+    /// <summary>Whether its drone projects a drone window before it (drone-holo): its lamp and scanner off meanwhile.</summary>
+    public bool Projects { get; private set; }
+
+    /// <summary>Whether its drone shines: the lamp worn, not projecting, the drone shown.</summary>
+    public bool Shines => _lampWorn && !Projects && _drone.Visible;
+
+    /// <summary>Whether its drone is shown whatever it wears (drone-meeting): hidden while the meeting draws it, shown as it hands over; none as it wears.</summary>
+    public bool? DroneShown
+    {
+        get => _droneShown;
+        set
+        {
+            if (value == _droneShown) return;
+            _droneShown = value;
+            ShowDrone();
+        }
+    }
+    private bool? _droneShown;
+
+    /// <summary>
+    /// What its drone senses of its hero's world this frame (drone-motion): the surface, the work point, the meteor and bolt, the
+    /// hunter, a friend's low air. The figure adds its own: the anchor, the window, the lens's aim, passed out, signing.
+    /// </summary>
+    public DroneSenses Senses { get; set; }
+
+    /// <summary>Its drone's mind, its perches its own: they may differ between screens.</summary>
+    private readonly DroneWill _will = new(new Random());
+    /// <summary>Whether its drone was hidden since it last flew: shown again, it starts at its anchor.</summary>
+    private bool _droneLost = true;
+    /// <summary>Whether it lies or tumbles as last shown: its drone's anchor is over the body's middle then.</summary>
+    private bool _lying;
+
+    /// <summary>Its drone's anchor as drawn now, pixels of the world (<see cref="DroneFlight.Anchor"/>).</summary>
+    public Vector2 DroneAnchor
+    {
+        get
+        {
+            var neck = _helmet.GlobalPosition;
+            var waist = _waist.GlobalPosition;
+            var anchor = DroneFlight.Anchor(new Vec(neck.X, neck.Y), _frame.GlobalPosition.X, _lying ? new Vec(waist.X, waist.Y) : null);
+            return new Vector2((float)anchor.X, (float)anchor.Y);
+        }
+    }
+
+    /// <summary>How opaque its drone is, 0..1: a friend's new drone fading in by its head as its meeting ends (drone-meeting).</summary>
+    public float DroneFade { set => _drone.Modulate = new Color(1, 1, 1, value); }
+
+    /// <summary>Its drone's lens's colour as it is now.</summary>
+    public Color DroneLensColour => _drone.LensColour;
+
+    /// <summary>Its own clock, ms: what its drone's soot and plates move by.</summary>
+    public double ClockMs => _timeMs;
+
+    /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
+    public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
+
+    /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
+    private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
+
+    private void ShowDrone()
+    {
+        _drone.Visible = _droneShown ?? (_paired || _lampWorn || _scannerWorn);
+        _drone.Scanning = _scannerWorn && !_lampWorn;
+        _drone.Idle = !_lampWorn && !_scannerWorn;
+    }
+
     /// <summary>The scanner's pictures for the helmet worn, at its mount: each helmet's hugs its dome.</summary>
     private void ShowScanner()
     {
-        _scanner.Visible = _scannerWorn && _helmetWorn != null;
+        ShowDrone();
+        _scanner.Visible = false;
         if (!_scanner.Visible) return;
         var (name, x, y) = ScannerInk.Of(_helmetWorn!);
         _scanner.Texture = PixelArt.Picture(name);
@@ -747,7 +874,7 @@ public partial class Figure : Node2D
     }
 
     /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
-    public Vector2 HeadLampAt => _lens.GlobalPosition;
+    public Vector2 HeadLampAt => _drone.GlobalPosition;
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
     public Vector2 Visor => _crown.ToGlobal(VisorOn);
@@ -759,7 +886,9 @@ public partial class Figure : Node2D
     public Vector2 HeadAt => _helmet.GlobalPosition;
 
     /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces, a bolted helmet's too.</summary>
-    public Vector2 HeadLampToward => _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
+    public Vector2 HeadLampToward =>
+        LampAim is { } aim && aim.DistanceTo(_drone.GlobalPosition) > 1 ? (aim - _drone.GlobalPosition).Normalized()
+            : _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
@@ -1015,8 +1144,11 @@ public partial class Figure : Node2D
         FitHelmet(helmet);
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
-        _hair.Visible = helmet == null;
-        _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        // Behind a still helmet's glass the head is the hero's own, hair and beard too (light-drone, a try); a hood hides them.
+        bool seen = helmet == null || _fit.Turn is HelmetTurn.Bolted or HelmetTurn.BoltedStill;
+        _hair.Visible = seen;
+        _beard.Visible = seen && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        _helmetPictures[VisorPicture].Modulate = helmet != null && _fit.Turn is HelmetTurn.Bolted or HelmetTurn.BoltedStill ? GlassTint : Colors.White;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
         ShowScanner();
@@ -1065,6 +1197,34 @@ public partial class Figure : Node2D
         Rows(_visor, double.NegativeInfinity, cut);
         Rows(_collarPart, _fit.Cut ?? double.NegativeInfinity, double.PositiveInfinity);
         _collarPart.Visible = helmet != null && (_fit.Cut == null || _collarPart.RegionRect.Size.Y > 0);
+        GlassOnly(helmet != null && _fit.Turn is HelmetTurn.Bolted or HelmetTurn.BoltedStill);
+    }
+
+    private static readonly Dictionary<Texture2D, Texture2D> GlassMasks = new();
+
+    /// <summary>
+    /// The head behind a still helmet seen through its glass alone (light-drone, a try): its visor's picture, wholly clear where it is
+    /// glass at all, masks the face, the hair and the beard; bare or turning, nothing masks them.
+    /// </summary>
+    private void GlassOnly(bool masked)
+    {
+        masked &= _visor.Texture is CanvasTexture;
+        _glass.ClipChildren = masked ? ClipChildrenMode.Only : ClipChildrenMode.Disabled;
+        _glass.Texture = masked ? MaskOf((CanvasTexture)_visor.Texture) : null;
+        (_glass.Offset, _glass.RegionEnabled, _glass.RegionRect) = (_visor.Offset, _visor.RegionEnabled, _visor.RegionRect);
+    }
+
+    private static Texture2D MaskOf(CanvasTexture visor)
+    {
+        if (GlassMasks.TryGetValue(visor, out var known)) return known;
+        var image = visor.DiffuseTexture.GetImage();
+        if (image.IsCompressed()) image.Decompress();
+        image.Convert(Image.Format.Rgba8);
+        if (image.HasMipmaps()) image.ClearMipmaps();
+        for (int y = 0; y < image.GetHeight(); y++)
+            for (int x = 0; x < image.GetWidth(); x++)
+                image.SetPixel(x, y, new Color(1, 1, 1, image.GetPixel(x, y).A > 0.05f ? 1 : 0));
+        return GlassMasks[visor] = HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(image)), (Vector2I)visor.GetSize());
     }
 
     /// <summary>A helmet's picture drawn only from row <paramref name="from"/> to <paramref name="to"/> of its box, each where it is.</summary>
@@ -1427,11 +1587,27 @@ public partial class Figure : Node2D
         // Working a plan the screwdriver takes the front hand; the planner waits till it is done.
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
-        bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
+        // With its drone by it (drone-holo), a drone window or the plan out sends the drone before the hero, its mode off, projecting
+        // motes over itself once there: a drifting cloud for a window, a blueprint's grid for plans, each plan placed pointed at by
+        // the near hand and flown to by a mote. Without one, the plan is the paper sheet in hand.
+        bool projecting = _drone.Visible;
+        bool planOut = projecting && holdsPlan, windowOut = projecting && _droneWindow.Open && !holdsPlan;
+        // Out of sight they take the shape at once; shown, they ease from one to the other.
+        if (planOut || windowOut) _holoGrid = _holoIn > 0 ? DroneMotesLook.Reshape(_holoGrid, planOut, elapsedMs) : planOut ? 1 : 0;
+        // The motes come on once the drone is there, never on its way past the face, and stay on as it follows.
+        bool holoOn = (planOut || windowOut) && _droneThere;
+        _holoIn = SheetHoloLook.Step(_holoIn, holoOn, elapsedMs);
+        _holoComing = holoOn;
+        bool overDrone = planOut || windowOut || projecting && _holoIn > 0;
+        Projects = overDrone;
+        bool holding = !projecting && holdsPlan && Poses.HoldsIn(pose) && !working;
+        // The plan out, the near hand holds nothing: it shows the drone where plans go.
+        bool handsOnPlan = holding || planOut;
+        _point.Step(elapsedMs, planOut && Poses.HoldsIn(pose) && !working);
         var item = HeldLook.Of(Wields);
         // Signing, what the near hand held is stowed till the gesture ends (gestures-for-words).
-        bool signing = Gesture != null && !working && !holding && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
-        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding && !signing;
+        bool signing = Gesture != null && !working && !handsOnPlan && pose is Pose.Stand or Pose.Walk or Pose.Run or Pose.Air or Pose.Float;
+        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !handsOnPlan && !signing;
         // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
         var stroke = Strokes.Of(Wields);
         bool chopping = _chop != null && stroke != null && item != null && inHand;
@@ -1444,7 +1620,7 @@ public partial class Figure : Node2D
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
             _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null,
-            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null));
+            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null, pose == Pose.Kneel ? Kneel : null));
         if (Lean != 0) to = to with { Tilt = to.Tilt + Lean };
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
@@ -1478,6 +1654,12 @@ public partial class Figure : Node2D
         {
             double at = (_bit && bodyPhase >= _lastPhase ? AxeSwing.Shown(bodyPhase, stroke!, bodySlow) : bodyPhase) - stroke!.HitShare;
             answer = BodyPlay.At(strokeAnswer, at, heft);
+        }
+        // A still helmet cannot nod (light-drone, a try): on the floor the upper body bends a share of the look instead.
+        if (_helmetWorn != null && pose is Pose.Stand or Pose.Walk or Pose.Run && _head != 0)
+        {
+            var looked = BodyState.Rest with { Lean = BodyAnswers.LookLean * _head };
+            answer = answer is { } stroke0 ? stroke0.Plus(looked) : looked;
         }
         if (_retchMs < Retching.Ms)
         {
@@ -1596,6 +1778,14 @@ public partial class Figure : Node2D
             frontArm = Mix(frontArm, arm, signed);
             (signWrist, _signNod) = (wristTurn * signed, nod * signed);
         }
+        // Placing plans, the near hand points the drone at the latest (drone-holo).
+        if (_point.Weight > 0)
+        {
+            var (pointing, pointMs) = _point.Arm;
+            var (pointArm, pointWrist, _) = Gestures.ArmAt(pointing, pointMs, FromShoulder(new Vector2((float)_point.At.X, (float)_point.At.Y)));
+            frontArm = Mix(frontArm, pointArm, _point.Weight);
+            if (signed < _point.Weight) (signed, motion, signWrist) = (_point.Weight, pointing, pointWrist * _point.Weight);
+        }
         if (_frontHand != null && _frontWrist != null)
         {
             bool shaped = signed > 0.5 && motion != null;
@@ -1604,6 +1794,12 @@ public partial class Figure : Node2D
             var picture = shaped && motion!.Side == HandSide.Palm ? _handPalm : _handBack;
             if (picture != null && _frontHand.Texture != picture) _frontHand.Texture = picture;
             _frontWrist.Rotation = (float)-signWrist;
+        }
+        // Reaching for something (the drone's meeting), the near hand goes toward it as far as the arm goes.
+        if (Reach is { Share: > 0 } reaching)
+        {
+            var (dx, dy) = FromShoulder(reaching.To);
+            frontArm = Mix(frontArm, Rig.Reach(new Vec(dx, dy), Rig.Arm, 1), reaching.Share);
         }
         _swingArm.Drew(frontArm);
         // A shot's recoil throws the aimed arm up, past where it aims (body-answers); it was aimed before the kick, and fires so.
@@ -1614,6 +1810,7 @@ public partial class Figure : Node2D
         if (OffHand is { Share: > 0 } off) backArm = Mix(backArm, off.Arm, off.Share);
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
+        Palm = _waist.ToGlobal(Pixel(Rig.FistOf(frontArm)));
         // The collar over the near arm's shoulder while it hangs; raised, the arm crosses over it (BodyFit.CollarOverArm).
         bool over = _collar.GetIndex() > _frontArmNode.GetIndex();
         if (BodyFit.CollarOverArm(frontArm) != over) _waist.MoveChild(_collar, over ? _helmet.GetIndex() + 1 : _frontArmNode.GetIndex());
@@ -1641,6 +1838,38 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend);
         _sealBent.Show(_fit.SealBy(_gaze));
+        _lying = !awake;
+        if (_drone.Visible)
+        {
+            // Projecting, it flies before the hero's waist, bare as it used to frame a window, its lens up to its motes; else it
+            // flies by its own will (drone-motion), its lens on the pointer in lamp and scan.
+            var feet = _frame.ToGlobal(Vector2.Zero);
+            Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;
+            var anchor = DroneAnchor;
+            if (_droneLost)
+            {
+                _drone.Lose();
+                _will.Reset();
+            }
+            Vec? lens = !overDrone && (_lampWorn || _scannerWorn) && HeadLampToward is var toward ? new Vec(toward.X, toward.Y) : null;
+            var senses = Senses with
+            {
+                Anchor = new Vec(anchor.X, anchor.Y),
+                At = _droneLost ? new Vec(anchor.X, anchor.Y) : _drone.At,
+                Window = before is { } window ? new Vec(window.X, window.Y) : null,
+                ModeLook = lens,
+                Out = !awake,
+                Signing = signing,
+            };
+            var intent = _will.Pick(senses, elapsedMs);
+            _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
+            _droneLost = false;
+            _droneThere = before != null && (_droneThere || _drone.Off < SheetHoloLook.OverArrived);
+            _drone.Projecting = overDrone;
+            _drone.Window(overDrone, 0);
+            _drone.Sign(signing ? Gesture : null);
+        }
+        else _droneLost = true;
         ShowRetch(elapsedMs, feetY);
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
@@ -1655,6 +1884,7 @@ public partial class Figure : Node2D
             float glow = GlowStrength * (float)(1 + 1.5 * thrust);
             _glow.Colour = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow);
         }
+        _motes.Show(overDrone ? _holoIn : 0, _holoComing, _holoGrid, _drone.GlobalPosition + new Vector2(0, (float)-SheetHoloLook.OverRise), _drone.LensBox.GetCenter(), _timeMs, _holoSeed);
         _tool.Visible = working;
         if (working)
         {

@@ -17,10 +17,10 @@ const LIGHT = [0, -1], Px = 4, MARGIN = 1, W = 7, H = 7;
 const HELMETS = {
   helmet: { name: 'hero_scanner', top: (x) => HelmetsKit.top.helmet(x), on: [6.2, -1.9] },
   heavyHelmet: { name: 'hero_heavyHelmet_scanner', top: (x) => HelmetsKit.top.heavyHelmet(x), on: [6.2, -4.1] },
-  quiltedHelmet: { name: 'hero_quiltedHelmet_scanner', top: (x) => QuiltedKit.top(x), on: [6.2, -3] },
 };
 
-// The helmet skins (hero-skins) wear the basic helmet's crest, raised onto each painted dome; no picture of their own.
+// The helmet skins (hero-skins) wear the basic helmet's crest, raised onto each painted dome; no picture of their own. The socket
+// helmets (gear-roles) wear the basic helmet's, where it is, by ScannerInk.Of.
 const SKINS = {
   brassHelmet: -2.4, beakHelmet: -2.8, roninHelmet: -2.2, knightHelmet: -2.2, reliquaryHelmet: -2.4,
   skullHelmet: -2.6, ramHelmet: -2.4, bathysphereHelmet: -2.9, paradeHelmet: -2.4,

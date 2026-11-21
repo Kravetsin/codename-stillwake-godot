@@ -38,7 +38,7 @@ public static class Updates
 
     /// <summary>
     /// The latest release as GitHub's API answers it, and its zip for <paramref name="platform"/>
-    /// (<c>Stillwake-windows.zip</c>, <c>Stillwake-macos.zip</c>); none without a tag or that zip.
+    /// (<c>Castoff-windows.zip</c>, <c>Castoff-macos.zip</c>); none without a tag or that zip.
     /// </summary>
     public static Release? Read(string json, string platform)
     {
@@ -82,7 +82,7 @@ public static class Updates
     /// </summary>
     public static string WindowsScript(int pid, string from, string to, string exe) => string.Join("\r\n",
         "@echo off",
-        "rem Stillwake's updater: puts the new build over the old once the game has closed.",
+        "rem Castoff's updater: puts the new build over the old once the game has closed.",
         ":wait",
         $"tasklist /FI \"PID eq {pid}\" | find \"{pid}\" >nul && (timeout /t 1 /nobreak >nul & goto wait)",
         $"robocopy \"{from}\" \"{to}\" /E /NFL /NDL /NJH /NJS /NP >nul",
@@ -91,7 +91,7 @@ public static class Updates
 
     /// <summary>
     /// A macOS script that waits for process <paramref name="pid"/>, the game, to close, unpacks the release
-    /// <paramref name="zip"/> into <paramref name="files"/>, puts its <c>Stillwake.app</c> in place of the bundle
+    /// <paramref name="zip"/> into <paramref name="files"/>, puts its <c>Castoff.app</c> in place of the bundle
     /// <paramref name="app"/> and opens it. <c>ditto</c> unpacks, not Godot: it keeps the files' execute bits.
     /// </summary>
     public static string MacScript(int pid, string zip, string files, string app)
@@ -100,11 +100,11 @@ public static class Updates
         string fresh = Q(app + ".new");
         return string.Join("\n",
             "#!/bin/sh",
-            "# Stillwake's updater: puts the new app over the old once the game has closed.",
+            "# Castoff's updater: puts the new app over the old once the game has closed.",
             $"while kill -0 {pid} 2>/dev/null; do sleep 1; done",
             $"rm -rf {Q(files)} {fresh}",
             $"ditto -x -k {Q(zip)} {Q(files)} || exit 1",
-            $"ditto {Q(files + "/Stillwake.app")} {fresh} || exit 1",
+            $"ditto {Q(files + "/Castoff.app")} {fresh} || exit 1",
             $"rm -rf {Q(app)} && mv {fresh} {Q(app)}",
             $"open {Q(app)}",
             "");

@@ -130,7 +130,7 @@ public class DeliveriesTests
         Assert.Empty(w.Refusals);
         Assert.Empty(Sent(w));
         Assert.Empty(w.M.Knowledge.Deliveries);
-        Assert.True(w.M.Research.Knows("bag1"));
+        Assert.True(w.M.Research.Knows(0, "bag1"));
         Assert.True(w.M.Items.SlotOpen(0, new Stillwake.Sim.Items.Place(Content.Inventory.Start)));
         Assert.DoesNotContain(w.M.Items.Inventory(0), s => s?.Item == DebrisSpec.Parcel);
         Assert.Contains(w.M.Items.Gains, g => g is { Peer: 0, Item: "bag1", Count: 1 });
@@ -155,7 +155,7 @@ public class DeliveriesTests
         Break(w, Sent(w).Single());
         Assert.Empty(w.Refusals);
         Assert.Empty(Sent(w));
-        Assert.True(w.M.Research.Knows("solarPanel"));
+        Assert.True(w.M.Research.Knows(0, "solarPanel"));
         Assert.Empty(w.M.Items.Floor);
         Assert.Contains(w.M.Items.Gains, g => g is { Peer: 0, Item: "solarPanel", Count: 1 });
     }
@@ -164,15 +164,33 @@ public class DeliveriesTests
     public void ACrateOfGearBrokenDropsItUnderItAsAWrecksLoot()
     {
         var w = World();
-        Mafia.Reach(w, 1);
-        Buy(w, "scanner").Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
+        Mafia.Reach(w, Tree.Node(Content.Foods.Stim)!.Ring);
+        Buy(w, Content.Foods.Stim).Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
         Break(w, Sent(w).Single(), peer: 2);
         Assert.Empty(w.Refusals);
-        Assert.Equal([("scanner", 1)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
-        Assert.DoesNotContain(w.M.Items.Inventory(2), s => s?.Item == "scanner");
-        Assert.DoesNotContain(w.M.Items.Gains, g => g.Item == "scanner");
-        Assert.False(w.M.Research.Knows("scanner"));
+        Assert.Equal([(Content.Foods.Stim, 1)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
+        Assert.DoesNotContain(w.M.Items.Inventory(2), s => s?.Item == Content.Foods.Stim);
+        Assert.DoesNotContain(w.M.Items.Gains, g => g.Item == Content.Foods.Stim);
+        Assert.False(w.M.Research.Knows(0, Content.Foods.Stim));
         Assert.Empty(w.M.Knowledge.Deliveries);
+    }
+
+    /// <summary>The scanner is the light drone's mode (light-drone): its crate broken by anyone, the crew knows it, no item falls, and it is not sold again.</summary>
+    [Fact]
+    public void TheScannersCrateBrokenGrantsTheModeCrewWideOnce()
+    {
+        string scanner = Content.LightDrone.ScannerMode;
+        var w = World();
+        Mafia.Reach(w, Tree.Node(scanner)!.Ring);
+        Buy(w, scanner).Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
+        Break(w, Sent(w).Single(), peer: 2);
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Knows(0, scanner));
+        Assert.True(w.M.Research.Knows(2, scanner));
+        Assert.Empty(w.M.Items.Floor);
+        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 2, Item: "scanner", Count: 1 });
+        Buy(w, scanner);
+        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
@@ -188,7 +206,7 @@ public class DeliveriesTests
         Assert.NotEmpty(w.M.Items.Floor);
         Assert.All(w.M.Items.Floor, s => Assert.Contains(s.Item, loot.Select(e => e.Item)));
         Assert.Contains(w.M.Debris.Found, f => f.Kind == Tree.Confiscated);
-        Assert.False(w.M.Research.Knows(Tree.Confiscated));
+        Assert.False(w.M.Research.Knows(0, Tree.Confiscated));
     }
 
     [Fact]
@@ -219,7 +237,7 @@ public class DeliveriesTests
         Assert.Empty(Sent(w));
         Assert.Empty(w.M.Knowledge.Deliveries);
         Assert.Equal(1, w.M.Knowledge.Lost);
-        Assert.False(w.M.Research.Knows("bag1"));
+        Assert.False(w.M.Research.Knows(0, "bag1"));
         Assert.Null(w.M.Research.BuyProblem(Tree.Node("bag1")!));
     }
 

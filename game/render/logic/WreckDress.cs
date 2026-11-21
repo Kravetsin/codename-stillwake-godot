@@ -35,7 +35,8 @@ public static class WreckDress
     public static int OpenAsDrawn(int x, int y) =>
         (IsWall(x, y - 1) ? 0 : Up) | (IsWall(x + 1, y) ? 0 : Right) | (IsWall(x, y + 1) ? 0 : Down) | (IsWall(x - 1, y) ? 0 : Left);
 
-    private static bool IsWall(int x, int y)
+    /// <summary>Whether the cell (<paramref name="x"/>, <paramref name="y"/>) of the drawing is drawn a wall.</summary>
+    public static bool IsWall(int x, int y)
     {
         int row = y + Wreck.Top, column = x + Wreck.Left;
         return row >= 0 && row < Wreck.Rows.Count && column >= 0 && column < Wreck.Rows[row].Length && Wreck.Rows[row][column] == '#';

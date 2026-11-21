@@ -77,6 +77,6 @@ public class StructureTraitsTests
         Assert.Equal(["soil"], Materials.All.Where(m => m.Grows).Select(m => m.Id));
         Assert.All(Materials.All, m => Assert.Equal(m.Natural, m.Footing != Tread.Deck));
         Assert.Equal(["iron", Content.Vessels.Hull], Materials.All.Where(m => m.Look == MaterialLook.Panels).Select(m => m.Id));
-        Assert.Single(Machines.All, m => m.Fixed);
+        Assert.Equal(2, Machines.All.Count(m => m.Fixed));
     }
 }

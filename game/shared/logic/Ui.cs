@@ -330,6 +330,44 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y)> Heroes { get; set; } = [];
 
     /// <summary>
+    /// A small box round this machine's own drone's lens as drawn this frame, in the world's pixels; null with no drone shown (none
+    /// paired, the hero out, seated or not placed). Set by <c>crew</c> every frame; the soot frame (<c>DroneFrame</c>) flies from it.
+    /// </summary>
+    public (float X, float Y, float W, float H)? DroneLens { get; set; }
+
+    /// <summary>
+    /// The drone windows' claims on the drone's soot (drone-frame): each hands its outline every frame, the newest open owns it.
+    /// </summary>
+    public SootClaims Soot { get; } = new();
+
+    /// <summary>
+    /// Whether a drone window is open, and how far its soot is out, 0..1 (drone-frame). Set by <c>DroneFrame</c> every frame;
+    /// <c>crew</c> draws the drone bare while either is so. Local: friends never see it.
+    /// </summary>
+    public (bool Open, double Out) DroneWindow { get; set; }
+
+    /// <summary>
+    /// Where this player's drone's lens is, in the world's pixels, while it floats by the hero; none without one. Set by <c>crew</c>
+    /// every frame; <c>items</c> flies what the hero picks up into it, the bag being the drone's (drone-holo).
+    /// </summary>
+    public (double X, double Y)? DroneAt { get; set; }
+
+    /// <summary>
+    /// How far into a drone's meeting with the core (drone-meeting) the core still lies in it, seconds; none while no meeting
+    /// shows it lying. Set by <c>crew</c> every frame: the core's picture and glow stay till its soot rises, waking as it drinks.
+    /// </summary>
+    public double? CoreMeeting { get; set; }
+
+    /// <summary>Whether this player has taken the core in a meeting of their own, paired or not yet (a dev run plays one unpaired).</summary>
+    public bool CoreTaken { get; set; }
+
+    /// <summary>
+    /// How far every hologram window trails the hero this frame, in screen pixels (<c>HoloSway</c>, the motion «Отставание»).
+    /// Set by <c>items</c> every frame; <c>crafting</c> carries its station's panel by it.
+    /// </summary>
+    public (float X, float Y) HoloSway { get; set; }
+
+    /// <summary>
     /// The point of every running drill as last drawn, in the world's pixels, and which drill it is. Set by <c>crew</c> every
     /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
     /// </summary>

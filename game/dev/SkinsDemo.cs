@@ -42,7 +42,7 @@ public partial class SkinsDemo : Control
         var mine = inventories.FirstOrDefault(i => (int)i!["id"]! == 0)?["slots"]?.AsArray();
         if (mine == null) inventories.Add(new JsonObject { ["id"] = 0, ["slots"] = mine = [] });
         while (mine.Count < Spec.Inventory.Total) mine.Add(null);
-        foreach (var (kind, item) in new[] { (Spec.Helmet.Slot, Spec.Helmet.Basic), (Spec.Helmet.Mount, Spec.HelmetLamp.Item), (Spec.Suit.Slot, Spec.Suit.Basic), ("back", Spec.Jetpack.Item), (Spec.Cape.Slot, Spec.Cape.Item) })
+        foreach (var (kind, item) in new[] { (Spec.Helmet.Slot, Spec.Helmet.Basic), (Spec.Suit.Slot, Spec.Suit.Basic), ("back", Spec.Jetpack.Item), (Spec.Cape.Slot, Spec.Cape.Item) })
             mine[Equipment.Of(kind).First().Slot] = new JsonObject { ["item"] = item, ["count"] = 1 };
         return World.Load(root.ToJsonString(), modules());
     }

@@ -87,6 +87,29 @@ public class BindsTests
         Assert.All(Enum.GetValues<Bind>(), b => Assert.Equal(Binds.Default.KeyOf(b), read.KeyOf(b)));
     }
 
+    /// <summary>Gestures moved to H for the light drone's modes on F (light-drone).</summary>
+    [Fact]
+    public void GesturesAreOnHAndTheDronesModesOnF()
+    {
+        Assert.Equal("H", Binds.Default.KeyOf(Bind.Gesture));
+        Assert.Equal("F", Binds.Default.KeyOf(Bind.Drone));
+        Assert.Equal(Bind.Drone, Binds.Default.ActOn("F"));
+    }
+
+    /// <summary>A file kept before the drone's key: what it moved stays moved, and an action it put on F swaps the drone onto that action's old key.</summary>
+    [Fact]
+    public void AFileKeptBeforeTheDronesKeyStillReads()
+    {
+        var gestures = Binds.Read([("gesture", "K")]);
+        Assert.Equal("K", gestures.KeyOf(Bind.Gesture));
+        Assert.Equal("F", gestures.KeyOf(Bind.Drone));
+        var use = Binds.Read([("use", "F")]);
+        Assert.Equal("F", use.KeyOf(Bind.Use));
+        Assert.Equal("E", use.KeyOf(Bind.Drone));
+        AssertSound(gestures);
+        AssertSound(use);
+    }
+
     [Fact]
     public void AFileGivingTwoActionsOneKeyIsReadAsSwaps()
     {

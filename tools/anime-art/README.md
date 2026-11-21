@@ -1,6 +1,6 @@
 # Anime art
 
-Draws the game's pictures in code into `game/art/hd/`; `game/render/HiRes.cs` picks them up ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
+Draws the game's pictures in code into `game/art/hd/`; `game/render/HiRes.cs` picks them up (pixel-art-removed).
 
 ## The style
 
@@ -58,7 +58,7 @@ finish is `wash.js`, one for every subject.
 | `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (`_collar`; bell `_seal`; `hero_visor`, card `hero_helmet`), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
 | `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
-| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench, tips; `credit`; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light |
+| `signs`, `credit`, `capsule`, `gauge`, `titlename` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light; `menu/title_name*`, the title's name (Oswald, `fonts/`) |
 | `upgrades` | `upgrade_bag`, `_belt`, `_tradeSlots`, `_canister`: wares, no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit porthole, `wrist_*`, `tablet_*` |
 
@@ -93,5 +93,5 @@ engine's (`engine.js`), per world pixel. `wash.js` replaces `bake`; a picture dr
 - A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
   run, px 4 and 20 of 24: every variant's cross-section matches there, its torn end past them.
-- Every held tool is raw ([builders](../../docs/decisions/2026-11-15-builders-raw.md)); its `icons/` copy is 384 px long
+- Every held tool is raw (builders-raw); its `icons/` copy is 384 px long
   (driver-icons).

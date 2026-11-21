@@ -40,8 +40,11 @@ namespace Stillwake.Content;
 /// A helmet: the air it holds past the lungs, in units, its own part of the hero's air while worn (air-segments); 0 for anything else.
 /// </param>
 /// <param name="Switch">A body with a mode its wearer switches on and off, by V or its key on the tablet's edge (2026-11-03-the-regen-suit).</param>
-/// <param name="Low">A body: the coldest it withstands, in degrees (2026-11-14-temperature-in-degrees); null for anything else.</param>
-/// <param name="High">A body: the hottest it withstands, in degrees (2026-11-14-heat-limits); null for anything else.</param>
+/// <param name="Low">
+/// A helmet or a body: the degrees it adds to how cold its wearer withstands, negative (gear-roles), summed with the other worn
+/// piece's from <see cref="Temperature.BareLow"/>; null for anything else.
+/// </param>
+/// <param name="High">A helmet or a body: the degrees it adds to how hot its wearer withstands (gear-roles), summed as <paramref name="Low"/> from <see cref="Temperature.BareHigh"/>.</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -255,24 +258,24 @@ public static class Items
         new("pickaxe", 1, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
-        // A soft warm light round the head (0077): free, drawing no power.
-        new("helmetLamp", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
-        // Shows a wreck's hit points under the pointer (2026-11-07-the-scanner): on the mount, so worn the lamp comes off.
-        new(Helmet.Scanner, 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
+        // The drone a hero pairs with once at the alien core (drone-companion): never carried, its card the companion's on the doll.
+        new("lightDrone", 1, Gear: true, Group: ItemGroup.Tool),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
         new("accumulator", 1, Equip: "belt", Capacity: Charge.Accumulator, Gear: true, Group: ItemGroup.Wearable),
-        // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn, the body withstanding the
-        // cold down to its Low (2026-11-14-temperature-in-degrees) and the heat up to its High (2026-11-14-heat-limits); both free at the pod.
-        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 25),
-        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -110, High: 50),
-        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -110, High: 50),
-        new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -110, High: 60),
+        // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn; each piece adds its degrees
+        // to how cold and how hot its wearer withstands (gear-roles), the pair −110° / +50°; both free at the pod.
+        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 25, Low: -50, High: 10),
+        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -60, High: 10),
+        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true, Low: -60, High: 10),
+        new(Suit.Heat, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Low: -50, High: 20),
         // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
-        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 80),
-        // The middle step, made rather than bought (2026-11-14-quilted-helmet-and-traced-art).
-        new(Helmet.Quilted, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 50),
+        new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 80, Low: -50, High: 10),
+        // Air or warmth in the head slot (gear-roles): the heated one, made in space, trades the heavy one's air and some heat for cold.
+        new(Helmet.Heated, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 50, Low: -90, High: 0),
+        // The heat suit's helmet, made on the planet: heat for cold.
+        new(Helmet.HeatProof, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 25, Low: -30, High: 30),
         // Softens enemies' blows and the cold a fifth (2026-10-27-the-cape-is-worn).
         new(Cape.Item, 1, Equip: Cape.Slot, Gear: true, Group: ItemGroup.Wearable),
     ];
@@ -296,7 +299,10 @@ public static class Inventory
     /// <summary>The most an inventory's own slots can come to (2026-10-30-room-upgrades); <see cref="Start"/> are open at first, the rest by <see cref="Upgrades"/>.</summary>
     public const int Slots = 38;
 
-    /// <summary>The own slots open from the start: the hotbar and two rows.</summary>
+    /// <summary>
+    /// The own slots open once a hero pairs with its drone (drone-companion): the hotbar and two bag rows. Before it, the hotbar
+    /// alone (<see cref="Hotbar"/>); creative opens all.
+    /// </summary>
     public const int Start = 27;
 
     /// <summary>The belt slots open from the start, of those in <see cref="Equipment"/>.</summary>
@@ -308,11 +314,14 @@ public static class Inventory
     /// <summary>How far a stash reaches, in cells from the hero's cell to a crate's nearest, through walls (2026-11-06-quick-stash).</summary>
     public const int StashReach = 12;
 
-    /// <summary>What every hero comes aboard with, into its first slots (0107): the screwdriver that builds. Cables and pipes are laid from the plan (plan modes).</summary>
+    /// <summary>
+    /// What every hero comes aboard with, into its first slots (0107): the screwdriver that builds. Cables and pipes are laid from
+    /// the plan (plan modes).
+    /// </summary>
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
-    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Mount, Cape.Slot];
+    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Cape.Slot];
 
     /// <summary>
     /// The trash (trash-slot), after the equipment: a stack moved in replaces what it held, which is gone. Nothing but a move

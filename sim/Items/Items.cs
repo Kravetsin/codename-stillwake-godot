@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Knowledge;
+using Stillwake.Sim.Players;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim.Items;
@@ -133,17 +134,25 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
+    private readonly IPlayersQueries _players;
 
-    /// <summary>An inventory's own slots open now, before its equipment: what giving, taking and picking up use (2026-10-30-room-upgrades).</summary>
-    private int Own(int peer) => OpenOf(Content.Upgrades.Bag, Content.Inventory.Start, Content.Inventory.Slots, Creative(peer));
+    /// <summary>
+    /// An inventory's own slots open now, before its equipment: what giving, taking and picking up use (2026-10-30-room-upgrades).
+    /// The hotbar alone till its player pairs with its drone (drone-companion), then the bag rows and what upgrades add; creative, all.
+    /// </summary>
+    private int Own(int peer) =>
+        Creative(peer) || _players.HasDrone(peer) ? OpenOf(Content.Upgrades.Bag, Content.Inventory.Start, Content.Inventory.Slots, Creative(peer), id => _knowledge.Knows(peer, id)) : Content.Inventory.Hotbar;
 
-    /// <summary>The first <paramref name="start"/> slots of a kind and what upgrades add; with <paramref name="all"/> (a creative peer's) all <paramref name="most"/>.</summary>
-    private int OpenOf(string kind, int start, int most, bool all) =>
-        all ? most : Math.Min(most, start + Content.Upgrades.Added(kind, _knowledge.Granted));
+    /// <summary>
+    /// The first <paramref name="start"/> slots of a kind and what upgrades <paramref name="known"/> add; with <paramref name="all"/> (a creative peer's) all
+    /// <paramref name="most"/>.
+    /// </summary>
+    private static int OpenOf(string kind, int start, int most, bool all, Func<string, bool> known) =>
+        all ? most : Math.Min(most, start + Content.Upgrades.Added(kind, known));
 
-    /// <summary>A trade station's slots open now: those past them take nothing in, as a machine's outputs.</summary>
+    /// <summary>A trade station's slots open now, bought by anyone, as the station is the ship's (own-knowledge): those past them take nothing in.</summary>
     private int InputsOf(MachineSpec spec) =>
-        spec.Is(MachineTrait.Sells) ? OpenOf(Content.Upgrades.TradeSlots, Content.Upgrades.TradeStart, spec.Slots ?? 0, all: false) : spec.Inputs ?? spec.Slots ?? 0;
+        spec.Is(MachineTrait.Sells) ? OpenOf(Content.Upgrades.TradeSlots, Content.Upgrades.TradeStart, spec.Slots ?? 0, all: false, _knowledge.KnowsAny) : spec.Inputs ?? spec.Slots ?? 0;
 
     /// <summary>
     /// Whether <paramref name="place"/>, of a machine or of <paramref name="peer"/>'s inventory, is open: not one waiting on an
@@ -156,13 +165,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (place.Slot < Content.Inventory.Slots) return place.Slot < Own(peer);
         if (place.Slot == Content.Inventory.Trash) return Creative(peer);
         int belt = Array.IndexOf(Belt, place.Slot);
-        return belt < 0 || belt < OpenOf(Content.Upgrades.Belt, Content.Inventory.BeltStart, Belt.Length, Creative(peer));
+        return belt < 0 || belt < OpenOf(Content.Upgrades.Belt, Content.Inventory.BeltStart, Belt.Length, Creative(peer), id => _knowledge.Knows(peer, id));
     }
 
     public override string Id => "items";
 
-    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps, IPlayersQueries players)
     {
+        _players = players;
         _grid = grid;
         _rooms = rooms;
         _knowledge = knowledge;
@@ -178,6 +188,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<Stash>(_ => null, ApplyStash);
         Handles<Fit>(c => FitProblem(c.From, c.Module, c.Machine), ApplyFit);
         Handles<Unfit>(UnfitProblem, ApplyUnfit);
+        // Before research walks in the same phase: what a hand holds is that player's find (own-knowledge), however it came.
+        System(Phase.Derivation, Finds);
         // After derivation: falling reads the rooms, rebuilt by then.
         System(Phase.Simulation, () =>
         {
@@ -185,6 +197,19 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
             Runs();
             FloorRules.Settle(State, _grid, _rooms, Rules.Fall(Content.Floor.Gravity));
         });
+    }
+
+    /// <summary>
+    /// Each peer finds every item in their inventory, equipment too, in peer and slot order (own-knowledge): a lookup a slot, a write only for a
+    /// new one. One pass catches every road in, a crate's or a friend's, as no inventory write is left out. A creative peer, knowing all, finds
+    /// nothing: what it spawned is found once it is held out of creative.
+    /// </summary>
+    private void Finds()
+    {
+        foreach (var held in State.Inventories)
+            if (!Creative(held.Id))
+                foreach (var stack in held.Slots)
+                    if (stack != null && !_knowledge.HasFound(held.Id, stack.Item)) _knowledgeOps.Find(held.Id, stack.Item);
     }
 
     /// <summary>

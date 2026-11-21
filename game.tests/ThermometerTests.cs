@@ -129,18 +129,24 @@ public class ThermometerTests
     }
 
     [Fact]
-    public void ReadsTheBodyTheDegreesWhereItStandsTheHerosLimitsAndWhatItFeelsWhichASuitTakesAway()
+    public void ReadsTheBodyTheDegreesWhereItStandsTheHerosLimitsAndWhatItFeelsWhichTheBasicPairTakesAway()
     {
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
-        int spawn = w.M.Crew.Spawn, suit = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot);
+        int spawn = w.M.Crew.Spawn;
         w.Step(new Enter(spawn) { From = 0 });
         Assert.Equal(
             new ThermometerReading(Spec.Temperature.Hull, Spec.Temperature.BareLow, Spec.Temperature.BareHigh, -Spec.Temperature.Hull, 0, 3512,
                 Spec.Temperature.Normal + Spec.Temperature.Hull * Spec.Temperature.Sway),
             Thermometers.Read(w.M.Crew, 0, spawn, 35.12f));
-        w.Step(new Sim.Items.SetCreative(true), new Sim.Items.Spawn(Spec.Suit.Basic, 1) { From = 0 });
-        int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Spec.Suit.Basic);
-        w.Step(new Sim.Items.Move(new Sim.Items.Place(bag), new Sim.Items.Target(suit), 1) { From = 0 });
+        w.Step(new Sim.Items.SetCreative(true));
+        // The helmet's and the suit's degrees add up (gear-roles).
+        foreach (var (item, slot) in new[] { (Spec.Suit.Basic, Spec.Suit.Slot), (Spec.Helmet.Basic, Spec.Helmet.Slot) })
+        {
+            w.Step(new Sim.Items.Spawn(item, 1) { From = 0 });
+            int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
+            int worn = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(slot);
+            w.Step(new Sim.Items.Move(new Sim.Items.Place(bag), new Sim.Items.Target(worn), 1) { From = 0 });
+        }
         Assert.Equal(new ThermometerReading(Spec.Temperature.Hull, -110, 50, 0, 0, Spec.Temperature.Normal), Thermometers.Read(w.M.Crew, 0, spawn, BodyHeat.Normal));
     }
 }

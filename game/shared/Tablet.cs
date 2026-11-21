@@ -5,79 +5,52 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The rugged planning tablet (0073), the build menu's and the Handbook's (0083): its screen this panel, square, edged
-/// by the bezel's recess; round it the frame's pixel art at <see cref="TabletLayout.ArtScale"/> (a 9-slice whose
-/// stretches tile, so any size is as crisp), the ID plate at the top and the stylus at the right; the screen's faint
-/// blue wash round it and the status lamp's glow; the glass's shadow and glare over what it shows. It slides and its
-/// screen comes on as <see cref="TabletMotion"/> says; where it rests is its owner's.
+/// A window drawn as the drone's hologram (holo windows), the build menu's, the Handbook's, the board's and the game menu's: its
+/// screen this panel, the drone's blue glass with a machine window's buzzing frame round it, no bezel and no glare. It fades in where
+/// it rests and its screen comes on as <see cref="TabletMotion"/> says; where it rests is its owner's, above the keys (<see cref="TabletPeek.Floor"/>).
 /// </summary>
 public partial class Tablet : Panel
 {
-    /// <summary>The colour the screen lights what is round it with, and how strongly at the middle (the concept's).</summary>
-    private static readonly Color ScreenLight = new(70 / 255f, 150 / 255f, 230 / 255f, 0.2f), LedLight = new(74 / 255f, 222 / 255f, 128 / 255f, 0.55f);
-    /// <summary>How much wider and taller than the screen its wash reaches: the build menu's 1120 × 470 round 638 × 204.</summary>
-    private static readonly Vector2 WashReach = new(482, 266);
+    private static readonly Color Ground = new(HoloLook.Drone.Ground);
 
     /// <summary>The tablet's text: the strips' size, and the hint's along the foot.</summary>
     public const int FontSize = 12, HintSize = 11;
 
     private readonly TabletMotion _motion = new();
-    private readonly NinePatchRect _frame = new()
-    {
-        Texture = WristArt.Slices("res://art/tablet_frame.png"),
-        PatchMarginLeft = 74,
-        PatchMarginRight = 77,
-        PatchMarginTop = 21,
-        PatchMarginBottom = 14,
-        AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Tile,
-        AxisStretchVertical = NinePatchRect.AxisStretchMode.Tile,
-        DrawCenter = false,
-        Scale = new Vector2(TabletLayout.ArtScale, TabletLayout.ArtScale),
-        ShowBehindParent = true,
-        TextureFilter = TextureFilterEnum.Nearest,
-        MouseFilter = MouseFilterEnum.Stop,
-    };
-    private readonly TextureRect _plate = Art("tablet_plate"), _stylus = Art("tablet_stylus");
-    /// <summary>The status lamp dark, over the art's lit one, while the screen is off; its glow while it is on.</summary>
-    private readonly ColorRect _ledOff = new() { Color = new Color("1f3b2a"), Size = new Vector2(2, 2), MouseFilter = MouseFilterEnum.Ignore };
-    private readonly TextureRect _ledGlow = ScreenGlow.Of(LedLight, 0), _wash = ScreenGlow.Of(ScreenLight, 40f / 560);
-    /// <summary>The glass over the screen: the recess's shadow and a faint glare.</summary>
-    private readonly Control _glass = new() { MouseFilter = MouseFilterEnum.Ignore, ClipContents = true };
-    /// <summary>What the screen shows, faded in as it comes on, and its holder, kept in the middle of a screen still wider than its rest.</summary>
+    /// <summary>Round the glass, behind it: it takes the clicks and the wheel at the frame's edge as the glass does.</summary>
+    private readonly Control _edge = new() { MouseFilter = MouseFilterEnum.Stop, ShowBehindParent = true };
+    /// <summary>The frame's light, added over the glass, under what it shows.</summary>
+    private readonly BuzzFrame _frame = new();
+    /// <summary>What the screen shows, faded in as it comes on, and its holder.</summary>
     private readonly List<CanvasItem> _shown = [];
     private readonly Control _onScreen = new() { MouseFilter = MouseFilterEnum.Ignore };
-    /// <summary>The screen's size the art was last laid round.</summary>
-    private Vector2 _fitted;
+
+    /// <summary>How far round the glass its edge still takes the pointer.</summary>
+    private const int EdgeReach = 6;
 
     public Tablet()
     {
         MouseFilter = MouseFilterEnum.Stop;
         Visible = false;
-        AddThemeStyleboxOverride("panel", Style.Box(Style.Slate900, Style.Slate900, radius: 0));
-        // Behind the screen: its light on what is round it, then the tablet; over the bezel, the lamp's glow.
-        _wash.ShowBehindParent = true;
-        AddChild(_wash);
+        AddThemeStyleboxOverride("panel", Style.Box(Ground with { A = HoloLook.GroundAlpha }, Ground with { A = HoloLook.GroundAlpha }, radius: 0));
+        AddChild(_edge);
         AddChild(_frame);
-        foreach (var part in (Control[])[_plate, _stylus, _ledOff]) _frame.AddChild(part);
-        AddChild(_ledGlow);
         AddChild(_onScreen);
-        _glass.Draw += DrawGlass;
-        AddChild(_glass);
     }
 
-    /// <summary>The bezel round the screen: it takes the clicks and the wheel as the screen does, its owner listening to both.</summary>
-    public Control Bezel => _frame;
+    /// <summary>The edge round the glass: it takes the clicks and the wheel as the glass does, its owner listening to both.</summary>
+    public Control Bezel => _edge;
 
-    /// <summary>Where the tablet lies on the screen, its frame and stylus: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => _frame.GetGlobalRect();
+    /// <summary>Where the window lies on the screen, its edge too: what the crew's markers keep out of.</summary>
+    public Rect2 Covers => _edge.GetGlobalRect();
 
-    /// <summary>How far up it is (<see cref="TabletMotion.Up"/>): 0 down at the rim, 1 at rest.</summary>
+    /// <summary>How far it has come (<see cref="TabletMotion.Up"/>): 0 gone, 1 whole.</summary>
     public double Up => _motion.Up;
 
-    /// <summary>Whether any of it is on the screen: out, or still sliding away.</summary>
+    /// <summary>Whether any of it is on the screen: out, or still fading.</summary>
     public bool Shown => _motion.Shown;
 
-    /// <summary>Puts <paramref name="part"/> on the screen, under the glass, faded in with it as it comes on.</summary>
+    /// <summary>Puts <paramref name="part"/> on the screen, over the glass, faded in with it as it comes on.</summary>
     public void OnScreen(Control part)
     {
         _onScreen.AddChild(part);
@@ -85,88 +58,30 @@ public partial class Tablet : Panel
     }
 
     /// <summary>
-    /// One frame of <paramref name="seconds"/>, the tablet out or not: slid and its screen lit (<see cref="TabletMotion"/>).
-    /// Put away, it takes no more input at once, though it shows while it slides down.
+    /// One frame of <paramref name="seconds"/>, the window out or not: faded and its screen lit (<see cref="TabletMotion"/>).
+    /// Put away, it takes no more input at once, though it shows while it fades.
     /// </summary>
     public void Step(bool open, double seconds)
     {
         _motion.Step(open, seconds);
-        if (Size != _fitted) Fit();
         Visible = _motion.Shown;
         var mouse = open ? MouseBehaviorRecursiveEnum.Inherited : MouseBehaviorRecursiveEnum.Disabled;
         if (MouseBehaviorRecursive != mouse) MouseBehaviorRecursive = mouse;
-        float power = (float)_motion.Power;
+        Modulate = Colors.White with { A = (float)_motion.Up };
+        float power = _frame.Alpha = (float)_motion.Power;
         foreach (var part in _shown) part.Modulate = Colors.White with { A = power };
-        _ledOff.Modulate = Colors.White with { A = 1 - power };
-        _ledGlow.Modulate = Colors.White with { A = power };
-        _wash.Modulate = Colors.White with { A = power * (float)_motion.Up };
     }
 
-    /// <summary>How far below its rest it is drawn now, its screen's top at <paramref name="restTop"/>: at the rim's once put away.</summary>
-    public int Drop(float restTop) =>
-        (int)Mathf.Round((1 - (float)_motion.Up) * (TabletPeek.ScreenTop(GetViewportRect().Size.Y) - restTop));
-
-    /// <summary>
-    /// Lays the tablet for this frame, its screen at rest at (<paramref name="left"/>, <paramref name="top"/>), <paramref name="width"/> by <paramref name="tall"/>: where it
-    /// is on its way from the rim (<see cref="TabletPeek.Pose"/>), what it shows at its own size in the middle.
-    /// </summary>
+    /// <summary>Lays the window for this frame, its screen at (<paramref name="left"/>, <paramref name="top"/>), <paramref name="width"/> by <paramref name="tall"/>.</summary>
     public void Lay(float left, float top, float width, float tall)
     {
-        var window = GetViewportRect().Size;
-        var now = TabletPeek.Pose(_motion.Up, (left, top, width), window.X, window.Y);
-        Position = new Vector2(now.Left, now.Top);
-        Size = new Vector2(now.Width, tall);
-        _onScreen.Position = new Vector2(Mathf.Round((now.Width - width) / 2), 0);
-        _onScreen.Size = new Vector2(width, tall);
-        if (Size != _fitted) Fit();
+        Position = new Vector2(left, top);
+        Size = new Vector2(width, tall);
+        _onScreen.Position = Vector2.Zero;
+        _onScreen.Size = Size;
+        _edge.Position = -Vector2.One * EdgeReach;
+        _edge.Size = Size + Vector2.One * 2 * EdgeReach;
     }
-
-    /// <summary>Lays it as the rim for a window <paramref name="window"/> large: along the foot, its screen dark and its lamp out, taking no pointer. Its owner shows and hides it.</summary>
-    public void LayAsRim(Vector2 window)
-    {
-        Position = new Vector2(TabletPeek.ScreenLeft(window.X), TabletPeek.ScreenTop(window.Y));
-        Size = new Vector2(TabletPeek.ScreenWidth(window.X), TabletPeek.RimTall);
-        if (Size != _fitted) Fit();
-        MouseBehaviorRecursive = MouseBehaviorRecursiveEnum.Disabled;
-        _ledGlow.Modulate = _wash.Modulate = Colors.White with { A = 0 };
-    }
-
-    /// <summary>The tablet round the screen as large as it is now, in its art's pixels.</summary>
-    private void Fit()
-    {
-        _fitted = Size;
-        const int s = TabletLayout.ArtScale;
-        var art = new Vector2(Size.X / s + TabletLayout.ArtAround, Size.Y / s + TabletLayout.ArtAround);
-        _frame.Position = new Vector2(-TabletLayout.ScreenLeft * s, -TabletLayout.ScreenTop * s);
-        _frame.Size = art;
-        _plate.Position = new Vector2(2 + ((int)art.X - 12 - 33) / 2, 9);
-        _stylus.Position = new Vector2(art.X - 13, 0);
-        _ledOff.Position = new Vector2(art.X - 43, 11);
-        _ledGlow.Size = new Vector2(18, 18);
-        _ledGlow.Position = new Vector2(Size.X - 59, -17);
-        _wash.Size = Size + WashReach;
-        _wash.Position = (Size - _wash.Size) / 2;
-        _glass.Size = Size;
-        _glass.QueueRedraw();
-    }
-
-    /// <summary>The recess's shadow on the screen's top and left edges, and the glass's glare: faint, over whatever it shows.</summary>
-    private void DrawGlass()
-    {
-        float w = _glass.Size.X, h = _glass.Size.Y;
-        for (int y = 0; y < 6; y++) _glass.DrawRect(new Rect2(0, y, w, 1), Colors.Black with { A = 0.55f * (1 - (y + 0.5f) / 6) });
-        for (int x = 0; x < 4; x++) _glass.DrawRect(new Rect2(x, 6, 1, h - 6), Colors.Black with { A = 0.4f * (1 - (x + 0.5f) / 4) });
-        var glare = new Color(200 / 255f, 225 / 255f, 1);
-        _glass.DrawColoredPolygon([new(70, 0), new(190, 0), new(60, h), new(-60, h)], glare with { A = 0.035f });
-        _glass.DrawColoredPolygon([new(206, 0), new(222, 0), new(92, h), new(76, h)], glare with { A = 0.03f });
-    }
-
-    private static TextureRect Art(string name) => new()
-    {
-        Texture = PixelArt.Picture(name),
-        TextureFilter = TextureFilterEnum.Nearest,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
 
     /// <summary>A line of the tablet's text: monospaced, <paramref name="size"/> px, centred down its line.</summary>
     public static Label Text(string text, Color colour, int size = FontSize) => new()

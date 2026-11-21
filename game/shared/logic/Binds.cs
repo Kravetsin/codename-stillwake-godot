@@ -36,6 +36,8 @@ public enum Bind
     ZoomOut,
     /// <summary>A tap points the near hand at the pointer; held, a wheel of signs in place of words (gestures-for-words).</summary>
     Gesture,
+    /// <summary>With the light drone worn, a tap switches to its next open mode; held, a wheel of its modes (light-drone).</summary>
+    Drone,
 }
 
 /// <summary>
@@ -70,7 +72,8 @@ public sealed partial class Binds
         [Bind.Air] = "Q",
         [Bind.ZoomIn] = "Equal",
         [Bind.ZoomOut] = "Minus",
-        [Bind.Gesture] = "F",
+        [Bind.Gesture] = "H",
+        [Bind.Drone] = "F",
     });
 
     /// <summary>

@@ -56,25 +56,33 @@ public class FirstMinutesTests
         w.Do(new Move(new Slot(from), target, count)).Run();
     }
 
+    /// <summary>Peer 0 takes every <paramref name="item"/> out of machine <paramref name="machine"/> into hand.</summary>
+    private static void TakeOut(Scenario w, int machine, string item)
+    {
+        var held = w.M.Items.Crate(machine);
+        for (int slot = 0; slot < held.Count; slot++)
+            if (held[slot] is { } stack && stack.Item == item) w.Do(new Move(new Slot(slot, machine), new Target(), stack.Count)).Run();
+    }
+
     [Fact]
     public void CatchesOpenTheFurnaceAndTheBenchSmeltsOpenTheFloorAndTheBenchOpensWireAndPlate()
     {
         var w = new Scenario(Wreck).Run();
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        Assert.False(w.M.Research.Knows("furnace"));
+        Assert.False(w.M.Research.Knows(0, "furnace"));
 
         // At a chunk and a hull plate, the furnace; chunks alone are not enough, however many.
         Catch(w, "scrapChunk", 11);
-        Assert.False(w.Run().M.Research.Knows("furnace"));
+        Assert.False(w.Run().M.Research.Knows(0, "furnace"));
         Catch(w, "hullPlate", 1);
-        Assert.True(w.Run().M.Research.Knows("furnace"));
-        Assert.False(w.M.Research.Knows("workbench"));
+        Assert.True(w.Run().M.Research.Knows(0, "furnace"));
+        Assert.False(w.M.Research.Knows(0, "workbench"));
         Catch(w, "hullPlate", 8);
 
         int furnace = Build(w, "furnace");
         Catch(w, "planks", 1);
-        Assert.True(w.Run().M.Research.Knows("workbench"));
-        Assert.False(w.M.Research.Knows("floor"));
+        Assert.True(w.Run().M.Research.Knows(0, "workbench"));
+        Assert.False(w.M.Research.Knows(0, "floor"));
         Catch(w, "planks", 9);
 
         // A chunk gives 4 scrap, the first of which inks in floor and ladder. A hull plate gives 2 iron: at 5, the bench has what it opens things with.
@@ -82,18 +90,22 @@ public class FirstMinutesTests
         Put(w, "planks", 3, new Target(Machines.Get("furnace").FuelSlot, furnace));
         Put(w, "scrapChunk", 3, new Target(Crate: furnace));
         for (int i = 0; i < 2000 && w.M.Knowledge.ObtainedOf("scrap") < 12; i++) w.Run();
-        Assert.True(w.Run().M.Research.Knows("floor"));
-        Assert.True(w.M.Research.Knows("ladder"));
+        // Smelted is in the furnace, no one's find (own-knowledge): taken out, it is.
+        Assert.False(w.Run().M.Research.Knows(0, "floor"));
+        TakeOut(w, furnace, "scrap");
+        Assert.True(w.Run().M.Research.Knows(0, "floor"));
+        Assert.True(w.M.Research.Knows(0, "ladder"));
         Put(w, "hullPlate", 5, new Target(Crate: furnace));
         for (int i = 0; i < 2000 && w.M.Knowledge.ObtainedOf("iron") < 10; i++) w.Run();
         Assert.Equal(10, w.M.Knowledge.ObtainedOf("iron"));
-        Assert.False(w.Run().M.Research.Knows("wire"));
+        TakeOut(w, furnace, "iron");
+        Assert.False(w.Run().M.Research.Knows(0, "wire"));
 
         // The bench's last stroke opens what it makes of what is had by now.
         Build(w, "workbench");
         w.Run();
-        Assert.True(w.M.Research.Knows("wire"));
-        Assert.True(w.M.Research.Knows("plate"));
+        Assert.True(w.M.Research.Knows(0, "wire"));
+        Assert.True(w.M.Research.Knows(0, "plate"));
         Assert.Empty(w.Refusals);
         Assert.Equal(0, w.M.Research.Credits);
     }

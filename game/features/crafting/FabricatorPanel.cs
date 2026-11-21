@@ -152,6 +152,7 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A galley's fire as its panel shows it (0023): the furnace module's <c>At</c>. Set by <c>Main</c>.</summary>
     public Func<int, Sim.Furnace.Smelting>? Fire { get; set; }
 
+
     /// <summary>The queued station open under the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
     private (int Id, Content.Station Station)? Open =>
         _ui.InventoryFoot.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
@@ -234,16 +235,18 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The open station's hologram, a frame on: the panel's contents faded in as it grows. A machine the items feature shows
-    /// makes it go at once; shut, it shrinks and pulls back where the panel was.
+    /// The open station's hologram, a frame on: the panel's controls shown as the pens trace it, the panel trailing the hero
+    /// as the items feature's windows do (<c>Ui.HoloSway</c>). A machine the items feature shows makes it go at once;
+    /// shut, it plays back where the panel was.
     /// </summary>
     private void Hologram(double delta)
     {
-        float shown = 0;
+        _panel.Sway(new Vector2(_ui.HoloSway.X, _ui.HoloSway.Y));
+        var shown = HoloReveal.None;
         if (_panel.Visible && Open is var (pod, _)) shown = _holo.Step(delta, new MachineHolo.Target(pod, _panel.GetGlobalRect(), _holoBox, _panel.Tone));
         else if (_ui.OpenCrate.Get() != null) _holo.Snap();
         else _holo.Step(delta, null);
-        _panel.Modulate = Colors.White with { A = shown };
+        _panel.Reveal(shown);
     }
 
     /// <summary>Reads the client's world on a timer, through the current registry: a load or a resync brings new modules.</summary>
@@ -264,7 +267,7 @@ public partial class FabricatorPanel : CanvasLayer
         bool shown = Open != null;
         _panel.Visible = shown;
         // Where the items feature opens every other machine: under the grid, level with its left edge (0058).
-        if (shown && foot is var (left, bottom)) _panel.Position = new Vector2(left, bottom + Gap);
+        if (shown && foot is var (left, bottom)) _panel.Place(new Vector2(left, bottom + Gap));
         if (!shown) _tips.Show(null);
         Read();
     }
@@ -342,7 +345,7 @@ public partial class FabricatorPanel : CanvasLayer
         var places = Crafts.Places(station);
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
-        _opened.Text = T("crafts.opened", ("n", crafts.Count(_research!.Knows)), ("all", crafts.Count));
+        _opened.Text = T("crafts.opened", ("n", crafts.Count(c => _research!.Knows(_client!.Id, c))), ("all", crafts.Count));
         LendInputs(pod, station, outputs);
         for (int i = 0; i < station.QueueMost; i++)
             _queue.AddChild(i < queue.Count ? EntrySlot(pod, queue[i], i == 0, i == 0 ? lacks : []) : EmptySlot());
@@ -422,7 +425,7 @@ public partial class FabricatorPanel : CanvasLayer
             switch (LookOf(craft))
             {
                 case Look.Ready:
-                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed, Crafts.Lines(craft, _carried), _creative)));
+                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed, Crafts.Lines(craft, _carried), _creative, Crafts.Many)));
                     break;
                 case Look.Fed:
                     // Paid per unit as it begins: shift queues all five, waiting for what the inputs lack.

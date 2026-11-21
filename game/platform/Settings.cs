@@ -75,6 +75,44 @@ public static class Settings
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the screen mode in {File}: it holds for this run alone");
     }
 
+    /// <summary>How much drawn edges are smoothed: off unless chosen.</summary>
+    public static Smoothing Smoothing()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        return Smoothings.Named(kept.GetValue("video", "smoothing", "").AsString());
+    }
+
+    /// <summary>Keeps <paramref name="smoothing"/> for the next run.</summary>
+    public static void Keep(Smoothing smoothing)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        kept.SetValue("video", "smoothing", Smoothings.NameOf(smoothing));
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the smoothing in {File}: it holds for this run alone");
+    }
+
+    /// <summary>The game's own window, whatever asks before it is in the tree.</summary>
+    private static Window Window => ((SceneTree)Engine.GetMainLoop()).Root;
+
+    /// <summary>Smooths the edges drawn in the game's window by <paramref name="smoothing"/>.</summary>
+    public static void Apply(Smoothing smoothing) => Window.Msaa2D = smoothing switch
+    {
+        Platform.Smoothing.Two => Viewport.Msaa.Msaa2X,
+        Platform.Smoothing.Four => Viewport.Msaa.Msaa4X,
+        Platform.Smoothing.Eight => Viewport.Msaa.Msaa8X,
+        _ => Viewport.Msaa.Disabled,
+    };
+
+    /// <summary>How much the game's window smooths now.</summary>
+    public static Smoothing Smoothed() => Window.Msaa2D switch
+    {
+        Viewport.Msaa.Msaa2X => Platform.Smoothing.Two,
+        Viewport.Msaa.Msaa4X => Platform.Smoothing.Four,
+        Viewport.Msaa.Msaa8X => Platform.Smoothing.Eight,
+        _ => Platform.Smoothing.Off,
+    };
+
     /// <summary>The mode the window is in now: a dev run keeps the window its command line made.</summary>
     public static ScreenMode Shown() => DisplayServer.WindowGetMode() switch
     {

@@ -12,11 +12,13 @@ disk, the logs, updates.
 | `Logs.cs` | Godot's own log files, and opening their folder | yes |
 | `Updater.cs` | a newer release asked of GitHub at the start, fetched and restarted into | yes |
 | `logic/Screens.cs` | how the window takes the screen, as the settings file names it | no |
+| `logic/Smoothings.cs` | how much drawn edges are smoothed (2D multisampling), as the settings file names it | no |
 | `logic/WorldIndex.cs` | the worlds on disk: their folders, names, when played, whether this build can play them | no |
 | `logic/NewWorlds.cs` | a world started from the title, its seed and id drawn | no |
 | `logic/Saves.cs` | save files in a folder, one a slot | no |
 | `logic/Roster.cs` | who is who in a world: each player's key and seat | no |
 | `logic/Updates.cs` | which build this is, and whether a newer one is out | no |
+| `logic/UserFolder.cs` | the worlds and settings kept under the old name, Stillwake, moved into Castoff's folder once (`Main`'s static constructor) | no |
 | `logic/GcPace.cs` | when the game collects its youngest garbage itself | no |
 | `logic/Owned.cs` | which skins this player owns: free, debug, DLC | no |
 | `logic/Platform.En.cs` | its player text | no |

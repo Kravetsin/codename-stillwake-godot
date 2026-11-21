@@ -131,8 +131,9 @@ public partial class InventoryPanel
             if (!panel.IsVisibleInTree()) continue;
             if (panel == _bagColumn)
             {
-                yield return _inventory.Outer;
-                if (_trash.Visible) yield return _trash.Outer;
+                // Projected, the bag's window holds the trash too.
+                yield return _inventory is WristScreen bag ? bag.Outer : _inventory.GetGlobalRect();
+                if (_trash is WristScreen { Visible: true } trash) yield return trash.Outer;
             }
             else yield return panel is WristScreen screen ? screen.Outer : panel.GetGlobalRect();
         }

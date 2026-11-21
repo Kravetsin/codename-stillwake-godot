@@ -68,6 +68,10 @@ public static class Hero
     public const int Gravity = 42;
     public const int MaxFall = 2400;
     public const int Reach = 12000;
+
+    /// <summary>How far from the alien core a hero touches it, thousandths of a cell between its body's box and the core's: almost against it (drone-meeting).</summary>
+    public const int CoreTouch = 1000;
+
     public const int Tether = 24000;
     public const int Swim = 60;
 

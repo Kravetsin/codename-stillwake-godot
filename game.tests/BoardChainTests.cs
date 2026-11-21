@@ -73,14 +73,14 @@ public class BoardChainTests
             .#S#..
             .###..
             """).Step(new OpenSurface(Surfaces.TestStrip.Id));
-        Assert.False(BoardRead.Of(world.World).Stands("workbench"));
-        string before = BoardRead.KeyOf(world.World);
+        Assert.False(BoardRead.Of(world.World, 0).Stands("workbench"));
+        string before = BoardRead.KeyOf(world.World, 0);
         var grid = Registry.On(world.World, 1).Grid;
         var bench = new Placement("machine", "workbench");
         grid.Place(Enumerable.Range(0, grid.Width * grid.Height).First(c => grid.PlacementProblem(c, bench) == null), bench);
         Assert.Empty(world.M.Grid.MachinesOf("workbench"));
-        Assert.True(BoardRead.Of(world.World).Stands("workbench"));
-        Assert.NotEqual(before, BoardRead.KeyOf(world.World));
+        Assert.True(BoardRead.Of(world.World, 0).Stands("workbench"));
+        Assert.NotEqual(before, BoardRead.KeyOf(world.World, 0));
     }
 
     [Fact]
@@ -97,8 +97,8 @@ public class BoardChainTests
             left["closed"] = true;
         });
         Assert.True(world.World.Surfaces[1].Closed);
-        Assert.False(BoardRead.Of(world.World).Stands("workbench"));
-        Assert.NotEmpty(BoardRead.KeyOf(world.World));
+        Assert.False(BoardRead.Of(world.World, 0).Stands("workbench"));
+        Assert.NotEmpty(BoardRead.KeyOf(world.World, 0));
     }
 
     [Fact]

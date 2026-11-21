@@ -83,6 +83,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - район, силуэт, находки, цель / district, silhouette, finds, goal → `BoardDistricts`, `BoardView` (almost), `BoardSeen` (batches as cards), `BoardChain` (a pinned goal), `BoardPencil` (how far a silhouette has come) (client)
 - найдено, счёт / obtained, count → `Knowledge.Obtained` (`Tally`), `ObtainedOf`, counted in `Items` → Knowledge, Items
 - понять / understood (the rule: one of each part, a machine for a craft) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
+- своё знание, найдено игроком / own knowledge, found → `Learner` (`Peer`, `Found`, `Granted`), `Knowledge.Learners`, `Knows(peer, id)`, `KnowsAny`, `HasFound`, `Find`, `Grant(peer, id)`; Items' `Finds`: each player learns what they hold, purchases are everyone's (own-knowledge) → Knowledge, Items, Research
 - продано / sold → `Knowledge.Sold`, `SoldOf`, counted at a capsule's launch → Knowledge, Trade
 - строка рынка, блок, заказ / market ring, block, order → `Content.Research.Tabs` (the one `blackMarket`), `TechRing`, `TechNode` (`Gate`, `Order`: what a level wants sold) → Research
 - репутация, уровень мафии / reputation, level → `Knowledge.Level`, `Research.Standing()` (2026-11-08-mafia-reputation) → Knowledge, Research
@@ -110,24 +111,28 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## Crew and tools
 
 - герой / hero → `Hero` (sim/Crew `State.cs`; client f/crew `Hero.cs`) → Crew
-- шлем / helmet → helmet lamp: item `helmetLamp`, `c/HelmetLamp.cs`; the helmet is drawn in f/crew `Figure` → Crew
+- шлем / helmet → `Content.Helmet`, slot `head`: `helmet`, `heavyHelmet`, `heatedHelmet` (утеплённый, the ice belt), `heatHelmet` (жаростойкий); each adds degrees to `LowOf`, `HighOf` (gear-roles); drawn bolted still in f/crew `Figure`, `BodyFit` → Crew, Items
 - джетпак / jetpack → item `jetpack`, `Thrust`, `c/Jetpack.cs` → Crew
 - гарпун / harpoon → item `harpoon`, `c/Harpoon.cs`, f/crew `HarpoonShot`, `HarpoonLine`; `Reel` → Crew, Debris
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - движение удара / swing motion **≠** → `SwingMotion` (keys `MotionKey`), a weapon's `Stroke.Motions`, played as `MotionPlay` with `Overhand`, `Jab` (f/crew `MotionPlay.cs`), its `MotionKind` in gc/`SwingMotions.cs`; the offset the hero carries `AxeSwing.Aim` → Crew
 - сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
-- метка, пинг / ping → `Ping`, `PingSeen`, `PingView`, `MarkerIcon.Ping` (f/crew), a tap of F (crew-pings) → Crew
-- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `GestureWheel`, `GestureWheelView` (f/crew), bind `Gesture` (F), sent as `Handwork` (gestures-for-words) → Crew
+- метка, пинг / ping → `Ping`, `PingSeen`, `PingView`, `MarkerIcon.Ping` (f/crew), a tap of H (crew-pings) → Crew
+- жест, эмоция, круговое меню / gesture, emote, wheel **≠** → `Gesture` (`Point`, `Wave`, `Yes`, `No`), `GestureMotions` (gc), `Gestures`, `GesturePlay`, `Wheel<T>`, `WheelView` (f/crew), bind `Gesture` (H), sent as `Handwork` (gestures-for-words) → Crew
+- режим дрона, сканер / drone mode, scanner → `DroneMode` (`Lamp`, `Scan`), `DroneModes`, the same `Wheel<T>` (f/crew), bind `Drone` (F), sent as `Seen.Drone`; the scanner opened by node `scanner` (c/`LightDrone.ScannerMode`, light-drone) → Crew, Research
 - кисть руки, перчатка / hand, glove → `Rig.Wrist`, `hero_hand_glove`, `hero_hand_skin`, `HeroLooks.OutfitGloved`, frames in `GestureMotions` (hand-at-wrist) → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew; подтягивание по тросу / haul → `Hero.Haul`, `Hero.Wraps` (tether-haul)
-- скафандр / suit → helmet `helmet`, `quiltedHelmet` (стёганый шлем) or `heavyHelmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` or `regenSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
+- скафандр / suit → a helmet (`Content.Helmet`, slot `head`, `Tank`) + body `suit`, `regenSuit` or `heatSuit` (`Content.Suit`, slot `suit`; its mode `SuitMode`, `Hero.SuitOn`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
 - голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Temperature.BareLow` → Crew
 - внешность, облик, редактор персонажа / look → `Look`, `ChooseLook`, `LookOf`, `HeroLooks`, `LookEditor` (f/crew) → Players, Crew
 - роба, одежда без скафандра, тёплая одежда / outfit, clothes → `Look.Outfit`, `HeroLooks.Outfits` (0–3 robes, 4–14 clothes), pictures `hero_outfit_<n>_<part>` and `_skin` under them, painted raw (outfits-painted, clothes-painted) → Crew
 - скин, внешний вид (вкладка) / skin, Appearance (tab) → `Skin`, `Skins` (kinds `head`, `suit`, `cape`, `effect`; sets such as `brassHelmet` + `brassSuit`), `Dressed`, `Suits.DressedAs`, `AppearanceView`, `SkinSlot` (f/crew), `GearTabs` (f/items); кукла (снаряжения) / doll → `HeroDoll` (f/crew), `DollLayout`, `DollSpot`, `DollLeads` (game/shared); `ChooseSkins`, `SkinsOf`, `PeerSkins`; `Owned` (game/platform) → Players, Crew; эффект оружия, «Пламя», «Разлом» / weapon effect, Fire, Rift → `BladeFx`, `FireFx`, `RiftFx` (f/crew), `SkinEffects` (gc)
 - плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.CapeWorn`, `Cape`, `CapeView` (f/crew); skins `tarpCape`, `blanketCape`, `woolCape` → Crew, Items
-- фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
+- световой дрон, спутник, связать дрона / light drone, Companion, pair → item `lightDrone` («Спутник»), f/crew `LightDrone`, `DroneSwarm`, `DroneHolo` (light-drone); E on the core sends `PairDrone(Core)` (`PairProblem`; `CoreLost` pairs all), `Drones`, `HasDrone`, `Pair` (Players): the bag rows open once paired (drone-companion) → Crew, Players, Items
+- ядро, инопланетное ядро / alien core → `Wreck.CorePath`, `Hero.CoreTouch`, f/crew `CoreGlow`, f/grid `CoreScorch`, `CoreScorchView` (drone-companion) → Crew, Grid
+- встреча, видение / the meeting, vision → `Hero.Meets`, `Crew.MeetingTicks`, `Spared`; f/crew `Meeting`, `MeetingView`, `HeroView.Meeting`, `CutsceneView` (drone-meeting) → Crew
+- проекция дрона, голограмма / drone projection, hologram window → `HoloWindow`, `HoloPen`, `HoloSway` (game/shared), `DroneMotes`, `SheetHoloLook`, `PlanPoint` (f/crew), sent as `Seen.Projects` (drone-frame) → Crew, Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 - трекер, браслет, розыск / tracker, wanted → `Hero.Wanted`, `Need`, `Coming`, `Signal`, `SignalOf`, `ICrewOps.Loot`, c/`Wanted.cs`; начальный пояс / starting belt → `Wanted.Belt`, `Wanted.Drain`; f/crew `TrackerBlink` → Crew
 - ловец / catcher → species `catcher` (`Lifetime.Hunter`, `Hunt`, `Flyer`, `Purse`), `Bounty`, `HunterOf`; drawn as a hero, f/crew `HunterView` → Creatures; телепорт / blink → `Blink`, залп / salvo → `Salvo` (`shell`), стрельба на бегу → `Gunfire`, лазер / laser → `laser`, `Shoot.Through`, `Arc.Burns`, `FightOf`, `MarksOf` → Creatures; ракета, захват / missile, lock → `Hunt.Missile` (`missile`, `Homing`, `Shot.Heading`, `Launch`, `LaunchLeft`), c/`ShotLooks.Missile`, f/crew `CatcherFx.LockOf` → Creatures

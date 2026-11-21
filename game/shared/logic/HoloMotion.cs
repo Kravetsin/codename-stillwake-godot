@@ -3,56 +3,37 @@ using System;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// How far a machine window's hologram has come, frame by frame (machine-holograms). Opened, the beam reaches the window
-/// in <see cref="HoloLook.BeamS"/>, then the window grows over <see cref="HoloLook.GrowS"/>, its contents rising with it.
-/// Closed, the contents go at once, the window shrinks over <see cref="HoloLook.ShrinkS"/>, then the beam pulls back over
-/// <see cref="HoloLook.RetractS"/>. The same machine opened again while it closes goes on from where it is; another machine
-/// starts from nothing, the old hologram gone at once.
+/// How far a hologram window has opened, frame by frame: a share that runs to 1 over <see cref="HoloLook.OpenS"/> while it is
+/// open and back to 0 over <see cref="HoloLook.CloseS"/> once it is shut, so closing plays the opening back; where the pens and
+/// the rest are at a share is <see cref="HoloPen.At"/>. The same machine opened again while it closes goes on from where it
+/// is; another machine starts from nothing, the old hologram gone at once.
 /// </summary>
 public sealed class HoloMotion
 {
-    /// <summary>The machine shown, opening, open or closing; null once the beam is back.</summary>
+    /// <summary>The machine shown, opening, open or closing; null once it has closed.</summary>
     public int? Machine { get; private set; }
 
-    /// <summary>How far the beam reaches from the machine to the window: 0 none, 1 touching.</summary>
-    public double Beam { get; private set; }
-
-    /// <summary>How far the window has grown from where the beam touches: 0 none, 1 whole.</summary>
-    public double Window { get; private set; }
+    /// <summary>How far it has opened: 0 nothing drawn, 1 open.</summary>
+    public double Progress { get; private set; }
 
     /// <summary>Whether it was open on the last step.</summary>
     public bool Opening { get; private set; }
 
-    /// <summary>The contents' alpha: rising with the window while it opens, none while it closes.</summary>
-    public double Contents => Opening ? Window : 0;
-
     /// <summary>Whether any of it is drawn.</summary>
-    public bool Shown => Beam > 0;
+    public bool Shown => Progress > 0;
+
+    /// <summary>Where the pens, the ground, the grid and the contents are now.</summary>
+    public PenFrame Frame => HoloPen.At(Progress);
 
     /// <summary>One frame of <paramref name="seconds"/>, <paramref name="open"/> the machine whose window is open, or null.</summary>
     public void Step(int? open, double seconds)
     {
-        if (open is int id && id != Machine) (Machine, Beam, Window) = (id, 0, 0);
+        if (open is int id && id != Machine) (Machine, Progress) = (id, 0);
         Opening = open != null;
-        if (Opening)
-        {
-            (Beam, seconds) = Toward(Beam, 1, seconds, HoloLook.BeamS);
-            if (Beam >= 1) (Window, _) = Toward(Window, 1, seconds, HoloLook.GrowS);
-            return;
-        }
-        (Window, seconds) = Toward(Window, 0, seconds, HoloLook.ShrinkS);
-        if (Window <= 0) (Beam, _) = Toward(Beam, 0, seconds, HoloLook.RetractS);
-        if (Beam <= 0) Machine = null;
+        Progress = Math.Clamp(Progress + (Opening ? seconds / HoloLook.OpenS : -seconds / HoloLook.CloseS), 0, 1);
+        if (!Opening && Progress <= 0) Machine = null;
     }
 
     /// <summary>Gone at once: another owner's machine opened, or a load or resync.</summary>
-    public void Snap() => (Machine, Beam, Window, Opening) = (null, 0, 0, false);
-
-    /// <summary><paramref name="from"/> moved toward <paramref name="to"/> at a whole in <paramref name="whole"/> seconds, and the seconds left once there.</summary>
-    private static (double At, double Left) Toward(double from, double to, double seconds, double whole)
-    {
-        double need = Math.Abs(to - from) * whole;
-        if (seconds >= need) return (to, seconds - need);
-        return (from + Math.Sign(to - from) * seconds / whole, 0);
-    }
+    public void Snap() => (Machine, Progress, Opening) = (null, 0, false);
 }

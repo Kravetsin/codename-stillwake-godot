@@ -61,7 +61,7 @@ public class WreckDressTests
     [Fact]
     public void ATearShowsWithExactlyTheSidesItWasDrawnFor()
     {
-        Assert.Equal(17, Torn.Count());
+        Assert.Equal(27, Torn.Count());
         foreach (var (x, y, _) in Torn)
             for (int open = 0; open < 16; open++)
                 Assert.Equal(open == WreckDress.OpenAsDrawn(x, y), Of(WreckDress.Code, x, y, open).Torn != null);

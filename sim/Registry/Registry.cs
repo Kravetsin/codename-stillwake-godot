@@ -83,7 +83,7 @@ public sealed class Registry
         Grid = new GridModule();
         Sky = new SkyModule(Knowledge);
         Rooms = new RoomsModule(Grid);
-        Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
+        Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge, Players);
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Pipes = new PipesModule(Grid, Items, Items);
@@ -94,7 +94,7 @@ public sealed class Registry
         // Liquids: water in the cells, after building digs and builds, before what will read it; new to format 56.
         Liquids = new LiquidsModule(Grid);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Sky);
+        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Grid, Items, Items, Players, Players, Sky);
         // Building reads where heroes are and the pipes only as its commands apply, never in a system, so it keeps its place in
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
         // Water made before Building, which reads what its cisterns hold; it still runs and saves last.

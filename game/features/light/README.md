@@ -74,7 +74,7 @@ the reaches of fire, particles, screens.
   × `OreShine`, its brightness and the atlas's specular mask (`OreMask`, a vein less its host).
   `CanvasModulate` of `Light.Ambient` tints only what is drawn without `Lit`, not unshaded things.
 - **Lit:** cells, machines, cables, floor stacks, debris, heroes; not fire, glows, particles, plans, overlays.
-- **Helmet lamps** (0077, `HeroView.HeadLamps()`): a `HeadLamp` beam within
+- **Light drones** (0077, `HeroView.HeadLamps()`): a `HeadLamp` beam within
   `HeadLampHalfAngle` of the head's way, plus `HeadGlow` round, both from its lens, or in a wall the open
   point next to it toward the neck (`Sources.HeadLamp`). A beam is a `LightSource` with a `Toward`.
 - **Underground is black** (0077): no ambient (`Lit.Ambient` from the sky; the ship keeps `Light.Ambient`).

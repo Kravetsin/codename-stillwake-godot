@@ -390,7 +390,103 @@ public static class Migrations
             }
             return root;
         },
+        // 67 → 68 (light-drone): the helmet lamp is the light drone. Every string in the save that is the old id is the item, its
+        // craft or its blueprint, wherever it lies; the lists kept sorted by id are sorted again.
+        root =>
+        {
+            Renamed68(root);
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+            {
+                if (slices["knowledge"] is not JsonObject knowledge) continue;
+                if (knowledge["granted"] is JsonArray granted) SortedBy68(granted, g => g!.GetValue<string>());
+                if (knowledge["sold"] is JsonArray sold) SortedBy68(sold, t => t!["item"]!.GetValue<string>());
+                if (knowledge["reputation"]?["base"] is JsonArray goods) SortedBy68(goods, t => t!["item"]!.GetValue<string>());
+            }
+            return root;
+        },
+        // 68 → 69 (light-drone): the scanner is a mode of the light drone, no item. Every saved scanner stack, worn, carried, in a
+        // crate, on the floor or in a load, is a drone, its count kept; a save that held one knows the mode. A delivery stays.
+        root =>
+        {
+            bool had = false;
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var slice in slices.AsObject().Where(p => p.Key != "knowledge").Select(p => p.Value))
+                    had |= Drones69(slice);
+            if (had && root["slices"]!["knowledge"]?["granted"] is JsonArray granted && !granted.Any(g => g!.GetValue<string>() == "scanner"))
+            {
+                granted.Add("scanner");
+                SortedBy68(granted, g => g!.GetValue<string>());
+            }
+            return root;
+        },
+        // 69 → 70 (drone-companion): the mount slot is gone, the drone a pairing. An inventory of format 69's 47 slots loses its
+        // seventh equipment slot; a peer whose drone sat there is paired. Nothing else of old saves is kept (saves break at release).
+        root =>
+        {
+            var paired = new SortedSet<int>();
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var held in slices["items"]!["inventories"]!.AsArray())
+                {
+                    var slots = held!["slots"]!.AsArray();
+                    if (slots.Count != Mount70 + 3) continue;
+                    if (slots[Mount70] is JsonObject drone && drone["item"]!.GetValue<string>() == "lightDrone") paired.Add(held["id"]!.GetValue<int>());
+                    slots.RemoveAt(Mount70);
+                }
+            if (root["slices"]!["players"] is JsonObject players) players["drones"] = new JsonArray([.. paired.Select(p => (JsonNode)p)]);
+            return root;
+        },
     ];
+
+    /// <summary>Format 69's mount slot: the seventh equipment slot after 38 own ones, the cape and the trash after it.</summary>
+    private const int Mount70 = 44;
+
+    /// <summary>Every stack in <paramref name="node"/>, however deep, of <c>scanner</c> made <c>lightDrone</c>; whether there was one.</summary>
+    private static bool Drones69(JsonNode? node)
+    {
+        bool had = false;
+        switch (node)
+        {
+            case JsonObject o:
+                if (o["item"] is JsonValue v && v.TryGetValue(out string? item) && item == "scanner" && o.ContainsKey("count"))
+                {
+                    o["item"] = "lightDrone";
+                    had = true;
+                }
+                foreach (var key in o.Select(p => p.Key).ToList()) had |= Drones69(o[key]);
+                break;
+            case JsonArray a:
+                foreach (var n in a) had |= Drones69(n);
+                break;
+        }
+        return had;
+    }
+
+    /// <summary><paramref name="node"/> with every string value <c>helmetLamp</c> in it, however deep, made <c>lightDrone</c>.</summary>
+    private static void Renamed68(JsonNode? node)
+    {
+        static JsonNode? Of(JsonNode? n) => n is JsonValue v && v.TryGetValue(out string? s) && s == "helmetLamp" ? JsonValue.Create("lightDrone") : null;
+        switch (node)
+        {
+            case JsonObject o:
+                foreach (var key in o.Select(p => p.Key).ToList())
+                    if (Of(o[key]) is { } renamed) o[key] = renamed;
+                    else Renamed68(o[key]);
+                break;
+            case JsonArray a:
+                for (int i = 0; i < a.Count; i++)
+                    if (Of(a[i]) is { } renamed) a[i] = renamed;
+                    else Renamed68(a[i]);
+                break;
+        }
+    }
+
+    /// <summary><paramref name="list"/> sorted ordinally by <paramref name="key"/>, in place.</summary>
+    private static void SortedBy68(JsonArray list, Func<JsonNode?, string> key)
+    {
+        var sorted = list.OrderBy(key, StringComparer.Ordinal).ToList();
+        list.Clear();
+        foreach (var n in sorted) list.Add(n);
+    }
 
     /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
     private static JsonObject Inserted56(JsonObject slices)

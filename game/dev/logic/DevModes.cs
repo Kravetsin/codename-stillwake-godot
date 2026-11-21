@@ -92,7 +92,7 @@ public static class DevModes
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),
         new("--held", DevShape.Equals, "with --asteroid, that item on the first slot instead of the drill (salvage-tools); a comma list puts the rest after the axe"),
         new("--belt", DevShape.Flag, "with --asteroid, all three belt slots open and worn, the grinder and a spare battery on the hotbar (energy-ring)"),
-        new("--scanner", DevShape.Flag, "with --asteroid, the scanner on the helmet and a big asteroid and an engine block beside the hero (the-scanner)"),
+        new("--scanner", DevShape.Flag, "with --asteroid, the light drone worn, its scanner mode known (F), and a big asteroid and an engine block beside the hero (the-scanner)"),
         new("--take-at", DevShape.Next, "with --ground at a spire, the second its nearest relic is struck from (0096)"),
         new("--ground-offset", DevShape.Next, "with --ground, the hero stood N columns right of its mode's spot"),
         new("--sprint", DevShape.Next, "with --ground=sprint --autopilot, cells run; 300 by default"),
@@ -105,6 +105,7 @@ public static class DevModes
         new("--creatures-trace", DevShape.Either, "logs the creatures' strides a second, =frames every frame"),
         // The camera and measuring.
         new("--zoom", DevShape.Next, "the camera held at that zoom"),
+        new("--smoothing", DevShape.Equals, "drawn edges smoothed: =2, 4 or 8 samples, or off, whatever the settings keep"),
         new("--view", DevShape.Next, "X,Y[,ZOOM]: where the camera looks"),
         new("--snap", DevShape.Next, "the screen saved to that PNG once the world has played --snap-at seconds, then quits"),
         new("--snap-at", DevShape.Next, "with --snap, the seconds; 6 by default"),
@@ -117,6 +118,7 @@ public static class DevModes
         new("--own-none", DevShape.Flag, "a debug build owns no DLC skin: the appearance tab shows them locked (hero-skins)"),
         new("--wear", DevShape.Equals, "the skins worn, a comma list of ids, for a recording, keeping nothing (hero-skins)"),
         new("--fx-bench", DevShape.Flag, "a busy scene of luminous effects round the view's middle to measure (FxBench)"),
+        new("--meeting", DevShape.Either, "the drone's meeting played on this hero beside the core as it is placed, =seconds into it (0 bare), unpaired (drone-meeting)"),
     ];
 
     private static readonly Dictionary<string, DevMode> ByName = All.ToDictionary(m => m.Name, StringComparer.Ordinal);

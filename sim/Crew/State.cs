@@ -58,6 +58,11 @@ public sealed class Hero
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int CanisterIn { get; internal set; }
     /// <summary>
+    /// Ticks left of its drone's meeting (drone-meeting), 0 with none: meanwhile nothing drains or harms it (<c>Crew.MeetingTicks</c>).
+    /// Ticks left, as <see cref="CanisterIn"/>, so it carries across surfaces.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Meets { get; internal set; }
+    /// <summary>
     /// Thousandths of a unit its breaths have cost short of a whole one, 0 to 999, kept for the next (food-and-the-body): a calm
     /// breath costs a share of a unit, paid whole as the shares add up.
     /// </summary>
@@ -118,6 +123,8 @@ public sealed class CrewState
     [JsonInclude] internal int? Pod { get; set; }
     /// <summary>Ticks run: breaths come every <c>Crew.BreathEvery</c> of them.</summary>
     [JsonInclude] internal int Clock { get; set; }
+    /// <summary>Whether the map's alien core broke loose with the floor under it, and is gone for good (drone-companion).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool CoreLost { get; set; }
     /// <summary>Every hero, in id order.</summary>
     [JsonInclude] internal List<Hero> Heroes { get; set; } = [];
 }

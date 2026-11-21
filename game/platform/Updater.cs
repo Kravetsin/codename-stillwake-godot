@@ -32,7 +32,7 @@ public partial class Updater : Node
         AddChild(_http);
         if (OS.HasFeature("editor") || _own.Release == null || Platform == null) return;
         _http.RequestCompleted += Checked;
-        _http.Request(Updates.LatestUrl, ["User-Agent: Stillwake", "Accept: application/vnd.github+json"]);
+        _http.Request(Updates.LatestUrl, ["User-Agent: Castoff", "Accept: application/vnd.github+json"]);
     }
 
     private void Checked(long result, long code, string[] headers, byte[] body)
@@ -51,11 +51,11 @@ public partial class Updater : Node
         string folder = ProjectSettings.GlobalizePath("user://update");
         if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         Directory.CreateDirectory(folder);
-        _http.DownloadFile = Path.Combine(folder, "Stillwake.zip");
+        _http.DownloadFile = Path.Combine(folder, "Castoff.zip");
         _http.RequestCompleted += Downloaded;
         // Large releases take a while: no timeout on the download itself.
         _http.Timeout = 0;
-        _http.Request(release.Zip, ["User-Agent: Stillwake"]);
+        _http.Request(release.Zip, ["User-Agent: Castoff"]);
     }
 
     /// <summary>Run before the game quits to restart into the update: the world saved first.</summary>
@@ -72,11 +72,11 @@ public partial class Updater : Node
         try
         {
             string folder = ProjectSettings.GlobalizePath("user://update");
-            string files = Path.Combine(folder, "files"), zip = Path.Combine(folder, "Stillwake.zip");
+            string files = Path.Combine(folder, "files"), zip = Path.Combine(folder, "Castoff.zip");
             string exe = OS.GetExecutablePath();
             if (Platform == "macos")
             {
-                // The executable is Stillwake.app/Contents/MacOS/Stillwake: the bundle is two above its folder.
+                // The executable is Castoff.app/Contents/MacOS/Castoff: the bundle is two above its folder.
                 string app = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(exe)!, "..", ".."));
                 string script = Path.Combine(folder, "update.sh");
                 File.WriteAllText(script, Updates.MacScript(OS.GetProcessId(), zip, files, app));

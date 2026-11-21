@@ -15,7 +15,7 @@ namespace Stillwake.Game.Features.Crew;
 public partial class HeroDoll : SubViewportContainer
 {
     /// <summary>What the doll wears: everything the world's figure is dressed in.</summary>
-    private readonly record struct Worn(int Colour, Dressed Dressed, Look Look, bool Jetpack, bool HeadLamp, bool Scanner);
+    private readonly record struct Worn(int Colour, Dressed Dressed, Look Look, bool Jetpack);
 
     private readonly Func<(IItemsQueries Items, IPlayersQueries Players, int Peer)?> _wearer;
     private readonly Figure _figure;
@@ -50,13 +50,11 @@ public partial class HeroDoll : SubViewportContainer
     {
         if (!IsVisibleInTree() || _wearer() is not var (items, players, peer)) return;
         var worn = new Worn(Suits.Of(players, peer), Suits.DressedAs(items, players, peer), players.LookOf(peer),
-            items.Equipped(peer, Content.Jetpack.Item), items.Equipped(peer, Content.HelmetLamp.Item), items.Equipped(peer, Content.Helmet.Scanner));
+            items.Equipped(peer, Content.Jetpack.Item));
         if (worn == _worn) return;
         _worn = worn;
         _figure.Wear(worn.Colour, worn.Dressed.Helmet, worn.Dressed.Body, worn.Look);
         _figure.Jetpack = worn.Jetpack;
-        _figure.HeadLamp = worn.HeadLamp;
-        _figure.Scanner = worn.Scanner;
         _figure.CapeWorn = worn.Dressed.Cape;
         _figure.EffectSkin = SkinEffects.Of(worn.Dressed.Effect);
         Unlit(_figure);

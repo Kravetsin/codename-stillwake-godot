@@ -46,17 +46,24 @@ public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = 
 /// </summary>
 public static class SurfaceViews
 {
+    /// <summary>Whether the alien core is gone for this player (drone-companion): they have their drone, or it broke loose.</summary>
+    private static bool CoreGone(SurfaceContext c) =>
+        Features.Crew.Meeting.CoreGone(c.M.Crew.CoreLost(), c.M.Players.HasDrone(c.Peer()), c.Hands.Ui.CoreTaken, c.Hands.Ui.CoreMeeting != null);
+
     public static readonly IReadOnlyList<SurfaceView> All =
     [
         new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null,
             c.Built is { } dressed ? new Render.VesselDress(dressed) : null)
         {
-            HeldBack = c.Arrivals.Holds,
-            HeldBackVersion = () => c.Arrivals.Version,
+            // The alien core is gone for a player who has their drone, and for all once it broke loose (drone-companion).
+            HeldBack = id => c.Arrivals.Holds(id) || c.M.Grid.MachineById(id) is { } core && Content.Machines.Is(core.Kind, Content.MachineTrait.Wakes) && CoreGone(c),
+            HeldBackVersion = () => c.Arrivals.Version * 2 + (CoreGone(c) ? 1 : 0),
             Tint = PlanetLooks.Of.TryGetValue(c.M.Rules.Id, out var look) ? new Color(look.Ground.R, look.Ground.G, look.Ground.B) : Colors.White,
         }),
         // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
         new(c => new WreckMotionView(c.M.Grid), Fades: true),
+        // The hole the alien core punched through its roof: soot round it, its cut edges still smouldering (Wreck.CorePath).
+        new(c => new CoreScorchView(c.M.Grid), Fades: true),
         // Frost creeping over the hull's outer walls before the ice belt, where a stretch frosts it (docs/decisions/2026-11-15-stretches-of-space.md).
         new(c => c.M.Rules.Stretches.Any(s => StretchLooks.Of(s.Id) is { Frost: true })
             ? new Features.Sky.FrostView(c.M.Grid, c.M.Sky, c.M.Rules, () => c.Tick() + c.Progress()) : null, Fades: true),
@@ -88,6 +95,7 @@ public static class SurfaceViews
         // What each debris net holds, over its booms and behind its net (2026-11-03-debris-net).
         new(c => new Features.Debris.NetView(c.M.Grid, c.M.Debris), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
+        new(c => new Features.Crew.CoreGlow(c.M.Grid, () => CoreGone(c), () => c.Hands.Ui.CoreMeeting)),
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Furnace.Burning), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),
         new(Drones),

@@ -49,7 +49,7 @@ public partial class DressSheet(string path) : Node
             new(Suits.All[1], null, null, Lamp: true, InDark: true), new(Suits.All[2], null, null, Lying: true), new(Suits.All[2], helmet, suit, Lying: true),
             new(Suits.All[3], null, null, Jetpack: true), new(Suits.All[3], helmet, suit, Jetpack: true),
         ]);
-        string[] helmets = [helmet, Stillwake.Content.Helmet.Quilted, Stillwake.Content.Helmet.Heavy];
+        string[] helmets = [helmet, Stillwake.Content.Helmet.Heated, Stillwake.Content.Helmet.HeatProof, Stillwake.Content.Helmet.Heavy];
         foreach (string body in new[] { suit, "regenSuit", "heatSuit" })
             foreach (string h in helmets)
                 rows.Add(Turns(Suits.All[0], h, body, aimed: true, tracked: true));

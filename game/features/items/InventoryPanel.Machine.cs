@@ -207,16 +207,61 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The open machine's hologram, a frame on: its window's contents faded in as it grows. A machine another feature shows (a
-    /// queued station's) makes it go at once; shut, it shrinks and pulls back where the window was.
+    /// The open machine's hologram, a frame on: its window's controls shown as the pens trace it. A machine another feature
+    /// shows (a queued station's) makes it go at once; shut, it plays back where the window was.
     /// </summary>
     private void Hologram(double delta)
     {
         if (_holo == null) return;
         if (_frame != null && Crate is int open)
-            _frame.Modulate = Colors.White with { A = _holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)) };
+            _frame.Reveal(_holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)));
         else if (Crate != null) _holo.Snap();
         else _holo.Step(delta, null);
+        BagSoot(delta);
+    }
+
+    /// <summary>
+    /// The paired bag (drone-holo): it opens and closes at once, and while it is open the hero's drone draws the sheet in front of
+    /// its face for every player to see. Unpaired, the wrist's bag tells the drone nothing.
+    /// </summary>
+    private void BagSoot(double delta)
+    {
+        if (_inventory is not HoloWindow window)
+        {
+            if (_ui.DroneWindow.Open) _ui.DroneWindow = (false, 0);
+            return;
+        }
+        if (_shown.Visible != Shown) _shown.Visible = Shown;
+        window.Glass(Shown ? 1 : 0, Shown ? 1 : 0);
+        _ui.DroneWindow = (Shown, 0);
+    }
+
+    /// <summary>Another drone window took the soot from the bag: it closes, a crate open beside it too.</summary>
+    private void SootTaken(object window)
+    {
+        if (ReferenceEquals(window, this) && Shown) Close();
+    }
+
+    /// <summary>
+    /// The open machine's hologram window trailing the hero (the motion «Отставание»), by the hero's velocity on the screen; calmed
+    /// while the pointer is in one or a stack is carried. The bag, the wrist, the hotbar and the equipment never move.
+    /// </summary>
+    private void Sway(double delta, bool carrying)
+    {
+        (float X, float Y)? hero = _ui.Heroes.Count > 0 ? _ui.Heroes[0] : null;
+        double vx = 0, vy = 0;
+        if (delta > 0 && hero is var (hx, hy) && _heroWas is var (wx, wy))
+        {
+            // The world's pixels to the screen's, as the camera zooms.
+            float zoom = _root.GetViewport().GetCanvasTransform().X.Length();
+            (vx, vy) = ((hx - wx) * zoom / delta, (hy - wy) * zoom / delta);
+        }
+        _heroWas = hero;
+        bool pointed = Shown && HoloWindow.Holds(_root.GetViewport().GuiGetHoveredControl());
+        _sway.Step(delta, vx, vy, pointed || carrying);
+        _ui.HoloSway = _sway.Offset;
+        var offset = new Vector2(_sway.Offset.X, _sway.Offset.Y);
+        _frame?.Sway(offset);
     }
 
     /// <summary>
@@ -227,8 +272,9 @@ public partial class InventoryPanel
     {
         _motion.Step(Shown, seconds);
         float power = (float)_motion.Power;
-        _inventory.Lit(power);
-        _trash.Lit(power);
+        // A projected bag has no screen to light: its hologram fades it.
+        (_inventory as WristScreen)?.Lit(power);
+        (_trash as WristScreen)?.Lit(power);
         _body.Lit(power);
         _frame?.Lit(power);
     }
