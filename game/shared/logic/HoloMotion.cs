@@ -34,18 +34,6 @@ public sealed class HoloMotion
         if (!Opening && Progress <= 0) Machine = null;
     }
 
-    /// <summary>
-    /// Set by another clock (a drone window's corners, drone-frame): <paramref name="open"/> the machine whose window is open or null,
-    /// <paramref name="progress"/> how far it shows.
-    /// </summary>
-    public void Hold(int? open, double progress)
-    {
-        if (open is int id) Machine = id;
-        Opening = open != null;
-        Progress = Math.Clamp(progress, 0, 1);
-        if (!Opening && Progress <= 0) Machine = null;
-    }
-
     /// <summary>Gone at once: another owner's machine opened, or a load or resync.</summary>
     public void Snap() => (Machine, Progress, Opening) = (null, 0, false);
 }

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Stillwake.Game.Shared;
 
-/// <summary>A window the hero opens: the drone's, or the gear on the wrist.</summary>
+/// <summary>A window the hero opens: the drone's, the gear on the wrist, or a station's own.</summary>
 public enum DroneWindowKind
 {
     /// <summary>The suit's slots on the wrist: the hero's own, not the drone's.</summary>
@@ -14,8 +14,8 @@ public enum DroneWindowKind
     /// <summary>Plan mode: the build menu and its plan.</summary>
     Plan,
 
-    /// <summary>A machine's window: a crate, a stash, a station.</summary>
-    Machine,
+    /// <summary>A station's own window, E on it: a machine's, a crate's, the fabricator's, the ship's computer. Not the drone's: no corners.</summary>
+    Station,
 
     /// <summary>The research board.</summary>
     Board,
@@ -38,8 +38,8 @@ public sealed class DroneWindows
 
     private readonly List<Window> _windows = [];
 
-    /// <summary>Whether a window of <paramref name="kind"/> opens: before the drone is paired only the gear does (drone-companion).</summary>
-    public static bool Opens(DroneWindowKind kind, bool paired) => kind == DroneWindowKind.Gear || paired;
+    /// <summary>Whether a window of <paramref name="kind"/> opens: before the drone is paired only the gear and a station's own do (drone-companion).</summary>
+    public static bool Opens(DroneWindowKind kind, bool paired) => kind is DroneWindowKind.Gear or DroneWindowKind.Station || paired;
 
     /// <summary>Every window handed, in the order they first were.</summary>
     public IReadOnlyList<Window> All => _windows;

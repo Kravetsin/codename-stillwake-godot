@@ -8,11 +8,13 @@ namespace Stillwake.Game.Tests;
 public class DroneWindowsTests
 {
     [Fact]
-    public void BeforeThePairingOnlyTheGearOpensAfterItEveryWindowDoes()
+    public void BeforeThePairingOnlyTheGearAndAStationsOwnWindowOpenAfterItEveryWindowDoes()
     {
+        // A station's window (a machine's, a crate's, the fabricator's, the computer's) is the station's, not the drone's.
+        var before = new[] { DroneWindowKind.Gear, DroneWindowKind.Station };
         foreach (var kind in Enum.GetValues<DroneWindowKind>())
         {
-            Assert.Equal(kind == DroneWindowKind.Gear, DroneWindows.Opens(kind, paired: false));
+            Assert.Equal(Array.IndexOf(before, kind) >= 0, DroneWindows.Opens(kind, paired: false));
             Assert.True(DroneWindows.Opens(kind, paired: true));
         }
     }

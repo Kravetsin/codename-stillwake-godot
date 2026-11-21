@@ -339,7 +339,7 @@ public sealed class Ui
     public DroneWindows Windows { get; } = new();
 
     /// <summary>
-    /// Whether this player's drone is paired (drone-companion): before, of the drone's windows only the gear opens
+    /// Whether this player's drone is paired (drone-companion): before, only the gear and a station's own window open
     /// (<see cref="DroneWindows.Opens"/>). Set by the game; paired with no world, as a dev room's demo is.
     /// </summary>
     public Func<bool> Paired { get; set; } = () => true;

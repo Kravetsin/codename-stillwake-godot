@@ -60,18 +60,15 @@ public partial class MachineHolo : Node2D
     /// One frame of <paramref name="seconds"/>, <paramref name="open"/> the window open or null once it is shut; how the
     /// window's controls show. A window not laid out yet (no size) holds the hologram where it is and draws nothing new.
     /// </summary>
-    /// <param name="screen">A drone window's screen, 0..1, by the drone's corners (<see cref="CornerClock"/>): the hologram goes by it, whole.</param>
-    public HoloReveal Step(double seconds, Target? open, float? screen = null)
+    public HoloReveal Step(double seconds, Target? open)
     {
         if (open is { } t)
         {
             bool laid = t.Window.Size.X > 0 && t.Window.Size.Y > 0;
             if (laid) (_window, _box, _beamless) = (t.Window, t.Box, t.Box.Size == Vector2.Zero);
-            if (screen is float s) _motion.Hold(t.Machine, laid ? s : 0);
-            else _motion.Step(t.Machine, laid ? seconds : 0);
+            _motion.Step(t.Machine, laid ? seconds : 0);
             if (laid) Tone(t.Tone);
         }
-        else if (screen is float s) _motion.Hold(null, s);
         else _motion.Step(null, seconds);
         _now += seconds;
         Visible = _motion.Shown;
