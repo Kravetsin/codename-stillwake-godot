@@ -69,13 +69,69 @@ public static class DroneInk
         [-0.5333f, -10f, -2.5704f, -8.3333f, -4.237f, -6.6667f, -5.5333f, -5f, -6.4593f, -3.3333f, -7.0148f, -1.6667f, -7.2f, 0f, -7.0148f, 1.6667f, -6.4593f, 3.3333f, -5.5333f, 5f, -4.237f, 6.6667f, -2.5704f, 8.3333f, -0.5333f, 10f],
     ];
 
-    /// <summary>The spyglass on the aim: its two draws, the ring at its mouth, the hood behind the core.</summary>
-    public static readonly float[][] Scan = [
-        [3f, -3.6f, 11f, -3.6f, 11f, 3.6f, 3f, 3.6f, 3f, -3.6f],
-        [10f, -2.8f, 19f, -2.8f, 19f, 2.8f, 10f, 2.8f, 10f, -2.8f],
-        [22.8f, 0f, 22.6713f, 1.9091f, 22.3105f, 3.4401f, 21.7893f, 4.2897f, 21.2107f, 4.2897f, 20.6895f, 3.4401f, 20.3287f, 1.9091f, 20.2f, 0f, 20.3287f, -1.9091f, 20.6895f, -3.4401f, 21.2107f, -4.2897f, 21.7893f, -4.2897f, 22.3105f, -3.4401f, 22.6713f, -1.9091f, 22.8f, 0f],
-        [-2f, 5.5f, -3.4235f, 5.3126f, -4.75f, 4.7631f, -5.8891f, 3.8891f, -6.7631f, 2.75f, -7.3126f, 1.4235f, -7.5f, 0f, -7.3126f, -1.4235f, -6.7631f, -2.75f, -5.8891f, -3.8891f, -4.75f, -4.7631f, -3.4235f, -5.3126f, -2f, -5.5f],
+    /// <summary>
+    /// The scan's reticle on the aim, the pick «Прицел» (scan-form.js, candidate reticle): the dial's Dots marks round the core, a spark
+    /// sitting on each, the gauge's dots; they stay as the ring and its four ticks open while the scanner reads, the ticks closing in.
+    /// </summary>
+    public static readonly float[][] ScanMarks = [
+        [10.1521f, 1.0111f, 10.0991f, 1.4479f],
+        [9.6152f, 3.4113f, 9.4592f, 3.8227f],
+        [8.5194f, 5.6132f, 8.2695f, 5.9753f],
+        [6.9285f, 7.4889f, 6.5992f, 7.7807f],
+        [4.935f, 8.9294f, 4.5454f, 9.1339f],
+        [2.6546f, 9.851f, 2.2274f, 9.9563f],
+        [0.22f, 10.2f, -0.22f, 10.2f],
+        [-2.2274f, 9.9563f, -2.6546f, 9.851f],
+        [-4.5454f, 9.1339f, -4.935f, 8.9294f],
+        [-6.5992f, 7.7807f, -6.9285f, 7.4889f],
+        [-8.2695f, 5.9753f, -8.5194f, 5.6132f],
+        [-9.4592f, 3.8227f, -9.6152f, 3.4113f],
+        [-10.0991f, 1.4479f, -10.1521f, 1.0111f],
+        [-10.1521f, -1.0111f, -10.0991f, -1.4479f],
+        [-9.6152f, -3.4113f, -9.4592f, -3.8227f],
+        [-8.5194f, -5.6132f, -8.2695f, -5.9753f],
+        [-6.9285f, -7.4889f, -6.5992f, -7.7807f],
+        [-4.935f, -8.9294f, -4.5454f, -9.1339f],
+        [-2.6546f, -9.851f, -2.2274f, -9.9563f],
+        [-0.22f, -10.2f, 0.22f, -10.2f],
+        [2.2274f, -9.9563f, 2.6546f, -9.851f],
+        [4.5454f, -9.1339f, 4.935f, -8.9294f],
+        [6.5992f, -7.7807f, 6.9285f, -7.4889f],
+        [8.2695f, -5.9753f, 8.5194f, -5.6132f],
+        [9.4592f, -3.8227f, 9.6152f, -3.4113f],
+        [10.0991f, -1.4479f, 10.1521f, -1.0111f],
     ];
+
+    /// <summary>The reticle's ring, closed and opened.</summary>
+    public static readonly float[][] ScanRing = [
+        [7.6f, 0f, 7.3792f, 1.8188f, 6.7295f, 3.5319f, 5.6887f, 5.0397f, 4.3173f, 6.2547f, 2.695f, 7.1061f, 0.9161f, 7.5446f, -0.9161f, 7.5446f, -2.695f, 7.1061f, -4.3173f, 6.2547f, -5.6887f, 5.0397f, -6.7295f, 3.5319f, -7.3792f, 1.8188f, -7.6f, 0f, -7.3792f, -1.8188f, -6.7295f, -3.5319f, -5.6887f, -5.0397f, -4.3173f, -6.2547f, -2.695f, -7.1061f, -0.9161f, -7.5446f, 0.9161f, -7.5446f, 2.695f, -7.1061f, 4.3173f, -6.2547f, 5.6887f, -5.0397f, 6.7295f, -3.5319f, 7.3792f, -1.8188f, 7.6f, 0f],
+    ];
+    public static readonly float[][] ScanRingOpen = [
+        [7.1f, 0f, 6.8937f, 1.6991f, 6.2867f, 3.2995f, 5.3144f, 4.7082f, 4.0333f, 5.8432f, 2.5177f, 6.6386f, 0.8558f, 7.0482f, -0.8558f, 7.0482f, -2.5177f, 6.6386f, -4.0333f, 5.8432f, -5.3144f, 4.7082f, -6.2867f, 3.2995f, -6.8937f, 1.6991f, -7.1f, 0f, -6.8937f, -1.6991f, -6.2867f, -3.2995f, -5.3144f, -4.7082f, -4.0333f, -5.8432f, -2.5177f, -6.6386f, -0.8558f, -7.0482f, 0.8558f, -7.0482f, 2.5177f, -6.6386f, 4.0333f, -5.8432f, 5.3144f, -4.7082f, 6.2867f, -3.2995f, 6.8937f, -1.6991f, 7.1f, 0f],
+    ];
+
+    /// <summary>The reticle's four ticks, closed and opened.</summary>
+    public static readonly float[][] ScanTicks = [
+        [5.4f, 0f, 12.5f, 0f],
+        [0f, 5.4f, 0f, 12.5f],
+        [-5.4f, 0f, -12.5f, 0f],
+        [0f, -5.4f, 0f, -12.5f],
+    ];
+    public static readonly float[][] ScanTicksOpen = [
+        [4.3f, 0f, 13.5f, 0f],
+        [0f, 4.3f, 0f, 13.5f],
+        [-4.3f, 0f, -13.5f, 0f],
+        [0f, -4.3f, 0f, -13.5f],
+    ];
+
+    /// <summary>
+    /// The reticle takes every spark: Dots of them on the marks, RingShare of all on the ring, the rest on the ticks; the ring's and the ticks'
+    /// flow, px a second along their closed length; where along its mark a spark sits.
+    /// </summary>
+    public const float RingShare = 0.4f, RingFlow = 12, TickFlow = 8, MarkAt = 0.5f;
+
+    /// <summary>The reticle opens over OpenIn once the scanner reads, and closes over CloseIn, CloseAfter after it stops (its dots home), s.</summary>
+    public const float OpenIn = 0.3f, CloseAfter = 0.4f, CloseIn = 0.4f;
 
     /// <summary>A gesture's fan: seven rays and an arc about its heading.</summary>
     public static readonly float[][] Fan = [
@@ -88,9 +144,6 @@ public static class DroneInk
         [4.1802f, 4.3041f, 13.2374f, 13.6298f],
         [13.2374f, -13.6298f, 14.7054f, -12.0313f, 15.9815f, -10.2759f, 17.049f, -8.3863f, 17.8942f, -6.3874f, 18.5058f, -4.3051f, 18.8761f, -2.1667f, 19f, 0f, 18.8761f, 2.1667f, 18.5058f, 4.3051f, 17.8942f, 6.3874f, 17.049f, 8.3863f, 15.9815f, 10.2759f, 14.7054f, 12.0313f, 13.2374f, 13.6298f],
     ];
-
-    /// <summary>The spyglass's mouth, where the scan's sparks leave for the gauge.</summary>
-    public const float MouthX = 21.5f, MouthY = 0;
 
     /// <summary>
     /// A drone window's frame, the pick «Уголки» (drone-windows.js, candidate corners), screen px and s: its corners this far out of the
@@ -113,6 +166,9 @@ public static class DroneInk
     /// <summary>The scan's gauge, pick px over the world: its dots, how far apart, their side, how far over the wreck's top.</summary>
     public const int Dots = 26;
     public const float DotStep = 7, Dot = 3.2f, DotsAbove = 20;
+
+    /// <summary>Every DotThreadEvery-th dot in flight draws its thread back to where it left.</summary>
+    public const int DotThreadEvery = 2;
 
     /// <summary>The gauge coming and going, s, each dot late by its share of Lag over Span (the out's own); a dot's flicker; its heat lit and dark.</summary>
     public const float DotsIn = 0.4f, DotsOut = 0.4f, DotLag = 0.4f, DotSpan = 0.6f, DotLagOut = 0.35f, DotSpanOut = 0.65f;

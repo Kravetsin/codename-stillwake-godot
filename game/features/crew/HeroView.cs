@@ -256,8 +256,11 @@ public partial class HeroView : Node2D
     /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
     public bool Scanning => _figure.Scanner && !_figure.Projects;
 
-    /// <summary>Where this hero's drone's scan sparks leave and go home, and how red they burn (light-drone); none while it is away.</summary>
-    public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
+    /// <summary>This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is away.</summary>
+    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
+
+    /// <summary>What the scanner's gauge does now, after its frame: whether it reads a thing, how far each dot is out from its mark on the drone's reticle.</summary>
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _figure.DroneGauge(reads, away);
 
     /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare { set => _figure.DroneStare = value; }

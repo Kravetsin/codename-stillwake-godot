@@ -170,9 +170,16 @@ function threadsInk() {
   const TAU = Math.PI * 2;
   const arcP = (cx, cy, rx, ry, a0, a1, n = 18) => { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return p; };
   const para = (back, half, cv, n) => { const p = []; for (let i = 0; i <= n; i++) { const v = -half + 2 * half * i / n; p.push([-back + v * v / cv, v]); } return p; };
-  const rect = (u0, u1, h) => [[u0, -h], [u1, -h], [u1, h], [u0, h], [u0, -h]];
   const lamp = [para(9, 12, 14, 14), para(7.2, 10, 15, 12)];
-  const scan = [rect(3, 11, 3.6), rect(10, 19, 2.8), arcP(21.5, 0, 1.3, 4.4, 0, TAU, 14), arcP(-2, 0, 5.5, 5.5, Math.PI / 2, 3 * Math.PI / 2, 12)];
+  // The scan's reticle, the pick «Прицел» (tools/pick-kit/pages/scan-form.js, candidate reticle): closed (L 0) and opened (L 1).
+  const R = (r, a) => [Math.cos(a) * r, Math.sin(a) * r];
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const reticle = L => {
+    const r = lerp(7.6, 7.1, L), rin = lerp(5.4, 4.3, L);
+    return { ring: [arcP(0, 0, r, r, 0, TAU, 26)], ticks: [0, 1, 2, 3].map(q => { const a = q * Math.PI / 2; return [R(rin, a), R(lerp(12.5, 13.5, L), a)]; }) };
+  };
+  const marks = Array.from({ length: 26 }, (_, j) => { const a = (j + .5) / 26 * TAU, p = R(10.2, a), d = R(1, a + Math.PI / 2); return [[p[0] - d[0] * .22, p[1] - d[1] * .22], [p[0] + d[0] * .22, p[1] + d[1] * .22]]; });
+  const closed = reticle(0), open = reticle(1);
   const fan = [];
   for (let j = 0; j < 7; j++) { const a = (j / 3 - 1) * .8; fan.push([[Math.cos(a) * 6, Math.sin(a) * 6], [Math.cos(a) * 19, Math.sin(a) * 19]]); }
   fan.push(arcP(0, 0, 19, 19, -.8, .8, 14));
@@ -246,14 +253,31 @@ public static class DroneInk
     /// <summary>The lamp's mirror behind the core, open toward the aim (x along it).</summary>
     public static readonly float[][] Lamp = ${lines(lamp)};
 
-    /// <summary>The spyglass on the aim: its two draws, the ring at its mouth, the hood behind the core.</summary>
-    public static readonly float[][] Scan = ${lines(scan)};
+    /// <summary>
+    /// The scan's reticle on the aim, the pick «Прицел» (scan-form.js, candidate reticle): the dial's Dots marks round the core, a spark
+    /// sitting on each, the gauge's dots; they stay as the ring and its four ticks open while the scanner reads, the ticks closing in.
+    /// </summary>
+    public static readonly float[][] ScanMarks = ${lines(marks)};
+
+    /// <summary>The reticle's ring, closed and opened.</summary>
+    public static readonly float[][] ScanRing = ${lines(closed.ring)};
+    public static readonly float[][] ScanRingOpen = ${lines(open.ring)};
+
+    /// <summary>The reticle's four ticks, closed and opened.</summary>
+    public static readonly float[][] ScanTicks = ${lines(closed.ticks)};
+    public static readonly float[][] ScanTicksOpen = ${lines(open.ticks)};
+
+    /// <summary>
+    /// The reticle takes every spark: Dots of them on the marks, RingShare of all on the ring, the rest on the ticks; the ring's and the ticks'
+    /// flow, px a second along their closed length; where along its mark a spark sits.
+    /// </summary>
+    public const float RingShare = 0.4f, RingFlow = 12, TickFlow = 8, MarkAt = 0.5f;
+
+    /// <summary>The reticle opens over OpenIn once the scanner reads, and closes over CloseIn, CloseAfter after it stops (its dots home), s.</summary>
+    public const float OpenIn = 0.3f, CloseAfter = 0.4f, CloseIn = 0.4f;
 
     /// <summary>A gesture's fan: seven rays and an arc about its heading.</summary>
     public static readonly float[][] Fan = ${lines(fan)};
-
-    /// <summary>The spyglass's mouth, where the scan's sparks leave for the gauge.</summary>
-    public const float MouthX = 21.5f, MouthY = 0;
 
     /// <summary>
     /// A drone window's frame, the pick «Уголки» (drone-windows.js, candidate corners), screen px and s: its corners this far out of the
@@ -276,6 +300,9 @@ public static class DroneInk
     /// <summary>The scan's gauge, pick px over the world: its dots, how far apart, their side, how far over the wreck's top.</summary>
     public const int Dots = 26;
     public const float DotStep = 7, Dot = 3.2f, DotsAbove = 20;
+
+    /// <summary>Every DotThreadEvery-th dot in flight draws its thread back to where it left.</summary>
+    public const int DotThreadEvery = 2;
 
     /// <summary>The gauge coming and going, s, each dot late by its share of Lag over Span (the out's own); a dot's flicker; its heat lit and dark.</summary>
     public const float DotsIn = 0.4f, DotsOut = 0.4f, DotLag = 0.4f, DotSpan = 0.6f, DotLagOut = 0.35f, DotSpanOut = 0.65f;

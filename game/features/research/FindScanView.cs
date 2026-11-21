@@ -34,7 +34,7 @@ public partial class FindScanView : Node
     private readonly Func<Rect2> _art;
     private readonly Func<Rect2?> _key;
     private readonly Func<Vector2?> _head;
-    private readonly Func<(Vector2 Mouth, Vector2 Eye, float Tint)?> _drone;
+    private readonly Func<((float X, float Y)[] Seats, Vector2 Eye, float Tint)?> _drone;
     private readonly Func<int> _slot;
     private readonly Action<Vector2?> _stare, _visit;
     private readonly Action<(string Form, double Seconds)?> _becoming;
@@ -57,13 +57,13 @@ public partial class FindScanView : Node
     /// <param name="art">Where the tablet the keys ride lies on the screen: an ember flies to its top's middle while the research key does not show.</param>
     /// <param name="key">Where the research key is on the screen; null while it does not show.</param>
     /// <param name="head">Where this player's hero's neck is, world px; null while it is not drawn.</param>
-    /// <param name="drone">Its drone's spyglass mouth and eye, world px, and how red it burns; null while no drone floats by it.</param>
+    /// <param name="drone">Its drone's reticle marks, where the dots leave from, and its eye, world px, and how red it burns; null while no drone floats by it.</param>
     /// <param name="slot">The bag's slot's side, screen px: an icon is as large as in the bag.</param>
     /// <param name="stare">Where the drone keeps its eye, world px: on the icon it scans, the thing it learns from; null for none.</param>
     /// <param name="teacher">The box, world px, of the thing a form is learned from: the machine near the hero, the wreck last broken; null for none.</param>
     /// <param name="visit">Where the drone flies to, world px, while it learns from a thing; null for none.</param>
     /// <param name="becoming">The form the drone shows off by the head, and how many seconds into the show; null for none.</param>
-    public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<(Vector2 Mouth, Vector2 Eye, float Tint)?> drone,
+    public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<((float X, float Y)[] Seats, Vector2 Eye, float Tint)?> drone,
         Func<int> slot, Action<Vector2?> stare, Func<string, Rect2?> teacher, Action<Vector2?> visit, Action<(string Form, double Seconds)?> becoming)
     {
         (_scan, _inWorld, _art, _key, _head, _drone, _slot, _stare, _teacher, _visit, _becoming) = (scan, inWorld, art, key, head, drone, slot, stare, teacher, visit, becoming);
@@ -104,7 +104,7 @@ public partial class FindScanView : Node
     /// A lesson's stages: the drone sent to the thing and its eye fixed on it while it goes and scans, the dots filling over it as it scans, the form
     /// shown off by the head after; with no thing found, the dots fill over the head. Out of a lesson, the drone looks at the icon over the head.
     /// </summary>
-    private void Learn(FindLesson? lesson, Vector2? head, (Vector2 Mouth, Vector2 Eye, float Tint)? drone, double delta)
+    private void Learn(FindLesson? lesson, Vector2? head, ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? drone, double delta)
     {
         if (lesson?.Form != _lesson) (_lesson, _thing) = (lesson?.Form, null);
         // Looked for until found while the drone sets off: the wreck broken may be seen gone a frame after its lesson.

@@ -842,8 +842,14 @@ public partial class Figure : Node2D
     /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
     public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
 
-    /// <summary>Where its drone's scan sparks leave and go home, in pixels of the world, and how red an alarm turns them; none while no drone floats by it.</summary>
-    public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Mouth, _drone.LensBox.GetCenter(), _drone.Tint) : null;
+    /// <summary>
+    /// Its drone's reticle marks, where the gauge's dots leave from and come home to, its eye, in pixels of the world, and how red an alarm turns
+    /// them; none while no drone floats by it.
+    /// </summary>
+    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Seats, _drone.LensBox.GetCenter(), _drone.Tint) : null;
+
+    /// <summary>What the scanner's gauge does now: whether it reads a thing, and how far each dot is out from its mark (<see cref="LightDrone.Gauge"/>).</summary>
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _drone.Gauge(reads, away);
 
     /// <summary>A point of the world its drone's eye stays on, in pixels, over its lamp's aim: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare { get; set; }
