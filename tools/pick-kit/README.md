@@ -14,7 +14,7 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | `pages/title-tether.js` | a whole-scene page (`scene`): the title screen's scene, a limp hero on a tether |
 | `pages/drone-vision.js` | a page without the bag (`window: false`): the drone's meeting as a vision before the giant core |
 | `pages/title-logo.js` | a page with its own font (`fonts`): the name CASTOFF on the title, turning to dust and gathering again in a loop |
-| `pages/form-vision.js` | a page with the game's own pictures (`pictures`): the vision a new drone form plays, its props four ways |
+| `pages/form-vision.js` | a page with the game's own pictures (`pictures`): the vision a new drone form plays, the eye led three ways |
 
 ## Rules
 
