@@ -69,9 +69,24 @@ public class ThreadIconTests
 
     [Theory]
     [MemberData(nameof(Icons))]
+    public void ARunningSparkKindlesAtTheStartAndDiesOutAtTheEnd(string name)
+    {
+        float Brightest(IconLook look) => Drawn(name, look).Squares.Select(q => q.Alpha).DefaultIfEmpty(0).Max();
+        // Under the pointer it runs the thread in 0.9 s: just begun, halfway, nearly done.
+        float start = Brightest(new IconLook(1.1f, Hover: 1, Time: 0.01f));
+        float middle = Brightest(new IconLook(1.1f, Hover: 1, Time: 0.45f));
+        float end = Brightest(new IconLook(1.1f, Hover: 1, Time: 0.895f));
+        Assert.True(start < middle * 0.25f, $"start {start} vs {middle}");
+        Assert.True(end < middle * 0.25f, $"end {end} vs {middle}");
+        // Walking while on, it wraps round without a jump in light.
+        Assert.True(Brightest(new IconLook(0.85f, On: true, Time: 2.39f)) < Brightest(new IconLook(0.85f, On: true, Time: 1.2f)) * 0.25f);
+    }
+
+    [Theory]
+    [MemberData(nameof(Icons))]
     public void OnASparkWalksItSlowlyAndHeldItStands(string name)
     {
-        var on = Enumerable.Range(0, 6).Select(k => Spark(Drawn(name, new IconLook(0.85f, On: true, Time: k * 0.4f)))).ToList();
+        var on = Enumerable.Range(0, 6).Select(k => Spark(Drawn(name, new IconLook(0.85f, On: true, Time: 0.4f + k * 0.3f)))).ToList();
         Assert.All(on, s => Assert.NotNull(s));
         Assert.True(on.Distinct().Count() >= 5);
         var held = Enumerable.Range(0, 6).Select(k => Spark(Drawn(name, new IconLook(0.77f, Hover: 1, Held: true, Time: k * 0.4f)))).ToList();

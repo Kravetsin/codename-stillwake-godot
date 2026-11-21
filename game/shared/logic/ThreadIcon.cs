@@ -111,13 +111,14 @@ public static class ThreadIcon
         Stroke(into, path, x, y, r, (look.Held ? 0.8f : 1) * u, 0.12f + 0.4f * fl, a, false);
         Stroke(into, path, x, y, r, 0.6f * u, 0.12f, a * 0.35f, true);
         if (SparkAt(look) is not float s) return;
-        float h = MathF.Min(1, 0.5f + 0.5f * lv) * (look.Held ? 0.6f : 1) * (look.Rim ? 0.6f : 1);
+        float h = MathF.Min(1, 0.5f + 0.5f * lv) * (look.Held ? 0.6f : 1) * (look.Rim ? 0.6f : 1) * SparkFade(look, s);
+        if (h <= 0.004f) return;
         Tail(into, path, x, y, r, s, look.Rim ? 0.12f : 0.22f, 1.3f * u, h);
         var (qx, qy, dx, dy) = path.At(MathF.Min(0.9999f, s));
         float px = x + qx * r, py = y + qy * r;
         if (!look.Rim) into.Add(new EmberMarks.Halo(px, py, 3.2f * u, 0.4f, 0.45f * h));
-        // The pick's spark: three squares nearly on one another, its heat in tenths.
-        float heat = Math.Clamp(MathF.Round(h * 10), 1, 10) / 10;
+        // The pick's spark: three squares nearly on one another, its heat in twentieths so a fade stays smooth.
+        float heat = Math.Clamp(MathF.Round(h * 20), 1, 20) / 20;
         for (int m = 0; m < 3; m++)
             into.Add(new EmberMarks.Square(px - dx * m * 0.01f, py - dy * m * 0.01f, 1.3f * u, 0.35f * (1 - m / 3f), (0.95f - m * 0.3f) * heat));
     }
@@ -140,6 +141,20 @@ public static class ThreadIcon
         }
         if (look.On || look.Waiting) return Frac((t + seed * 3) / 2.4f);
         return null;
+    }
+
+    /// <summary>The shares of its thread a running spark takes to kindle at the start and to die out at the end.</summary>
+    public const float FadeIn = 0.12f, FadeOut = 0.18f;
+
+    /// <summary>
+    /// How lit a running or walking spark is at <paramref name="s"/> along its thread, 0..1: it kindles from the start and dies out
+    /// before the end, so it never pops in or out. A held one and one running back as a pick fades stay whole.
+    /// </summary>
+    public static float SparkFade(IconLook look, float s)
+    {
+        if (look.Held || (look.Flare > 0 && !look.Rim)) return 1;
+        float a = Math.Clamp(MathF.Min(s / FadeIn, (1 - s) / FadeOut), 0, 1);
+        return a * a * (3 - 2 * a);
     }
 
     /// <summary>The steps of <paramref name="path"/> (only the bridges, or none of them, or all with null) as runs, each run unbroken.</summary>
