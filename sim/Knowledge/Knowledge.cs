@@ -19,12 +19,22 @@ public sealed record Reputation(int Level, IReadOnlyList<Tally> Base, long BaseW
 /// <summary>A purchase from the mafia on its way (2026-11-08-mafia-deliveries): <c>Good</c> the market node it is for, <c>Id</c> its own, never reused.</summary>
 public sealed record Delivery(int Id, string Good);
 
-/// <summary>What one player has learned for themself (own-knowledge): the items held, in the order first held; what they understood from them, sorted ordinally.</summary>
+/// <summary>How many times one player has done <c>Deed</c> (drone-lessons): what a deed lesson is counted by.</summary>
+public sealed record DeedCount(string Deed, int Count);
+
+/// <summary>
+/// What one player has learned for themself (own-knowledge): the items held, in the order first held; what they understood from them, sorted
+/// ordinally; the deeds they have done, sorted ordinally by deed (drone-lessons).
+/// </summary>
 public sealed class Learner
 {
     [JsonInclude] internal int Peer { get; set; }
     [JsonInclude] internal List<string> Found { get; set; } = [];
     [JsonInclude] internal List<string> Granted { get; set; } = [];
+    [JsonIgnore] internal List<DeedCount> Deeds { get; set; } = [];
+    /// <summary>Deeds as saved: none written while none is done.</summary>
+    [JsonInclude, JsonPropertyName("deeds"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<DeedCount>? SavedDeeds { get => Deeds.Count > 0 ? Deeds : null; set => Deeds = value ?? []; }
     /// <summary><c>Found</c> as a set, for the lookup a slot: derived, never saved.</summary>
     [JsonIgnore] internal HashSet<string> Held { get; } = new(StringComparer.Ordinal);
 }
@@ -124,6 +134,11 @@ public interface IKnowledgeOps
     void Grant(int peer, string id);
     /// <summary><paramref name="peer"/> holds <paramref name="item"/>: found once, in the order first held.</summary>
     void Find(int peer, string item);
+    /// <summary>
+    /// <paramref name="peer"/> has done <paramref name="deed"/> once more (drone-lessons): counted, and every deed lesson whose count it reaches
+    /// granted to that peer.
+    /// </summary>
+    void Did(int peer, string deed);
     /// <summary>The crew has obtained <paramref name="count"/> of <paramref name="item"/>; none or less counts for nothing.</summary>
     void Obtain(string item, int count);
     /// <summary><paramref name="count"/> of <paramref name="item"/> has been sold for <paramref name="worth"/> credits in all; none or less counts for nothing.</summary>
@@ -293,6 +308,27 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
         learner.Found.Add(item);
         learner.Held.Add(item);
         Version++;
+    }
+
+    public void Did(int peer, string deed)
+    {
+        var deeds = Learner(peer).Deeds;
+        int at = 0;
+        while (at < deeds.Count && string.CompareOrdinal(deeds[at].Deed, deed) < 0) at++;
+        int count = at < deeds.Count && deeds[at].Deed == deed ? deeds[at].Count + 1 : 1;
+        if (count == 1) deeds.Insert(at, new DeedCount(deed, 1));
+        else deeds[at] = deeds[at] with { Count = count };
+        foreach (var lesson in Content.Lessons.All)
+            if (lesson.Source is Content.Deed d && d.Id == deed && count >= d.Count) Grant(peer, lesson.Form);
+    }
+
+    /// <summary>How many times <paramref name="peer"/> has done <paramref name="deed"/>: for tests, never shown (drone-lessons).</summary>
+    internal int DeedsOf(int peer, string deed)
+    {
+        if (LearnerOf(peer) is not { } learner) return 0;
+        foreach (var d in learner.Deeds)
+            if (d.Deed == deed) return d.Count;
+        return 0;
     }
 
     public void Obtain(string item, int count)

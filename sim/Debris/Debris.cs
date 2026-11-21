@@ -176,6 +176,8 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         piece.Struck = new Blow { By = peer, At = State.Clock };
         if (!breaks) return false;
         State.Pieces.RemoveAt(at);
+        // The drone watches its player salvage (drone-lessons): a crate counts as wreckage; a burst by no hero, for no one.
+        if (peer != FloorStack.Nobody) _knowledgeOps.Did(peer, Content.Lessons.WreckBroken);
         if (piece.Delivery != 0 && piece.Item != Content.Research.Confiscated)
         {
             Unpack(piece, peer);
