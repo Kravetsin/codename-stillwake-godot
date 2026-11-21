@@ -7,22 +7,22 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// What this player's meeting shows this frame: <see cref="U"/> seconds into it, the engine's clock and its hero's figure's (what the
-/// drone's soot moves by), the hero's palm as drawn, the drone's place by the head and the way its lens looks there, the drone's own
-/// lens colour, and whether the meeting draws the soot left in the pit, the core's picture gone for this player. World pixels.
+/// drone's sparks move by), the hero's palm as drawn, the drone's place by the head and the way its eye looks there, and whether the
+/// meeting draws the soot left in the pit, the core's picture gone for this player. World pixels.
 /// </summary>
-public readonly record struct MeetingFrame(double U, double ClockS, double SwarmS, Vector2 Palm, Vector2 Idle, float IdleAngle, Color Lens, bool Pit);
+public readonly record struct MeetingFrame(double U, double ClockS, double SwarmS, Vector2 Palm, Vector2 Idle, float IdleAngle, bool Pit);
 
 /// <summary>
 /// This player's meeting with its drone (drone-meeting), drawn as <see cref="MeetingScene"/> places it: in the wreck, the core
-/// waking, lifting from its pit, and after the vision pulling its plates home along ember arcs and rising to the head, on the world's
+/// waking, lifting from its pit, and after the vision kindling its threads one at a time and rising to the head, on the world's
 /// layers (behind the hero on the tethers', over it on the drones', the light on the glows'); the vision on a screen layer of its own
 /// over the world (<see cref="Vision"/>): the screen crumbling to flakes that go out as stars, the void, the giant core and the blood,
 /// with the hero's own figure moved onto it meanwhile. Unlit, never a node per drop or flake.
 /// </summary>
 public partial class MeetingView : Node2D
 {
-    /// <summary>The pick's widths, its pixels: an arc's glow and line, a landing's flash, a pit ember's halo.</summary>
-    private const float ArcGlow = 3.4f, ArcLine = 0.9f, Flash = 9, PitEmber = 3;
+    /// <summary>A pit ember's halo, the pick's pixels.</summary>
+    private const float PitEmber = 3;
     /// <summary>The giant's pictures' frame, its units (drone.js's <c>GiantBox</c> over <c>GiantR</c>); the soaked disc's radius, units.</summary>
     private const float GiantFrame = 672f / 54, SoakRadius = 5.1f;
 
@@ -39,24 +39,20 @@ public partial class MeetingView : Node2D
     private static readonly Color SkyTop = Rgb((2, 3, 7)), SkyBottom = Rgb((5, 7, 12)), Cold = Rgb((206, 218, 238)), Warm = Rgb((240, 226, 206));
     private static readonly Color StarLight = Rgb((214, 224, 240)), Lit = Rgb((176, 184, 196));
 
-    /// <summary>How many angles each plate is drawn at, face and back, and the side of each, world px (drone.js's <c>Turns</c>, <c>PlateBox</c>); how thin one edge-on is at least.</summary>
-    private const int Turns = 8, PlateBox = 6;
-    private const float EdgeOn = 0.08f;
-
     /// <summary>A mote's dark rim past its side, the side its lit top shows from and that top's height, world px.</summary>
     private const float MoteRim = 0.0875f, LitFrom = 0.275f, LitTop = 0.125f;
 
     private static readonly Color RimDark = new("1a1b1f"), RimLight = new("26282d"), SootDark = new("4c4f55"), SootLight = new("606369");
-    private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f);
-    private static Texture2D? _body, _skin, _lens, _lensLit, _platesPicture;
+    private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f), SparkDark = Rgb(DroneInk.Dark);
+    private static Texture2D? _body, _skin, _lens, _lensLit;
 
     private readonly MeetingScene _scene;
-    private readonly Node2D _away = new(), _under = new(), _underAdd = new(), _over = new(), _overAdd = new();
+    private readonly Node2D _under = new(), _underAdd = new(), _over = new(), _overAdd = new();
     private readonly Node2D _backdrop = new(), _backDrops = new(), _backDropsAdd = new(), _glow = new(), _giant = new(), _giantAdd = new(), _frontDrops = new(), _frontDropsAdd = new();
     private readonly Triangles _tri = new(2048, 3072);
-    private readonly Vec[] _points = new Vec[41];
-    private readonly Plate[] _homes = new Plate[Meeting.Plates];
-    private readonly MeetingPlate[] _plates = new MeetingPlate[Meeting.Plates];
+    /// <summary>The drone's sparks as it will fly with them, idle on its orbits: shown as their threads kindle.</summary>
+    private readonly DroneSwarm _swarm = new();
+    private readonly Spark[] _sparks = new Spark[DroneInk.Sparks];
     private MeetingFrame _f;
     private MeetingCore _core;
     private CoreFace _face;
@@ -77,7 +73,7 @@ public partial class MeetingView : Node2D
         TopLevel = true;
         foreach (var (node, z, adds) in new (Node2D, int, bool)[]
         {
-            (_away, Layers.Tethers, false), (_under, Layers.Tethers, false), (_underAdd, Layers.Tethers, true),
+            (_under, Layers.Tethers, false), (_underAdd, Layers.Tethers, true),
             (_over, Layers.Drones, false), (_overAdd, Layers.Glows, true),
         })
             AddChild(Unlit(node, z, adds));
@@ -91,7 +87,6 @@ public partial class MeetingView : Node2D
         })
             Vision.AddChild(Unlit(node, z, adds));
         _backdrop.Material = new ShaderMaterial { Shader = new Shader { Code = BackdropShader } };
-        _away.Draw += DrawAway;
         _under.Draw += DrawUnder;
         _underAdd.Draw += DrawUnderAdd;
         _over.Draw += DrawOver;
@@ -115,13 +110,7 @@ public partial class MeetingView : Node2D
         _f = frame;
         _core = _scene.CoreAt(frame.U, V(frame.Idle), frame.IdleAngle);
         _face = _scene.FaceOf(frame.U);
-        float t = (float)frame.SwarmS;
-        for (int i = 0; i < _plates.Length; i++)
-        {
-            _homes[i] = Meeting.PlateHome(i, t);
-            _plates[i] = _scene.PlateOf(i, frame.U, _core.At, _homes[i]);
-        }
-        _away.Modulate = new Color(1, 1, 1, (float)Meeting.DebrisIn(frame.U));
+        for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, (float)_core.Angle, frame.SwarmS);
         Vision.Visible = InVision;
         if (InVision)
         {
@@ -136,7 +125,7 @@ public partial class MeetingView : Node2D
                 _flakes = new MeetingFlakes(size.X, size.Y, new Vec(hover.X, hover.Y));
             }
         }
-        foreach (var node in (ReadOnlySpan<Node2D>)[_away, _under, _underAdd, _over, _overAdd])
+        foreach (var node in (ReadOnlySpan<Node2D>)[_under, _underAdd, _over, _overAdd])
             node.QueueRedraw();
         if (InVision)
             foreach (var node in (ReadOnlySpan<Node2D>)[_backdrop, _backDrops, _backDropsAdd, _glow, _giant, _giantAdd, _frontDrops, _frontDropsAdd])
@@ -149,14 +138,6 @@ public partial class MeetingView : Node2D
     private bool SmallCore => Meeting.DrawsDrone(_f.U) && (Phase == MeetingPhase.Wreck && Lifted || Phase == MeetingPhase.Home);
 
     // ---------- the wreck ----------
-
-    /// <summary>The plates still out among the debris.</summary>
-    private void DrawAway()
-    {
-        for (int i = 0; i < _plates.Length; i++)
-            if (_plates[i] is { Stage: PlateStage.Away } plate)
-                DrawPlate(_away, i, new Plate(0, 0, (float)plate.Turn, true, 0, 1, (float)plate.Flip), W(plate.At));
-    }
 
     /// <summary>The soot left in the pit, once the core has lifted from it, for a player who no longer sees it lie there.</summary>
     private void DrawUnder()
@@ -182,33 +163,36 @@ public partial class MeetingView : Node2D
         _tri.Flush(_underAdd.GetCanvasItem());
     }
 
-    /// <summary>The small core over the hero: lifted, or back with its cloud and its plates coming home; the plates in flight.</summary>
+    /// <summary>The small core over the hero: lifted, or back with its cloud going out and its sparks kindling, each side of it.</summary>
     private void DrawOver()
     {
         if (!SmallCore) return;
         var at = W(_core.At);
         bool home = Phase == MeetingPhase.Home;
-        if (home)
-        {
-            _tri.Clear();
-            Cloud(front: false);
-            _tri.Flush(_over.GetCanvasItem());
-            Homes(front: false);
-        }
+        if (home) Body(front: false);
         LightDrone.DrawCore(_over, at);
-        if (home)
-        {
-            _tri.Clear();
-            Cloud(front: true);
-            _tri.Flush(_over.GetCanvasItem());
-            Homes(front: true);
-        }
-        for (int i = 0; i < _plates.Length; i++)
-            if (_plates[i] is { Stage: PlateStage.Flying } plate)
-                DrawPlate(_over, i, new Plate(0, 0, (float)plate.Turn, plate.Front, 0, 1, (float)plate.Flip), W(plate.At));
+        if (home) Body(front: true);
     }
 
-    /// <summary>The light in the wreck: the small core's ember halos as it wakes, its coal's once back, its cloud's embers, the arcs and the landings.</summary>
+    /// <summary>The cloud's motes not yet put out on one side of the core, and the sparks kindled there, in the drone's own pick px.</summary>
+    private void Body(bool front)
+    {
+        _tri.Clear();
+        Cloud(front);
+        _tri.Flush(_over.GetCanvasItem());
+        _tri.Clear();
+        const float Side = DroneInk.Spark;
+        for (int i = 0; i < _sparks.Length; i++)
+            if (_sparks[i] is var spark && spark.Front == front && Kindled(i)) _tri.Rect(spark.X - Side / 2, spark.Y - Side / 2, Side, Side, SparkDark);
+        _over.DrawSetTransform(W(_core.At), 0, new Vector2(DroneInk.Px, DroneInk.Px));
+        _tri.Flush(_over.GetCanvasItem());
+        _over.DrawSetTransform(Vector2.Zero, 0);
+    }
+
+    /// <summary>Whether spark <paramref name="i"/>'s thread has kindled past it.</summary>
+    private bool Kindled(int i) => Meeting.Passed(i % 3, _f.U, _sparks[i].X, _sparks[i].Y);
+
+    /// <summary>The light in the wreck: the small core's ember halos as it wakes, its coal's once back, its cloud's embers, its threads kindling.</summary>
     private void DrawOverAdd()
     {
         if (!Meeting.DrawsDrone(_f.U) || InVision) return;
@@ -223,39 +207,37 @@ public partial class MeetingView : Node2D
             if (_face.Lens > 0) LightDrone.Coal(_tri, at, (float)_core.Angle, LightDrone.Ember, (float)_f.SwarmS, (float)_face.Lens, DroneInk.Px);
             if (Phase == MeetingPhase.Home) Embers();
         }
-        for (int i = 0; i < _plates.Length; i++)
-        {
-            var plate = _plates[i];
-            float a = (float)Meeting.ArcAlpha(i, u);
-            if (a > 0.003f)
-            {
-                var from = _core.At;
-                double dx = plate.At.X - from.X, dy = plate.At.Y - from.Y, d = Math.Sqrt(dx * dx + dy * dy);
-                if (d > 0)
-                {
-                    double off = Math.Min(d * 0.9, 5.4 * _core.R * Meeting.Px);
-                    from = new Vec(from.X + dx / d * off, from.Y + dy / d * off);
-                }
-                var (first, second) = Meeting.ArcSeeds(i, u);
-                Arc(from, plate.At, first, a);
-                Arc(from, plate.At, second, 0.6f * a);
-            }
-            Halo(W(plate.At), Flash, Rgb(Meeting.Ember), (float)Meeting.LandFlash(i, u));
-        }
         _tri.Flush(_overAdd.GetCanvasItem());
+        if (SmallCore && Phase == MeetingPhase.Home) Kindling();
+    }
+
+    /// <summary>
+    /// The drone's threads as far round as each has kindled, and the tails of the sparks they have lit, as the drone draws them, in its
+    /// own pick px.
+    /// </summary>
+    private void Kindling()
+    {
+        _tri.Clear();
+        for (int o = 0; o < 3; o++) LightDrone.Orbit(_tri, o, LightDrone.Ember, (float)Meeting.Kindled(o, _f.U));
+        for (int i = 0; i < _sparks.Length; i++)
+            if (Kindled(i)) LightDrone.Tail(_tri, _sparks[i], _sparks[i].Heat, LightDrone.Ember);
+        _overAdd.DrawSetTransform(W(_core.At), 0, new Vector2(DroneInk.Px, DroneInk.Px));
+        _tri.Flush(_overAdd.GetCanvasItem());
+        _overAdd.DrawSetTransform(Vector2.Zero, 0);
     }
 
     /// <summary>Where the lying core's picture's top-left is.</summary>
     private Vector2 Box => W(_scene.Core) - W(Meeting.InPicture);
 
-    /// <summary>The cloud on one side of the small core, back from the vision: the drone's own soot, where the blood's rings shrank to.</summary>
+    /// <summary>The cloud on one side of the small core, back from the vision: where the blood's rings shrank to, each mote put out as its thread kindles past it.</summary>
     private void Cloud(bool front)
     {
         float t = (float)_f.SwarmS;
         for (int i = 0; i < MeetingScene.Drops; i++)
         {
             var mote = Meeting.MoteAt(i, t);
-            if (mote.Front == front) Mote(_tri, (float)_core.At.X + mote.X, (float)_core.At.Y + mote.Y, mote.Side, mote.Dark);
+            if (mote.Front == front && !Meeting.Passed(i % 3, _f.U, mote.X, mote.Y))
+                Mote(_tri, (float)_core.At.X + mote.X, (float)_core.At.Y + mote.Y, mote.Side, mote.Dark);
         }
     }
 
@@ -266,17 +248,10 @@ public partial class MeetingView : Node2D
         for (int i = 0; i < MeetingScene.Drops; i++)
         {
             var mote = Meeting.MoteAt(i, t);
-            if (mote.Heat <= 0.05f) continue;
+            if (mote.Heat <= 0.05f || Meeting.Passed(i % 3, _f.U, mote.X, mote.Y)) continue;
             Square(new Vector2((float)_core.At.X + mote.X, (float)_core.At.Y + mote.Y), mote.Side,
                 new Color(LightDrone.Ember.Lerp(Colors.White, 0.25f * mote.Heat), 0.95f * mote.Heat));
         }
-    }
-
-    /// <summary>The plates home on one side of the small core.</summary>
-    private void Homes(bool front)
-    {
-        for (int i = 0; i < _plates.Length; i++)
-            if (_plates[i].Stage == PlateStage.Home && _homes[i].Front == front) DrawPlate(_over, i, _homes[i], W(_core.At));
     }
 
     // ---------- the vision ----------
@@ -436,16 +411,6 @@ public partial class MeetingView : Node2D
 
     // ---------- both ----------
 
-    /// <summary>A flickering ember arc: a wide glow, then a pale line.</summary>
-    private void Arc(Vec from, Vec to, int seed, float alpha)
-    {
-        int n = Meeting.Arc(from, to, seed, _points);
-        var ember = Rgb(Meeting.Ember);
-        var pale = ember.Lerp(Colors.White, 0.5f);
-        for (int j = 0; j + 1 < n; j++) Line(W(_points[j]), W(_points[j + 1]), ArcGlow * (float)Meeting.Px, new Color(ember, 0.25f * alpha));
-        for (int j = 0; j + 1 < n; j++) Line(W(_points[j]), W(_points[j + 1]), ArcLine * (float)Meeting.Px, new Color(pale, 0.9f * alpha));
-    }
-
     /// <summary>A mote of soot, its middle at (<paramref name="x"/>, <paramref name="y"/>), its side <paramref name="s"/>: a dark rim, its tone, a lit top on the larger ones.</summary>
     private static void Mote(Triangles into, float x, float y, float s, bool dark)
     {
@@ -454,22 +419,6 @@ public partial class MeetingView : Node2D
         into.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, dark ? RimDark : RimLight);
         into.Rect(x, y, s, s, dark ? SootDark : SootLight);
         if (s > LitFrom) into.Rect(x, y, s, LitTop, SootTop);
-    }
-
-    /// <summary>
-    /// Plate <paramref name="i"/> as <paramref name="plate"/> places it from <paramref name="at"/> on <paramref name="on"/>: the nearest of its
-    /// pictures, face or rusty back, turned the rest of the way and squashed across its long axis by how far it is turned over.
-    /// </summary>
-    private static void DrawPlate(CanvasItem on, int i, Plate plate, Vector2 at)
-    {
-        _platesPicture ??= HiRes.Texture(HiRes.Load("drone_plates") ?? throw new InvalidOperationException("No picture drone_plates"));
-        float flip = MathF.Abs(plate.Flip) < EdgeOn ? (plate.Flip < 0 ? -EdgeOn : EdgeOn) : plate.Flip;
-        int turn = ((int)Math.Round(plate.Turn / Mathf.Tau * Turns) % Turns + Turns) % Turns;
-        var squash = new Transform2D(Vector2.Right, new Vector2(0, MathF.Abs(flip)), Vector2.Zero);
-        on.DrawSetTransformMatrix(new Transform2D(plate.Turn, at + new Vector2(plate.X, plate.Y)) * squash * new Transform2D(-turn * Mathf.Tau / Turns, Vector2.Zero));
-        int column = turn + (flip < 0 ? Turns : 0);
-        on.DrawTextureRectRegion(_platesPicture, new Rect2(-PlateBox / 2f, -PlateBox / 2f, PlateBox, PlateBox), new Rect2(column * PlateBox, i * PlateBox, PlateBox, PlateBox));
-        on.DrawSetTransform(Vector2.Zero, 0);
     }
 
     private static void LoadGiant()

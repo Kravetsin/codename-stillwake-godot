@@ -1,13 +1,11 @@
 // The light drone (drone-swarm), the user's pick «Пепел в латах»: an iron core, its body a cloud of soot, four scrap plates riding
 // it as armour. The pick page's own pen and paint, its small level (makeAsh's build(0)), drawn straight (no finish), 4 hi-res pixels
 // a world pixel as there. drone_core: the core, clean, one picture (it is round), CoreBox world px, its middle at the box's.
-// drone_plates: a row per plate, its face at Turns angles then its rusty back (the pick's flipY by -1) at as many, PlateBox world px
-// each, its middle at the box's; the game squashes one across its long axis as it turns over. The soot, where it all flies, the
-// lens, the field's threads and the glow are the game's (DroneSwarm.cs, LightDrone.cs), since they move or light. items/lightDrone:
-// the drone idle, its lamp on.
+// The sparks, their threads and the glow are the game's (DroneSwarm.cs, LightDrone.cs), since they move or light; the plates are
+// gone from the game (drone-threads) and stay only on items/lightDrone, the drone idle, its lamp on, till the card is redrawn.
 (function () {
 'use strict';
-const Turns = 8, CoreBox = 4, PlateBox = 6, K = 4;
+const CoreBox = 4, K = 4;
 const INK = '#16171b', LAMP = [255, 212, 150], EMBER = [255, 138, 58];
 const STEEL = ['#8b9199', '#61666e', '#3b3f46'], DARK = ['#5b6067', '#42464c', '#2a2d32'], ORANGE = ['#a36c3b', '#7a512f', '#4c331f'];
 const OLIVE = ['#6b745f', '#4e5546', '#30352c'], BRONZE = ['#8d7a5a', '#685a43', '#41382a'], RUSTY = ['#6e5646', '#4f3e33', '#30261f'];
@@ -113,8 +111,8 @@ function piece(c, x, y, a, sh, col, lw = 1.1, rb = null) {
 // A plate seen turned about its long axis: k = 1 face on, -1 its back (the pick's flipY).
 function flipY(sh, k) { return { p: sh.p, segs: sh.segs.map(g => [g[0], g[1] * k, g[2], g[3] * k, g[4], g[5] * k, g[6]]), closed: true, cx: sh.cx, cy: sh.cy * k }; }
 
-// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces Meeting.cs's
-// PlateSeeds, the soot its dustSet (seed 530), as Meeting.cs draws it.
+// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces the card's,
+// the soot its dustSet (seed 530), as Meeting.cs draws it.
 const ash = (() => {
   const r = rng(501), pal = [STEEL, ORANGE, OLIVE, BRONZE], sh = [];
   for (let i = 0; i < 4; i++) {
@@ -290,21 +288,6 @@ Subjects.drone = function () {
   cc.grain = grainOf(cc);
   cc.translate(cs / 2, cs / 2); core(cc);
   out('drone_core', coreSheet);
-
-  const side = PlateBox * K, sheet = document.createElement('canvas');
-  [sheet.width, sheet.height] = [side * Turns * 2, side * ash.sh.length];
-  const c = sheet.getContext('2d');
-  c.grain = grainOf(c);
-  ash.sh.forEach((s, i) => {
-    const far = Math.max(...s.p.map(q => Math.hypot(q[0], q[1])));
-    if (far + 1.4 > side / 2) throw new Error(`Plate ${i} reaches ${far.toFixed(1)} px, past its box's ${side / 2}`);
-    for (let k = 0; k < Turns; k++) {
-      const a = k / Turns * Math.PI * 2;
-      plate(c, side * k + side / 2, side * i + side / 2, a, s, 1);
-      plate(c, side * (Turns + k) + side / 2, side * i + side / 2, a, s, -1);
-    }
-  });
-  out('drone_plates', sheet);
 
   // The card: the drone idle facing right, its lamp on, grown as far as its plates let it in the icon's 64 px.
   const t = 2, plates = ash.sh.map((s, i) => [s, idlePlate(i, t)]), D = ash.P.map((p, i) => idleMote(i, t));

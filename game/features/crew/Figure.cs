@@ -835,8 +835,6 @@ public partial class Figure : Node2D
     /// <summary>How opaque its drone is, 0..1: a friend's new drone fading in by its head as its meeting ends (drone-meeting).</summary>
     public float DroneFade { set => _drone.Modulate = new Color(1, 1, 1, value); }
 
-    /// <summary>Its drone's lens's colour as it is now.</summary>
-    public Color DroneLensColour => _drone.LensColour;
 
     /// <summary>Its own clock, ms: what its drone's soot and plates move by.</summary>
     public double ClockMs => _timeMs;

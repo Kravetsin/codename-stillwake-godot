@@ -103,8 +103,6 @@ public partial class LightDrone : Node2D
     /// <summary>Whether a drone window of its is out (its own or a friend's): it forms no shape meanwhile.</summary>
     public bool Projecting { get; set; }
 
-    /// <summary>Its eye's colour, untinted by an alarm.</summary>
-    internal Color LensColour => Ember;
 
     /// <summary>The box round its eye as drawn, in pixels of the world: where what it sends out flies from.</summary>
     public Rect2 LensBox
@@ -197,7 +195,7 @@ public partial class LightDrone : Node2D
     }
 
     /// <summary>A spark's glow <paramref name="heat"/> hot: its square and two behind it along its heading, paler and fainter.</summary>
-    private static void Tail(Triangles into, Spark spark, float heat, Color hot)
+    internal static void Tail(Triangles into, Spark spark, float heat, Color hot)
     {
         if (heat <= 0.02f) return;
         const float Side = I.Spark;
@@ -209,15 +207,19 @@ public partial class LightDrone : Node2D
         }
     }
 
-    /// <summary>Orbit thread <paramref name="o"/>: a faint tilted ellipse about the core.</summary>
-    private static void Orbit(Triangles into, int o, Color hot)
+    /// <summary>
+    /// Orbit thread <paramref name="o"/>: a faint tilted ellipse about the core; only <paramref name="share"/> of it, from its long end
+    /// the way its sparks run, as it kindles in the meeting (<see cref="Meeting.Passed"/>).
+    /// </summary>
+    internal static void Orbit(Triangles into, int o, Color hot, float share = 1)
     {
         float rx = (I.Orbit + o * I.OrbitMore) * I.OrbitWide, ry = rx * I.OrbitFlat, tilt = I.OrbitTilt + o * I.OrbitTiltMore;
+        float way = o % 2 == 1 ? -1 : 1;
         var colour = new Color(hot, I.OrbitAlpha);
         var last = new Vector2(rx, 0).Rotated(tilt);
-        for (int k = 1; k <= OrbitPieces; k++)
+        for (int k = 1; k <= OrbitPieces && share > (k - 1f) / OrbitPieces; k++)
         {
-            float a = Mathf.Tau * k / OrbitPieces;
+            float a = way * Mathf.Tau * Math.Min(k / (float)OrbitPieces, share);
             var next = new Vector2(MathF.Cos(a) * rx, MathF.Sin(a) * ry).Rotated(tilt);
             into.Quad(last, next, I.OrbitLine, colour);
             last = next;

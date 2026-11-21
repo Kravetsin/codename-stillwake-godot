@@ -7,18 +7,6 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>Where the meeting is (the pick's <c>ph</c>): in the wreck, crumbling into the vision, in it, crumbling back, home again.</summary>
 public enum MeetingPhase { Wreck, Into, Vision, Back, Home }
 
-/// <summary>Where a plate of the drone's armour is in the meeting: still out among the debris, flying home, or home on the drone.</summary>
-public enum PlateStage { Away, Flying, Home }
-
-/// <summary>A plate in the meeting, world px: where its middle is, its turn, how far it is turned over (1 face on, below 0 its back), whether before the core.</summary>
-public readonly record struct MeetingPlate(PlateStage Stage, Vec At, double Turn, double Flip, bool Front);
-
-/// <summary>
-/// A plate home on the core: its middle from the core's, world px; its turn; whether before the core; its glow; its flight (1 home);
-/// how far it is turned about its long axis, 1 face on, below 0 its rusty back.
-/// </summary>
-public readonly record struct Plate(float X, float Y, float Turn, bool Front, float Glow, float Flight, float Flip);
-
 /// <summary>A mote of the meeting's cloud: its middle from the core's and its side, world px; whether before the core; its glow and heat; its tone.</summary>
 public readonly record struct Mote(float X, float Y, float Side, bool Front, float Glow, float Heat, bool Dark);
 
@@ -46,7 +34,7 @@ public readonly record struct CoreFace(double Soak, double Lens, double Glow);
 /// holds the hero; the core lights and rises from its pit; the wreck crumbles into flakes that go out as stars while the core grows
 /// in place; in the void the hero floats before the dull giant core, its blood flying from the palm and winding into three tilted
 /// rings one after another, turning black with embers as the lens opens; they look at each other; the wreck comes back, the core
-/// shrinks to where it began to grow, its rings its cloud; then it pulls in its plates one at a time and rises to the head. Every time
+/// shrinks to where it began to grow, its rings its cloud; then its threads kindle one at a time and it rises to the head. Every time
 /// is the pick's seconds, E pressed at <see cref="Times.Press"/>; every place world px, the pick's pixels a quarter of one
 /// (<see cref="Px"/>). The pick had the hero right of the core: a <c>side</c> of -1 mirrors what it placed by the hero. Client only;
 /// the sim spares the hero meanwhile (<c>Crew.MeetingTicks</c>).
@@ -65,7 +53,7 @@ public static class Meeting
         public const double Ring0 = 5.8, Ring1 = 7.7, Ring2 = 9.6, Fly = 0.2;
         public const double BlackFrom = 11.6, BlackTo = 13.9, SpinFrom = 11.6, SpinTo = 13.6, LensFrom = 12.6, LensTo = 14.0;
         public const double DizzyFrom = 5.5, DizzyFull = 6.5, DizzyEase = 13.6, DizzyGone = 14.6;
-        public const double OutFrom = 16.8, OutTo = 19.0, PlatesFrom = 19.8, PlateGap = 1.0, PlateFly = 0.25;
+        public const double OutFrom = 16.8, OutTo = 19.0, ThreadsFrom = 19.8, ThreadGap = 1.0, Kindle = 0.25;
         public const double RiseFrom = 23.4, RiseTo = 24.3, GradeOutFrom = 23.8, GradeOutTo = 24.8, HudBackFrom = 24.4, HudBackTo = 24.8;
     }
 
@@ -180,9 +168,6 @@ public static class Meeting
     /// <summary>How far the lit lens has gone from the pick's colour to the drone's own as it rises, so the hand-over shows no jump.</summary>
     public static double LensShift(double u) => Ss(u, Times.RiseFrom, Times.RiseTo);
 
-    /// <summary>How the plates out among the debris fade in from E.</summary>
-    public static double DebrisIn(double u) => Ss(u, Times.Press, Times.Press + 0.8);
-
     /// <summary>The breathing halo of the small core risen and its waking light, alphas, at size <paramref name="r"/>: the wreck's alone.</summary>
     public static (double Breathing, double Waking) SmallHalos(double u, double breath, double r)
     {
@@ -201,16 +186,13 @@ public static class Meeting
     /// <summary>Heap mote <paramref name="j"/>, from the lying core's picture's top-left, world px.</summary>
     public static HeapMote HeapAt(int j) => Heap[j];
 
-    // ---------- the plates ----------
+    // ---------- the cloud and the threads ----------
 
-    /// <summary>How many plates the drone pulls home; how many motes its cloud holds, a drop of blood each.</summary>
-    public const int Plates = 4, Motes = 170;
+    /// <summary>How many motes its cloud holds, a drop of blood each.</summary>
+    public const int Motes = 170;
 
     /// <summary>A mote's least side and how much more the largest has, world px.</summary>
     public const float MoteSide = 0.225f, MoteSideMore = 0.225f;
-
-    /// <summary>Each plate's phase, radians, and its share of the tumble's extra pace (drone.js's seeds).</summary>
-    private static readonly (float Phase, float Pace)[] PlateSeeds = [(3.9737f, 0.8855f), (1.1409f, 0.1770f), (4.8644f, 0.6168f), (5.1218f, 0.7379f)];
 
     /// <summary>Each mote's phase, spread, side, whether it smoulders and its tone: drone.js's <c>dustSet</c>, seed 530.</summary>
     private static readonly (float Phase, float R1, float Size, bool Hot, bool Dark)[] MoteSeeds = DrawMotes(530);
@@ -230,60 +212,24 @@ public static class Meeting
         return new Mote((float)at.X, (float)at.Y, seed.Size, MathF.Sin(th) >= 0, 0, heat, seed.Dark);
     }
 
-    /// <summary>Plate <paramref name="i"/> home on the core <paramref name="t"/> seconds on: circling wide, bobbing and tumbling.</summary>
-    public static Plate PlateHome(int i, float t)
-    {
-        var (phase, pace) = PlateSeeds[i];
-        float th = i / (float)Plates * MathF.Tau + t * 0.35f;
-        var at = Rot(MathF.Cos(th) * 4, MathF.Sin(th) * 4 * 0.45f, -0.2);
-        float tumble = MathF.Cos(t * (0.3f + 0.4f * pace) + phase * 3);
-        return new Plate((float)at.X, (float)at.Y + MathF.Sin(t * 1.2f + i) * 0.3f, th * 1.3f + i, MathF.Sin(th) >= 0, 0, 1, tumble);
-    }
+    /// <summary>When thread <paramref name="o"/> of the drone's three kindles, back from the vision: one at a time, a beat between, the fourth beat empty.</summary>
+    public static double Kindles(int o) => Times.ThreadsFrom + o * Times.ThreadGap;
 
-
-    /// <summary>When plate <paramref name="i"/> lands on the drone: one at a time, a beat between.</summary>
-    public static double PlateLands(int i) => Times.PlatesFrom + i * Times.PlateGap;
-
-    /// <summary>The ember arc drawing plate <paramref name="i"/> home, its alpha: struck just before it leaves, gone just after it lands.</summary>
-    public static double ArcAlpha(int i, double u)
-    {
-        double lands = PlateLands(i), leaves = lands - Times.PlateFly;
-        return Bump(u, leaves - 0.35, leaves - 0.25, lands + 0.08);
-    }
-
-    /// <summary>The flash where plate <paramref name="i"/> lands, its alpha.</summary>
-    public static double LandFlash(int i, double u)
-    {
-        double lands = PlateLands(i);
-        return u >= lands ? 0.7 * (1 - Ss(u, lands, lands + 0.3)) : 0;
-    }
+    /// <summary>How far round its orbit thread <paramref name="o"/> has kindled at <paramref name="u"/>, 0..1: none till the core is home.</summary>
+    public static double Kindled(int o, double u) => PhaseOf(u) == MeetingPhase.Home ? C01((u - Kindles(o)) / Times.Kindle) : 0;
 
     /// <summary>
-    /// A flickering ember arc from <paramref name="from"/> to <paramref name="to"/>, its jags drawn from <paramref name="seed"/>,
-    /// written into <paramref name="into"/> (41 points at most); how many points, none for one too short to see.
+    /// Whether thread <paramref name="o"/>'s kindling at <paramref name="u"/> has run past (<paramref name="x"/>, <paramref name="y"/>),
+    /// a point by its orbit from the core's middle: it starts at the orbit's long end and runs round its way, putting the drops out and
+    /// lighting the sparks as it passes.
     /// </summary>
-    public static int Arc(Vec from, Vec to, int seed, Span<Vec> into)
+    public static bool Passed(int o, double u, double x, double y)
     {
-        double d = Math.Sqrt((to.X - from.X) * (to.X - from.X) + (to.Y - from.Y) * (to.Y - from.Y)) / Px;
-        if (d < 2) return 0;
-        var r = new Xorshift(seed);
-        int n = Math.Max(4, Math.Min(40, (int)Math.Floor(d / 7 + 0.5)));
-        double nx = -(to.Y - from.Y) / Px / d, ny = (to.X - from.X) / Px / d, amp = Math.Min(7, d * 0.08) * Px;
-        into[0] = from;
-        for (int j = 1; j < n; j++)
-        {
-            double e = (double)j / n, o = (r.Next() - 0.5) * 2 * amp * Math.Sin(e * Math.PI);
-            into[j] = new Vec(Lerp(from.X, to.X, e) + nx * o, Lerp(from.Y, to.Y, e) + ny * o);
-        }
-        into[n] = to;
-        return n + 1;
-    }
-
-    /// <summary>The seeds of plate <paramref name="i"/>'s two arcs at <paramref name="u"/>: fresh jags 30 times a second.</summary>
-    public static (int First, int Second) ArcSeeds(int i, double u)
-    {
-        int frame = (int)Math.Floor(u * 30);
-        return (frame * 7 + i * 131 + 1, frame * 11 + i * 71 + 5);
+        double k = Kindled(o, u);
+        if (k <= 0 || k >= 1) return k >= 1;
+        var flat = Rot(x, y, -(DroneInk.OrbitTilt + o * DroneInk.OrbitTiltMore));
+        double a = Math.Atan2(flat.Y / DroneInk.OrbitFlat, flat.X) * (o % 2 == 1 ? -1 : 1);
+        return (a % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) < 2 * Math.PI * k;
     }
 
     // ---------- the pick's seeds ----------
@@ -671,45 +617,6 @@ public sealed class MeetingScene
     }
 
     private static double Pace(int o, double u) => 0.8 + 0.25 * o + Fastest * Meeting.C01(1 - (u - Meeting.Times.SpinFrom) / (Meeting.Times.SpinTo - Meeting.Times.SpinFrom));
-
-    // ---------- the plates ----------
-
-    /// <summary>Plate <paramref name="i"/> floating among the debris right of the ship at <paramref name="u"/>: where, its turn and its tumble.</summary>
-    public (Vec At, double Turn, double Flip) DebrisAt(int i, double u)
-    {
-        var (x, y, turn, spin, phase) = DebrisSeeds(i);
-        return (new Vec(Core.X + Side * (x + Math.Sin(u * 0.21 + i * 1.7) * 7) * Meeting.Px, Core.Y + (y + Math.Cos(u * 0.17 + i * 2.3) * 5) * Meeting.Px),
-            turn + u * spin, Math.Cos(u * 0.3 + phase));
-    }
-
-    /// <summary>
-    /// Plate <paramref name="i"/> at <paramref name="u"/>: out among the debris, then only once back from the vision pulled home along its
-    /// arc to <paramref name="home"/>, its place on the core at <paramref name="core"/> (<see cref="Meeting.PlateHome"/>), then there.
-    /// </summary>
-    public MeetingPlate PlateOf(int i, double u, Vec core, Plate home)
-    {
-        double lands = Meeting.PlateLands(i), leaves = lands - Meeting.Times.PlateFly;
-        if (Meeting.PhaseOf(u) != MeetingPhase.Home || u < leaves)
-        {
-            var (at, turn, flip) = DebrisAt(i, u);
-            return new MeetingPlate(PlateStage.Away, at, turn, flip, true);
-        }
-        var to = new Vec(core.X + home.X, core.Y + home.Y);
-        if (u >= lands) return new MeetingPlate(PlateStage.Home, to, home.Turn, home.Flip, home.Front);
-        double e = (u - leaves) / Meeting.Times.PlateFly;
-        e *= e;
-        var left = DebrisAt(i, leaves);
-        return new MeetingPlate(PlateStage.Flying, Meeting.Lerp(left.At, to, e), Meeting.AngLerp(left.Turn, home.Turn, e), Meeting.Lerp(left.Flip, home.Flip, e), home.Front);
-    }
-
-    /// <summary>Where plate <paramref name="i"/> floats among the debris right of the ship, pick px from the core, its first turn, its spin, its tumble's phase.</summary>
-    private static (double, double, double, double, double) DebrisSeeds(int i) => i switch
-    {
-        0 => (248, -155.5, 0.4, 0.11, 0),
-        1 => (342, -259.5, 1.7, -0.09, 1.9),
-        2 => (448, -103.5, 3.0, 0.13, 3.8),
-        _ => (541, -205.5, 4.3, -0.12, 5.7),
-    };
 
     /// <summary>A place the pick put by the hero, pick px from its feet at E, mirrored to the side it stands on.</summary>
     private Vec Placed(double x, double y) => new(Feet.X + Side * x * Meeting.Px, Feet.Y + y * Meeting.Px);
