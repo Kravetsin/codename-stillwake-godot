@@ -69,7 +69,8 @@ This hero and others', client-authoritative (0002).
 | `Figure.cs` | figure |
 | `logic/BodyFit.cs` | fits |
 | `LightDrone.cs` | drone |
-| `logic/DroneFloat.cs` | float |
+| `logic/DroneFlight.cs` | body |
+| `logic/DroneWill.cs` | mind |
 | `logic/DroneModes.cs` | modes |
 | `logic/DroneSign.cs` | sign |
 | `logic/DroneSwarm.cs` | swarm |
@@ -142,10 +143,10 @@ This hero and others', client-authoritative (0002).
 
 ## Guarantees
 
-- Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
-- A step never ends in a wall, shut door, hatch, off-grid; afloat, unjetted, within `Hero.Tether`; a shut door pushes
+- Lengths, speeds: cell/1000 (`Content.Hero`); step 1000/60 ms.
+- A step never ends in a wall, shut door, hatch, off-grid; afloat, unjetted, within `Hero.Tether`; shut doors push
   it `Hero.PushStep` (0089). Doors go as shown (0014); presses send `SetDoor`, `SetValve` (0071), `SetPlatform`.
-- **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up or down, two stop.
+- **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up, down; two stop.
 - **Jump** (0089): coyote, buffer, short hop; **figure answers motion** (0090, hero-gait).
 - **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked.
 - **Surfaces** (0076): `Ship.Of` rules, gravity its `Fall`; fog glides a seam (fog-edges).
@@ -156,16 +157,16 @@ This hero and others', client-authoritative (0002).
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling (canister-mark).
 - **Dials** (hud-dials): meals (RMB `Eat`), purge held 3 s (food-tuning), the body.
 - **Body** (body-temperature): `BodyHeat` from `Felt`, `Heat`; dying a last breath, `Succumb`; `SpeedOf`.
-- **Crew** made at `Spawn`; out, lies, no orders (0061). `Enter` on a new room or side, each `Crew.ReportEvery` ticks
+- **Crew** made at `Spawn`; out, lies, no orders (0061). `Enter` on a new room, side, each `Crew.ReportEvery` ticks
   off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on shin, `SuitOn` lit (hero-lights); **limbs** bent whole (whole-limbs); **hand** glove
-  or bare (hand-at-wrist); **helmets** still, the head turning inside (gear-roles); **skins** (hero-skins, fancy-skins).
+  or bare (hand-at-wrist); **helmets** still, the head turns (gear-roles); **skins** (hero-skins, fancy-skins).
 - **Tracker** blinks (`SignalOf`); **catchers** drawn as heroes, tumble killed (tracker-catchers).
 
 ## Others
 
-- Sent (`SentHero`) each 50 ms changing, each second still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 s silent; only those here (0076). Tools strike
+- Sent (`SentHero`) each 50 ms moving, 1 s still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
+- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 s quiet; only those here (0076). Tools strike
   per hit heard (0038), rods play out (0065), drills, drivers run as told (0055).
 
 ## The hands
@@ -181,13 +182,14 @@ This hero and others', client-authoritative (0002).
 - **Gun** (hold-to-fire): held fires each cooldown, `Charge` on release; kicks (body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs (`Run`), hits a `Pace`, the cutter by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): H tap points, pings (crew-pings), held a wheel; the drone signs it. **Drone**
-  (light-drone): E on the core pairs (drone-companion, drone-meeting); F tap next mode, held a wheel; projects for the
-  bag, plans (drone-frame).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; an open hatch climbs; a short jump mantles.
+- **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
+  (light-drone): E on the core pairs (drone-companion, drone-meeting); F next mode, held a wheel; projects the bag,
+  plans (drone-frame); trails, warns (drone-motion).
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
+  climbed, short jumps mantle.
 
 ## Deliberately not handled
 
 - Friends marked only while heard, unnamed; markers overlap.
-- A body dressed as its peer now; it and a seated hero: no suit lights.
+- A body dressed as its peer now; it, a seated hero: no suit lights.
 - Others' swings never hold on contact; a friend's gun hangs unaimed.

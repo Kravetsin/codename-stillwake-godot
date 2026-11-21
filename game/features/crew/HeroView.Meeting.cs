@@ -101,7 +101,7 @@ public partial class HeroView
         }
         if (!_meetings.TryGetValue(id, out met))
         {
-            (figure.Kneel, figure.Reach, figure.DroneShown, figure.DroneTo, figure.DroneFade) = (null, null, null, null, 1);
+            (figure.Kneel, figure.Reach, figure.DroneShown, figure.DroneFade) = (null, null, null, 1);
             return (pose, look);
         }
         double u = met.U;
@@ -114,7 +114,7 @@ public partial class HeroView
         var held = scene.HeroAt(u);
         // Shown standing first: the vision's turn is put back on after (ShowMeeting).
         figure.Rotation = 0;
-        var idle = Idle(figure, hero.Facing);
+        var idle = figure.DroneAnchor;
         var core = scene.CoreAt(u, new Vec(idle.X, idle.Y), figure.HeadLampToward.Angle());
         // The arm and head are bent in the figure's own standing frame; in the vision it is then moved, scaled and turned whole.
         var toStanding = Standing(hero) * At(held, hero.Facing).AffineInverse();
@@ -124,7 +124,7 @@ public partial class HeroView
         figure.Kneel = new Kneeling(held.Kneel, held.Lean);
         figure.Reach = stands && held.Reach > 0 ? (to, held.Reach) : null;
         figure.DroneShown = Meeting.DrawsDrone(u) ? false : null;
-        (figure.DroneTo, figure.DroneFade) = (null, 1);
+        figure.DroneFade = 1;
         return stands ? (Pose.Kneel, Poses.HeadTurn((to.X - helm.X) * hero.Facing, to.Y - helm.Y)) : (pose, look);
     }
 
@@ -144,7 +144,7 @@ public partial class HeroView
         }
         else Place(figure, this);
         bool pit = m.Crew.CoreLost() || m.Players.HasDrone(_client!.Id) || _ui.CoreTaken;
-        view.Show(new MeetingFrame(u, Time.GetTicksMsec() / 1000.0, figure.ClockMs / 1000, palm, Idle(figure, facing), figure.HeadLampToward.Angle(),
+        view.Show(new MeetingFrame(u, Time.GetTicksMsec() / 1000.0, figure.ClockMs / 1000, palm, figure.DroneAnchor, figure.HeadLampToward.Angle(),
             figure.DroneLensColour, pit));
     }
 
@@ -168,9 +168,6 @@ public partial class HeroView
         if (parent == this && _figureAt >= 0) MoveChild(figure, _figureAt);
         if (parent == this) figure.Rotation = 0;
     }
-
-    /// <summary>Where the drone floats by the head of <paramref name="figure"/> facing <paramref name="facing"/>, as drawn last.</summary>
-    private static Vector2 Idle(Figure figure, int facing) => figure.HeadAt + new Vector2(-facing * (float)DroneFloat.Behind, -(float)DroneFloat.Above);
 
     /// <summary>The figure's frame standing at <paramref name="hero"/>'s feet, as <see cref="Figure.Show"/> places it.</summary>
     private static Transform2D Standing(Hero hero) => new(0, new Vector2(hero.Facing, 1), 0, FeetOf(hero));
