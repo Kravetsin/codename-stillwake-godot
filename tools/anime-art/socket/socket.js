@@ -1,4 +1,4 @@
-// The helmet socket (docs/plans/helmet-socket.md): GPT paints a helmet's dome only; the rim, the seal and the glass are the
+// The helmet socket (docs/decisions/2026-11-21-gear-roles.md): GPT paints a helmet's dome only; the rim, the seal and the glass are the
 // basic helmet's, and this tool enforces them.
 //   node socket.js template <out.png>                 the sheet GPT paints over: six basic helmets on their seal, 3 x 2 cells
 //   node socket.js paint <dir> <id>...                one Codex call: <dir>/template.png repainted into <dir>/sheet.png
