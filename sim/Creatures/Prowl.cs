@@ -61,6 +61,12 @@ internal sealed class ProwlDrive : DriveRule
 
     internal override Gait GaitOf(Creature c) => Gait.Steered;
 
+    /// <summary>Off the walls, an open hatch is floor to it unless its quarry is on a deck under its own: then down through it it goes.</summary>
+    internal override bool Spans(CreaturesModule m, Creature c) => Bridges(m, c);
+
+    private static bool Bridges(CreaturesModule m, Creature c) =>
+        c.Recall(WalkerBody.Wall) == 0 && (m.Quarry(c) is not { } q || m.Level(q.Y) <= m.Level(Down(c.Y - 1, Unit)));
+
     internal override Posture PostureOf(Creature c) =>
         c.Recall(WalkerBody.Wall) != 0 ? Posture.Climbing : c.VX != 0 ? Posture.Wander : Posture.Idle;
 
@@ -89,8 +95,8 @@ internal sealed class ProwlDrive : DriveRule
             OnWall(m, c, w, hold, quarry);
             return;
         }
-        // In the air a leap or a fall flies on.
-        if (!(c.VY >= 0 && m.Overlaps(w, c.X, c.Y + 1)))
+        // In the air a leap or a fall flies on; on an open hatch it spans, it stands.
+        if (!(c.VY >= 0 && (m.Overlaps(w, c.X, c.Y + 1) || m.OnOpenHatch(w, c.X, c.Y) && Bridges(m, c))))
         {
             Forget(c);
             return;

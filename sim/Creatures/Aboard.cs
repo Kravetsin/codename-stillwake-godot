@@ -186,6 +186,17 @@ public sealed partial class CreaturesModule
         return row;
     }
 
+    /// <summary>Whether a body of <paramref name="s"/> with its feet flush on row <paramref name="y"/>'s top (thousandths) has an open hatch of that row under it.</summary>
+    internal bool OnOpenHatch(Spec.Shape s, int x, int y)
+    {
+        if (y % Unit != 0) return false;
+        int half = s.Width * Unit / 2, row = y / Unit;
+        foreach (var h in _hatches)
+            if (h.Y == row && h.X * Unit < x + half && (h.X + Doorways.Thick) * Unit > x - half && Doorways.IsOpen(_grid.StructureAt(row * _grid.Width + h.X)))
+                return true;
+        return false;
+    }
+
     /// <summary>
     /// The first shut doorway cell, row by row from the top-left, in the box of cells (<paramref name="x0"/>, <paramref name="y0"/>) to
     /// (<paramref name="x1"/>, <paramref name="y1"/>), the way in left out: what a guard pries open; null for none.

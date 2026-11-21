@@ -231,6 +231,33 @@ public class SpiderAboardTests
     }
 
     [Fact]
+    public void PryingADoorBesideAnOpenHatchItStandsOnTheHatchNotDownTheWell()
+    {
+        var a = new Aboard();
+        // A hatch right of an inner door, in the floor of that door's deck, and a spider docked on that deck right of it.
+        var (hatch, door) = (from h in a.Vessel.Hatches
+                             from d in a.Vessel.Doors
+                             where d.X + 2 == h.X && d.Y + Content.Vessels.Open == h.Y && d != Shipyard.WayIn(a.Vessel)
+                             select ((X: M + h.X, Y: M + h.Y), (X: M + d.X, Y: M + d.Y))).First();
+        var spider = a.Spiders.First(s => a.Room(s).Floor == hatch.Y && a.Room(s).Left > hatch.X);
+        var room = a.Room(spider);
+        foreach (var d in a.Vessel.Doors.Where(d => M + d.Y == door.Y && M + d.X > door.X && d != Shipyard.WayIn(a.Vessel)))
+            a.W.Do(new SetDoor(a.Cell(M + d.X, M + d.Y), true));
+        if (!a.Shut(door.X, door.Y)) a.W.Do(new SetDoor(a.Cell(door.X, door.Y), false));
+        a.W.Do(new SetDoor(a.Cell(hatch.X, hatch.Y), true));
+        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1);
+        Assert.True(Awake(spider));
+        a.Hero(door.X - 4, Body(hatch.Y)).Run(Content.Doors.SwingTicks);
+        Assert.True(a.Shut(door.X, door.Y));
+        Assert.False(a.Shut(hatch.X, hatch.Y));
+        Assert.True(a.RunTill(() =>
+        {
+            Assert.True(spider.Y <= hatch.Y * U, $"down the well at {spider.X},{spider.Y}, the hatch at row {hatch.Y}, {spider.Posture}");
+            return spider.X / U < door.X;
+        }, 600), $"never through the door: at {spider.X},{spider.Y} {spider.Posture}");
+    }
+
+    [Fact]
     public void ItPouncesAtTheMiddleOfItsHerosBodyNotOverHisHead()
     {
         var a = new Aboard();
@@ -302,7 +329,9 @@ public class SpiderAboardTests
                     $"spider {c.Id} climbing at {c.X},{c.Y} on no wall to its {side}");
             }
         }
-        bool held = c.Posture == Posture.Climbing || c.Act != null || Enumerable.Range(left, right - left + 1).Any(x => Solid(x, feet + 1))
+        // A hatch under its feet holds it, open too: one it spans (its way not down through it).
+        bool held = c.Posture == Posture.Climbing || c.Act != null
+            || Enumerable.Range(left, right - left + 1).Any(x => Solid(x, feet + 1) || Doorways.IsDoorway(v.Grid.StructureAt((feet + 1) * v.Grid.Width + x)))
             || Enumerable.Range(left, right - left + 1).Any(x => Enumerable.Range(top, feet - top + 1).Any(y => Solid(x, y)));
         if (held) aloft.Remove(c.Id);
         else if (aloft.TryGetValue(c.Id, out int was) && was == c.Y) Assert.Fail($"spider {c.Id} hangs in the air at {c.X},{c.Y}: {c.Posture} v {c.VX},{c.VY} drive {c.Drive} mem {string.Join(',', (c.Mem ?? []).Select(n => n.Key + '=' + n.Value))} clock {v.Creatures.Clock}");

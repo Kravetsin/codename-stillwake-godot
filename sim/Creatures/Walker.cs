@@ -57,6 +57,8 @@ internal sealed class WalkerBody : BodyRule
     internal override void Step(CreaturesModule m, Creature c, Spec.Species spec, bool grounded)
     {
         var w = (Spec.Walker)spec.Body;
+        var d = spec.Brain[c.Drive];
+        var rule = RuleBook.Drive(d);
         if (c.Act is { } act)
         {
             var mv = spec.Moves[act.Move];
@@ -66,15 +68,13 @@ internal sealed class WalkerBody : BodyRule
                 return;
             }
             if (grounded) RuleBook.Move(mv).Steer(m, c, spec, mv);
-            Move(m, c, w, grounded, Walks(c, spec));
+            Move(m, c, w, grounded, Walks(c, spec), rule.Spans(m, c));
             return;
         }
-        var d = spec.Brain[c.Drive];
-        var rule = RuleBook.Drive(d);
         var gait = rule.GaitOf(c);
         if (gait == Gait.Steered)
         {
-            Steered(m, c, w, grounded);
+            Steered(m, c, w, grounded, rule.Spans(m, c));
             return;
         }
         if (grounded && gait != Gait.Still)
@@ -104,9 +104,10 @@ internal sealed class WalkerBody : BodyRule
 
     /// <summary>
     /// A tick of <paramref name="c"/> at the speed its drive set: shut in a doorway, still (0006); holding a wall or the well, gravity let
-    /// go of, up by its speed, stopped flush under what is solid; else moved as any walker, stepping up and down, a leap begun by a speed up.
+    /// go of, up by its speed, stopped flush under what is solid; else moved as any walker, stepping up and down, a leap begun by a speed up,
+    /// standing on an open hatch it <paramref name="spans"/>.
     /// </summary>
-    private static void Steered(CreaturesModule m, Creature c, Spec.Walker w, bool grounded)
+    private static void Steered(CreaturesModule m, Creature c, Spec.Walker w, bool grounded, bool spans)
     {
         if (m.Overlaps(w, c.X, c.Y))
         {
@@ -121,7 +122,7 @@ internal sealed class WalkerBody : BodyRule
             c.Y = y;
             return;
         }
-        Move(m, c, w, grounded && c.VY >= 0, walks: c.VX != 0);
+        Move(m, c, w, grounded && c.VY >= 0, walks: c.VX != 0, spans);
     }
 
     /// <summary>Whether <paramref name="c"/> walks its way now: wandering, fleeing or charging, kept against a wall till its steering turns it.</summary>
@@ -198,10 +199,13 @@ internal sealed class WalkerBody : BodyRule
     /// <paramref name="c"/> moved a tick: falling by the surface's gravity, across by its speed, stepping up onto a ledge it walks
     /// into on the ground and, walking, down off one, each up to <c>Creatures.StepUp</c> cells; stopped flush against what is solid,
     /// turned back by a wall while it walks, landed or hitting its head. It moves in parts of under a cell, so no wall a cell
-    /// thick is passed at speed (0104).
+    /// thick is passed at speed (0104). Standing on an open hatch it <paramref name="spans"/> (<see cref="DriveRule.Spans"/>), and still over
+    /// it after, it stays on it as on the floor.
     /// </summary>
-    private static void Move(CreaturesModule m, Creature c, Spec.Walker w, bool grounded, bool walks)
+    private static void Move(CreaturesModule m, Creature c, Spec.Walker w, bool grounded, bool walks, bool spans = false)
     {
+        int was = c.Y;
+        bool bridged = spans && c.VY >= 0 && m.OnOpenHatch(w, c.X, c.Y);
         c.VY = Math.Min(c.VY + m.Rules.Fall(Spec.Gravity), Spec.MaxFall);
         if (c.VX != 0)
         {
@@ -216,6 +220,7 @@ internal sealed class WalkerBody : BodyRule
         int to = c.Y;
         if (Upright(m, w, c.X, ref to, c.VY)) c.VY = 0;
         c.Y = to;
+        if (bridged && c.Y > was && m.OnOpenHatch(w, c.X, was)) (c.Y, c.VY) = (was, 0);
     }
 
     /// <summary>
