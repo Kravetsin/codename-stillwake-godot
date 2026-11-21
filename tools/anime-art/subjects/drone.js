@@ -187,6 +187,10 @@ function thoughtPictures() {
   G.bored = [-.6, 0, .6].map(x => circ(x, .2, .16, 10));
   G.love = [heart(0, 0, 1)];
   G.pride = [[[-.9, .6], [-.95, -.45], [-.45, .05], [0, -.72], [.45, .05], [.95, -.45], [.9, .6], [-.9, .6]], [[-.9, .32], [.9, .32]]];
+  // The magnetic flare, drawn after the pick in its outline: a horseshoe magnet, poles down and barred, a crackle off each pole and one between.
+  G.flare = [[[-.5, .3]].concat(arcP(0, -.3, .5, .5, Math.PI, TAU, 16)).concat([[.5, .3]]),
+    [[-.72, .3], [-.28, .3]], [[.28, .3], [.72, .3]],
+    [[-.58, .48], [-.76, .62], [-.6, .76], [-.82, .96]], [[.58, .48], [.76, .62], [.6, .76], [.82, .96]], [[0, .5], [-.1, .66], [.1, .8], [0, .98]]];
   return G;
 }
 
@@ -194,7 +198,7 @@ function thoughtGlyphs() {
   const G = thoughtPictures();
   const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
   const lines = ls => `[\n${ls.map(l => `        [${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}],`).join('\n')}\n    ]`;
-  const NAMES = [['Meteor', 'meteor', 'The meteor coming: a rock and three streaks behind it.'], ['Bolt', 'lightning', 'The bolt: a zigzag and its arrowhead.'],
+  const NAMES = [['Meteor', 'meteor', 'The meteor coming: a rock and three streaks behind it.'], ['Bolt', 'lightning', 'The bolt: a zigzag and its arrowhead.'], ['Flare', 'flare', 'The magnetic flare: a horseshoe magnet, poles down, crackling.'],
     ['Cold', 'cold', 'The cold: a snowflake of six arms.'], ['Heat', 'heat', 'The heat: three wavy rising lines over the ground.'],
     ['Curious', 'curious', 'Curious: a question mark.'], ['Bored', 'bored', 'Bored: three dots.'], ['Love', 'love', 'Love: a heart.'], ['Pride', 'pride', 'Pride: a crown.']];
   return `    /// <summary>

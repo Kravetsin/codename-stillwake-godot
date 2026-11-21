@@ -6,7 +6,7 @@ using I = Stillwake.Game.Shared.DroneInk;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>What the drone shows over itself (drone-thoughts): the alarms, then its moods; a find has no picture, only the hop.</summary>
-public enum DroneThought { Meteor, Bolt, Cold, Heat, Curious, Find, Bored, Love, Pride }
+public enum DroneThought { Meteor, Bolt, Cold, Heat, Flare, Curious, Find, Bored, Love, Pride }
 
 /// <summary>A machine that teaches a form its player does not know, within <c>Lessons.Wonder</c>: its cell, which it is, and its top's middle in px.</summary>
 public readonly record struct DroneWonder(int Cell, Vec At);
@@ -22,7 +22,7 @@ public readonly record struct DroneBearing(Vec Off, double Tilt, double Swell, d
 /// starting only when nothing higher shows (a window, a gesture, an icon or lesson at the drone, the dart, a thought before a mood), love, pride
 /// and curious never resumed once cut; nothing while its hero is passed out, in its meeting or seated. The alarms show once its player knows them: the dart's
 /// meteor or bolt while it darts, cold and heat when the body's level, a <see cref="Tune.Step"/> of degrees off normal each, rises above
-/// the highest shown and held (one cut sooner shows again), which resets once the body is back within a step of normal. 
+/// the highest shown and held (one cut sooner shows again), which resets once the body is back within a step of normal; a magnetic flare once as its warning begins, shown again if cut before it held. 
 /// Love on waking from a death and pride after a deed lesson play once nothing higher shows, never lost; curious about a teaching machine (once
 /// each) waits a plain gap; bored after standing still shows till the hero moves, back after any cut while it still stands, under every other
 /// mood. Moods wait while the scanner reads. A find hops the body only.
@@ -44,7 +44,7 @@ public sealed class DroneThoughts
     }
 
     /// <summary>The pictures in <see cref="DroneThought"/>'s order; none for a find.</summary>
-    private static readonly float[][]?[] Glyphs = [I.GlyphMeteor, I.GlyphBolt, I.GlyphCold, I.GlyphHeat, I.GlyphCurious, null, I.GlyphBored, I.GlyphLove, I.GlyphPride];
+    private static readonly float[][]?[] Glyphs = [I.GlyphMeteor, I.GlyphBolt, I.GlyphCold, I.GlyphHeat, I.GlyphFlare, I.GlyphCurious, null, I.GlyphBored, I.GlyphLove, I.GlyphPride];
 
     private static readonly double InMs = I.ThoughtIn * 1000, HoldMs = I.ThoughtHold * 1000, OutMs = I.ThoughtOut * 1000, MoodInMs = I.MoodIn * 1000;
 
@@ -54,7 +54,7 @@ public sealed class DroneThoughts
     private double? _outMs;
     private (DroneThought, int)? _dart;
     private int _coldMark, _heatMark, _shownLevel;
-    private bool _love, _pride;
+    private bool _love, _pride, _flare, _flareDue;
     private double _sinceCurious = Tune.MoodGapMs;
     private readonly HashSet<int> _wondered = [];
     private DroneWonder? _curious;
@@ -69,7 +69,7 @@ public sealed class DroneThoughts
     public static float[][]? GlyphOf(DroneThought thought) => Glyphs[(int)thought];
 
     /// <summary>Whether <paramref name="thought"/> is an alarm: red, fast, never a mood.</summary>
-    public static bool Alarm(DroneThought thought) => thought <= DroneThought.Heat;
+    public static bool Alarm(DroneThought thought) => thought <= DroneThought.Flare;
 
     /// <summary>The thought or mood over it, forming, holding or falling apart; none.</summary>
     public DroneThought? Showing => _showing;
@@ -97,6 +97,10 @@ public sealed class DroneThoughts
         }
         _love |= senses.Woke;
         _pride |= senses.Proud;
+        // Once a warning: due as it begins, till its picture has held or the warning is over.
+        if (senses.Flare && !_flare) _flareDue = true;
+        _flare = senses.Flare;
+        if (!_flare) _flareDue = false;
         int cold = Level(BodyHeat.Normal - senses.Body), heat = Level(senses.Body - BodyHeat.Normal);
         if (cold == 0) _coldMark = 0;
         if (heat == 0) _heatMark = 0;
@@ -113,6 +117,7 @@ public sealed class DroneThoughts
                 // Cold and heat count as shown once their picture has held: one cut sooner shows again when free.
                 if (shown == DroneThought.Cold) _coldMark = Math.Max(_coldMark, _shownLevel);
                 if (shown == DroneThought.Heat) _heatMark = Math.Max(_heatMark, _shownLevel);
+                if (shown == DroneThought.Flare) _flareDue = false;
             }
         }
         if (_outMs is { } outAt && _nowMs - outAt >= OutMs) _showing = null;
@@ -123,6 +128,7 @@ public sealed class DroneThoughts
             bool newDart = dart != null && dart != _dart;
             var due = newDart && senses.Alarms ? dart!.Value.Kind
                 : dart != null ? (DroneThought?)null
+                : senses.Alarms && _flareDue ? DroneThought.Flare
                 : senses.Alarms && cold > _coldMark ? DroneThought.Cold
                 : senses.Alarms && heat > _heatMark ? DroneThought.Heat
                 : senses.Reads ? null
@@ -213,7 +219,7 @@ public sealed class DroneThoughts
         double u = _moodMs / 1000;
         return _showing switch
         {
-            DroneThought.Cold or DroneThought.Heat => new Vec(0, -1),
+            DroneThought.Cold or DroneThought.Heat or DroneThought.Flare => new Vec(0, -1),
             DroneThought.Curious when _curious is { } wonder => Unit(new Vec(wonder.At.X - at.X, wonder.At.Y - at.Y)),
             DroneThought.Love => Unit(new Vec(Helmet(anchor).X - at.X, Helmet(anchor).Y - at.Y)),
             DroneThought.Bored => Unit(new Vec(Math.Sin(u * I.BoredLookPace), I.BoredLookDown)),

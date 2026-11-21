@@ -67,6 +67,27 @@ public class DroneThoughtsTests
         Assert.Contains(null, Run(will, Chilled, 550));
     }
 
+    /// <summary>A magnetic flare's warning (30 s with the aurora): the magnet once as it begins, red, again if cut before it held, again next warning.</summary>
+    [Fact]
+    public void AFlaresWarningShowsTheMagnetOnceRedAgainIfCutBeforeItHeld()
+    {
+        var will = Will();
+        var warning = Mine with { Flare = true };
+        Assert.All(Run(will, warning with { Alarms = false }, 1000), s => Assert.Null(s));
+        will = Will();
+        var intent = will.Pick(warning, 16);
+        Assert.Equal(DroneThought.Flare, intent.Thought);
+        Run(will, warning, 300);
+        Assert.True(will.Pick(warning, 16).Tint > 0);
+        Run(will, warning with { Icon = true }, 500);
+        Assert.Null(will.Thoughts.Showing);
+        Assert.Contains(DroneThought.Flare, Run(will, warning, 100));
+        Run(will, warning, Through);
+        Assert.DoesNotContain(DroneThought.Flare, Run(will, warning, 20_000, 100));
+        Run(will, Mine, 1000);
+        Assert.Contains(DroneThought.Flare, Run(will, warning, 100));
+    }
+
     [Fact]
     public void WithoutTheAlarmsKnownNoAlarmShowsYetTheMoodsDo()
     {

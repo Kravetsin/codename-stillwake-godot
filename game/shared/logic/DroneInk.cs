@@ -229,6 +229,16 @@ public static class DroneInk
         [-0.28f, 1f, -0.02f, 0.8f],
     ];
 
+    /// <summary>The magnetic flare: a horseshoe magnet, poles down, crackling.</summary>
+    public static readonly float[][] GlyphFlare = [
+        [-0.5f, 0.3f, -0.5f, -0.3f, -0.4904f, -0.3975f, -0.4619f, -0.4913f, -0.4157f, -0.5778f, -0.3536f, -0.6536f, -0.2778f, -0.7157f, -0.1913f, -0.7619f, -0.0975f, -0.7904f, 0f, -0.8f, 0.0975f, -0.7904f, 0.1913f, -0.7619f, 0.2778f, -0.7157f, 0.3536f, -0.6536f, 0.4157f, -0.5778f, 0.4619f, -0.4913f, 0.4904f, -0.3975f, 0.5f, -0.3f, 0.5f, 0.3f],
+        [-0.72f, 0.3f, -0.28f, 0.3f],
+        [0.28f, 0.3f, 0.72f, 0.3f],
+        [-0.58f, 0.48f, -0.76f, 0.62f, -0.6f, 0.76f, -0.82f, 0.96f],
+        [0.58f, 0.48f, 0.76f, 0.62f, 0.6f, 0.76f, 0.82f, 0.96f],
+        [0f, 0.5f, -0.1f, 0.66f, 0.1f, 0.8f, 0f, 0.98f],
+    ];
+
     /// <summary>The cold: a snowflake of six arms.</summary>
     public static readonly float[][] GlyphCold = [
         [0f, -1f, 0f, 1f],

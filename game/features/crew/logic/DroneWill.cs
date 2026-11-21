@@ -12,7 +12,7 @@ public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spr
 /// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the meteor
 /// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing; the machine it visits to learn a form from
 /// (drone-lessons). Its own drone's cues for its thoughts and moods (drone-thoughts, <see cref="DroneThoughts"/>): whether it is this player's, whether
-/// its player knows the alarms (creative does), its hero's body temperature in degrees, the machine it is curious about, whether an
+/// its player knows the alarms (creative does), its hero's body temperature in degrees, whether a magnetic flare's warning is on, the machine it is curious about, whether an
 /// icon or a lesson plays at the drone and an item's icon is scanned, whether a deed lesson just ended or the hero just woke from a death, whether the
 /// hero is in its meeting or seated, and whether the scanner reads.
 /// </summary>
@@ -32,6 +32,7 @@ public readonly record struct DroneSenses(
     bool Own = false,
     bool Alarms = false,
     double Body = BodyHeat.Normal,
+    bool Flare = false,
     DroneWonder? Wonder = null,
     bool Icon = false,
     bool Finding = false,
