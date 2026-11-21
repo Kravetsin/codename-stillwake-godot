@@ -65,7 +65,6 @@ This hero and others', client-authoritative (0002).
 | `PingView.cs` | drawn |
 | `logic/SuitGlow.cs` | lights |
 | `logic/TrackerBlink.cs` | tracker |
-| `SuitKeys.cs` | V |
 | `Figure.cs` | figure |
 | `logic/BodyFit.cs` | fits |
 | `LightDrone.cs` | drone |
@@ -74,6 +73,8 @@ This hero and others', client-authoritative (0002).
 | `logic/DroneModes.cs` | modes |
 | `logic/DroneSign.cs` | sign |
 | `logic/DroneSwarm.cs` | swarm |
+| `logic/DroneFlurry.cs` | flurry |
+| `logic/WheelFade.cs` | fade |
 | `logic/SheetHoloLook.cs` | projects |
 | `logic/PlanPoint.cs` | points |
 | `CoreGlow.cs` | core |
@@ -180,8 +181,8 @@ This hero and others', client-authoritative (0002).
 - **Drill, grinder, cutter** (0054, 0055): held runs (`Run`), hits a `Pace`, the cutter by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
 - **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
-  (light-drone, drone-threads): E on the core pairs (drone-companion, drone-meeting); F next mode, held a wheel; projects the bag,
-  plans (drone-frame); trails, warns (drone-motion).
+  (light-drone, drone-threads, drone-lessons): E on the core pairs (drone-companion, drone-meeting); F next form, held a wheel
+  (thread-icons); window corners, flurry (drone-windows); trails, warns (drone-motion).
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
   climbed, short jumps mantle.
 

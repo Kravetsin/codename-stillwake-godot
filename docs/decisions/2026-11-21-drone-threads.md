@@ -2,7 +2,8 @@
 
 - Status: accepted; supersedes in part [light-drone](2026-11-21-light-drone.md) (its look «Пепел в латах», the plates, a
   gesture's hologram), [drone-frame](2026-11-21-drone-frame.md) (the motes' cloud, the net), [drone-meeting](2026-11-21-drone-meeting.md)
-  (the plates arriving) and [steady-scanner](2026-11-07-steady-scanner.md) (the readout's digits)
+  (the plates arriving) and [steady-scanner](2026-11-07-steady-scanner.md) (the readout's digits); the spyglass superseded by
+  [scan-form](2026-11-21-scan-form.md), the windows' ember squares by [drone-windows](2026-11-21-drone-windows.md)
 - Date: 2026-11-21
 
 ## Context

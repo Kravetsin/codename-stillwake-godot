@@ -50,7 +50,7 @@ public static class Research
 
     /// <summary>
     /// What the mafia sells as items, delivered, never as blueprints, and so never bought for good (2026-11-08-mafia-deliveries); the
-    /// stimulant too (food-tuning). The scanner is not: it opens the light drone's mode, bought once for the crew (light-drone).
+    /// stimulant too (food-tuning).
     /// </summary>
     public static readonly IReadOnlyList<string> GearSold = ["powerDriver", "heavyHelmet", "plasmaCutter", "regenSuit", Foods.Stim];
 
@@ -60,22 +60,20 @@ public static class Research
     /// <summary>What credits buy, by tab: the market alone.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        // Open from the start, the drone's lamp among the first goods (light-drone), its later rows by the mafia's reputation, a gate's order what that level wants (2026-11-08-mafia-reputation); the solar panel once circuits sell (market-decrypt).
+        // Open from the start, its later rows by the mafia's reputation, a gate's order what that level wants (2026-11-08-mafia-reputation); the solar panel once circuits sell (market-decrypt).
         // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
-        // the scanner the first level's headline, before the jetpack's far wrecks (2026-11-07-the-scanner, 2026-11-08-mafia-reputation), a drone mode (light-drone);
+        // the drone's lamp and scanner are learned, never sold (drone-lessons);
         // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit);
         // gear delivered as items at the prices its blueprints had, the confiscated container with the heavy helmet (2026-11-08-mafia-deliveries).
         new(Market,
             new TechRing(null, [],
                 Up("bag1"),
                 Up("bag2"),
-                Up("tradeSlots1"),
-                ("droneLamp", 1)),
+                Up("tradeSlots1")),
             new("order1", [("scrapChunk", 40), ("iron", 20), ("planks", 20)],
                 Up("bag3"),
                 Up("bag4"),
                 Up("tradeSlots2"),
-                ("scanner", 3),
                 (Foods.Stim, 2)),
             new("order2", [("plate", 30), ("gear", 20), ("wire", 30)],
                 Up("bag5"),

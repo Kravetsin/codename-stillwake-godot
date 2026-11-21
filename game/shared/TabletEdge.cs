@@ -56,6 +56,8 @@ public partial class TabletEdge : CanvasLayer
     /// </summary>
     public void Put(EdgeKey key, string says, Func<bool>? shown = null)
     {
+        if (_slots.Count >= EdgeRow.Keys.Length || EdgeRow.Keys[_slots.Count] != key.Motif)
+            throw new InvalidOperationException($"The edge's keys are {string.Join(", ", EdgeRow.Keys)}, in that order: not {key.Motif} here");
         _slots.Add(new Slot(key, shown ?? (() => true)));
         _root.AddChild(key);
         _tips.Add(key, () => new Tip(T(says)) { Over = true });
@@ -87,7 +89,7 @@ public partial class TabletEdge : CanvasLayer
 
     public override void _Process(double delta)
     {
-        bool shown = _inWorld();
+        bool shown = EdgeRow.Shown(_inWorld(), _ui.Paired());
         _root.Visible = shown;
         _ui.EdgeKeysLeft = EdgeRow.RimLeft(_root.GetViewportRect().Size.X, _slots.Count, EdgeRow.Grown(_ui.Slot));
         if (!shown)

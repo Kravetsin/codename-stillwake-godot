@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Scanner;
 
 /// <summary>
 /// The scanner's gauge over the wreck it reads (drone-threads, the pick «Нити»): a row of ember dots, the lit ones its hit points
-/// left, flown in from the drone's spyglass and home to its eye, every few on a thread (<see cref="ScanDots"/>). On a layer that
+/// left, each flown out from its mark on the drone's reticle and home to it, every other on a thread (<see cref="ScanDots"/>). On a layer that
 /// follows the camera, unlit by the world's lights, each dot whole screen pixels (2026-11-07-steady-scanner).
 /// </summary>
 public partial class ScannerView : CanvasLayer
@@ -16,6 +16,7 @@ public partial class ScannerView : CanvasLayer
     private static readonly Color Ember = Rgb(I.Ember), Red = Rgb(I.Red), Dark = Rgb(I.Dark);
 
     private readonly ScanDots _dots = new();
+    private readonly float[] _away = new float[ScanDots.Count];
     private readonly Node2D _dark = new(), _light = new();
     private readonly Triangles _darks = new(), _lights = new();
     private float _zoom = 1, _tint;
@@ -32,15 +33,22 @@ public partial class ScannerView : CanvasLayer
         AddChild(_light);
     }
 
+    /// <summary>Whether it reads a thing this frame: the drone's reticle opens meanwhile.</summary>
+    public bool Reads => _dots.Reads;
+
+    /// <summary>How far each dot is out from its mark on the drone's reticle this frame, 0..1: the drone draws those at 0 as its own sparks.</summary>
+    public ReadOnlySpan<float> Away => _away;
+
     /// <summary>
     /// Shows <paramref name="now"/>, what the scanner reads this frame (null: nothing), <paramref name="elapsedMs"/> after the last;
-    /// the dots fly from the drone's spyglass and home to its eye, red as its alarm (<paramref name="drone"/>; none: in place).
+    /// the dots leave from the drone's reticle's marks and come home to them, red as its alarm (<paramref name="drone"/>; none: in place).
     /// </summary>
-    public void Frame(Readout? now, (Vector2 Mouth, Vector2 Eye, float Tint)? drone, double elapsedMs)
+    public void Frame(Readout? now, ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? drone, double elapsedMs)
     {
-        _dots.Step(now, drone is { } d ? (d.Mouth.X, d.Mouth.Y) : null, drone is { } e ? (e.Eye.X, e.Eye.Y) : null, elapsedMs / 1000);
+        _dots.Step(now, drone?.Seats, elapsedMs / 1000);
         _tint = drone?.Tint ?? 0;
         Visible = _dots.Visible;
+        for (int j = 0; j < ScanDots.Count; j++) _away[j] = Visible ? _dots.Dot(j).Away : 0;
         if (!Visible) return;
         // Drawn in screen pixels from the point it reads, so each dot keeps whole ones as the camera eases.
         _zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
@@ -65,12 +73,11 @@ public partial class ScannerView : CanvasLayer
     private void DrawDark()
     {
         _darks.Clear();
-        float side = Side(I.Dot * I.WorldPx);
         for (int j = 0; j < ScanDots.Count; j++)
         {
             var dot = _dots.Dot(j);
-            if (dot.Alpha <= 0) continue;
-            Square(_darks, Screen(dot.X, dot.Y), side, new Color(Dark, dot.Alpha));
+            if (dot.Alpha <= 0 || dot.Away <= 0) continue;
+            Square(_darks, Screen(dot.X, dot.Y), Side(dot.Side), new Color(Dark, dot.Alpha));
             if (_dots.Ember(j) is { } ember) Square(_darks, Screen(ember.X, ember.Y), Side(I.Dot * I.WorldPx * ember.Side), Dark);
         }
         _darks.Flush(_dark.GetCanvasItem());
@@ -81,14 +88,17 @@ public partial class ScannerView : CanvasLayer
     {
         _lights.Clear();
         var hot = Hot;
-        float side = Side(I.Dot * I.WorldPx), step = I.TailStep * I.Px * _zoom;
+        float step = I.TailStep * I.Px * _zoom;
         for (int j = 0; j < ScanDots.Count; j++)
         {
             var dot = _dots.Dot(j);
             var at = Screen(dot.X, dot.Y);
-            if (dot.Flying && j % I.ThreadEvery == 0)
-                _lights.Quad(Screen(dot.FromX, dot.FromY), at, I.ThreadLine * I.Px * _zoom, new Color(hot, I.ThreadAlpha * dot.Alpha));
-            Glow(at, side, new Vector2(dot.Dx, dot.Dy) * step, Math.Min(1, dot.Heat + _tint * I.AlarmHeat * dot.Alpha), hot);
+            if (dot.Away > 0)
+            {
+                if (dot.Flying && j % I.DotThreadEvery == 0)
+                    _lights.Quad(Screen(dot.FromX, dot.FromY), at, I.ThreadLine * I.Px * _zoom, new Color(hot, I.ThreadAlpha * dot.Alpha));
+                Glow(at, Side(dot.Side), new Vector2(dot.Dx, dot.Dy) * step, Math.Min(1, dot.Heat + _tint * I.AlarmHeat * dot.Alpha), hot);
+            }
             if (_dots.Ember(j) is { } ember)
                 Glow(Screen(ember.X, ember.Y), Side(I.Dot * I.WorldPx * ember.Side), Vector2.Zero, Math.Min(1, ember.Heat + _tint * I.AlarmHeat), hot);
         }

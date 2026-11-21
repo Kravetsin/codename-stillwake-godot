@@ -8,14 +8,17 @@ public enum DroneMode { Lamp, Scan }
 /// <summary>
 /// The light drone's modes (light-drone): the client's, never a command and never saved, a new game or a reload on the lamp; sent with the
 /// hero so friends see its beam. Held, the drone key opens their wheel (<see cref="Wheel{T}"/>); a tap goes on to the next open one. Each
-/// mode opens with its node, known crew-wide: the drone comes dark.
+/// mode opens once its player's drone has learned its form (drone-lessons): the drone comes dark.
 /// </summary>
 public static class DroneModes
 {
     /// <summary>The wheel's sides, from the top clockwise.</summary>
     public static readonly DroneMode[] Sides = [DroneMode.Lamp, DroneMode.Scan];
 
-    /// <summary>The node that opens <paramref name="mode"/>.</summary>
+    /// <summary>A wheel side's thread icon (thread-icons).</summary>
+    public static Shared.IconLines IconOf(DroneMode mode) => mode == DroneMode.Scan ? Shared.IconInk.Scan : Shared.IconInk.Lamp;
+
+    /// <summary>The form that opens <paramref name="mode"/>.</summary>
     public static string NodeOf(DroneMode mode) => mode switch
     {
         DroneMode.Scan => Stillwake.Content.LightDrone.ScannerMode,
@@ -39,7 +42,7 @@ public static class DroneModes
 
     /// <summary>
     /// The figure's lamp and scanner for a hero who wears the drone or not, in <paramref name="mode"/> (heard as none: the lamp), each
-    /// only once the crew <paramref name="knows"/> it.
+    /// only once its player <paramref name="knows"/> it.
     /// </summary>
     public static (bool Lamp, bool Scanner) Shown(bool worn, DroneMode? mode, Func<string, bool> knows)
     {
@@ -47,4 +50,17 @@ public static class DroneModes
         bool on = worn && Opened(now, knows);
         return (on && now == DroneMode.Lamp, on && now == DroneMode.Scan);
     }
+
+    /// <summary>
+    /// The figure's lamp and scanner while the drone shows off <paramref name="form"/>, just learned (drone-lessons): the lamp lit for the lamp's,
+    /// the scan out for the scan's, neither for the alarms', which pulse red instead (<see cref="AlarmPulse"/>).
+    /// </summary>
+    public static (bool Lamp, bool Scanner) Becoming(string form) =>
+        (form == Stillwake.Content.LightDrone.LampMode, form == Stillwake.Content.LightDrone.ScannerMode);
+
+    /// <summary>A pulse of the alarms' red a drone shows off learning them, 0..1, <paramref name="seconds"/> into the show: three beats in its 1.5 s.</summary>
+    public static double AlarmPulse(double seconds) => 0.5 - 0.5 * Math.Cos(seconds * 2 * Math.PI / AlarmBeat);
+
+    /// <summary>One beat of <see cref="AlarmPulse"/>, seconds.</summary>
+    public const double AlarmBeat = 0.5;
 }

@@ -435,6 +435,14 @@ public static class Migrations
             if (root["slices"]!["players"] is JsonObject players) players["drones"] = new JsonArray([.. paired.Select(p => (JsonNode)p)]);
             return root;
         },
+        // 70 → 71 (drone-lessons): the lessons, rules only, save an empty slice aboard and on every open surface. A lamp or scanner the
+        // crew bought stays known to all (saves break at release).
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                slices.AsObject()["lessons"] = new JsonObject();
+            return root;
+        },
     ];
 
     /// <summary>Format 69's mount slot: the seventh equipment slot after 38 own ones, the cape and the trash after it.</summary>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Stillwake.Game.Shared;
 using I = Stillwake.Game.Shared.DroneInk;
 
@@ -14,7 +15,7 @@ public enum SwarmShape
     /// <summary>The lamp's mirror behind the core, open toward the aim.</summary>
     Lamp,
 
-    /// <summary>The spyglass on the aim (companion-scan).</summary>
+    /// <summary>The reticle on the aim (the pick «Прицел»): a ring, four ticks and the dial marks the gauge's dots leave from.</summary>
     Scan,
 
     /// <summary>A gesture's fan: turned where a point points, else standing up and swaying.</summary>
@@ -29,16 +30,36 @@ public readonly record struct Spark(float X, float Y, float Dx, float Dy, bool F
 
 /// <summary>
 /// The light drone's body (drone-threads, the pick «Нити»): <see cref="DroneInk.Sparks"/> sparks running round three tilted orbits,
-/// a share of them forming one shape at a time and flowing along its threads. A change sends each spark straight from where it is
-/// to its new place, late by its own share. Pick px and seconds of the client's clock; client only.
+/// a share of them forming one shape at a time and flowing along its threads; the scan's reticle (the pick «Прицел») takes them all, its
+/// marks' sparks the gauge's dots. A change sends each spark straight from where it is to its new place, late by its own share. Pick px
+/// and seconds of the client's clock; client only.
 /// </summary>
 public sealed class DroneSwarm
 {
     private static readonly (float Phase, float R1)[] Seeds = DrawSeeds();
-    private static readonly ThreadPath LampPath = new(I.Lamp), ScanPath = new(I.Scan), FanPath = new(I.Fan);
+    private static readonly ThreadPath LampPath = new(I.Lamp), FanPath = new(I.Fan);
     /// <summary>Each spark's place in order along a shape of <see cref="DroneInk.Share"/>, -1 if it keeps orbiting; how many take part.</summary>
     private static readonly int[] Ranks = RanksOf(I.Share, out ShareCount);
     private static readonly int ShareCount;
+
+    /// <summary>Each spark's part of the reticle (<see cref="Mark"/>, <see cref="Ring"/>, <see cref="Ticks"/>) and its rank there: it takes them all.</summary>
+    private static readonly (int Part, int Rank)[] ScanParts = ScanPartsOf(out ScanCounts);
+    private static readonly int[] ScanCounts;
+    private const int Mark = 0, Ring = 1, Ticks = 2;
+    private static readonly float[] ScanFlows = [0, I.RingFlow, I.TickFlow];
+    /// <summary>The ring's and the ticks' closed lengths, what their flow runs by (the pick's <c>PL0</c>).</summary>
+    private static readonly float[] ScanLengths = [0, new ThreadPath(I.ScanRing).Length, new ThreadPath(I.ScanTicks).Length];
+    /// <summary>Where on its mark each seed sits, unturned, and its heading.</summary>
+    private static readonly (float X, float Y, float Dx, float Dy)[] MarkSeats = [.. I.ScanMarks.Select(m => new ThreadPath([m]).At(I.MarkAt))];
+    /// <summary>The spark sitting on each mark.</summary>
+    private static readonly int[] SeedSparks = SeedSparksOf();
+
+    /// <summary>Whether the scanner reads, since when, and how open the reticle was then; the reticle's lines and paths as last opened.</summary>
+    private bool _reading;
+    private double _readS = double.NegativeInfinity;
+    private float _openFrom, _linesOpen = float.NaN;
+    private readonly float[][] _scanLines = new float[I.Dots + I.ScanRing.Length + I.ScanTicks.Length][];
+    private ThreadPath _ringPath = new(I.ScanRing), _tickPath = new(I.ScanTicks);
 
     /// <summary>
     /// Each spark's flight: where it leaves from, live (the orbits, or the shape it held, turned as then pointed) or a fixed point
@@ -89,7 +110,7 @@ public sealed class DroneSwarm
                 (_fromShape[i], _fromX[i], _fromY[i]) = (null, now.X, now.Y);
             }
             _fromIn[i] = f;
-            _flies[i] = f > 0 || _fromShape[i] == null || Ranks[i] >= 0 && shape != SwarmShape.Idle;
+            _flies[i] = f > 0 || _fromShape[i] == null || Takes(shape, i);
         }
         (_wasForm, _wasTurn) = (Form(timeS), TurnOf(Shape, aim, timeS));
         (_was, Shape, _changedS, _pointed) = (Shape, shape, timeS, pointed);
@@ -99,8 +120,23 @@ public sealed class DroneSwarm
     public void Reset()
     {
         (Shape, _was, _changedS, _pointed, _wasForm) = (SwarmShape.Idle, SwarmShape.Idle, double.NegativeInfinity, null, 0);
+        (_reading, _readS, _openFrom) = (false, double.NegativeInfinity, 0);
         Array.Clear(_flies);
         Array.Clear(_fromIn);
+    }
+
+    /// <summary>Whether the scanner reads a thing from <paramref name="timeS"/>: the reticle opens as it starts, and closes once it stops and its dots are home.</summary>
+    public void Read(bool reading, double timeS)
+    {
+        if (reading == _reading) return;
+        (_openFrom, _reading, _readS) = (Open(timeS), reading, timeS);
+    }
+
+    /// <summary>How far the reticle is opened at <paramref name="timeS"/>, 0..1: its ticks closing in on the core.</summary>
+    public float Open(double timeS)
+    {
+        float since = (float)Math.Min(1e6, timeS - _readS);
+        return _reading ? _openFrom + (1 - _openFrom) * Smooth(since / I.OpenIn) : _openFrom * (1 - Smooth((since - I.CloseAfter) / I.CloseIn));
     }
 
     /// <summary>How far its shape has formed at <paramref name="timeS"/>, 0..1; 0 idle.</summary>
@@ -110,17 +146,37 @@ public sealed class DroneSwarm
     public (SwarmShape Shape, float Form, float Turn) Leaving(double timeS) =>
         _was == SwarmShape.Idle ? (_was, 0, 0) : (_was, _wasForm * (1 - Smooth(Elapsed(timeS))), _wasTurn);
 
-    /// <summary>Which way <paramref name="shape"/> is turned at <paramref name="timeS"/>: the mirror and spyglass to the aim, a sign pointed or up and swaying.</summary>
+    /// <summary>Which way <paramref name="shape"/> is turned at <paramref name="timeS"/>: the mirror and reticle to the aim, a sign pointed or up and swaying.</summary>
     public float TurnOf(SwarmShape shape, float aim, double timeS) => Turn(shape, aim, timeS, _pointed);
 
-    /// <summary>The polylines of <paramref name="shape"/>, pick px about the core unturned; none for idle.</summary>
-    public static float[][] LinesOf(SwarmShape shape) => shape switch
+    /// <summary>
+    /// The polylines of <paramref name="shape"/> at <paramref name="timeS"/>, pick px about the core unturned; none for idle. The reticle's are its
+    /// <see cref="Marks"/> marks first, mark j the seat of the gauge's dot j, then its ring and ticks as opened.
+    /// </summary>
+    public float[][] LinesOf(SwarmShape shape, double timeS)
     {
-        SwarmShape.Lamp => I.Lamp,
-        SwarmShape.Scan => I.Scan,
-        SwarmShape.Sign => I.Fan,
-        _ => [],
-    };
+        if (shape != SwarmShape.Scan) return shape switch { SwarmShape.Lamp => I.Lamp, SwarmShape.Sign => I.Fan, _ => [] };
+        Opened(Open(timeS));
+        return _scanLines;
+    }
+
+    /// <summary>How many of <paramref name="shape"/>'s first lines are its marks, each a seat of the gauge's dots.</summary>
+    public static int Marks(SwarmShape shape) => shape == SwarmShape.Scan ? I.Dots : 0;
+
+    /// <summary>The seat of the gauge's dot <paramref name="j"/> on the reticle turned <paramref name="turn"/>, pick px about the core.</summary>
+    public static (float X, float Y) Seat(int j, float turn) => Rotate(MarkSeats[j].X, MarkSeats[j].Y, turn);
+
+    /// <summary>The gauge's dot spark <paramref name="i"/> sits on as a mark of the reticle, -1 for a spark on its ring or ticks.</summary>
+    public static int SeedOf(int i) => ScanParts[i].Part == Mark ? ScanParts[i].Rank : -1;
+
+    /// <summary>The spark sitting on the reticle's mark <paramref name="j"/>.</summary>
+    public static int SparkOfSeed(int j) => SeedSparks[j];
+
+    /// <summary>Spark <paramref name="i"/>'s part of the reticle (0 a mark, 1 the ring, 2 the ticks) and its rank there.</summary>
+    public static (int Part, int Rank) ScanPartOf(int i) => ScanParts[i];
+
+    /// <summary>How many sparks each part of the reticle takes: its marks, its ring, its ticks.</summary>
+    public static IReadOnlyList<int> ScanShares => ScanCounts;
 
     /// <summary>Spark <paramref name="i"/> at <paramref name="timeS"/>, the lens aimed <paramref name="aim"/>: the pick's <c>drawBody</c>.</summary>
     public Spark SparkAt(int i, float aim, double timeS)
@@ -128,7 +184,7 @@ public sealed class DroneSwarm
         float t = (float)timeS;
         var orbit = Orbit(i, t);
         bool toIn = In(i);
-        var (tx, ty, tdx, tdy) = toIn ? Place(Shape, Ranks[i], TurnOf(Shape, aim, timeS), t) : (orbit.X, orbit.Y, orbit.Dx, orbit.Dy);
+        var (tx, ty, tdx, tdy) = toIn ? Place(Shape, i, TurnOf(Shape, aim, timeS), timeS) : (orbit.X, orbit.Y, orbit.Dx, orbit.Dy);
         float k = Progress(i, timeS, toIn);
         if (k >= 1) return toIn ? new Spark(tx, ty, tdx, tdy, true, HeatOf(i, 1, t), false, 0, 0) : Orbiting(i, orbit, t);
         float f = _fromIn[i] + ((toIn ? 1 : 0) - _fromIn[i]) * k;
@@ -136,7 +192,7 @@ public sealed class DroneSwarm
         {
             null => (X: _fromX[i], Y: _fromY[i], Dx: tdx, Dy: tdy),
             SwarmShape.Idle => (orbit.X, orbit.Y, orbit.Dx, orbit.Dy),
-            SwarmShape shape => Place(shape, Ranks[i], Turn(shape, aim, timeS, _fromPointed[i]), t),
+            SwarmShape shape => Place(shape, i, Turn(shape, aim, timeS, _fromPointed[i]), timeS),
         };
         if (k <= 0)
             return _fromShape[i] == SwarmShape.Idle ? Orbiting(i, orbit, t)
@@ -175,7 +231,10 @@ public sealed class DroneSwarm
     }
 
     /// <summary>Whether spark <paramref name="i"/> belongs on the current shape.</summary>
-    private bool In(int i) => Shape != SwarmShape.Idle && Ranks[i] >= 0;
+    private bool In(int i) => Takes(Shape, i);
+
+    /// <summary>Whether spark <paramref name="i"/> belongs on <paramref name="shape"/>: the reticle takes every one, the others their share.</summary>
+    private static bool Takes(SwarmShape shape, int i) => shape switch { SwarmShape.Idle => false, SwarmShape.Scan => true, _ => Ranks[i] >= 0 };
 
     /// <summary>How far along its flight spark <paramref name="i"/> is at <paramref name="timeS"/>, eased: 0 not left, 1 there (or not flying).</summary>
     private float Progress(int i, double timeS, bool toIn)
@@ -199,15 +258,49 @@ public sealed class DroneSwarm
     private static float IdleHeat(int i, float t) =>
         Hash(i + 3) < I.BrightShare ? I.Bright + I.BrightSwing * MathF.Sin(t * I.BrightPace + i * 7) : I.Dim;
 
-    /// <summary>The place of rank <paramref name="rank"/> on <paramref name="shape"/> turned <paramref name="turn"/> at <paramref name="t"/>, flowing along it.</summary>
-    private static (float X, float Y, float Dx, float Dy) Place(SwarmShape shape, int rank, float turn, float t)
+    /// <summary>
+    /// Spark <paramref name="i"/>'s place on <paramref name="shape"/> turned <paramref name="turn"/> at <paramref name="timeS"/>, flowing along it: on the
+    /// reticle a seed sits on its mark, the rest flow along the ring or the ticks as opened, each by its own pace (the pick's parts).
+    /// </summary>
+    private (float X, float Y, float Dx, float Dy) Place(SwarmShape shape, int i, float turn, double timeS)
     {
-        var path = shape switch { SwarmShape.Lamp => LampPath, SwarmShape.Scan => ScanPath, _ => FanPath };
-        var (x, y, dx, dy) = path.At((rank + 0.5f) / ShareCount + t * I.Flow / path.Length);
-        var (px, py) = Rotate(x, y, turn);
-        var (hx, hy) = Rotate(dx, dy, turn);
+        float t = (float)timeS;
+        (float X, float Y, float Dx, float Dy) at;
+        if (shape == SwarmShape.Scan)
+        {
+            var (part, rank) = ScanParts[i];
+            if (part == Mark) at = MarkSeats[rank];
+            else
+            {
+                Opened(Open(timeS));
+                at = (part == Ring ? _ringPath : _tickPath).At((rank + 0.5f) / ScanCounts[part] + t * ScanFlows[part] / ScanLengths[part]);
+            }
+        }
+        else
+        {
+            var path = shape == SwarmShape.Lamp ? LampPath : FanPath;
+            at = path.At((Ranks[i] + 0.5f) / ShareCount + t * I.Flow / path.Length);
+        }
+        var (px, py) = Rotate(at.X, at.Y, turn);
+        var (hx, hy) = Rotate(at.Dx, at.Dy, turn);
         return (px, py, hx, hy);
     }
+
+    /// <summary>The reticle's lines and paths opened <paramref name="open"/> of the way, built again only as that changes.</summary>
+    private void Opened(float open)
+    {
+        if (open == _linesOpen) return;
+        _linesOpen = open;
+        for (int j = 0; j < I.Dots; j++) _scanLines[j] = I.ScanMarks[j];
+        var ring = Lerp(I.ScanRing, I.ScanRingOpen, open);
+        var ticks = Lerp(I.ScanTicks, I.ScanTicksOpen, open);
+        ring.CopyTo(_scanLines, I.Dots);
+        ticks.CopyTo(_scanLines, I.Dots + ring.Length);
+        (_ringPath, _tickPath) = (new ThreadPath(ring), new ThreadPath(ticks));
+    }
+
+    private static float[][] Lerp(float[][] closed, float[][] opened, float k) =>
+        [.. closed.Select((line, l) => line.Select((v, n) => v + (opened[l][n] - v) * k).ToArray())];
 
     private float Elapsed(double timeS) => (float)Math.Min(1e6, (timeS - _changedS) / I.Form);
 
@@ -227,10 +320,38 @@ public sealed class DroneSwarm
         return ranks;
     }
 
+    /// <summary>
+    /// The reticle's parts for every spark, as the pick's <c>alloc</c>: each part's count its share of the sparks rounded by largest remainder, the
+    /// sparks taken in order of their hash, the marks' first.
+    /// </summary>
+    private static (int, int)[] ScanPartsOf(out int[] counts)
+    {
+        double seeds = I.Dots / (double)I.Sparks;
+        double[] raw = [.. ((double[])[seeds, I.RingShare, 1 - seeds - I.RingShare]).Select(s => s * I.Sparks)];
+        counts = [.. raw.Select(v => (int)Math.Floor(v + 1e-9))];
+        int left = (int)Math.Round(raw.Sum()) - counts.Sum();
+        var byRest = Enumerable.Range(0, raw.Length).OrderByDescending(p => raw[p] - Math.Floor(raw[p] + 1e-9)).ToArray();
+        for (int m = 0; m < left; m++) counts[byRest[m % byRest.Length]]++;
+        var parts = new (int, int)[I.Sparks];
+        int at = 0;
+        var order = Enumerable.Range(0, I.Sparks).OrderBy(i => Hash(i * 3 + 1)).ToArray();
+        for (int part = 0; part < counts.Length; part++)
+            for (int rank = 0; rank < counts[part] && at < I.Sparks; rank++) parts[order[at++]] = (part, rank);
+        return parts;
+    }
+
+    private static int[] SeedSparksOf()
+    {
+        var sparks = new int[I.Dots];
+        for (int i = 0; i < I.Sparks; i++)
+            if (ScanParts[i] is (Mark, var rank)) sparks[rank] = i;
+        return sparks;
+    }
+
     /// <summary>The kit's seeds for the drone's embers (<c>DR.P</c>, seed 530): each one's phase and spread, its side, heat and tone drawn and dropped.</summary>
     private static (float, float)[] DrawSeeds()
     {
-        var draw = new SootRng(530);
+        var draw = new PickRng(530);
         var seeds = new (float, float)[I.Sparks];
         for (int i = 0; i < seeds.Length; i++)
         {
@@ -279,6 +400,26 @@ public sealed class DroneSwarm
             var q = _segments[lo];
             float e = Math.Clamp((d - q.At) / q.Length, 0, 1);
             return (q.Ax + (q.Bx - q.Ax) * e, q.Ay + (q.By - q.Ay) * e, (q.Bx - q.Ax) / q.Length, (q.By - q.Ay) / q.Length);
+        }
+    }
+
+    /// <summary>The pick page's <c>rng</c>: a xorshift seeded as its was, draws 0..1.</summary>
+    private struct PickRng
+    {
+        private uint _s;
+
+        public PickRng(uint seed)
+        {
+            _s = unchecked((uint)((ulong)seed * 2654435761UL));
+            if (_s == 0) _s = 1;
+        }
+
+        public float Next()
+        {
+            _s ^= _s << 13;
+            _s ^= _s >> 17;
+            _s ^= _s << 5;
+            return (float)(_s / 4294967296.0);
         }
     }
 }

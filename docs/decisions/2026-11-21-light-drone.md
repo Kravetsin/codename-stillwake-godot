@@ -2,7 +2,9 @@
 
 - Status: accepted; supersedes in part [the-scanner](2026-11-07-the-scanner.md) (an item worn on the helmet's mount),
   [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) (the helmet lamp, an item),
-  [gestures-for-words](2026-11-16-gestures-for-words.md) and [crew-pings](2026-11-16-crew-pings.md) (their key, F); its look and a gesture's hologram superseded by [drone-threads](2026-11-21-drone-threads.md)
+  [gestures-for-words](2026-11-16-gestures-for-words.md) and [crew-pings](2026-11-16-crew-pings.md) (their key, F); its look and a gesture's hologram superseded by [drone-threads](2026-11-21-drone-threads.md);
+  the modes bought on the market superseded by [drone-lessons](2026-11-21-drone-lessons.md), the wheel's look by
+  [thread-icons](2026-11-21-thread-icons.md)
 - Date: 2026-11-21
 
 ## Context

@@ -9,9 +9,9 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// What the research and market keys on the tablet's edge tell (hologram-keys), read for themselves on a timer, for the tablet reads nothing while away: the
-/// research key shows from the first thing known, amber while a batch of finds is unread, the batches waiting on it less those the flash still holds; the market's
+/// research key shows from the first thing known, amber while a batch of finds is unread, the batches waiting on it less those whose record has not reached it; the market's
 /// shows from the first credit or good bought, amber while anything on it can be bought, and the credits are read for the readout beside it. It tells the
-/// flash along the edge what is new.
+/// drone's scan what is new.
 /// </summary>
 public partial class TabletKey : Node
 {
@@ -26,7 +26,7 @@ public partial class TabletKey : Node
     private readonly Func<uint> _worldId;
     private readonly Func<int> _me;
     private readonly BoardKeep _keep;
-    private readonly FindFlash _flash;
+    private readonly FindScan _scan;
     private int _unread;
     private string? _readAt;
     private double _sinceRead = RefreshS;
@@ -36,14 +36,14 @@ public partial class TabletKey : Node
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
     /// <param name="me">The peer playing here: whose board is read (own-knowledge), and whose creative mode marks the market done.</param>
     /// <param name="keep">What is kept of the board, shared with the page.</param>
-    /// <param name="flash">The flash along the edge, told what is new.</param>
+    /// <param name="scan">The drone's scan of each find, told what is new.</param>
     /// <param name="press">Takes the tablet out on the board or puts it away.</param>
     /// <param name="boardOut">Whether the board is out.</param>
-    public TabletKey(Func<Registry?> world, Func<World?> surfaces, Func<uint> worldId, Func<int> me, BoardKeep keep, FindFlash flash, Action press, Func<bool> boardOut)
+    public TabletKey(Func<Registry?> world, Func<World?> surfaces, Func<uint> worldId, Func<int> me, BoardKeep keep, FindScan scan, Action press, Func<bool> boardOut)
     {
-        (_world, _surfaces, _worldId, _me, _keep, _flash) = (world, surfaces, worldId, me, keep, flash);
+        (_world, _surfaces, _worldId, _me, _keep, _scan) = (world, surfaces, worldId, me, keep, scan);
         Cap = new EdgeKey("research", press, boardOut, () => _keep.Seen.Lit,
-            () => _unread - _flash.Holding is var waiting and > 0 ? waiting : null);
+            () => _unread - _scan.Holding is var waiting and > 0 ? waiting : null);
     }
 
     /// <summary>The research key itself, for the edge to set in place.</summary>
@@ -81,6 +81,6 @@ public partial class TabletKey : Node
         MarketShows = Credits > 0 || Market.Any(n => m.Research.Done(me, n));
         Affordable = Market.Any(n => m.Research.BuyProblem(n) == null);
         _unread = _keep.Seen.UnreadBatches;
-        _flash.Read(_keep.Seen, _unread, _keep.Seen.Open);
+        _scan.Read(_keep.Seen, _keep.Seen.Batches, _keep.Seen.Open);
     }
 }

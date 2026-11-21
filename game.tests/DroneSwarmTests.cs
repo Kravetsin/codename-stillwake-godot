@@ -17,11 +17,14 @@ public class DroneSwarmTests
 
     private static Spark[] All(DroneSwarm swarm, float aim, double t) => Enumerable.Range(0, Sparks).Select(i => swarm.SparkAt(i, aim, t)).ToArray();
 
-    /// <summary>How far (<paramref name="x"/>, <paramref name="y"/>) is from <paramref name="shape"/>'s threads turned <paramref name="turn"/>.</summary>
-    private static float OffShape(SwarmShape shape, float turn, float x, float y)
+    /// <summary>Whether spark <paramref name="i"/> takes part in <paramref name="shape"/>: the reticle takes every one.</summary>
+    private static bool Takes(SwarmShape shape, int i) => shape == SwarmShape.Scan || shape != SwarmShape.Idle && DroneSwarm.RankOf(i) >= 0;
+
+    /// <summary>How far (<paramref name="x"/>, <paramref name="y"/>) is from <paramref name="shape"/>'s threads turned <paramref name="turn"/>, as <paramref name="swarm"/> has them at <paramref name="t"/>.</summary>
+    private static float OffShape(DroneSwarm swarm, SwarmShape shape, float turn, float x, float y, double t)
     {
         float best = float.MaxValue, c = MathF.Cos(turn), s = MathF.Sin(turn);
-        foreach (var line in DroneSwarm.LinesOf(shape))
+        foreach (var line in swarm.LinesOf(shape, t))
             for (int k = 2; k + 1 < line.Length; k += 2)
             {
                 float ax = line[k - 2] * c - line[k - 1] * s, ay = line[k - 2] * s + line[k - 1] * c;
@@ -56,10 +59,88 @@ public class DroneSwarmTests
             for (int i = 0; i < Sparks; i++)
             {
                 var spark = swarm.SparkAt(i, 0.4f, t);
-                if (DroneSwarm.RankOf(i) < 0) OnOrbit(spark, i, t);
-                else Assert.True(OffShape(shape, swarm.TurnOf(shape, 0.4f, t), spark.X, spark.Y) < 1e-3f, $"spark {i} off the {shape}");
+                if (!Takes(shape, i)) OnOrbit(spark, i, t);
+                else Assert.True(OffShape(swarm, shape, swarm.TurnOf(shape, 0.4f, t), spark.X, spark.Y, t) < 1e-3f, $"spark {i} off the {shape}");
             }
         }
+    }
+
+    [Fact]
+    public void TheReticleTakesEverySparkByThePicksSharesOneSittingOnEachMark()
+    {
+        // 26 marks, 40% of 120 on the ring, the rest on the ticks: the pick's alloc, the sparks in their hash's order.
+        Assert.Equal([DroneInk.Dots, 48, 46], DroneSwarm.ScanShares);
+        var byHash = Enumerable.Range(0, Sparks).OrderBy(i => DroneSwarm.Hash(3 * i + 1)).ToArray();
+        Assert.Equal(byHash.Take(DroneInk.Dots), Enumerable.Range(0, DroneInk.Dots).Select(DroneSwarm.SparkOfSeed));
+        for (int part = 0; part < 3; part++)
+        {
+            var ranks = Enumerable.Range(0, Sparks).Where(i => DroneSwarm.ScanPartOf(i).Part == part).Select(i => DroneSwarm.ScanPartOf(i).Rank).Order();
+            Assert.Equal(Enumerable.Range(0, DroneSwarm.ScanShares[part]), ranks);
+        }
+        var swarm = new DroneSwarm();
+        swarm.Become(SwarmShape.Scan, 0.9f, 1);
+        double t = 1 + Settled;
+        for (int j = 0; j < DroneInk.Dots; j++)
+        {
+            int i = DroneSwarm.SparkOfSeed(j);
+            Assert.Equal(j, DroneSwarm.SeedOf(i));
+            // It sits on the middle of its mark, the gauge's dot j's seat, still while the rest flow.
+            var (x, y) = DroneSwarm.Seat(j, 0.9f);
+            var mark = swarm.LinesOf(SwarmShape.Scan, t)[j];
+            var (mx, my) = ((mark[0] + mark[2]) / 2, (mark[1] + mark[3]) / 2);
+            Assert.Equal(mx * MathF.Cos(0.9f) - my * MathF.Sin(0.9f), x, 4);
+            Assert.Equal(mx * MathF.Sin(0.9f) + my * MathF.Cos(0.9f), y, 4);
+            Assert.Equal((x, y), (swarm.SparkAt(i, 0.9f, t).X, swarm.SparkAt(i, 0.9f, t).Y));
+            Assert.Equal((x, y), (swarm.SparkAt(i, 0.9f, t + 1).X, swarm.SparkAt(i, 0.9f, t + 1).Y));
+            Assert.InRange(MathF.Sqrt(x * x + y * y), 10.19f, 10.21f);
+        }
+    }
+
+    [Fact]
+    public void TheRingAndTheTicksFlowEachAtItsOwnPace()
+    {
+        var swarm = new DroneSwarm();
+        swarm.Become(SwarmShape.Scan, 0, 0);
+        int ring = Enumerable.Range(0, Sparks).First(i => DroneSwarm.ScanPartOf(i).Part == 1);
+        // On the ring 12 px a second, a chord a little shorter; on a tick 8, away from its ends.
+        Assert.InRange(Apart(swarm.SparkAt(ring, 0, 3), swarm.SparkAt(ring, 0, 3.1)), 1.15f, 1.2f + 1e-3f);
+        var ticks = Enumerable.Range(0, Sparks).Where(i => DroneSwarm.ScanPartOf(i).Part == 2).ToArray();
+        Assert.Contains(ticks, i => MathF.Abs(Apart(swarm.SparkAt(i, 0, 3), swarm.SparkAt(i, 0, 3.1)) - 0.8f) < 1e-3f);
+        Assert.All(ticks, i => Assert.True(Apart(swarm.SparkAt(i, 0, 3), swarm.SparkAt(i, 0, 3.1)) <= 0.8f + 1e-3f || Apart(swarm.SparkAt(i, 0, 3), swarm.SparkAt(i, 0, 3.1)) > 5));
+    }
+
+    [Fact]
+    public void TheReticleOpensAsTheScannerReadsAndClosesOnceItsDotsAreHome()
+    {
+        var swarm = new DroneSwarm();
+        swarm.Become(SwarmShape.Scan, 0, 0);
+        float Tick(double t) => swarm.LinesOf(SwarmShape.Scan, t)[DroneInk.Dots + 1][0];
+        Assert.Equal(0, swarm.Open(2));
+        Assert.Equal(5.4f, Tick(2), 4);
+        swarm.Read(true, 2);
+        Assert.InRange(swarm.Open(2 + DroneInk.OpenIn / 2), 0.1f, 0.9f);
+        Assert.Equal(1, swarm.Open(2 + DroneInk.OpenIn));
+        // Opened, the ticks reach in from 5.4 to 4.3 and out from 12.5 to 13.5, the ring shrinks to 7.1; the marks stay.
+        Assert.Equal(4.3f, Tick(3), 4);
+        Assert.Equal(13.5f, swarm.LinesOf(SwarmShape.Scan, 3)[DroneInk.Dots + 1][2], 4);
+        Assert.Equal(7.1f, swarm.LinesOf(SwarmShape.Scan, 3)[DroneInk.Dots][0], 4);
+        Assert.Equal(DroneInk.ScanMarks[3], swarm.LinesOf(SwarmShape.Scan, 3)[3]);
+        // Every spark on the opened reticle.
+        for (int i = 0; i < Sparks; i++)
+        {
+            var spark = swarm.SparkAt(i, 0, 3);
+            Assert.True(OffShape(swarm, SwarmShape.Scan, 0, spark.X, spark.Y, 3) < 1e-3f, $"spark {i} off the opened reticle");
+        }
+        swarm.Read(false, 4);
+        Assert.Equal(1, swarm.Open(4 + DroneInk.CloseAfter));
+        Assert.InRange(swarm.Open(4 + DroneInk.CloseAfter + DroneInk.CloseIn / 2), 0.1f, 0.9f);
+        Assert.Equal(0, swarm.Open(4 + DroneInk.CloseAfter + DroneInk.CloseIn));
+        // Reading again as it closes, it opens again from where it is, no jump.
+        float closing = swarm.Open(4.6);
+        Assert.InRange(closing, 0.1f, 0.9f);
+        swarm.Read(true, 4.6);
+        Assert.Equal(closing, swarm.Open(4.6), 4);
+        Assert.Equal(1, swarm.Open(4.6 + DroneInk.OpenIn));
     }
 
     [Fact]
@@ -119,7 +200,7 @@ public class DroneSwarmTests
                         if (Apart(prev[i], now[i]) >= 5) leaps[i]++;
                     prev = now;
                 }
-                for (int i = 0; i < Sparks; i++) Assert.True(leaps[i] <= (DroneSwarm.RankOf(i) < 0 ? 0 : 4), $"spark {i} leapt {leaps[i]} times, {from} to {to} at {at} s");
+                for (int i = 0; i < Sparks; i++) Assert.True(leaps[i] <= (Takes(from, i) || Takes(to, i) ? 4 : 0), $"spark {i} leapt {leaps[i]} times, {from} to {to} at {at} s");
             }
     }
 
@@ -139,8 +220,7 @@ public class DroneSwarmTests
         for (int i = 0; i < Sparks; i++) Assert.True(Apart(fan[i], leaving[i]) < 1e-3f, $"spark {i} jumped");
         double t = 4 + Settled;
         for (int i = 0; i < Sparks; i++)
-            if (DroneSwarm.RankOf(i) >= 0)
-                Assert.True(OffShape(SwarmShape.Scan, 0, swarm.SparkAt(i, 0, t).X, swarm.SparkAt(i, 0, t).Y) < 1e-3f);
+            Assert.True(OffShape(swarm, SwarmShape.Scan, 0, swarm.SparkAt(i, 0, t).X, swarm.SparkAt(i, 0, t).Y, t) < 1e-3f);
     }
 
     [Fact]
@@ -177,13 +257,13 @@ public class DroneSwarmTests
     public void HeldSparksFlowAlongTheShape()
     {
         var swarm = new DroneSwarm();
-        swarm.Become(SwarmShape.Scan, 0, 0);
-        int i = Enumerable.Range(0, Sparks).First(k => DroneSwarm.RankOf(k) >= 0);
-        var a = swarm.SparkAt(i, 0, 3);
-        var b = swarm.SparkAt(i, 0, 3.1);
-        // 30 px a second, round corners at most shorter.
-        Assert.InRange(Apart(a, b), 1, DroneInk.Flow * 0.1f + 0.01f);
-        Assert.True(a.Front && b.Front);
+        swarm.Become(SwarmShape.Lamp, 0, 0);
+        var held = Enumerable.Range(0, Sparks).Where(k => DroneSwarm.RankOf(k) >= 0).ToArray();
+        // 30 px a second, round corners at most shorter; but for a few stepping past a line's end onto the next.
+        var moved = held.Select(i => Apart(swarm.SparkAt(i, 0, 3), swarm.SparkAt(i, 0, 3.1))).ToArray();
+        Assert.All(moved, d => Assert.True(d is >= 1 and <= DroneInk.Flow * 0.1f + 0.01f || d > 5, $"moved {d}"));
+        Assert.True(moved.Count(d => d <= 5) > held.Length * 0.9);
+        Assert.All(held, i => Assert.True(swarm.SparkAt(i, 0, 3).Front));
     }
 
     [Fact]

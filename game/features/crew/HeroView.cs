@@ -256,8 +256,18 @@ public partial class HeroView : Node2D
     /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
     public bool Scanning => _figure.Scanner && !_figure.Projects;
 
-    /// <summary>Where this hero's drone's scan sparks leave and go home, and how red they burn (light-drone); none while it is away.</summary>
-    public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
+    /// <summary>This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is away.</summary>
+    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
+
+    /// <summary>What the scanner's gauge does now, after its frame: whether it reads a thing, how far each dot is out from its mark on the drone's reticle.</summary>
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _figure.DroneGauge(reads, away);
+
+    /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
+    public Vector2? DroneStare { set => _figure.DroneStare = value; }
+    /// <summary>A point of the world this hero's drone flies to: over a machine it learns a form from (drone-lessons); null for none.</summary>
+    public Vector2? DroneVisit { set => _figure.DroneVisit = value; }
+    /// <summary>The form this hero's drone shows off by the head, just learned, and how many seconds into the show (drone-lessons); null for none.</summary>
+    public (string Form, double Seconds)? DroneBecoming { private get; set; }
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
@@ -294,7 +304,6 @@ public partial class HeroView : Node2D
         };
         _ui.Breathed += () => _breathe = true;
         _ui.Ate += food => _eat = food;
-        _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -644,7 +653,8 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         _figure.Paired = m.Players.HasDrone(client.Id);
-        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
+        (_figure.HeadLamp, _figure.Scanner) = DroneBecoming is { } becoming ? DroneModes.Becoming(becoming.Form) : DroneModes.Shown(_figure.Paired, _droneMode, _knows);
+        _figure.DroneAlarm = DroneBecoming is { } alarms && alarms.Form == Stillwake.Content.LightDrone.AlarmsMode ? DroneModes.AlarmPulse(alarms.Seconds) : null;
         _figure.DroneWindow = _ui.DroneWindow;
         _figure.Senses = DroneSensesOf(m, client.Id, _surface);
         _ui.DroneAt = _figure.DroneLens is { } droneLens ? (droneLens.GetCenter().X, droneLens.GetCenter().Y) : null;

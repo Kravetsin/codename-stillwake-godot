@@ -55,11 +55,7 @@ public static class Market
         ["crystal"] = 100,
         ["arcLamp"] = 300,
         ["arcShard"] = 200,
-        // Gear only the mafia sells, delivered (2026-11-08-mafia-deliveries): the worth its craft had when it went, so its price stays put;
-        // the scanner's too, an item no more but the light drone's mode its node opens (light-drone).
-        ["scanner"] = 492,
-        // The drone's lamp, its mode too, bought before the first level (light-drone).
-        ["droneLamp"] = 300,
+        // Gear only the mafia sells, delivered (2026-11-08-mafia-deliveries): the worth its craft had when it went, so its price stays put.
         ["powerDriver"] = 750,
         ["heavyHelmet"] = 1239,
         ["plasmaCutter"] = 1032,
@@ -71,7 +67,7 @@ public static class Market
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's. Food sells (2026-11-14-food-and-gear-cards).</summary>
     private static readonly HashSet<string> Unsold = new(StringComparer.Ordinal)
     {
-        "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "scanner", "droneLamp", "battery", "accumulator", "helmet", "heavyHelmet", "heatedHelmet", "heatHelmet", "suit", "regenSuit", "heatSuit", "cape",
+        "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "grapple", "nailer", "railgun", "drill", "powerDriver", "grinder", "plasmaCutter", "spear", "sledgehammer", "pickaxe", "jetpack", "lightDrone", "battery", "accumulator", "helmet", "heavyHelmet", "heatedHelmet", "heatHelmet", "suit", "regenSuit", "heatSuit", "cape",
     };
 
     private static readonly Dictionary<string, int> Worths = Worked();
@@ -86,9 +82,6 @@ public static class Market
     {
         var worths = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var item in Items.All) Worth(item.Id, worths, []);
-        // A priced good that is no item, a drone's mode, keeps its worth for its node's price.
-        Worth(LightDrone.ScannerMode, worths, []);
-        Worth(LightDrone.LampMode, worths, []);
         return worths;
     }
 

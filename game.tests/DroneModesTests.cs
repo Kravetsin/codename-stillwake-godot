@@ -109,4 +109,16 @@ public class DroneModesTests
         Assert.Null(SentHero.Decode(lit.Encode())!.Value.Seen.Drone);
         Assert.True(lit.Encode().Length < scanning.Encode().Length);
     }
+
+    /// <summary>A form just learned is shown off by the head (drone-lessons): the lamp lit, the scan out, the alarms pulsing red with neither.</summary>
+    [Fact]
+    public void AFormJustLearnedIsShownOff()
+    {
+        Assert.Equal((true, false), DroneModes.Becoming(Stillwake.Content.LightDrone.LampMode));
+        Assert.Equal((false, true), DroneModes.Becoming(Stillwake.Content.LightDrone.ScannerMode));
+        Assert.Equal((false, false), DroneModes.Becoming(Stillwake.Content.LightDrone.AlarmsMode));
+        Assert.Equal(0, DroneModes.AlarmPulse(0), 6);
+        Assert.Equal(1, DroneModes.AlarmPulse(DroneModes.AlarmBeat / 2), 6);
+        Assert.Equal(0, DroneModes.AlarmPulse(3 * DroneModes.AlarmBeat), 6);
+    }
 }

@@ -133,7 +133,8 @@ public sealed class StripParts(TipSpots tips)
 
     /// <summary>The picture of <paramref name="id"/> alone, <paramref name="size"/> pixels across where it is an item's: what hatches from the bulb.</summary>
     public Texture2D PictureOf(string id, int size) =>
-        Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size);
+        FormPictures.Of(id, size) is { } form ? form
+        : Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size);
 
     /// <summary>Draws <paramref name="picture"/> as a shape, <paramref name="pencil"/> of the way to being understood.</summary>
     public static void Pale(TextureRect picture, double pencil)

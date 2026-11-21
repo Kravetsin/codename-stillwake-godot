@@ -96,6 +96,15 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>The pictures drawn last frame, and the most ever made: for the frame log and scripted runs.</summary>
     public (int Drawn, int Made) Pictures => (_shown.Count, _shown.Count + _small.Count + _wrecks.Count);
 
+    /// <summary>Where the last wreck seen broken was, world px: the place the drone learns the scan from at the tenth (drone-lessons); null before one.</summary>
+    public Rect2? LastBroken { get; private set; }
+
+    private static Rect2 BoxOf(Sprite2D picture)
+    {
+        var size = picture.Texture.GetSize() * picture.Scale;
+        return new Rect2(picture.Position - size / 2, size);
+    }
+
     public override void _Ready()
     {
         // Behind the back walls: debris drifts past behind the hull.
@@ -151,7 +160,10 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
+            {
                 Burst(gone.Picture, gone.Item, _own.Ran(id));
+                if (gone.Wreck) LastBroken = BoxOf(gone.Picture);
+            }
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);

@@ -3,17 +3,21 @@ using I = Stillwake.Game.Shared.DroneInk;
 
 namespace Stillwake.Game.Features.Scanner;
 
-/// <summary>A gauge dot as drawn, world px: where, its heading while it flies, how hot and how opaque, where its thread runs from.</summary>
-public readonly record struct GaugeDot(float X, float Y, float Dx, float Dy, float Heat, float Alpha, bool Flying, float FromX, float FromY);
+/// <summary>
+/// A gauge dot as drawn, world px: where, its heading while it flies, how hot and how opaque, where its thread runs from; its side, and how far it
+/// is out from its mark on the drone's reticle, 0..1 (0: it sits there, a spark of the drone's, not drawn as a dot).
+/// </summary>
+public readonly record struct GaugeDot(float X, float Y, float Dx, float Dy, float Heat, float Alpha, bool Flying, float FromX, float FromY, float Side, float Away);
 
 /// <summary>An ember a hit burst off the row, world px: where, its side's share of a dot's, how hot.</summary>
 public readonly record struct GaugeEmber(float X, float Y, float Side, float Heat);
 
 /// <summary>
-/// The scanner's gauge (drone-threads, the pick «Нити», gauge dots): a row of <see cref="Count"/> ember dots over the wreck read,
-/// the lit ones its hit points left. The dots fly in from the spyglass's mouth and out to the drone's eye, and from where they are
-/// whenever the pointer leaves, comes back or moves to another wreck; a hit shudders the row and bursts the dots it put out. World
-/// px and seconds. Client only.
+/// The scanner's gauge (drone-threads, the pick «Нити», gauge dots; the reticle «Прицел», scan-form): a row of <see cref="Count"/> ember
+/// dots over the wreck read, the lit ones its hit points left. Each dot is a spark of the drone's reticle, sitting on its own mark: it
+/// leaves the mark for the row, hops from wreck to wreck without coming back, and returns to its mark, from where it is whenever the
+/// pointer leaves, comes back or moves to another wreck; a hit shudders the row and bursts the dots it put out. With no drone the
+/// dots come and go in place. World px and seconds. Client only.
 /// </summary>
 public sealed class ScanDots
 {
@@ -22,16 +26,15 @@ public sealed class ScanDots
 
     private const float W = I.WorldPx;
 
-    private enum From { Mouth, Home, Fixed }
+    private enum From { Seat, Home, Fixed }
 
     private readonly From[] _from = new From[Count];
-    private readonly (float X, float Y)[] _fixed = new (float X, float Y)[Count];
-    private readonly float[] _alpha = new float[Count], _lost = new float[Count];
+    private readonly (float X, float Y)[] _fixed = new (float X, float Y)[Count], _seats = new (float X, float Y)[Count];
+    private readonly float[] _alpha = new float[Count], _awayFrom = new float[Count], _lost = new float[Count];
     private readonly double[] _burst = new double[Count];
     private Readout? _shown;
-    private bool _open;
+    private bool _open, _seated;
     private double _e = I.DotsOut, _hit = double.PositiveInfinity, _time;
-    private (float X, float Y)? _mouth, _eye;
 
     public ScanDots() => Array.Fill(_burst, double.PositiveInfinity);
 
@@ -48,11 +51,14 @@ public sealed class ScanDots
     /// <summary>Whether any of it shows.</summary>
     public bool Visible => _shown != null && (_open || _e < I.DotsOut);
 
+    /// <summary>Whether it reads a thing: its dots out to it or on their way.</summary>
+    public bool Reads => _open;
+
     /// <summary>
-    /// Steps it <paramref name="seconds"/> on to <paramref name="now"/>, what the scanner reads (none: it leaves), the spyglass's
-    /// <paramref name="mouth"/> and the drone's <paramref name="eye"/> where they are (none: the dots come and go in place).
+    /// Steps it <paramref name="seconds"/> on to <paramref name="now"/>, what the scanner reads (none: it leaves), the drone's reticle's
+    /// <paramref name="seats"/> where they are, one a dot (none: the dots come and go in place).
     /// </summary>
-    public void Step(Readout? now, (float X, float Y)? mouth, (float X, float Y)? eye, double seconds)
+    public void Step(Readout? now, (float X, float Y)[]? seats, double seconds)
     {
         bool open = now != null, another = now is { } read && _shown is { } was && was.Id != read.Id;
         if (open != _open || another)
@@ -62,12 +68,12 @@ public sealed class ScanDots
             for (int j = 0; j < Count; j++)
             {
                 var dot = Flight(j);
-                if (none) (_from[j], _alpha[j]) = (From.Mouth, 1);
+                if (none) (_from[j], _alpha[j], _awayFrom[j]) = (From.Seat, 1, seats != null ? 0 : 1);
                 else
                 {
                     _from[j] = dot.Home && !another ? From.Home : From.Fixed;
                     _fixed[j] = (dot.Dot.X, dot.Dot.Y);
-                    _alpha[j] = dot.Dot.Alpha;
+                    (_alpha[j], _awayFrom[j]) = (dot.Dot.Alpha, dot.Dot.Away);
                 }
             }
             if (another || !open) Calm();
@@ -76,7 +82,8 @@ public sealed class ScanDots
         }
         else if (now is { } same && _shown is { } before && same.Left < before.Left) Hit(before, same);
         if (now != null) _shown = now;
-        (_mouth, _eye) = (mouth, eye);
+        _seated = seats != null;
+        if (seats != null) seats.AsSpan(0, Count).CopyTo(_seats);
         _e += seconds;
         _time += seconds;
         _hit += seconds;
@@ -123,6 +130,7 @@ public sealed class ScanDots
         var home = HomeOf(read, j);
         float q, alpha;
         (float X, float Y) goal;
+        // Home to its mark it stays whole and lands as the drone's spark; with no drone it fades where it is.
         if (_open)
         {
             q = Sm(Math.Clamp(((float)(_e / I.DotsIn) - (float)Hash(j + 5) * I.DotLag) / I.DotSpan, 0, 1));
@@ -132,15 +140,19 @@ public sealed class ScanDots
         else
         {
             q = Sm(Math.Clamp(((float)(_e / I.DotsOut) - (float)Hash(j + 2) * I.DotLagOut) / I.DotSpanOut, 0, 1));
-            goal = _eye ?? home;
-            alpha = _alpha[j] * (1 - q);
+            goal = _seated ? _seats[j] : home;
+            alpha = _seated ? _alpha[j] + (1 - _alpha[j]) * q : _alpha[j] * (1 - q);
         }
-        var start = _from[j] switch { From.Mouth => _mouth ?? home, From.Home => home, _ => _fixed[j] };
+        var start = _from[j] switch { From.Seat => _seated ? _seats[j] : home, From.Home => home, _ => _fixed[j] };
         bool there = _open ? q >= 1 : _from[j] == From.Home && q <= 0;
         float e = Sm(q), wx = goal.X - start.X, wy = goal.Y - start.Y, d = MathF.Sqrt(wx * wx + wy * wy);
         bool flying = !there && d > 1e-4f;
         var (x, y) = there ? home : (start.X + wx * e, start.Y + wy * e);
-        return (new GaugeDot(x, y, flying ? wx / d : 0, flying ? wy / d : 0, Heat(read, j) * alpha, alpha, flying, start.X, start.Y), there);
+        // Out from its mark it grows from a spark into a dot, its flicker the reticle's, then the gauge's.
+        float away = _seated ? _awayFrom[j] + ((_open ? 1 : 0) - _awayFrom[j]) * q : 1;
+        float spark = I.OnShape + I.OnShapeSwing * MathF.Sin((float)_time * I.OnShapePace + j);
+        float heat = spark + (Heat(read, j) * alpha - spark) * away, side = I.Spark * I.Px + (I.Dot * W - I.Spark * I.Px) * away;
+        return (new GaugeDot(x, y, flying ? wx / d : 0, flying ? wy / d : 0, heat, alpha, flying, start.X, start.Y, side, away), there);
     }
 
     /// <summary>How hot dot <paramref name="j"/> burns for <paramref name="read"/>: lit by its share, flickering; hotter as a hit lands.</summary>

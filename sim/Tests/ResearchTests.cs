@@ -81,46 +81,6 @@ public class ResearchTests
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
-    /// <summary>
-    /// The scanner (2026-11-07-the-scanner), the first level's headline, three times its worth rounded: the light drone's mode
-    /// (light-drone), bought once for the whole crew, known when its delivery arrives.
-    /// </summary>
-    [Fact]
-    public void TheScannerModeIsSoldAtTheFirstLevelBoughtOnceAndKnownByTheCrewOnArrival()
-    {
-        string scanner = LightDrone.ScannerMode;
-        Assert.Equal(1, Node(scanner).Ring);
-        Assert.Equal(1500, Prices.Of(Node(scanner)));
-        var w = SetUp(credits: 100_000);
-        Assert.Equal("research.reputation", w.M.Research.BuyProblem(Node(scanner)));
-        Mafia.Reach(w, Node(scanner).Ring);
-        w.Do(new BuyBlock(scanner)).Run().Do(new BuyBlock(scanner)).Run();
-        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
-        Assert.True(w.M.Research.Done(0, Node(scanner)));
-        Assert.Equal([scanner], w.M.Knowledge.Deliveries.Select(d => d.Good));
-        Assert.Equal(100_000 - Prices.Of(Node(scanner)), w.M.Research.Credits);
-        Assert.False(w.M.Research.Knows(0, scanner));
-        Mafia.Receive(w);
-        Assert.True(w.M.Research.Knows(0, scanner));
-        Assert.False(Content.Items.TryGet(scanner, out _));
-    }
-
-    /// <summary>The drone's lamp (light-drone): sold from the start, bought once, known by the crew when its crate comes in.</summary>
-    [Fact]
-    public void TheDroneLampIsSoldFromTheStartBoughtOnceAndKnownOnArrival()
-    {
-        string lamp = LightDrone.LampMode;
-        Assert.Equal(0, Node(lamp).Ring);
-        var w = SetUp(credits: 100_000);
-        Assert.Null(w.M.Research.BuyProblem(Node(lamp)));
-        w.Do(new BuyBlock(lamp)).Run().Do(new BuyBlock(lamp)).Run();
-        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal([lamp], w.M.Knowledge.Deliveries.Select(d => d.Good));
-        Assert.False(w.M.Research.Knows(0, lamp));
-        Mafia.Receive(w);
-        Assert.True(w.M.Research.Knows(0, lamp));
-    }
-
     /// <summary>Gear (2026-11-08-mafia-deliveries): the power driver, sold again and again, each bought one delivered.</summary>
     [Fact]
     public void GearIsBoughtAgainAndAgainAndEachIsDelivered()

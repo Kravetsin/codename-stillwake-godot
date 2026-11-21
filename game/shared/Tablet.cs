@@ -44,11 +44,19 @@ public partial class Tablet : Panel
     /// <summary>Where the window lies on the screen, its edge too: what the crew's markers keep out of.</summary>
     public Rect2 Covers => _edge.GetGlobalRect();
 
-    /// <summary>How far it has come (<see cref="TabletMotion.Up"/>): 0 gone, 1 whole.</summary>
-    public double Up => _motion.Up;
+    /// <summary>
+    /// The drone's windows, for a tablet the drone projects (drone-windows): it comes and goes by the drone's corners
+    /// (<see cref="CornerClock"/>), handing its place to them. Null for one that is not the drone's, the game menu's.
+    /// </summary>
+    public DroneWindows? Corners { get; set; }
+
+    private readonly CornerClock _clock = new();
+
+    /// <summary>How far it has come (<see cref="TabletMotion.Up"/>, or its corners' screen): 0 gone, 1 whole.</summary>
+    public double Up => Corners != null ? _clock.Screen : _motion.Up;
 
     /// <summary>Whether any of it is on the screen: out, or still fading.</summary>
-    public bool Shown => _motion.Shown;
+    public bool Shown => Corners != null ? _clock.Screen > 0 : _motion.Shown;
 
     /// <summary>Puts <paramref name="part"/> on the screen, over the glass, faded in with it as it comes on.</summary>
     public void OnScreen(Control part)
@@ -64,11 +72,17 @@ public partial class Tablet : Panel
     public void Step(bool open, double seconds)
     {
         _motion.Step(open, seconds);
-        Visible = _motion.Shown;
+        if (Corners != null)
+        {
+            // Its owner lays it only once it shows: handed from then on, the corners flying to where it was laid.
+            _clock.Step(seconds, open);
+            if (GetGlobalRect() is { Size: { X: > 0, Y: > 0 } } at) Corners.Hand(this, (at.Position.X, at.Position.Y, at.Size.X, at.Size.Y), _clock);
+        }
+        Visible = Shown;
         var mouse = open ? MouseBehaviorRecursiveEnum.Inherited : MouseBehaviorRecursiveEnum.Disabled;
         if (MouseBehaviorRecursive != mouse) MouseBehaviorRecursive = mouse;
-        Modulate = Colors.White with { A = (float)_motion.Up };
-        float power = _frame.Alpha = (float)_motion.Power;
+        Modulate = Colors.White with { A = (float)Up };
+        float power = _frame.Alpha = Corners != null ? _clock.Screen : (float)_motion.Power;
         foreach (var part in _shown) part.Modulate = Colors.White with { A = power };
     }
 

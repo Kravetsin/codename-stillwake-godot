@@ -10,6 +10,12 @@ namespace Stillwake.Game.Shared;
 /// </summary>
 public static class EdgeRow
 {
+    /// <summary>The keys on the edge, in their order: the air, the build, the research board, the market, the journal (thread-icons).</summary>
+    public static readonly string[] Keys = ["air", "build", "research", "market", "journal"];
+
+    /// <summary>Whether the row shows: in a world, once the drone is paired, its keys being the drone's (drone-windows).</summary>
+    public static bool Shown(bool inWorld, bool paired) => inWorld && paired;
+
     /// <summary>How far above the row's top the pointer brightens the keys.</summary>
     public const float NearBand = 64;
 

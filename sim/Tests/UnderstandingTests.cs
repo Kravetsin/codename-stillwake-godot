@@ -32,7 +32,8 @@ public class UnderstandingTests
     [Fact]
     public void AWreckKnowsNothingButWhatItsPodMakesForNothingAndItsFirstWallsComeAtTheFirstChunk()
     {
-        var w = new Scenario(Registry.Wreck).Run();
+        // A new player, unpaired: a paired one would learn the alarms from the wreck's emergency lamps (drone-lessons).
+        var w = new Scenario(Registry.Wreck) { Unpaired = true }.Run();
         Assert.Empty(w.M.Knowledge.KnownIds(0));
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         Assert.Equal(["helmet", "screwdriver", "suit"], w.M.Knowledge.KnownIds(0).Order(StringComparer.Ordinal));

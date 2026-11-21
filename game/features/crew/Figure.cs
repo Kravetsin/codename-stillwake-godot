@@ -842,8 +842,23 @@ public partial class Figure : Node2D
     /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
     public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
 
-    /// <summary>Where its drone's scan sparks leave and go home, in pixels of the world, and how red an alarm turns them; none while no drone floats by it.</summary>
-    public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Mouth, _drone.LensBox.GetCenter(), _drone.Tint) : null;
+    /// <summary>
+    /// Its drone's reticle marks, where the gauge's dots leave from and come home to, its eye, in pixels of the world, and how red an alarm turns
+    /// them; none while no drone floats by it.
+    /// </summary>
+    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Seats, _drone.LensBox.GetCenter(), _drone.Tint) : null;
+
+    /// <summary>What the scanner's gauge does now: whether it reads a thing, and how far each dot is out from its mark (<see cref="LightDrone.Gauge"/>).</summary>
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _drone.Gauge(reads, away);
+
+    /// <summary>A point of the world its drone's eye stays on, in pixels, over its lamp's aim: a find it scans over the head; null for none.</summary>
+    public Vector2? DroneStare { get; set; }
+
+    /// <summary>A point of the world its drone flies to, in pixels: over the thing it learns a form from (drone-lessons); null for none.</summary>
+    public Vector2? DroneVisit { get; set; }
+
+    /// <summary>How red its drone burns at least, 0..1, showing off the alarms just learned (drone-lessons); null for no show.</summary>
+    public double? DroneAlarm { get; set; }
 
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
@@ -1828,8 +1843,8 @@ public partial class Figure : Node2D
         _lying = !awake;
         if (_drone.Visible)
         {
-            // Projecting, it flies before the hero's waist, bare as it used to frame a window, its lens up to its motes; else it
-            // flies by its own will (drone-motion), its lens on the pointer in lamp and scan.
+            // Projecting, it flies before the hero's waist, its sparks in a flurry about it (drone-windows); else it flies by its own
+            // will (drone-motion), its lens on the pointer in lamp and scan.
             var feet = _frame.ToGlobal(Vector2.Zero);
             Vector2? before = overDrone ? feet + new Vector2((float)(hero.Facing * SheetHoloLook.OverAhead), (float)-SheetHoloLook.OverUp) : null;
             var anchor = DroneAnchor;
@@ -1839,6 +1854,8 @@ public partial class Figure : Node2D
                 _will.Reset();
             }
             Vec? lens = !overDrone && (_lampWorn || _scannerWorn) && HeadLampToward is var toward ? new Vec(toward.X, toward.Y) : null;
+            if (!overDrone && DroneStare is { } stare && stare.DistanceTo(_drone.GlobalPosition) > 1 && (stare - _drone.GlobalPosition).Normalized() is var way)
+                lens = new Vec(way.X, way.Y);
             var senses = Senses with
             {
                 Anchor = new Vec(anchor.X, anchor.Y),
@@ -1847,8 +1864,10 @@ public partial class Figure : Node2D
                 ModeLook = lens,
                 Out = !awake,
                 Signing = signing,
+                Visit = !overDrone && DroneVisit is { } visit ? new Vec(visit.X, visit.Y) : null,
             };
             var intent = _will.Pick(senses, elapsedMs);
+            if (DroneAlarm is { } red) intent = intent with { Tint = Math.Max(intent.Tint, red) };
             _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
             _droneLost = false;
             _drone.Projecting = overDrone;

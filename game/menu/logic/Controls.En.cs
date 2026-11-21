@@ -28,7 +28,7 @@ public static partial class En
         ["bind.modeBuild"] = "Building mode",
         ["bind.modeWiring"] = "Wiring mode",
         ["bind.modePiping"] = "Piping mode",
-        ["bind.tablet"] = "Tablet",
+        ["bind.tablet"] = "Research",
         ["bind.market"] = "Black market",
         ["bind.handbook"] = "Handbook",
         ["bind.air"] = "Air overlay",
