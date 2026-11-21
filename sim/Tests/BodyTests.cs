@@ -144,7 +144,7 @@ public class BodyTests
     }
 
     [Fact]
-    public void GritStillCostsAirInTheColdWhichIsFeltAlone()
+    public void GritCostsAirInTheStormItsColdNone()
     {
         // The night dust storm: the open sky 20° colder still, its grit 2 a breath (surface-storms); the cold felt more, paid in nothing.
         var (stormy, calm) = (Down(), Down());
@@ -156,7 +156,8 @@ public class BodyTests
         stormy.Run(5 * Content.Crew.BreathEvery);
         calm.Run(5 * Content.Crew.BreathEvery);
         Assert.Equal(2 * 5, b.Air - a.Air);
-        int felt = stormy.On(1).Crew.Felt(0, Open), still = calm.On(1).Crew.Felt(0, Open);
-        Assert.True(felt > still && still > 0, $"{felt} in the storm, {still} calm");
+        // The helmet keeps this night's cold out (gear-roles): the storm's is colder, and still costs no air.
+        int cold = stormy.On(1).Crew.TemperatureAt(Open), still = calm.On(1).Crew.TemperatureAt(Open);
+        Assert.True(cold < still, $"{cold}° in the storm, {still}° calm");
     }
 }

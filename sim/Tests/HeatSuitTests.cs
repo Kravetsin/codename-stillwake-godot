@@ -47,9 +47,9 @@ public class HeatSuitTests
     }
 
     [Fact]
-    public void ItWithstandsTheColdAsTheBasicAndTheHeatTenDegreesMore()
+    public void ItAddsTenDegreesLessColdAndTenMoreHeatThanTheBasic()
     {
         var (heat, basic) = (Content.Items.Get(Heat), Content.Items.Get(Content.Suit.Basic));
-        Assert.Equal((basic.Low, basic.High + 10, Content.Suit.Slot), (heat.Low, heat.High, heat.Equip));
+        Assert.Equal((basic.Low + 10, basic.High + 10, Content.Suit.Slot), (heat.Low, heat.High, heat.Equip));
     }
 }
