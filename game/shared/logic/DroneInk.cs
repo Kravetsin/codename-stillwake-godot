@@ -34,8 +34,8 @@ public static class DroneInk
     /// <summary>A gesture's fan stands straight up, swaying this far at this pace.</summary>
     public const float FanSway = 0.22f, FanSwayPace = 3.2f;
 
-    /// <summary>A spark's side; its tail's squares, how far apart, their paleness and how much each fades.</summary>
-    public const float Spark = 0.95f, TailStep = 1.3f, TailPale = 0.3f, TailFade = 0.3f;
+    /// <summary>A spark's side; its tail's squares, how far apart, their paleness, the first's alpha and how much each next fades.</summary>
+    public const float Spark = 0.95f, TailStep = 1.3f, TailPale = 0.3f, TailAlpha = 0.95f, TailFade = 0.3f;
     public const int Tail = 3;
 
     /// <summary>A spark's heat: the idle share of bright ones, their middle, swing and pace; the dim ones'; on a shape its middle, swing and pace; in flight its bump; in the lamp its more.</summary>

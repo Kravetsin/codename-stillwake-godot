@@ -36,19 +36,27 @@ public partial class MeetingView : Node2D
         }
         """;
 
-    private static readonly Color Dull = Rgb((95, 83, 66));
     private static readonly Color SkyTop = Rgb((2, 3, 7)), SkyBottom = Rgb((5, 7, 12)), Cold = Rgb((206, 218, 238)), Warm = Rgb((240, 226, 206));
     private static readonly Color StarLight = Rgb((214, 224, 240)), Lit = Rgb((176, 184, 196));
 
-    private static Texture2D? _body, _skin, _lens, _lensLit;
+    /// <summary>How many angles each plate is drawn at, face and back, and the side of each, world px (drone.js's <c>Turns</c>, <c>PlateBox</c>); how thin one edge-on is at least.</summary>
+    private const int Turns = 8, PlateBox = 6;
+    private const float EdgeOn = 0.08f;
+
+    /// <summary>A mote's dark rim past its side, the side its lit top shows from and that top's height, world px.</summary>
+    private const float MoteRim = 0.0875f, LitFrom = 0.275f, LitTop = 0.125f;
+
+    private static readonly Color RimDark = new("1a1b1f"), RimLight = new("26282d"), SootDark = new("4c4f55"), SootLight = new("606369");
+    private static readonly Color SootTop = new(170 / 255f, 174 / 255f, 180 / 255f, 0.45f);
+    private static Texture2D? _body, _skin, _lens, _lensLit, _platesPicture;
 
     private readonly MeetingScene _scene;
     private readonly Node2D _away = new(), _under = new(), _underAdd = new(), _over = new(), _overAdd = new();
     private readonly Node2D _backdrop = new(), _backDrops = new(), _backDropsAdd = new(), _glow = new(), _giant = new(), _giantAdd = new(), _frontDrops = new(), _frontDropsAdd = new();
     private readonly Triangles _tri = new(2048, 3072);
     private readonly Vec[] _points = new Vec[41];
-    private readonly Plate[] _homes = new Plate[DroneSwarm.Tune.Plates];
-    private readonly MeetingPlate[] _plates = new MeetingPlate[DroneSwarm.Tune.Plates];
+    private readonly Plate[] _homes = new Plate[Meeting.Plates];
+    private readonly MeetingPlate[] _plates = new MeetingPlate[Meeting.Plates];
     private MeetingFrame _f;
     private MeetingCore _core;
     private CoreFace _face;
@@ -107,10 +115,10 @@ public partial class MeetingView : Node2D
         _f = frame;
         _core = _scene.CoreAt(frame.U, V(frame.Idle), frame.IdleAngle);
         _face = _scene.FaceOf(frame.U);
-        float aim = (float)_core.Angle, t = (float)frame.SwarmS;
+        float t = (float)frame.SwarmS;
         for (int i = 0; i < _plates.Length; i++)
         {
-            _homes[i] = DroneSwarm.PlateIn(SwarmShape.Idle, i, aim, t);
+            _homes[i] = Meeting.PlateHome(i, t);
             _plates[i] = _scene.PlateOf(i, frame.U, _core.At, _homes[i]);
         }
         _away.Modulate = new Color(1, 1, 1, (float)Meeting.DebrisIn(frame.U));
@@ -147,7 +155,7 @@ public partial class MeetingView : Node2D
     {
         for (int i = 0; i < _plates.Length; i++)
             if (_plates[i] is { Stage: PlateStage.Away } plate)
-                LightDrone.DrawPlate(_away, i, new Plate(0, 0, (float)plate.Turn, true, 0, 1, (float)plate.Flip), W(plate.At));
+                DrawPlate(_away, i, new Plate(0, 0, (float)plate.Turn, true, 0, 1, (float)plate.Flip), W(plate.At));
     }
 
     /// <summary>The soot left in the pit, once the core has lifted from it, for a player who no longer sees it lie there.</summary>
@@ -159,7 +167,7 @@ public partial class MeetingView : Node2D
         {
             var mote = Meeting.HeapAt(j);
             var at = Box + W(mote.At);
-            LightDrone.Mote(_tri, at.X, at.Y, (float)mote.Side, mote.Dark);
+            Mote(_tri, at.X, at.Y, (float)mote.Side, mote.Dark);
             if (mote.Hot) Square(at, (float)mote.Side, new Color(LightDrone.Ember, 0.9f));
         }
         _tri.Flush(_under.GetCanvasItem());
@@ -187,8 +195,7 @@ public partial class MeetingView : Node2D
             _tri.Flush(_over.GetCanvasItem());
             Homes(front: false);
         }
-        var lit = Rgb(Meeting.Sign).Lerp(_f.Lens, (float)Meeting.LensShift(_f.U));
-        LightDrone.DrawCore(_over, at, (float)_core.Angle, Dull.Lerp(lit, (float)_face.Lens));
+        LightDrone.DrawCore(_over, at);
         if (home)
         {
             _tri.Clear();
@@ -198,10 +205,10 @@ public partial class MeetingView : Node2D
         }
         for (int i = 0; i < _plates.Length; i++)
             if (_plates[i] is { Stage: PlateStage.Flying } plate)
-                LightDrone.DrawPlate(_over, i, new Plate(0, 0, (float)plate.Turn, plate.Front, 0, 1, (float)plate.Flip), W(plate.At));
+                DrawPlate(_over, i, new Plate(0, 0, (float)plate.Turn, plate.Front, 0, 1, (float)plate.Flip), W(plate.At));
     }
 
-    /// <summary>The light in the wreck: the small core's ember halos as it wakes, its lens's once back, its cloud's embers, the arcs and the landings.</summary>
+    /// <summary>The light in the wreck: the small core's ember halos as it wakes, its coal's once back, its cloud's embers, the arcs and the landings.</summary>
     private void DrawOverAdd()
     {
         if (!Meeting.DrawsDrone(_f.U) || InVision) return;
@@ -213,11 +220,7 @@ public partial class MeetingView : Node2D
             var (breathing, waking) = Meeting.SmallHalos(u, Meeting.Breath(_f.ClockS), _core.R);
             Halo(at, (float)(5.4 * _core.R + 34), Rgb(Meeting.Ember), (float)breathing);
             Halo(at, (float)(5.4 * _core.R + 26), Rgb(Meeting.Ember), (float)waking);
-            if (_face.Lens > 0)
-            {
-                var lit = Rgb(Meeting.Sign).Lerp(_f.Lens, (float)Meeting.LensShift(u));
-                Halo(LightDrone.LensOf(at, (float)_core.Angle), 14 * 0.82f, lit, (float)(0.55 * _face.Glow * _face.Lens));
-            }
+            if (_face.Lens > 0) LightDrone.Coal(_tri, at, (float)_core.Angle, LightDrone.Ember, (float)_f.SwarmS, (float)_face.Lens, DroneInk.Px);
             if (Phase == MeetingPhase.Home) Embers();
         }
         for (int i = 0; i < _plates.Length; i++)
@@ -248,21 +251,21 @@ public partial class MeetingView : Node2D
     /// <summary>The cloud on one side of the small core, back from the vision: the drone's own soot, where the blood's rings shrank to.</summary>
     private void Cloud(bool front)
     {
-        float aim = (float)_core.Angle, t = (float)_f.SwarmS;
+        float t = (float)_f.SwarmS;
         for (int i = 0; i < MeetingScene.Drops; i++)
         {
-            var mote = DroneSwarm.MoteIn(SwarmShape.Idle, i, aim, t);
-            if (mote.Front == front) LightDrone.Mote(_tri, (float)_core.At.X + mote.X, (float)_core.At.Y + mote.Y, mote.Side, mote.Dark);
+            var mote = Meeting.MoteAt(i, t);
+            if (mote.Front == front) Mote(_tri, (float)_core.At.X + mote.X, (float)_core.At.Y + mote.Y, mote.Side, mote.Dark);
         }
     }
 
     /// <summary>The hot motes' heat in the cloud, as the drone's own glow adds it.</summary>
     private void Embers()
     {
-        float aim = (float)_core.Angle, t = (float)_f.SwarmS;
+        float t = (float)_f.SwarmS;
         for (int i = 0; i < MeetingScene.Drops; i++)
         {
-            var mote = DroneSwarm.MoteIn(SwarmShape.Idle, i, aim, t);
+            var mote = Meeting.MoteAt(i, t);
             if (mote.Heat <= 0.05f) continue;
             Square(new Vector2((float)_core.At.X + mote.X, (float)_core.At.Y + mote.Y), mote.Side,
                 new Color(LightDrone.Ember.Lerp(Colors.White, 0.25f * mote.Heat), 0.95f * mote.Heat));
@@ -273,7 +276,7 @@ public partial class MeetingView : Node2D
     private void Homes(bool front)
     {
         for (int i = 0; i < _plates.Length; i++)
-            if (_plates[i].Stage == PlateStage.Home && _homes[i].Front == front) LightDrone.DrawPlate(_over, i, _homes[i], W(_core.At));
+            if (_plates[i].Stage == PlateStage.Home && _homes[i].Front == front) DrawPlate(_over, i, _homes[i], W(_core.At));
     }
 
     // ---------- the vision ----------
@@ -441,6 +444,32 @@ public partial class MeetingView : Node2D
         var pale = ember.Lerp(Colors.White, 0.5f);
         for (int j = 0; j + 1 < n; j++) Line(W(_points[j]), W(_points[j + 1]), ArcGlow * (float)Meeting.Px, new Color(ember, 0.25f * alpha));
         for (int j = 0; j + 1 < n; j++) Line(W(_points[j]), W(_points[j + 1]), ArcLine * (float)Meeting.Px, new Color(pale, 0.9f * alpha));
+    }
+
+    /// <summary>A mote of soot, its middle at (<paramref name="x"/>, <paramref name="y"/>), its side <paramref name="s"/>: a dark rim, its tone, a lit top on the larger ones.</summary>
+    private static void Mote(Triangles into, float x, float y, float s, bool dark)
+    {
+        x -= s / 2;
+        y -= s / 2;
+        into.Rect(x - MoteRim, y - MoteRim, s + 2 * MoteRim, s + 2 * MoteRim, dark ? RimDark : RimLight);
+        into.Rect(x, y, s, s, dark ? SootDark : SootLight);
+        if (s > LitFrom) into.Rect(x, y, s, LitTop, SootTop);
+    }
+
+    /// <summary>
+    /// Plate <paramref name="i"/> as <paramref name="plate"/> places it from <paramref name="at"/> on <paramref name="on"/>: the nearest of its
+    /// pictures, face or rusty back, turned the rest of the way and squashed across its long axis by how far it is turned over.
+    /// </summary>
+    private static void DrawPlate(CanvasItem on, int i, Plate plate, Vector2 at)
+    {
+        _platesPicture ??= HiRes.Texture(HiRes.Load("drone_plates") ?? throw new InvalidOperationException("No picture drone_plates"));
+        float flip = MathF.Abs(plate.Flip) < EdgeOn ? (plate.Flip < 0 ? -EdgeOn : EdgeOn) : plate.Flip;
+        int turn = ((int)Math.Round(plate.Turn / Mathf.Tau * Turns) % Turns + Turns) % Turns;
+        var squash = new Transform2D(Vector2.Right, new Vector2(0, MathF.Abs(flip)), Vector2.Zero);
+        on.DrawSetTransformMatrix(new Transform2D(plate.Turn, at + new Vector2(plate.X, plate.Y)) * squash * new Transform2D(-turn * Mathf.Tau / Turns, Vector2.Zero));
+        int column = turn + (flip < 0 ? Turns : 0);
+        on.DrawTextureRectRegion(_platesPicture, new Rect2(-PlateBox / 2f, -PlateBox / 2f, PlateBox, PlateBox), new Rect2(column * PlateBox, i * PlateBox, PlateBox, PlateBox));
+        on.DrawSetTransform(Vector2.Zero, 0);
     }
 
     private static void LoadGiant()

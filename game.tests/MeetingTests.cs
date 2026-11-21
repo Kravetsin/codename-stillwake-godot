@@ -23,7 +23,7 @@ public class MeetingTests
 
     private static Vec Palm(MeetingScene s, double u) => new(s.HeroAt(u).Feet.X - s.Side * 4, s.HeroAt(u).Feet.Y - 20);
 
-    private static Plate Home(int i, double u) => DroneSwarm.PlateIn(SwarmShape.Idle, i, 0, (float)u);
+    private static Plate Home(int i, double u) => Meeting.PlateHome(i, (float)u);
 
     private static double FirstWhen(Func<double, bool> holds)
     {
@@ -347,5 +347,20 @@ public class MeetingTests
     private static void Finite(double u, params double[] numbers)
     {
         foreach (double n in numbers) Assert.True(double.IsFinite(n), $"{n} at {u:F3} s");
+    }
+
+    [Fact]
+    public void TheCloudIsThePicksOwnSeeds()
+    {
+        // drone.js's dustSet(170, 530): the first mote's phase 4.1764 and r1 0.1210 put it here on the first orbit at t = 0.
+        var first = Meeting.MoteAt(0, 0);
+        float r = 2.5f + (0.12103f - 0.5f) * 0.4f, th = 4.17642f;
+        float x = MathF.Cos(th) * r, y = MathF.Sin(th) * r * 0.3f, tilt = -0.3f;
+        Assert.Equal(x * MathF.Cos(tilt) - y * MathF.Sin(tilt), first.X, 3);
+        Assert.Equal(x * MathF.Sin(tilt) + y * MathF.Cos(tilt), first.Y, 3);
+        Assert.True(first.Dark);
+        Assert.False(Meeting.MoteAt(1, 0).Dark);
+        // The pick's seeds drew 13 hot of 170, its 7 % share.
+        Assert.Equal(13, Enumerable.Range(0, Meeting.Motes).Count(i => Meeting.SeedOf(i).Hot));
     }
 }

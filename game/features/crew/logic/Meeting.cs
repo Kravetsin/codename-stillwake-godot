@@ -13,6 +13,15 @@ public enum PlateStage { Away, Flying, Home }
 /// <summary>A plate in the meeting, world px: where its middle is, its turn, how far it is turned over (1 face on, below 0 its back), whether before the core.</summary>
 public readonly record struct MeetingPlate(PlateStage Stage, Vec At, double Turn, double Flip, bool Front);
 
+/// <summary>
+/// A plate home on the core: its middle from the core's, world px; its turn; whether before the core; its glow; its flight (1 home);
+/// how far it is turned about its long axis, 1 face on, below 0 its rusty back.
+/// </summary>
+public readonly record struct Plate(float X, float Y, float Turn, bool Front, float Glow, float Flight, float Flip);
+
+/// <summary>A mote of the meeting's cloud: its middle from the core's and its side, world px; whether before the core; its glow and heat; its tone.</summary>
+public readonly record struct Mote(float X, float Y, float Side, bool Front, float Glow, float Heat, bool Dark);
+
 /// <summary>A mote of the heap the core lies in, world px from the lying core's picture's top-left: its middle and side, its tone, whether an ember.</summary>
 public readonly record struct HeapMote(Vec At, double Side, bool Dark, bool Hot);
 
@@ -194,7 +203,42 @@ public static class Meeting
 
     // ---------- the plates ----------
 
-    public const int Plates = DroneSwarm.Tune.Plates;
+    /// <summary>How many plates the drone pulls home; how many motes its cloud holds, a drop of blood each.</summary>
+    public const int Plates = 4, Motes = 170;
+
+    /// <summary>A mote's least side and how much more the largest has, world px.</summary>
+    public const float MoteSide = 0.225f, MoteSideMore = 0.225f;
+
+    /// <summary>Each plate's phase, radians, and its share of the tumble's extra pace (drone.js's seeds).</summary>
+    private static readonly (float Phase, float Pace)[] PlateSeeds = [(3.9737f, 0.8855f), (1.1409f, 0.1770f), (4.8644f, 0.6168f), (5.1218f, 0.7379f)];
+
+    /// <summary>Each mote's phase, spread, side, whether it smoulders and its tone: drone.js's <c>dustSet</c>, seed 530.</summary>
+    private static readonly (float Phase, float R1, float Size, bool Hot, bool Dark)[] MoteSeeds = DrawMotes(530);
+
+    /// <summary>Mote <paramref name="i"/>'s seed: the meeting winds its blood onto the cloud by them.</summary>
+    public static (float Phase, float R1, float Size, bool Hot, bool Dark) SeedOf(int i) => MoteSeeds[i];
+
+    /// <summary>Mote <paramref name="i"/> of the cloud <paramref name="t"/> seconds on: three tilted orbits, the middle one the other way.</summary>
+    public static Mote MoteAt(int i, float t)
+    {
+        var seed = MoteSeeds[i];
+        int orbit = i % 3;
+        float tilt = -0.3f + orbit * 1.05f, way = orbit % 2 == 1 ? -1 : 1;
+        float th = seed.Phase + t * (0.8f + 0.25f * orbit) * way, r = 2.5f + orbit * 0.55f + (seed.R1 - 0.5f) * 0.4f;
+        var at = Rot(MathF.Cos(th) * r, MathF.Sin(th) * r * 0.3f, tilt);
+        float heat = seed.Hot ? 0.45f + 0.4f * MathF.Sin(t * 11 + seed.Phase * 7) : 0;
+        return new Mote((float)at.X, (float)at.Y, seed.Size, MathF.Sin(th) >= 0, 0, heat, seed.Dark);
+    }
+
+    /// <summary>Plate <paramref name="i"/> home on the core <paramref name="t"/> seconds on: circling wide, bobbing and tumbling.</summary>
+    public static Plate PlateHome(int i, float t)
+    {
+        var (phase, pace) = PlateSeeds[i];
+        float th = i / (float)Plates * MathF.Tau + t * 0.35f;
+        var at = Rot(MathF.Cos(th) * 4, MathF.Sin(th) * 4 * 0.45f, -0.2);
+        float tumble = MathF.Cos(t * (0.3f + 0.4f * pace) + phase * 3);
+        return new Plate((float)at.X, (float)at.Y + MathF.Sin(t * 1.2f + i) * 0.3f, th * 1.3f + i, MathF.Sin(th) >= 0, 0, 1, tumble);
+    }
 
 
     /// <summary>When plate <paramref name="i"/> lands on the drone: one at a time, a beat between.</summary>
@@ -260,6 +304,23 @@ public static class Meeting
         return heap;
     }
 
+    /// <summary>drone.js's <c>dustSet</c>: its xorshift from <paramref name="seed"/>, seven draws a mote in its order.</summary>
+    private static (float, float, float, bool, bool)[] DrawMotes(int seed)
+    {
+        var r = new Xorshift(seed);
+        var motes = new (float, float, float, bool, bool)[Motes];
+        for (int i = 0; i < motes.Length; i++)
+        {
+            float phase = (float)r.Next() * 6.283f, r1 = (float)r.Next();
+            r.Next();
+            r.Next();
+            float size = MoteSide + (float)r.Next() * MoteSideMore;
+            bool hot = r.Next() < 0.07, dark = r.Next() < 0.5;
+            motes[i] = (phase, r1, size, hot, dark);
+        }
+        return motes;
+    }
+
     internal sealed class Xorshift(int seed)
     {
         private uint _s = unchecked((uint)((ulong)seed * 2654435761UL)) is var s && s != 0 ? s : 1;
@@ -323,7 +384,7 @@ public static class Meeting
 public sealed class MeetingScene
 {
     /// <summary>The drops, one a mote of the drone's cloud, each on its mote's orbit.</summary>
-    public const int Drops = DroneSwarm.Tune.Motes;
+    public const int Drops = Meeting.Motes;
 
     private const double Tau = 2 * Math.PI;
     /// <summary>The rings' spin: seven whole turns more by the time they slow to the cloud's own pace (the pick's <c>SPIN_K</c>).</summary>
@@ -356,7 +417,7 @@ public sealed class MeetingScene
         {
             int o = i % 3, dir = o % 2 == 1 ? -1 : 1;
             double begin = begins[o], f0 = Phi(o, begin);
-            double want = f0 + ((dir * (_entry[o] - DroneSwarm.SeedOf(i).Phase) - f0) % Tau + Tau) % Tau;
+            double want = f0 + ((dir * (_entry[o] - Meeting.SeedOf(i).Phase) - f0) % Tau + Tau) % Tau;
             double a = begin, b = begin + 4;
             for (int k = 0; k < 44; k++)
             {
@@ -400,7 +461,7 @@ public sealed class MeetingScene
     /// <summary>How black drop <paramref name="i"/> is at <paramref name="u"/>, 0 red to 1: each ring a little after the last, each drop a little apart.</summary>
     public static double BlackOf(int i, double u)
     {
-        double from = Meeting.Times.BlackFrom + i % 3 * 0.25 + DroneSwarm.SeedOf(i).R1 * 0.45;
+        double from = Meeting.Times.BlackFrom + i % 3 * 0.25 + Meeting.SeedOf(i).R1 * 0.45;
         return Meeting.Ss(u, from, from + 1.2);
     }
 
@@ -526,7 +587,7 @@ public sealed class MeetingScene
         if (e <= 0 || e - ThreadLength >= 1) return 0;
         var (p0, p1, p2, p3) = Flight(i, u, palm, core);
         double from = Math.Max(0, e - ThreadLength), to = Math.Min(1, e);
-        double spread = (strand - (Strands - 1) / 2.0) * StrandSpread * (0.6 + 0.8 * DroneSwarm.SeedOf(i).R1);
+        double spread = (strand - (Strands - 1) / 2.0) * StrandSpread * (0.6 + 0.8 * Meeting.SeedOf(i).R1);
         for (int j = 0; j < ThreadPoints; j++)
         {
             double s = Meeting.Lerp(from, to, j / (double)(ThreadPoints - 1)), k = 1 - s;
@@ -552,9 +613,9 @@ public sealed class MeetingScene
         var phase = Meeting.PhaseOf(u);
         double arrives = _arrives[i];
         if (phase is not (MeetingPhase.Vision or MeetingPhase.Back) || u < arrives) return null;
-        var seed = DroneSwarm.SeedOf(i);
+        var seed = Meeting.SeedOf(i);
         int o = i % 3, dir = o % 2 == 1 ? -1 : 1;
-        double size = 1.4 + 1.2 * (seed.Size - DroneSwarm.Tune.MoteSide) / DroneSwarm.Tune.MoteSideMore;
+        double size = 1.4 + 1.2 * (seed.Size - Meeting.MoteSide) / Meeting.MoteSideMore;
         double r = size * Math.Max(0.5, 1.6 * Math.Sqrt(core.R / Meeting.VoidR)) * Meeting.Lerp(0.3, 1, Meeting.Ss(u, arrives, arrives + 0.35));
         double th = seed.Phase + dir * Phi(o, u), d = Math.Clamp(0.06 * Pace(o, u), 0.08, 0.3);
         var (head, tail, mid) = (RingAt(i, th, u, core), RingAt(i, th - dir * d, u, core), RingAt(i, th - dir * d * 0.5, u, core));
@@ -574,7 +635,7 @@ public sealed class MeetingScene
     private Vec RingAt(int i, double a, double u, MeetingCore core)
     {
         int o = i % 3;
-        double rx = 10 + o * 2.2 + (DroneSwarm.SeedOf(i).R1 - 0.5) * 1.6 * Meeting.Spread(u), scale = core.R * Meeting.Px;
+        double rx = 10 + o * 2.2 + (Meeting.SeedOf(i).R1 - 0.5) * 1.6 * Meeting.Spread(u), scale = core.R * Meeting.Px;
         var q = RingPoint(o, a, rx, Meeting.Rings(u));
         return new Vec(core.At.X + q.X * scale, core.At.Y + q.Y * scale);
     }
@@ -590,7 +651,7 @@ public sealed class MeetingScene
         var end = RingAt(i, a, u, core);
         var way = Meeting.Rot(-Math.Sin(a) * rx * dir, Math.Cos(a) * rx * 0.3 * dir, -0.3 + o * 1.05);
         double wayLength = Math.Sqrt(way.X * way.X + way.Y * way.Y), apart = Math.Sqrt((end.X - palm.X) * (end.X - palm.X) + (end.Y - palm.Y) * (end.Y - palm.Y));
-        double reach = 0.4 * apart / wayLength, lift = 40 * (0.5 + DroneSwarm.SeedOf(i).R1) * Meeting.Px;
+        double reach = 0.4 * apart / wayLength, lift = 40 * (0.5 + Meeting.SeedOf(i).R1) * Meeting.Px;
         var bend = new Vec(Meeting.Lerp(palm.X, end.X, 0.45), way.Y >= 0 ? Math.Min(palm.Y, end.Y) - lift : Math.Max(palm.Y, end.Y) + lift);
         return (palm, bend, new Vec(end.X - way.X * reach, end.Y - way.Y * reach), end);
     }
@@ -623,7 +684,7 @@ public sealed class MeetingScene
 
     /// <summary>
     /// Plate <paramref name="i"/> at <paramref name="u"/>: out among the debris, then only once back from the vision pulled home along its
-    /// arc to <paramref name="home"/>, its place on the core at <paramref name="core"/> (<see cref="DroneSwarm.PlateIn"/>, idle), then there.
+    /// arc to <paramref name="home"/>, its place on the core at <paramref name="core"/> (<see cref="Meeting.PlateHome"/>), then there.
     /// </summary>
     public MeetingPlate PlateOf(int i, double u, Vec core, Plate home)
     {

@@ -113,8 +113,8 @@ function piece(c, x, y, a, sh, col, lw = 1.1, rb = null) {
 // A plate seen turned about its long axis: k = 1 face on, -1 its back (the pick's flipY).
 function flipY(sh, k) { return { p: sh.p, segs: sh.segs.map(g => [g[0], g[1] * k, g[2], g[3] * k, g[4], g[5] * k, g[6]]), closed: true, cx: sh.cx, cy: sh.cy * k }; }
 
-// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces DroneSwarm.cs's
-// PlateSeeds, the soot its dustSet (seed 530), as DroneSwarm.cs draws it.
+// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces Meeting.cs's
+// PlateSeeds, the soot its dustSet (seed 530), as Meeting.cs draws it.
 const ash = (() => {
   const r = rng(501), pal = [STEEL, ORANGE, OLIVE, BRONZE], sh = [];
   for (let i = 0; i < 4; i++) {
@@ -216,8 +216,8 @@ public static class DroneInk
     /// <summary>A gesture's fan stands straight up, swaying this far at this pace.</summary>
     public const float FanSway = 0.22f, FanSwayPace = 3.2f;
 
-    /// <summary>A spark's side; its tail's squares, how far apart, their paleness and how much each fades.</summary>
-    public const float Spark = 0.95f, TailStep = 1.3f, TailPale = 0.3f, TailFade = 0.3f;
+    /// <summary>A spark's side; its tail's squares, how far apart, their paleness, the first's alpha and how much each next fades.</summary>
+    public const float Spark = 0.95f, TailStep = 1.3f, TailPale = 0.3f, TailAlpha = 0.95f, TailFade = 0.3f;
     public const int Tail = 3;
 
     /// <summary>A spark's heat: the idle share of bright ones, their middle, swing and pace; the dim ones'; on a shape its middle, swing and pace; in flight its bump; in the lamp its more.</summary>

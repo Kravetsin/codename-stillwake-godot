@@ -1866,7 +1866,6 @@ public partial class Figure : Node2D
             _droneLost = false;
             _droneThere = before != null && (_droneThere || _drone.Off < SheetHoloLook.OverArrived);
             _drone.Projecting = overDrone;
-            _drone.Window(overDrone, 0);
             _drone.Sign(signing ? Gesture : null);
         }
         else _droneLost = true;
