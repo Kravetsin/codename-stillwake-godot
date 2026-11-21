@@ -44,12 +44,6 @@ public sealed class DroneFlight
         /// <summary>The columns past a bolt's spread it still darts at.</summary>
         public const int BoltMargin = 2;
 
-        /// <summary>How long it watches its hero's work, how long it rests before watching again, and the gap in the work that keeps it watching, ms.</summary>
-        public const double WatchMs = 2500, WatchRestMs = 6000, WatchGraceMs = 500;
-
-        /// <summary>How far short of the work point it hovers to watch, px: never on the point itself.</summary>
-        public const double WatchApart = 12;
-
         /// <summary>How far it leans toward a hunter, px.</summary>
         public const double Lean = 6;
 

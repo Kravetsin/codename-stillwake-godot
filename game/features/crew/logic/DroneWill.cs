@@ -9,7 +9,7 @@ public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spr
 
 /// <summary>
 /// What a light drone senses this frame (docs/plans/drone-motion.md), pixels of the world: its hero's anchor and surface, where it
-/// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the hero's work point, the meteor
+/// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the meteor
 /// coming and the bolt glowing, the hunter's place, whether its hero is a friend low on air, passed out, or signing.
 /// </summary>
 public readonly record struct DroneSenses(
@@ -18,7 +18,6 @@ public readonly record struct DroneSenses(
     int Surface,
     Vec? Window = null,
     Vec? ModeLook = null,
-    Vec? Work = null,
     DroneDanger? Meteor = null,
     DroneDanger? Bolt = null,
     Vec? Hunter = null,
@@ -32,7 +31,7 @@ public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool 
 
 /// <summary>
 /// The light drone's mind (docs/plans/drone-motion.md): by rank, a window's place before the waist, a dart at a meteor or bolt near,
-/// held still while its hero signs, the hero's work watched a while, else a perch of its own by the anchor, picked again when bored.
+/// held still while its hero signs, else a perch of its own by the anchor, picked again when bored.
 /// A hunter leans it his way. Its own <see cref="Random"/> picks the perches: they differ between screens, as decoration may.
 /// </summary>
 public sealed class DroneWill
@@ -44,9 +43,6 @@ public sealed class DroneWill
     private double _boredLeft, _clockMs;
     private int? _meteorDarted, _boltDarted;
     private bool _dartBolt, _darting;
-    private bool _watching;
-    private double _watchedMs, _restLeft, _graceLeft;
-    private Vec _workAt;
     private Vec? _signHeld;
 
     /// <summary>A will picking its perches by <paramref name="random"/>: a seed in tests, a new one per figure in the game.</summary>
@@ -58,14 +54,13 @@ public sealed class DroneWill
 
     /// <summary>Back to its anchor, as it is shown again: on it, bored of it after a while; the dangers it darted at stay darted.</summary>
     public void Reset() =>
-        (_perch, _boredLeft, _darting, _watching, _restLeft, _graceLeft, _signHeld) = (default, Bored(), false, false, 0, 0, null);
+        (_perch, _boredLeft, _darting, _signHeld) = (default, Bored(), false, null);
 
     /// <summary>What it wants after <paramref name="ms"/> more, sensing <paramref name="senses"/>.</summary>
     public DroneIntent Pick(in DroneSenses senses, double ms)
     {
         _clockMs += ms;
         var danger = Dart(senses);
-        bool watch = Watch(senses, ms);
         Settle(ms);
         var anchor = senses.Anchor;
         _signHeld = senses.Signing ? _signHeld ?? DroneFlight.Minus(senses.At, anchor) : null;
@@ -81,7 +76,6 @@ public sealed class DroneWill
             (goal, look) = senses.Out ? (anchor, _perchLook)
                 : danger is { } there ? (there, Toward(senses.At, there, _perchLook))
                 : _signHeld is { } held ? (DroneFlight.Plus(anchor, held), _perchLook)
-                : watch ? (Short(anchor, _workAt), Toward(senses.At, _workAt, _perchLook))
                 : (DroneFlight.Plus(anchor, _perch), _perchLook);
             if (senses.Hunter is { } hunter) goal = DroneFlight.Plus(goal, DroneFlight.Scaled(Toward(anchor, hunter, default), T.Lean));
             if (senses.ModeLook is { } aim) look = aim;
@@ -104,21 +98,6 @@ public sealed class DroneWill
             (_boltDarted, _darting, _dartBolt) = (glowing.Cell, true, true);
         if (!_darting) return null;
         return _dartBolt ? new Vec(bolt!.Value.At.X, senses.Anchor.Y) : meteor!.Value.At;
-    }
-
-    /// <summary>Whether it watches the work now: a while once the hero works, through short gaps, then it rests.</summary>
-    private bool Watch(in DroneSenses senses, double ms)
-    {
-        _restLeft = Math.Max(0, _restLeft - ms);
-        if (senses.Work is { } work) (_workAt, _graceLeft) = (work, T.WatchGraceMs);
-        else _graceLeft = Math.Max(0, _graceLeft - ms);
-        if (_watching)
-        {
-            _watchedMs += ms;
-            if (_graceLeft <= 0 || _watchedMs >= T.WatchMs) (_watching, _restLeft) = (false, T.WatchRestMs);
-        }
-        else if (senses.Work != null && _restLeft <= 0) (_watching, _watchedMs) = (true, 0);
-        return _watching;
     }
 
     /// <summary>Bored of its perch, it picks another in its home box round the anchor, and a look of its own up and out.</summary>
@@ -151,13 +130,5 @@ public sealed class DroneWill
         var way = DroneFlight.Minus(to, from);
         double length = DroneFlight.Length(way);
         return length < 1 ? near : DroneFlight.Scaled(way, 1 / length);
-    }
-
-    /// <summary><see cref="T.WatchApart"/> short of <paramref name="work"/> from <paramref name="anchor"/>: where it watches from.</summary>
-    private static Vec Short(Vec anchor, Vec work)
-    {
-        var way = DroneFlight.Minus(work, anchor);
-        double length = DroneFlight.Length(way);
-        return length <= T.WatchApart ? anchor : DroneFlight.Plus(anchor, DroneFlight.Scaled(way, (length - T.WatchApart) / length));
     }
 }

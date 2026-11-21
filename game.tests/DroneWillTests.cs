@@ -10,30 +10,24 @@ public class DroneWillTests
 {
     private static readonly Vec Anchor = new(400, 200);
     private static readonly DroneSenses Still = new(Anchor, Anchor, Surface: 1);
-    private static readonly Vec WindowAt = new(416, 250), WorkAt = new(440, 215);
+    private static readonly Vec WindowAt = new(416, 250);
     private static readonly DroneDanger Meteor = new(7, new Vec(480, 120), 1);
 
     private static DroneWill Will(int seed = 1) => new(new Random(seed));
 
     private static bool InHome(Vec goal, Vec anchor) => Math.Abs(goal.X - anchor.X) <= T.HomeX + 1e-9 && Math.Abs(goal.Y - anchor.Y) <= T.HomeY + 1e-9;
 
-    private static double Apart(Vec a, Vec b) => DroneFlight.Length(DroneFlight.Minus(a, b));
-
     [Fact]
-    public void AWindowOutranksADartADartTheWorkTheWorkAPerch()
+    public void AWindowOutranksADartADartAPerch()
     {
         var will = Will();
-        var all = Still with { Window = WindowAt, Work = WorkAt, Meteor = Meteor };
+        var all = Still with { Window = WindowAt, Meteor = Meteor };
         Assert.Equal(WindowAt, will.Pick(all, 16).Goal);
         var dart = will.Pick(all with { Window = null }, 16);
         Assert.Equal(Meteor.At, dart.Goal);
         Assert.True(dart.Darting);
-        var watch = will.Pick(all with { Window = null, Meteor = null }, 16);
-        Assert.True(Apart(watch.Goal, WorkAt) is > T.WatchApart - 1e-9 and < T.WatchApart + 1e-9);
-        Assert.False(watch.Darting);
-        // No work for longer than the grace: back to a perch.
-        DroneIntent settle = default;
-        for (int ms = 0; ms <= T.WatchGraceMs + 16; ms += 16) settle = will.Pick(Still, 16);
+        var settle = will.Pick(Still, 16);
+        Assert.False(settle.Darting);
         Assert.True(InHome(settle.Goal, Anchor));
     }
 
@@ -120,34 +114,10 @@ public class DroneWillTests
         var will = Will();
         for (int ms = 0; ms < 20000; ms += 16)
         {
-            var intent = will.Pick(Still with { Out = true, Meteor = Meteor, Work = WorkAt }, 16);
+            var intent = will.Pick(Still with { Out = true, Meteor = Meteor }, 16);
             Assert.Equal(Anchor, intent.Goal);
             Assert.False(intent.Darting);
         }
-    }
-
-    [Fact]
-    public void ItWatchesTheWorkThroughShortGapsThenRests()
-    {
-        var will = Will();
-        var working = Still with { Work = WorkAt };
-        bool Watches(DroneSenses senses) => Apart(will.Pick(senses, 16).Goal, WorkAt) < T.WatchApart + 1e-6;
-        Assert.True(Watches(working));
-        double ms = 16;
-        // Strokes with gaps under the grace between them: watched throughout, till its time is up.
-        for (; ms + 16 < T.WatchMs; ms += 16)
-            Assert.True(Watches((int)(ms / 400) % 2 == 0 ? working : Still), $"stopped watching at {ms} ms");
-        for (; ms < T.WatchMs + 32; ms += 16) Watches(working);
-        // Rested, it does not watch though the work goes on.
-        for (double rest = 0; rest < T.WatchRestMs - 32; rest += 16) Assert.False(Watches(working), $"watched again {rest} ms into its rest");
-        bool again = false;
-        for (int i = 0; i < 10; i++) again |= Watches(working);
-        Assert.True(again);
-        // A gap longer than the grace ends a watch.
-        var other = Will(5);
-        other.Pick(working, 16);
-        for (double gap = 0; gap <= T.WatchGraceMs; gap += 16) other.Pick(Still, 16);
-        Assert.True(InHome(other.Pick(Still, 16).Goal, Anchor));
     }
 
     [Fact]
@@ -181,8 +151,7 @@ public class DroneWillTests
         var aim = new Vec(0.6, 0.8);
         var will = Will();
         Assert.Equal(aim, will.Pick(Still with { ModeLook = aim }, 16).Look);
-        Assert.Equal(aim, will.Pick(Still with { ModeLook = aim, Work = WorkAt }, 16).Look);
-        Assert.Equal(aim, will.Pick(Still with { ModeLook = aim, Work = WorkAt, Meteor = Meteor }, 16).Look);
+        Assert.Equal(aim, will.Pick(Still with { ModeLook = aim, Meteor = Meteor }, 16).Look);
         var free = Will().Pick(Still with { Meteor = Meteor }, 16).Look;
         Assert.NotEqual(aim, free);
     }
