@@ -412,8 +412,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [drone-companion](2026-11-21-drone-companion.md) | Each hero pairs once with a shard of the alien core; the bag comes with it | accepted |  |
 | [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted |  |
 | [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted |  |
+| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted |  |
 | [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |
 | [gear-roles](2026-11-21-gear-roles.md) | Helmets and suits each add their degrees; the heated and heat helmets | accepted |  |
 | [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted |  |
 | [own-knowledge](2026-11-21-own-knowledge.md) | Each player learns for themself; purchases are the crew's | accepted |  |
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
+| [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |

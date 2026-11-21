@@ -143,8 +143,8 @@ This hero and others', client-authoritative (0002).
 
 ## Guarantees
 
-- Lengths, speeds: thousandths of a cell (`Content.Hero`); step 1000/60 ms.
-- A step never ends in a wall, shut door, hatch, off-grid; afloat, unjetted, within `Hero.Tether`; a shut door pushes
+- Lengths, speeds: cell/1000 (`Content.Hero`); step 1000/60 ms.
+- A step never ends in a wall, shut door, hatch, off-grid; afloat, unjetted, within `Hero.Tether`; shut doors push
   it `Hero.PushStep` (0089). Doors go as shown (0014); presses send `SetDoor`, `SetValve` (0071), `SetPlatform`.
 - **Holes, floors, steps** (0106): falls in holes it fits; down drops through; jump wins; a cell up, down; two stop.
 - **Jump** (0089): coyote, buffer, short hop; **figure answers motion** (0090, hero-gait).
@@ -160,12 +160,12 @@ This hero and others', client-authoritative (0002).
 - **Crew** made at `Spawn`; out, lies, no orders (0061). `Enter` on a new room, side, each `Crew.ReportEvery` ticks
   off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on shin, `SuitOn` lit (hero-lights); **limbs** bent whole (whole-limbs); **hand** glove
-  or bare (hand-at-wrist); **helmets** still, the head turns in it (gear-roles); **skins** (hero-skins, fancy-skins).
+  or bare (hand-at-wrist); **helmets** still, the head turns (gear-roles); **skins** (hero-skins, fancy-skins).
 - **Tracker** blinks (`SignalOf`); **catchers** drawn as heroes, tumble killed (tracker-catchers).
 
 ## Others
 
-- Sent (`SentHero`) each 50 ms changing, 1 s still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
+- Sent (`SentHero`) each 50 ms moving, 1 s still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 s quiet; only those here (0076). Tools strike
   per hit heard (0038), rods play out (0065), drills, drivers run as told (0055).
 
@@ -182,10 +182,11 @@ This hero and others', client-authoritative (0002).
 - **Gun** (hold-to-fire): held fires each cooldown, `Charge` on release; kicks (body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs (`Run`), hits a `Pace`, the cutter by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
-- **Gestures** (gestures-for-words): H tap points, pings (crew-pings), held a wheel, the drone signs. **Drone**
-  (light-drone): E on the core pairs (drone-companion, drone-meeting); F tap next mode, held a wheel; projects the
-  bag, plans (drone-frame).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; open hatches climb, short jumps mantle.
+- **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
+  (light-drone): E on the core pairs (drone-companion, drone-meeting); F next mode, held a wheel; projects the bag,
+  plans (drone-frame); trails, warns (drone-motion).
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
+  climbed, short jumps mantle.
 
 ## Deliberately not handled
 

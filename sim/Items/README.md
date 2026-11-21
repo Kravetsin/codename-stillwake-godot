@@ -89,10 +89,10 @@ cost throws.
 ## Invariants
 
 - Stacks hold 1 to their limit; equipment only its kind (`EquipmentTests`). A machine has an entry only while it holds.
-- Take and give change totals by exactly the cost or not at all; move, drop, pick-up, sort and stash change none (`StashTests`), the
-  trash's aside (`TrashTests`); a sort is
-  idempotent (`SortTests`). Charge stays within capacity on stacks of one (`ChargeTests`); a run draws exactly its
-  `Draw` or stops (`RunTests`). Fits, spills, deaths make and lose nothing (`ArcModuleTests`, `DeathTests`, `MachineBreakTests`).
+- Take and give change totals by the cost or not at all; move, drop, pick-up, sort, stash change none (`StashTests`), the trash's
+  aside (`TrashTests`); a sort is idempotent (`SortTests`). Charge stays in capacity (`ChargeTests`); a run draws its `Draw`
+  or stops (`RunTests`). Fits, spills, deaths, a tool's module lose nothing, the trash aside (`ArcModuleTests`, `DrillArcTests`,
+  `DeathTests`, `MachineBreakTests`).
 
 ## Deliberately not handled
 

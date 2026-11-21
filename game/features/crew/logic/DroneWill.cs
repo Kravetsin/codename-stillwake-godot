@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Crew;
 public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spread = 0);
 
 /// <summary>
-/// What a light drone senses this frame (docs/plans/drone-motion.md), pixels of the world: its hero's anchor and surface, where it
+/// What a light drone senses this frame (drone-motion ADR), pixels of the world: its hero's anchor and surface, where it
 /// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the meteor
 /// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing.
 /// </summary>
@@ -29,7 +29,7 @@ public readonly record struct DroneSenses(
 public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool Darting);
 
 /// <summary>
-/// The light drone's mind (docs/plans/drone-motion.md): by rank, a window's place before the waist, a dart at a meteor or bolt near,
+/// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near,
 /// held still while its hero signs, else a perch of its own by the anchor, picked again when bored.
 /// A hunter leans it his way. Its own <see cref="Random"/> picks the perches: they differ between screens, as decoration may.
 /// </summary>

@@ -4,7 +4,7 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The light drone's body (docs/plans/drone-motion.md): where it flies by its hero, in pixels of the world, after the goal its will
+/// The light drone's body (drone-motion ADR): where it flies by its hero, in pixels of the world, after the goal its will
 /// gives (<see cref="DroneWill"/>). It keeps the hero's velocity plus a pull to its goal, its own velocity turning toward that at a
 /// bounded acceleration, so a turn carries it on past the head and round, never a jump; outside a window it stays within
 /// <see cref="Tune.Reach"/> of its anchor. It ignores walls (light-drone).
@@ -17,17 +17,26 @@ public sealed class DroneFlight
         /// <summary>How far its anchor is over the neck, px.</summary>
         public const double Above = 16;
 
-        /// <summary>The fastest its pull to its goal flies it, past the hero's own speed, px/ms; darting, <see cref="DartSpeed"/>.</summary>
-        public const double Cruise = 0.12, DartSpeed = 0.6;
+        /// <summary>How fast it drifts to a goal near, px/ms: to a perch <see cref="Drift"/>, to a window's place <see cref="Cruise"/>.</summary>
+        public const double Drift = 0.025, Cruise = 0.12;
+
+        /// <summary>Near its goal it slows to the way left over this, ms: to a perch <see cref="ArriveMs"/>, to a window's place <see cref="WindowArriveMs"/>.</summary>
+        public const double ArriveMs = 400, WindowArriveMs = 150;
+
+        /// <summary>
+        /// Left behind further than <see cref="Slack"/>, px, it catches up at ((way - Slack) / <see cref="Snap"/>)² px/ms more:
+        /// about 24 px behind a running hero, 40 behind the fastest fall.
+        /// </summary>
+        public const double Slack = 12, Snap = 28;
+
+        /// <summary>The fastest it flies, px/ms: past the hero's fastest fall; darting, <see cref="DartSpeed"/>.</summary>
+        public const double Chase = 1.3, DartSpeed = 0.6;
 
         /// <summary>How fast its velocity turns toward the wanted one, px/ms².</summary>
         public const double Accel = 0.002;
 
-        /// <summary>The pull to its goal: the way left over this, px/ms.</summary>
-        public const double ArriveMs = 250;
-
-        /// <summary>The furthest it flies from its anchor outside a window, px; an anchor jumping further than <see cref="Lost"/> in a frame puts it at its goal.</summary>
-        public const double Reach = 40, Lost = 64;
+        /// <summary>The furthest it falls behind its anchor outside a window, px; an anchor jumping further than <see cref="Lost"/> in a frame puts it at its goal.</summary>
+        public const double Reach = 48, Lost = 64;
 
         /// <summary>The longest frame it flies by, ms: a stall never flings it.</summary>
         public const double MaxFrameMs = 33;
@@ -36,7 +45,7 @@ public sealed class DroneFlight
         public const double HomeX = 10, HomeY = 5;
 
         /// <summary>How long it sits on a perch before it is bored of it, ms, drawn between these.</summary>
-        public const int BoredMinMs = 3000, BoredMaxMs = 8000;
+        public const int BoredMinMs = 8000, BoredMaxMs = 20000;
 
         /// <summary>How near a meteor's cell must be to its anchor for it to dart, px; a bolt's zone is its spread and <see cref="BoltMargin"/> columns.</summary>
         public const double Notice = 160;
@@ -90,22 +99,32 @@ public sealed class DroneFlight
             return At;
         }
         _anchor = anchor;
-        var pull = Capped(Scaled(Minus(goal, At), 1 / Tune.ArriveMs), darting ? Tune.DartSpeed : Tune.Cruise);
-        var wanted = Plus(hero, pull);
+        // Its own pace, not the hero's: left behind, it catches up the faster the further it is.
+        var way = Minus(goal, At);
+        double gap = Length(way);
+        var wanted = gap < 1e-9 ? default : Scaled(way, Speed(gap, window, darting) / gap);
         var velocity = Plus(Velocity, Capped(Minus(wanted, Velocity), Tune.Accel * dt));
         var at = Plus(At, Scaled(velocity, dt));
         var out_ = Minus(at, anchor);
         double far = Length(out_);
         if (!window && far > Tune.Reach)
         {
-            var way = Scaled(out_, 1 / far);
-            at = Plus(anchor, Scaled(way, Tune.Reach));
+            var outWay = Scaled(out_, 1 / far);
+            at = Plus(anchor, Scaled(outWay, Tune.Reach));
             // Held on its circle it keeps the hero's pace outward, no more.
-            double outward = Dot(Minus(velocity, hero), way);
-            if (outward > 0) velocity = Minus(velocity, Scaled(way, outward));
+            double outward = Dot(Minus(velocity, hero), outWay);
+            if (outward > 0) velocity = Minus(velocity, Scaled(outWay, outward));
         }
         (At, Velocity, Off) = (at, velocity, Length(Minus(goal, at)));
         return at;
+    }
+
+    /// <summary>How fast it wants to fly at <paramref name="gap"/> px from its goal, px/ms: a drift easing in near it, a catch-up past <see cref="Tune.Slack"/>.</summary>
+    private static double Speed(double gap, bool window, bool darting)
+    {
+        double drift = window ? Math.Min(gap / Tune.WindowArriveMs, Tune.Cruise) : Math.Min(gap / Tune.ArriveMs, Tune.Drift);
+        double behind = Math.Max(0, gap - Tune.Slack) / Tune.Snap;
+        return Math.Min(drift + behind * behind, darting ? Tune.DartSpeed : Tune.Chase);
     }
 
     internal static Vec Plus(Vec a, Vec b) => new(a.X + b.X, a.Y + b.Y);

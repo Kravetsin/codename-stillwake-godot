@@ -8,11 +8,12 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | File | Purpose |
 | --- | --- |
 | `kit.js` | the page's shared script: helpers, the drone «Пепел в латах», the rig hero and its run-and-jump loop, the scene, the bag, the ghost and real pointers, the open schedule, the tiles, toggles, frame loop and pick |
-| `check.js` | the stub check: a stub DOM and a canvas that throws on a non-finite number, a bad colour or a source rectangle outside its image; the plan of clicks and forced turns |
-| `build.js` | `node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>]`: writes `<out-dir>/index.html`, then checks it |
+| `check.js` | the stub check: a stub DOM and a canvas that throws on a non-finite number, a bad colour or a source rectangle outside its image, and reads back solid white; the plan of clicks and forced turns |
+| `build.js` | `node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>] [--fonts <dir>]`: writes `<out-dir>/index.html`, then checks it |
 | `pages/drone-holo.js` | the worked example: the drone's hologram in the planner sheet's place |
 | `pages/title-tether.js` | a whole-scene page (`scene`): the title screen's scene, a limp hero on a tether |
 | `pages/drone-vision.js` | a page without the bag (`window: false`): the drone's meeting as a vision before the giant core |
+| `pages/title-logo.js` | a page with its own font (`fonts`): the name CASTOFF on the title, turning to dust and gathering again in a loop |
 
 ## Rules
 
@@ -39,6 +40,7 @@ the kit's names (`rr`, `css`, `halo`, `SIGN`, `drawDrone`, `plateIdle`, `newHero
 | `toggles` | `{ id, key, opts: [[label, value], …], label?, bar?, saved?, short? }`: buttons setting `OPT[key]`, its first value the default; `bar: 1` sits beside the kit's own (open mode, hero, speed, pause), others on a second bar; a `saved` one goes into the pick under `key`, named `short` in its text |
 | `pick` | `{ doc, subject, what: [accusative, instrumental] }`: the db doc, the copy text's subject, the candidate's word in the hints |
 | `tile` | `[w, h]`: the tile's logical size, `[1000, 540]` when left out; «Крупно 1:1» shows it `w` wide |
+| `fonts` | `{ family: file }`: OFL TTFs inlined as `@font-face` data, the names in `PAGE.fonts` to wait for; files from `--fonts <dir>`, by default `fonts/` beside the out dir, each with its `OFL.txt`; never committed |
 | `kitBars` | the kit's own toggles shown (`openMode`, `heroMode`, `speedMode`, `playMode`); all when left out |
 | `page()` | returns `{ cands, expose?, …hooks }` |
 | `breaks` | `{ name: [[from, to], …] }`: text swaps that break one rule, to see the check fail (`--break name`) |
