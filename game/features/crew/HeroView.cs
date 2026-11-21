@@ -294,7 +294,6 @@ public partial class HeroView : Node2D
         };
         _ui.Breathed += () => _breathe = true;
         _ui.Ate += food => _eat = food;
-        _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));

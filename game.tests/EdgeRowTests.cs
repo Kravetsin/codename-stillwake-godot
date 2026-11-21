@@ -74,4 +74,8 @@ public class EdgeRowTests
         // A wider window moves it right with the rim's middle.
         Assert.Equal(EdgeRow.RimLeft(1280, 6, grown) + 320, EdgeRow.RimLeft(1920, 6, grown), 3);
     }
+
+    [Fact]
+    public void TheEdgeHoldsTheAirTheBuildTheBoardTheMarketAndTheJournalNoSuitKey() =>
+        Assert.Equal(["air", "build", "research", "market", "journal"], EdgeRow.Keys);
 }

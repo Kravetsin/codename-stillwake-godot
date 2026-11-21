@@ -62,6 +62,9 @@ public partial class EdgeKey : Control
         };
     }
 
+    /// <summary>Its motif, one of <see cref="EdgeRow.Keys"/>.</summary>
+    public string Motif => _name;
+
     /// <summary>How near the pointer is to the screen's foot, 0 to 1, from the edge: it brightens the key.</summary>
     public float Near { private get; set; }
 

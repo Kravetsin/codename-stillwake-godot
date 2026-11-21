@@ -56,6 +56,8 @@ public partial class TabletEdge : CanvasLayer
     /// </summary>
     public void Put(EdgeKey key, string says, Func<bool>? shown = null)
     {
+        if (_slots.Count >= EdgeRow.Keys.Length || EdgeRow.Keys[_slots.Count] != key.Motif)
+            throw new InvalidOperationException($"The edge's keys are {string.Join(", ", EdgeRow.Keys)}, in that order: not {key.Motif} here");
         _slots.Add(new Slot(key, shown ?? (() => true)));
         _root.AddChild(key);
         _tips.Add(key, () => new Tip(T(says)) { Over = true });

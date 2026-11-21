@@ -448,8 +448,6 @@ public partial class Main : Node2D, ITogether
         edge.Put(_hands.Menu.Cap, "build.key");
         edge.Put(tech.Cap, "research.key", () => tech.CapShows);
         edge.Put(tech.MarketCap, "research.marketKey", () => tech.MarketCapShows);
-        Func<bool> suitOn = () => _session is Session s && _m.Crew.SuitOn(s.Client.Id);
-        edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, suitOn), "suit.key", () => suitOn() || _session is Session s && _m.Crew.SuitModeProblem(s.Client.Id) == null);
         edge.Put(handbook.Cap, "handbook.key");
         edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
         // The drone projects these: its corners frame them (drone-frame).

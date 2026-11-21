@@ -65,7 +65,6 @@ This hero and others', client-authoritative (0002).
 | `PingView.cs` | drawn |
 | `logic/SuitGlow.cs` | lights |
 | `logic/TrackerBlink.cs` | tracker |
-| `SuitKeys.cs` | V |
 | `Figure.cs` | figure |
 | `logic/BodyFit.cs` | fits |
 | `LightDrone.cs` | drone |
