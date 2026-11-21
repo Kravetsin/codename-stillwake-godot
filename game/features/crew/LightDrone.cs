@@ -117,6 +117,12 @@ public partial class LightDrone : Node2D
         }
     }
 
+    /// <summary>The spyglass's mouth, in pixels of the world, where the scan's sparks leave for the gauge.</summary>
+    public Vector2 Mouth => GlobalPosition + new Vector2(I.MouthX, I.MouthY).Rotated(_angle) * I.Px;
+
+    /// <summary>How red an alarm turns it now, 0..1.</summary>
+    public float Tint => _tint;
+
     /// <summary>
     /// Flies it by its hero's <paramref name="anchor"/>, moving at <paramref name="hero"/> px/ms, as its will wants
     /// (<paramref name="intent"/>), with no reach in a <paramref name="window"/>: its eye eased toward the look, red as the tint.

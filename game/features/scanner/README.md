@@ -9,7 +9,7 @@ the item only as gear; the readout is the client's, read from the debris module'
 | File | Holds |
 | --- | --- |
 | `logic/Scan.cs` | `Readout` (a point, a value left, a maximum); `Scan.Of`, `OfPile`: the wreck or pile under the pointer and its hit points left |
-| `logic/Phosphor.cs` | the picked readout's 3 by 5 digits, its box over the point with room for the maximum's digits, its whole screen pixels |
+| `logic/ScanDots.cs` | the gauge: 26 ember dots lit by the hit points left, flown in from the spyglass and home to the drone, a hit's shudder and burst embers |
 | `ScannerView.cs` | the readout over the wreck's top edge: dark glass, its digits added, its own scanlines; in and out as the pointer comes and goes |
 
 ## Rules

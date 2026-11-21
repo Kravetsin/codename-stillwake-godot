@@ -844,6 +844,9 @@ public partial class Figure : Node2D
     /// <summary>The box round its drone's lens as drawn, in pixels of the world; none while no drone floats by it.</summary>
     public Rect2? DroneLens => _drone.Visible ? _drone.LensBox : null;
 
+    /// <summary>Where its drone's scan sparks leave and go home, in pixels of the world, and how red an alarm turns them; none while no drone floats by it.</summary>
+    public (Vector2 Mouth, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Mouth, _drone.LensBox.GetCenter(), _drone.Tint) : null;
+
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
 

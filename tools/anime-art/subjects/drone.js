@@ -275,8 +275,8 @@ public static class DroneInk
     public const float DotsIn = 0.4f, DotsOut = 0.4f, DotLag = 0.4f, DotSpan = 0.6f, DotLagOut = 0.35f, DotSpanOut = 0.65f;
     public const float DotFlicker = 0.82f, DotFlickerSwing = 0.18f, DotFlickerPace = 9, DotFlickerStep = 2.3f, DotLit = 0.3f, DotLitMore = 0.62f, DotDark = 0.04f;
 
-    /// <summary>A hit: how long it lasts, s; the heat it adds to the lit; the row's shudder, px, and its pace; a burst ember's speed least and more, px a second, its fall.</summary>
-    public const float Hit = 0.8f, HitHeat = 0.6f, Shudder = 1.4f, ShudderPace = 60, BurstSpeed = 14, BurstMore = 16, BurstFall = 34;
+    /// <summary>A hit: how long it lasts, s; the heat it adds to the lit; the row's shudder, px, and its pace; how far a burst ember flies, least and more, px over the hit, how far it falls; its heat by what it lost, less the hit's share.</summary>
+    public const float Hit = 0.8f, HitHeat = 0.6f, Shudder = 1.4f, ShudderPace = 60, BurstSpeed = 14, BurstMore = 16, BurstFall = 34, BurstHeat = 1.2f;
 }
 `;
   writeText('../../shared/logic/DroneInk.cs', cs);
