@@ -9,7 +9,7 @@ the item only as gear; the readout is the client's, read from the debris module'
 | File | Holds |
 | --- | --- |
 | `logic/Scan.cs` | `Readout` (a point, a value left, a maximum); `Scan.Of`, `OfPile`: the wreck or pile under the pointer and its hit points left |
-| `logic/Phosphor.cs` | the picked readout's 3 by 5 digits, its box over the point with room for the maximum's digits, its whole screen pixels |
+| `logic/ScanDots.cs` | the gauge: 26 ember dots lit by the hit points left, flown in from the spyglass and home to the drone, a hit's shudder and burst embers |
 | `ScannerView.cs` | the readout over the wreck's top edge: dark glass, its digits added, its own scanlines; in and out as the pointer comes and goes |
 
 ## Rules
@@ -23,8 +23,9 @@ the item only as gear; the readout is the client's, read from the debris module'
   menu, a computer or the tree open).
 - **`left / max`**: the kind's `Wreckage.HpOf` less the piece's `Damage`, never below 0; at the middle of the wreck's
   picture's top edge where it is drawn this frame (`PieceDrawn`), so it drifts with it.
-- **Phosphor**, as picked, steadied (2026-11-07-steady-scanner): green digits on dark glass, the value flaring white as it falls,
-  no flicker or grain. On a layer that follows the camera, unlit by its lights, each pixel whole screen pixels (`Phosphor.Scale`).
+- **Ember dots** (drone-threads): 26 over the wreck, dot j lit `clamp(left / (max / 26) - j, 0, 1)` (`ScanDots`), flown to from
+  the spyglass's mouth; lost ones burst off as falling embers; red with the drone's alarm; none at `max <= 0`. On a layer that
+  follows the camera, unlit by its lights, whole screen pixels (`Phosphor.Scale`).
 - **Worn**, the crest along the helmet's crown, its dots running down its glass: `crew`'s `Figure` draws it from
   `tools/anime-art/subjects/scanner.js`'s pictures, placed by the generated `game/shared/logic/ScannerInk.cs`. Others see it too.
 

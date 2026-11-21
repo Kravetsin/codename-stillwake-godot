@@ -221,19 +221,24 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The paired bag (drone-holo): it opens and closes at once, and while it is open the hero's drone draws the sheet in front of
-    /// its face for every player to see. Unpaired, the wrist's bag tells the drone nothing.
+    /// The paired bag on the drone's sparks (drone-frame, drone-threads): its outline handed to the frame while it shows, its glass and
+    /// contents coming in once the frame stands, out before the squares fly home. Unpaired, the wrist's bag lets go of any frame it had.
     /// </summary>
     private void BagSoot(double delta)
     {
         if (_inventory is not HoloWindow window)
         {
-            if (_ui.DroneWindow.Open) _ui.DroneWindow = (false, 0);
+            if (ReferenceEquals(_ui.Soot.Owner, this) && _ui.Soot.Open) _ui.Soot.Hand(this, _ui.Soot.Outline, false);
             return;
         }
-        if (_shown.Visible != Shown) _shown.Visible = Shown;
-        window.Glass(Shown ? 1 : 0, Shown ? 1 : 0);
-        _ui.DroneWindow = (Shown, 0);
+        _bagFade.Step(delta, Shown);
+        if (_shown.Visible != BagShown) _shown.Visible = BagShown;
+        window.Glass(_bagFade.Glass, _bagFade.Contents);
+        // Laid out before it is handed: a window not yet sized has no outline.
+        if (window.GetGlobalRect() is not { Size: { X: > 0, Y: > 0 } } at) return;
+        (_bagOutline[0], _bagOutline[1], _bagOutline[2], _bagOutline[3]) =
+            ((at.Position.X, at.Position.Y), (at.End.X, at.Position.Y), (at.End.X, at.End.Y), (at.Position.X, at.End.Y));
+        _ui.Soot.Hand(this, _bagOutline, Shown);
     }
 
     /// <summary>Another drone window took the soot from the bag: it closes, a crate open beside it too.</summary>

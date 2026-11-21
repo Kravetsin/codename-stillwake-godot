@@ -23,8 +23,6 @@ public class MeetingTests
 
     private static Vec Palm(MeetingScene s, double u) => new(s.HeroAt(u).Feet.X - s.Side * 4, s.HeroAt(u).Feet.Y - 20);
 
-    private static Plate Home(int i, double u) => DroneSwarm.PlateIn(SwarmShape.Idle, i, 0, (float)u);
-
     private static double FirstWhen(Func<double, bool> holds)
     {
         foreach (double u in Sweep())
@@ -37,7 +35,7 @@ public class MeetingTests
     {
         var s = Scene();
         // E; the HUD gone; the core lit, lifted; the crumble; the void; the first drop; each ring full; the black; the eye; back to
-        // the wreck; the core home; each plate; the drone by the head; the end.
+        // the wreck; the core home; each thread kindled; the drone by the head; the end.
         double hud = FirstWhen(u => Meeting.Hud(u) < 0.5);
         double lit = FirstWhen(u => Meeting.Light(u) > 0.5);
         double lifts = FirstWhen(u => !Meeting.CoreLies(u));
@@ -48,21 +46,23 @@ public class MeetingTests
         double eye = FirstWhen(u => Meeting.LensOn(u) > 0);
         double back = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Back);
         double home = FirstWhen(u => Meeting.PhaseOf(u) == MeetingPhase.Home);
-        var lands = new List<double>();
-        for (int i = 0; i < Meeting.Plates; i++)
+        var kindled = new List<double>();
+        for (int o = 0; o < 3; o++)
         {
-            int plate = i;
-            lands.Add(FirstWhen(u => s.PlateOf(plate, u, Core, Home(plate, u)).Stage == PlateStage.Home));
+            int thread = o;
+            kindled.Add(FirstWhen(u => Meeting.Kindled(thread, u) >= 1));
         }
         double drone = FirstWhen(u => !Meeting.DrawsDrone(u));
-        double[] beats = [Meeting.Times.Press, hud, lit, lifts, crumbles, vision, bleeds, s.Full(0), s.Full(1), s.Full(2), black, eye, back, home, .. lands, drone, Meeting.End];
+        double[] beats = [Meeting.Times.Press, hud, lit, lifts, crumbles, vision, bleeds, s.Full(0), s.Full(1), s.Full(2), black, eye, back, home, .. kindled, drone, Meeting.End];
         for (int i = 1; i < beats.Length; i++) Assert.True(beats[i - 1] < beats[i], $"beat {i - 1} at {beats[i - 1]:F3} s, {i} at {beats[i]:F3} s");
         Assert.InRange(crumbles, Meeting.Times.InFrom, Meeting.Times.InFrom + Step);
         Assert.InRange(vision, Meeting.Times.InTo, Meeting.Times.InTo + Step);
         Assert.InRange(bleeds, Meeting.Times.Ring0 - Meeting.Times.Fly, Meeting.Times.Ring0 + 2);
         Assert.InRange(eye, Meeting.Times.LensFrom, Meeting.Times.LensFrom + Step);
         Assert.InRange(back, Meeting.Times.OutFrom, Meeting.Times.OutFrom + Step);
-        for (int i = 0; i < lands.Count; i++) Assert.InRange(lands[i], 19.8 + i, 19.8 + i + Step);
+        for (int o = 0; o < kindled.Count; o++) Assert.InRange(kindled[o], 19.8 + o + 0.25, 19.8 + o + 0.25 + Step);
+        // The fourth beat, 22.8 s, stays empty: nothing more till the drone rises.
+        Assert.True(kindled[^1] < 22.8 && Meeting.Times.RiseFrom > 22.8);
         Assert.Equal((1.0, 0.0, 0.0), (Meeting.Hud(Meeting.End), Meeting.Grade(Meeting.End), Meeting.Grade(0)));
     }
 
@@ -155,25 +155,43 @@ public class MeetingTests
     }
 
     [Fact]
-    public void PlatesComeOnlyOnceBackFromTheVisionOneInFlightAtMost()
+    public void BackHomeEachThreadKindlesInTurnPuttingItsDropsOutAndLightingItsSparksAsItPasses()
     {
-        var s = Scene();
-        var stages = new PlateStage[Meeting.Plates];
+        var out_ = new bool[Meeting.Motes];
+        var was = new double[3];
         foreach (double u in Sweep())
         {
-            int flying = 0;
-            for (int i = 0; i < Meeting.Plates; i++)
+            int kindling = 0;
+            for (int o = 0; o < 3; o++)
             {
-                var stage = s.PlateOf(i, u, Core, Home(i, u)).Stage;
-                Assert.True(stage >= stages[i], $"plate {i} went back from {stages[i]} to {stage} at {u:F3} s");
-                if (Meeting.PhaseOf(u) != MeetingPhase.Home) Assert.Equal(PlateStage.Away, stage);
-                if (Meeting.ArcAlpha(i, u) > 0) Assert.Equal(MeetingPhase.Home, Meeting.PhaseOf(u));
-                stages[i] = stage;
-                if (stage == PlateStage.Flying) flying++;
+                double k = Meeting.Kindled(o, u);
+                Assert.True(k >= was[o], $"thread {o} went back at {u:F3} s");
+                if (Meeting.PhaseOf(u) != MeetingPhase.Home) Assert.Equal(0, k);
+                if (k is > 0 and < 1) kindling++;
+                was[o] = k;
             }
-            Assert.True(flying <= 1, $"{flying} plates in flight at {u:F3} s");
+            Assert.True(kindling <= 1, $"{kindling} threads kindling at {u:F3} s");
+            // A drop once put out stays out; only its own thread puts it out.
+            for (int i = 0; i < Meeting.Motes; i++)
+            {
+                var mote = Meeting.MoteAt(i, (float)(u + 3.7));
+                bool gone = Meeting.Passed(i % 3, u, mote.X, mote.Y);
+                Assert.True(gone || !out_[i], $"drop {i} lit again at {u:F3} s");
+                if (gone) Assert.True(Meeting.Kindled(i % 3, u) > 0);
+                out_[i] = gone;
+            }
         }
-        Assert.All(stages, stage => Assert.Equal(PlateStage.Home, stage));
+        Assert.All(out_, Assert.True);
+        // Half round, the half it has run is lit and the rest not: the long end first, the way the sparks run.
+        for (int o = 0; o < 3; o++)
+        {
+            double half = Meeting.Kindles(o) + Meeting.Times.Kindle / 2, tilt = DroneInk.OrbitTilt + o * DroneInk.OrbitTiltMore, way = o % 2 == 1 ? -1 : 1;
+            foreach (var (a, lit) in ((double, bool)[])[(0.1, true), (0.9 * Math.PI, true), (1.1 * Math.PI, false), (1.9 * Math.PI, false)])
+            {
+                double x = Math.Cos(way * a) * 3, y = Math.Sin(way * a) * 3 * DroneInk.OrbitFlat;
+                Assert.Equal(lit, Meeting.Passed(o, half, x * Math.Cos(tilt) - y * Math.Sin(tilt), x * Math.Sin(tilt) + y * Math.Cos(tilt)));
+            }
+        }
     }
 
     [Fact]
@@ -229,7 +247,7 @@ public class MeetingTests
                 var (breathing, waking) = Meeting.SmallHalos(u, Meeting.Breath(u), core.R);
                 Finite(u, core.At.X, core.At.Y, core.R, core.Angle, hero.Feet.X, hero.Feet.Y, hero.Scale, hero.Turn, hero.Kneel, hero.Lean, hero.Reach,
                     face.Soak, face.Lens, face.Glow, drinking, embers, breathing, waking, Meeting.Hud(u), Meeting.Grade(u),
-                    Meeting.Dizzy(u), Meeting.Halo(u, Meeting.Breath(u)), Meeting.LensShift(u), Meeting.DebrisIn(u), Meeting.Rings(u), Meeting.Spread(u));
+                    Meeting.Dizzy(u), Meeting.Halo(u, Meeting.Breath(u)), Meeting.LensShift(u), Meeting.Rings(u), Meeting.Spread(u), Meeting.Kindled(0, u), Meeting.Kindled(2, u));
                 for (int i = 0; i < MeetingScene.Drops; i++)
                 {
                     if (s.DropAt(i, u, core) is { } d) Finite(u, d.At.X, d.At.Y, d.Tail.X, d.Tail.Y, d.Mid.X, d.Mid.Y, d.Radius, d.Ember, d.Lit, d.SheenAlpha);
@@ -238,14 +256,6 @@ public class MeetingTests
                         int n = s.ThreadAt(i, strand, u, Palm(s, u), core, points);
                         for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
                     }
-                }
-                for (int i = 0; i < Meeting.Plates; i++)
-                {
-                    var plate = s.PlateOf(i, u, core.At, Home(i, u));
-                    Finite(u, plate.At.X, plate.At.Y, plate.Turn, plate.Flip, Meeting.ArcAlpha(i, u), Meeting.LandFlash(i, u));
-                    var (first, _) = Meeting.ArcSeeds(i, u);
-                    int n = Meeting.Arc(core.At, plate.At, first, points);
-                    for (int j = 0; j < n; j++) Finite(u, points[j].X, points[j].Y);
                 }
             }
         }
@@ -347,5 +357,20 @@ public class MeetingTests
     private static void Finite(double u, params double[] numbers)
     {
         foreach (double n in numbers) Assert.True(double.IsFinite(n), $"{n} at {u:F3} s");
+    }
+
+    [Fact]
+    public void TheCloudIsThePicksOwnSeeds()
+    {
+        // drone.js's dustSet(170, 530): the first mote's phase 4.1764 and r1 0.1210 put it here on the first orbit at t = 0.
+        var first = Meeting.MoteAt(0, 0);
+        float r = 2.5f + (0.12103f - 0.5f) * 0.4f, th = 4.17642f;
+        float x = MathF.Cos(th) * r, y = MathF.Sin(th) * r * 0.3f, tilt = -0.3f;
+        Assert.Equal(x * MathF.Cos(tilt) - y * MathF.Sin(tilt), first.X, 3);
+        Assert.Equal(x * MathF.Sin(tilt) + y * MathF.Cos(tilt), first.Y, 3);
+        Assert.True(first.Dark);
+        Assert.False(Meeting.MoteAt(1, 0).Dark);
+        // The pick's seeds drew 13 hot of 170, its 7 % share.
+        Assert.Equal(13, Enumerable.Range(0, Meeting.Motes).Count(i => Meeting.SeedOf(i).Hot));
     }
 }

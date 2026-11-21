@@ -1,90 +1,117 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Godot;
 using Stillwake.Game.Render;
+using I = Stillwake.Game.Shared.DroneInk;
 
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The drone's soot framing the open drone window (drone-frame, the picks «Угли» and «Сеть по краю»), one per client, over the
-/// windows: the motes flying from the drone to the outline the window handed <see cref="Ui.Soot"/> and home, kindling into the
-/// nodes of a glowing net along it, the crackle and the faint film (<see cref="SootRun"/>). It tells the rest whether a drone window is out (<see cref="Ui.DroneWindow"/>),
-/// so the drone goes bare. Screen px.
+/// The drone's sparks framing the open drone window (drone-frame, the pick «Нити»), one per client, over the windows: sparks fly
+/// straight from the drone's eye to the outline the window handed <see cref="Ui.Soot"/>, the corner nearest the drone first, and
+/// stay as rows of small squares shimmering round it; closing, they fly home, the farthest first (<see cref="SootRun"/>). It tells
+/// the rest whether a drone window is out (<see cref="Ui.DroneWindow"/>). Screen px.
 /// </summary>
 public partial class DroneFrame : CanvasLayer
 {
-    private static readonly Color Ember = new(SootRun.Tune.Warm), ArcColour = new(SootRun.Tune.Hot), ArcCore = ArcColour.Lerp(Colors.White, SootRun.Tune.ArcPale);
-    private static readonly Color Light = new(HoloLook.Drone.Light), LightPale = Light.Lerp(Colors.White, SootRun.Tune.FilmPale);
-    private static readonly Color Rim = new("16171b"), SootDark = new("4c4f55"), SootLight = new("606369");
+    /// <summary>A landed square's shimmer, as the pick's <c>frameSq</c>: a wave running round its row, a little noise, added.</summary>
+    private static readonly string ShimmerShader = $$"""
+        shader_type canvas_item;
+        render_mode blend_add, unshaded;
+        // UV: the square's share of the way round its row, its row.
+        float hash(float n) { return fract(sin(n) * 43758.5453); }
+        float noise(float x) { float i = floor(x); float f = fract(x); return mix(hash(i), hash(i + 1.0), f * f * (3.0 - 2.0 * f)); }
+        void fragment() {
+            float wave = pow(0.5 + 0.5 * sin(UV.x * TAU * {{Num(I.ShimmerWaves)}} - TIME * {{Num(I.ShimmerPace)}} + UV.y), {{Num(I.ShimmerSharp)}});
+            float heat = min(1.0, {{Num(I.ShimmerLeast)}} + {{Num(I.Shimmer)}} * wave + {{Num(I.ShimmerNoise)}} * noise(TIME * {{Num(I.ShimmerNoisePace)}} + UV.x * 977.0 + UV.y * 31.0));
+            COLOR = vec4(mix(COLOR.rgb, vec3(1.0), 0.25 * heat), 0.95 * heat);
+        }
+        """;
+
+    private static readonly Color Ember = new(I.Ember.R / 255f, I.Ember.G / 255f, I.Ember.B / 255f), Dark = new(I.Dark.R / 255f, I.Dark.G / 255f, I.Dark.B / 255f);
 
     private readonly Ui _ui;
-    private readonly SootRun _run = new(window: true, new Random());
-    /// <summary>The film, spans and crackle, added; the motes over them; the hot motes' glow, added over those.</summary>
-    private readonly Node2D _light = new(), _motes = new(), _embers = new();
-    private readonly Triangles _lit = new(), _soot = new(), _hot = new();
-    private readonly (float X, float Y)[] _jag = new (float, float)[SootRun.Tune.ArcSegments + 1];
-    /// <summary>The spots round the outline as it was last laid, the outline moved to start at nought, its near corner.</summary>
+    private readonly SootFade _fade = new();
+    /// <summary>The landed squares, drawn once and moved as the window sways: their dark, their shimmering glow.</summary>
+    private readonly Node2D _landedDark = new(), _landedGlow = new();
+    /// <summary>The squares in flight, drawn each frame: their dark, their tails and threads.</summary>
+    private readonly Node2D _flyingDark = new(), _flyingLight = new();
+    private readonly Triangles _dark = new(), _light = new();
+    private readonly List<Vector2> _points = [], _uvs = [];
+    private readonly List<Color> _colours = [];
+    private readonly List<int> _indices = [];
+    /// <summary>The squares round the outline as it was last laid, the outline moved to start at nought, its near corner.</summary>
     private SootSpots? _spots;
     private (float X, float Y)[] _shape = [];
-    private int _near = -1;
+    private int _near = -1, _landed = -1;
     private (float X, float Y) _at;
-    private bool _open, _wasOpen, _drawn;
-    /// <summary>The film's polygon and its colours as last drawn, and the cut of the whole outline, kept while it stands.</summary>
-    private readonly List<Vector2> _filmPoints = [];
-    private readonly List<Color> _filmColours = [];
-    private int[] _wholeCut = [];
-    private SootSpots? _cutOf;
+    private (float X, float Y)? _drone;
+    private bool _wasOpen, _flew;
 
     public DroneFrame(Ui ui)
     {
         _ui = ui;
         Layer = ScreenLayers.DroneFrame;
-        // The motes under the light, so the frame's line runs whole through them.
-        foreach (var (node, added, draw) in (ValueTuple<Node2D, bool, Action>[])[(_motes, false, DrawMotes), (_light, true, DrawLight), (_embers, true, DrawEmbers)])
-        {
-            if (added) node.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
-            node.Draw += draw;
-            AddChild(node);
-        }
+        _landedGlow.Material = new ShaderMaterial { Shader = new Shader { Code = ShimmerShader } };
+        _flyingLight.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
+        _landedDark.Draw += DrawLandedDark;
+        _landedGlow.Draw += DrawLandedGlow;
+        _flyingDark.Draw += DrawFlyingDark;
+        _flyingLight.Draw += DrawFlyingLight;
+        foreach (var node in (ReadOnlySpan<Node2D>)[_landedDark, _landedGlow, _flyingDark, _flyingLight]) AddChild(node);
     }
 
     public override void _Process(double delta)
     {
         var soot = _ui.Soot;
         var canvas = GetViewport().GetCanvasTransform();
-        (float X, float Y)? from = null;
+        _drone = null;
         if (_ui.DroneLens is var (x, y, w, h))
         {
             var lens = canvas * new Vector2(x + w / 2, y + h / 2);
-            from = (lens.X, lens.Y);
+            _drone = (lens.X, lens.Y);
         }
-        bool open = _open = soot.Open && soot.Outline.Count >= 3;
-        if (soot.Outline.Count >= 3) Lay(soot.Outline, from, open);
-        _run.Step(delta, open, _spots, _at, from, canvas.X.Length());
-        _ui.DroneWindow = (open, _run.Busy ? Math.Max(_run.Out, 1e-3) : 0);
-        bool drawing = _run.Shows;
-        if (drawing || _drawn)
+        bool open = soot.Open && soot.Outline.Count >= 3;
+        if (soot.Outline.Count >= 3) Lay(soot.Outline, open);
+        _fade.Step(delta, open);
+        _ui.DroneWindow = (open, _fade.Shown ? Math.Max(_fade.Out, 1e-3) : 0);
+        var origin = new Vector2(_at.X, _at.Y);
+        _landedDark.Position = _landedGlow.Position = origin;
+        int landed = 0;
+        bool flying = false;
+        for (int i = 0; _spots != null && i < _spots.Count; i++)
         {
-            _light.QueueRedraw();
-            _motes.QueueRedraw();
-            _embers.QueueRedraw();
+            float q = _fade.Landed(_spots.Lag(i));
+            if (q >= 1 || q > 0 && _drone == null) landed++;
+            else if (q > 0) flying = true;
         }
-        _drawn = drawing;
+        // Landing goes by lag, so how many have landed says which.
+        if (landed != _landed)
+        {
+            _landed = landed;
+            _landedDark.QueueRedraw();
+            _landedGlow.QueueRedraw();
+        }
+        if (flying || _flew)
+        {
+            _flyingDark.QueueRedraw();
+            _flyingLight.QueueRedraw();
+        }
+        _flew = flying;
     }
 
     /// <summary>
-    /// The spots round <paramref name="outline"/>, laid again only when its shape changes or it opens with another corner nearest
-    /// the drone, so its order never shifts mid-flight; it is only moved as it sways.
+    /// The squares round <paramref name="outline"/>, laid again only when its shape changes, or when it opens from nothing with another
+    /// corner nearest the drone, so none ever shifts mid-flight; it is only moved as it sways.
     /// </summary>
-    private void Lay(IReadOnlyList<(float X, float Y)> outline, (float X, float Y)? from, bool open)
+    private void Lay(IReadOnlyList<(float X, float Y)> outline, bool open)
     {
         var origin = outline[0];
         bool same = _shape.Length == outline.Count;
         for (int k = 0; same && k < outline.Count; k++)
             same = MathF.Abs(outline[k].X - origin.X - _shape[k].X) < 0.5f && MathF.Abs(outline[k].Y - origin.Y - _shape[k].Y) < 0.5f;
         int near = _near;
-        if (!same || open && !_wasOpen) near = from is { } drone ? SootFrame.NearCorner(outline, drone) : 0;
+        if (!same || open && !_wasOpen && !_fade.Shown) near = _drone is { } drone ? SootFrame.NearCorner(outline, drone) : 0;
         _wasOpen = open;
         _at = origin;
         if (same && near == _near && _spots != null) return;
@@ -92,135 +119,85 @@ public partial class DroneFrame : CanvasLayer
         for (int k = 0; k < outline.Count; k++) _shape[k] = (outline[k].X - origin.X, outline[k].Y - origin.Y);
         _near = near;
         _spots = SootFrame.Spots(_shape, near);
+        _landed = -1;
     }
 
-    /// <summary>The film, the net's links and its kindled nodes over them, and the crackle, all added.</summary>
-    private void DrawLight()
+    private bool LandedNow(int i) => _fade.Landed(_spots!.Lag(i)) is var q && (q >= 1 || q > 0 && _drone == null);
+
+    /// <summary>The landed squares' dark, in the outline's own coordinates.</summary>
+    private void DrawLandedDark()
     {
-        _lit.Clear();
-        if (_spots != null && _run.Shows)
-        {
-            Film();
-            float alpha = _run.Alpha;
-            for (int j = 0; j < _run.Links; j++)
+        _dark.Clear();
+        const float Side = I.Square;
+        for (int i = 0; _spots != null && i < _spots.Count; i++)
+            if (LandedNow(i))
             {
-                var (a, b) = _spots.Link(j);
-                var (lit, heat) = _run.LinkLook(j);
-                NetLook.Line(_lit, At(a), At(b), alpha * lit, heat);
+                var (x, y) = _spots.Spot(i);
+                _dark.Rect(x - Side / 2, y - Side / 2, Side, Side, Dark);
             }
-            for (int i = 0; i < _run.Count; i++)
-                NetLook.Node(_lit, At(i), _run.NodeRadius(i), alpha * SootRun.Tune.NodeAlpha * _run.Kindled(i), _run.NodeHeat(i));
-            if (_run.Crackle is { } crackle && OnLink(crackle.Span, crackle.Seed) is int link)
+        _dark.Flush(_landedDark.GetCanvasItem());
+    }
+
+    /// <summary>The landed squares' glow, each carrying its place round its row for the shimmer.</summary>
+    private void DrawLandedGlow()
+    {
+        _points.Clear();
+        _uvs.Clear();
+        _colours.Clear();
+        _indices.Clear();
+        const float Half = I.SquareGlow / 2;
+        for (int i = 0; _spots != null && i < _spots.Count; i++)
+        {
+            if (!LandedNow(i)) continue;
+            var (x, y) = _spots.Spot(i);
+            var uv = new Vector2(_spots.Per(i), _spots.Row(i));
+            int at = _points.Count;
+            foreach (var corner in (ReadOnlySpan<Vector2>)[new(-Half, -Half), new(Half, -Half), new(Half, Half), new(-Half, Half)])
             {
-                var (ia, ib) = _spots.Link(link);
-                Vector2 from = At(ia), to = At(ib);
-                float a = SootRun.ArcAlpha(crackle.Seed, crackle.Age, _run.Time) * SootRun.Tune.ArcAlpha;
-                SootRun.Jag(from.X, from.Y, to.X, to.Y, crackle.Seed, _run.Time, SootRun.Tune.ArcAmp, SootRun.Tune.ArcBow, _jag);
-                for (int k = 0; k + 1 < _jag.Length; k++)
-                {
-                    Vector2 p = new(_jag[k].X, _jag[k].Y), q = new(_jag[k + 1].X, _jag[k + 1].Y);
-                    _lit.Quad(p, q, SootRun.Tune.ArcHalo, new Color(ArcColour, SootRun.Tune.ArcHaloAlpha * a));
-                    _lit.Quad(p, q, SootRun.Tune.ArcCore, new Color(ArcCore, a));
-                }
-                foreach (var end in (ReadOnlySpan<Vector2>)[from, to])
-                    _lit.Fan(end, SootRun.Tune.ArcEnd, new Color(ArcColour, SootRun.Tune.ArcEndAlpha * a), new Color(ArcColour, 0));
+                _points.Add(new Vector2(x, y) + corner);
+                _uvs.Add(uv);
+                _colours.Add(Ember);
             }
+            foreach (int k in (ReadOnlySpan<int>)[0, 1, 2, 0, 2, 3]) _indices.Add(at + k);
         }
-        _lit.Flush(_light.GetCanvasItem());
+        if (_indices.Count == 0) return;
+        RenderingServer.CanvasItemAddTriangleArray(_landedGlow.GetCanvasItem(), [.. _indices], [.. _points], [.. _colours], [.. _uvs],
+            ReadOnlySpan<int>.Empty, ReadOnlySpan<float>.Empty, default, -1);
     }
 
-    private Vector2 At(int i) => new(_run.X(i), _run.Y(i));
-
-    private (int Seed, int Link)? _crackleOn;
-
-    /// <summary>
-    /// The link a crackle drawn at <paramref name="from"/> runs on: the first from there bright enough to carry one, held for the
-    /// crackle's life; none if no link is.
-    /// </summary>
-    private int? OnLink(int from, int seed)
+    /// <summary>The squares in flight: a spark's dark square each.</summary>
+    private void DrawFlyingDark()
     {
-        if (_crackleOn is { } on && on.Seed == seed) return on.Link < 0 ? null : on.Link;
-        int found = -1;
-        for (int k = 0; k < _run.Links && found < 0; k++)
+        _dark.Clear();
+        const float Side = I.Flying;
+        for (int i = 0; _spots != null && i < _spots.Count; i++)
         {
-            int j = (from + k) % _run.Links;
-            if (_run.LinkLook(j).Alpha > SootRun.Tune.ArcOn) found = j;
+            var square = SootRun.At(_spots, i, _fade, _at, _drone);
+            if (square.Out && !square.Landed) _dark.Rect(square.X - Side / 2, square.Y - Side / 2, Side, Side, Dark);
         }
-        _crackleOn = (seed, found);
-        return found < 0 ? null : found;
+        _dark.Flush(_flyingDark.GetCanvasItem());
     }
 
-    /// <summary>
-    /// The film between the landed motes (the pick's <c>drawFilm</c>, without its ripple): still, nearly unseen, the hologram's
-    /// light slanting down across it, palest at the top left.
-    /// </summary>
-    private void Film()
+    /// <summary>The squares in flight: each one's glowing tail, and every few's thread from where it left.</summary>
+    private void DrawFlyingLight()
     {
-        float film = _run.Film * _run.Alpha;
-        if (film <= 0 || _spots is not { } spots) return;
-        bool whole = true;
-        _filmPoints.Clear();
-        _filmColours.Clear();
-        float ox = _at.X + spots.MinX, oy = _at.Y + spots.MinY, gx = (spots.MaxX - spots.MinX) * SootRun.Tune.FilmSlant, gy = spots.MaxY - spots.MinY;
-        float across = gx * gx + gy * gy;
-        for (int i = 0; i < _run.Count; i++)
+        _light.Clear();
+        const float Side = I.Flying;
+        for (int i = 0; _spots != null && i < _spots.Count; i++)
         {
-            // Opening, only the landed motes hold it: the outline round them is the part framed so far.
-            if (_open && !_run.Landed(i))
+            var square = SootRun.At(_spots, i, _fade, _at, _drone);
+            if (!square.Out || square.Landed) continue;
+            if (SootRun.Threads(i))
+                _light.Quad(new Vector2(square.FromX, square.FromY), new Vector2(square.X, square.Y), I.ThreadLine, new Color(Ember, I.ThreadAlpha));
+            for (int m = 0; m < I.Tail; m++)
             {
-                whole = false;
-                continue;
+                float back = m * I.TailStep, x = square.X - square.Dx * back, y = square.Y - square.Dy * back;
+                var colour = Ember.Lerp(Colors.White, I.TailPale * (1 - m / (float)I.Tail));
+                _light.Rect(x - Side / 2, y - Side / 2, Side, Side, new Color(colour, (I.TailAlpha - m * I.TailFade) * I.FlyingHeat));
             }
-            // On the outline itself, not the nodes off it: the film is the window's shape.
-            var spot = spots.Spot(i);
-            var at = new Vector2(_at.X + spot.X, _at.Y + spot.Y);
-            float u = across > 0 ? Math.Clamp(((at.X - ox) * gx + (at.Y - oy) * gy) / across, 0, 1) : 0;
-            var colour = u < SootRun.Tune.FilmMid
-                ? (LightPale with { A = SootRun.Tune.FilmTop * film }).Lerp(Light with { A = SootRun.Tune.FilmMid * film }, u / SootRun.Tune.FilmMid)
-                : (Light with { A = SootRun.Tune.FilmMid * film }).Lerp(Light with { A = film }, (u - SootRun.Tune.FilmMid) / (1 - SootRun.Tune.FilmMid));
-            _filmPoints.Add(at);
-            _filmColours.Add(colour);
         }
-        if (_filmPoints.Count < 3) return;
-        int[] cut;
-        if (whole)
-        {
-            // The whole outline's cut stands while it does: moved by the sway, it is cut the same.
-            if (!ReferenceEquals(_cutOf, spots) || _wholeCut.Length == 0) (_wholeCut, _cutOf) = (Geometry2D.TriangulatePolygon([.. _filmPoints]), spots);
-            cut = _wholeCut;
-        }
-        else cut = Geometry2D.TriangulatePolygon([.. _filmPoints]);
-        if (cut.Length > 0) _lit.Polygon(CollectionsMarshal.AsSpan(_filmPoints), CollectionsMarshal.AsSpan(_filmColours), cut);
+        _light.Flush(_flyingLight.GetCanvasItem());
     }
 
-    /// <summary>The motes in flight: dark soot, each its tone in a dark rim, fading as it kindles into its node.</summary>
-    private void DrawMotes()
-    {
-        _soot.Clear();
-        float alpha = _run.Alpha;
-        for (int i = 0; _run.Shows && i < _run.Count; i++)
-        {
-            float dark = alpha * (1 - _run.Kindled(i));
-            if (dark <= 0.02f) continue;
-            float side = _run.Size(i), x = _run.X(i) - side / 2, y = _run.Y(i) - side / 2, rim = SootRun.Tune.MoteRim / 2;
-            _soot.Rect(x - rim, y - rim, side + 2 * rim, side + 2 * rim, Rim with { A = dark });
-            _soot.Rect(x, y, side, side, (_run.Dark(i) ? SootDark : SootLight) with { A = dark });
-        }
-        _soot.Flush(_motes.GetCanvasItem());
-    }
-
-    /// <summary>The hot motes' glow, flickering.</summary>
-    private void DrawEmbers()
-    {
-        _hot.Clear();
-        float alpha = _run.Alpha;
-        for (int i = 0; _run.Shows && i < _run.Count; i++)
-        {
-            float heat = _run.Heat(i);
-            if (heat <= 0) continue;
-            float side = _run.Size(i);
-            _hot.Rect(_run.X(i) - side / 2, _run.Y(i) - side / 2, side, side, Ember.Lerp(Colors.White, 0.25f * heat) with { A = 0.9f * heat * alpha });
-        }
-        _hot.Flush(_embers.GetCanvasItem());
-    }
+    private static string Num(float value) => value.ToString("0.0###", System.Globalization.CultureInfo.InvariantCulture);
 }

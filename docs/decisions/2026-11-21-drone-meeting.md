@@ -1,6 +1,6 @@
 # The drone's meeting is a vision, and the sim spares the hero meanwhile
 
-- Status: accepted
+- Status: accepted; the plates' arrival superseded by [drone-threads](2026-11-21-drone-threads.md)
 - Date: 2026-11-21
 
 ## Context
