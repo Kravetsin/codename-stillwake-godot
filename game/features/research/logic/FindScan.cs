@@ -9,8 +9,8 @@ public readonly record struct FindRecord(string? Item, double Fold, double? Fly)
 /// <summary>What is over the hero's head: the item, how far its icon has come in, 0..1, and how far the scan has swept it, top to bottom, 0..1; null before the sweep.</summary>
 public readonly record struct FindOver(string Item, double In, double? Sweep);
 
-/// <summary>Where a lesson is (drone-lessons): the drone going to the thing it learns from, scanning it, then showing the form it learned by the head.</summary>
-public enum LessonStage { Go, Study, Become }
+/// <summary>Where a lesson is (drone-lessons): the drone going to the thing it learns from, scanning it, then showing the hero the form in a vision (form-vision).</summary>
+public enum LessonStage { Go, Study, Vision }
 
 /// <summary>A form being learned (drone-lessons): the form, its stage and how far that stage has gone, 0..1.</summary>
 public readonly record struct FindLesson(string Form, LessonStage Stage, double Progress);
@@ -20,9 +20,9 @@ public readonly record struct FindLesson(string Form, LessonStage Stage, double 
 /// the drone's scan sweeps it, it folds into one ember and the ember flies to the research key, which flares as it lands and its number takes the batch.
 /// Items had together come one after another, each record leaving after its own scan. A batch with no item (a machine built, a blueprint) is an ember from
 /// the eye. A form the drone learned (drone-lessons) is a lesson, a longer beat before the batch's items: the drone goes to the thing it learned from,
-/// scans it, shows the new form by the head, and only then does the form's icon come in over the head as a find's; its landing flares the key longer.
-/// Nothing cuts a lesson short: finds wait behind it, and opening the tablet puts out the finds but not the lessons. With no drone a find lands at once.
-/// Times are seconds.
+/// scans it, shows the hero what the form does in a vision (form-vision), and only then does the form's icon come in over the head as a find's; its
+/// landing flares the key longer. A hero that cannot have the vision as it would begin (passed out) skips it. Nothing cuts a lesson short: finds wait
+/// behind it, and opening the tablet puts out the finds but not the lessons. With no drone a find lands at once. Times are seconds.
 /// </summary>
 public sealed class FindScan
 {
@@ -32,11 +32,14 @@ public sealed class FindScan
     /// </summary>
     public const double Lead = 0.05, Rise = 0.3, Sweep = 0.45, Fold = 0.15, Fly = 0.4, Flare = 0.45;
 
-    /// <summary>A lesson's stages before its icon comes in: the drone going to the thing, scanning it, showing the form by the head; the key's longer flare.</summary>
-    public const double Go = 0.6, Study = 3.0, Become = 1.5, LessonFlare = 1.2;
+    /// <summary>
+    /// A lesson's stages before its icon comes in: the drone going to the thing, scanning it, the vision (the crew's <c>FormVision.Length</c>,
+    /// a test holds them equal); the key's longer flare.
+    /// </summary>
+    public const double Go = 0.6, Study = 3.0, Vision = 5.0, LessonFlare = 1.2;
 
-    /// <summary>A lesson's stages together.</summary>
-    public const double Lesson = Go + Study + Become;
+    /// <summary>A lesson's stages together, the vision played.</summary>
+    public const double Lesson = Go + Study + Vision;
 
     private sealed class Find(string? item, bool counts, bool lesson = false)
     {
@@ -48,6 +51,8 @@ public sealed class FindScan
         /// <summary>When its lesson began, else when it began coming in over the head; once it folds, when its fold began.</summary>
         public double Start;
         public double LessonS, RiseS;
+        /// <summary>A lesson's: whether its vision plays, decided as its study ends; null before.</summary>
+        public bool? Envisioned;
     }
 
     private readonly List<Find> _waiting = [];
@@ -103,12 +108,20 @@ public sealed class FindScan
         return 0;
     }
 
-    /// <summary>Moves it <paramref name="seconds"/> on; <paramref name="drone"/>, whether a drone floats by the hero to scan.</summary>
-    public void Step(double seconds, bool drone)
+    /// <summary>
+    /// Moves it <paramref name="seconds"/> on; <paramref name="drone"/>, whether a drone floats by the hero to scan; <paramref name="envisions"/>,
+    /// whether its hero can have a lesson's vision now: one whose study ends meanwhile skips it if not.
+    /// </summary>
+    public void Step(double seconds, bool drone, bool envisions = true)
     {
         // What was read came before this step: it starts from then.
         double read = _clock;
         _clock += seconds;
+        if (_over is { IsLesson: true, Envisioned: null } studied && _clock >= studied.Start + Go + Study)
+        {
+            studied.Envisioned = envisions;
+            if (!envisions) studied.LessonS = Go + Study;
+        }
         // An ember from the eye waits while the drone is away on a lesson.
         if (!drone || Learning == null)
         {
@@ -215,10 +228,10 @@ public sealed class FindScan
         {
             if (_over is not { IsLesson: true, Item: { } form } over) return null;
             double t = Math.Max(0, _clock - over.Start);
-            return t >= Lesson ? null
+            return t >= over.LessonS ? null
                 : t < Go ? new FindLesson(form, LessonStage.Go, t / Go)
                 : t < Go + Study ? new FindLesson(form, LessonStage.Study, (t - Go) / Study)
-                : new FindLesson(form, LessonStage.Become, (t - Go - Study) / Become);
+                : new FindLesson(form, LessonStage.Vision, (t - Go - Study) / Vision);
         }
     }
 

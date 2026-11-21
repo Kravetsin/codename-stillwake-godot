@@ -171,11 +171,11 @@ public class FindScanTests
     private static BoardBatch Learned(string form) => new(BoardSeen.CauseOpened, [], [form]);
 
     /// <summary>
-    /// The lamp learned passing a lamp (drone-lessons): the drone goes to it, scans it 3 s, shows the lamp by the head 1.5 s, and only then
-    /// does the form's icon come in over the head and fly to the key as a find's, which flares longer.
+    /// The lamp learned passing a lamp (drone-lessons): the drone goes to it, scans it 3 s, shows the hero the form in a vision 5 s (form-vision),
+    /// and only then does the form's icon come in over the head and fly to the key as a find's, which flares longer.
     /// </summary>
     [Fact]
-    public void ALessonGoesScansAndBecomesBeforeItsIconFliesAndItsLandingFlaresLonger()
+    public void ALessonGoesScansAndEnvisionsBeforeItsIconFliesAndItsLandingFlaresLonger()
     {
         var (scan, batches) = Seen();
         batches.Add(Learned("droneLamp"));
@@ -186,11 +186,11 @@ public class FindScanTests
         Assert.Null(scan.Over);
         scan.Step(FindScan.Go / 2 + FindScan.Study / 2, drone: true);
         Assert.Equal(new FindLesson("droneLamp", LessonStage.Study, 0.5), Rounded(scan.Learning!.Value));
-        scan.Step(FindScan.Study / 2 + FindScan.Become / 2, drone: true);
-        Assert.Equal(new FindLesson("droneLamp", LessonStage.Become, 0.5), Rounded(scan.Learning!.Value));
+        scan.Step(FindScan.Study / 2 + FindScan.Vision / 2, drone: true);
+        Assert.Equal(new FindLesson("droneLamp", LessonStage.Vision, 0.5), Rounded(scan.Learning!.Value));
         Assert.Null(scan.Over);
         Assert.Equal(1, scan.Holding);
-        scan.Step(FindScan.Become / 2 + FindScan.Rise + FindScan.Sweep / 2, drone: true);
+        scan.Step(FindScan.Vision / 2 + FindScan.Rise + FindScan.Sweep / 2, drone: true);
         Assert.Null(scan.Learning);
         Assert.Equal("droneLamp", scan.Over!.Value.Item);
         Assert.Equal(0.5, scan.Over!.Value.Sweep!.Value, 6);
@@ -231,9 +231,9 @@ public class FindScanTests
         scan.Read(Board, batches, open: false);
         Assert.Equal(3, scan.Holding);
         scan.Step(FindScan.Study, drone: true);
-        Assert.Equal(LessonStage.Become, scan.Learning!.Value.Stage);
+        Assert.Equal(LessonStage.Vision, scan.Learning!.Value.Stage);
         Assert.Equal(0, scan.Records);
-        scan.Step(FindScan.Become - 0.7, drone: true);
+        scan.Step(FindScan.Vision - 0.7, drone: true);
         Assert.Equal(0, scan.Records);
         scan.Step(0.4, drone: true);
         Assert.Equal("droneAlarms", scan.Over!.Value.Item);
@@ -263,6 +263,41 @@ public class FindScanTests
         Assert.Equal(0, scan.Records);
         scan.Step(FindScan.LessonFlare + 0.01, drone: true);
         Assert.False(scan.Busy);
+    }
+
+    /// <summary>
+    /// A hero that cannot have the vision as its study ends (passed out) skips it: the icon comes in at once, and the hero able again meanwhile does
+    /// not bring it back (form-vision).
+    /// </summary>
+    [Fact]
+    public void ALessonWhoseHeroCannotHaveItsVisionSkipsIt()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(Learned("droneLamp"));
+        scan.Read(Board, batches, open: false);
+        scan.Step(FindScan.Lead + FindScan.Go + FindScan.Study / 2, drone: true, envisions: false);
+        Assert.Equal(LessonStage.Study, scan.Learning!.Value.Stage);
+        scan.Step(FindScan.Study / 2 + 0.01, drone: true, envisions: false);
+        Assert.Null(scan.Learning);
+        Assert.Equal("droneLamp", scan.Over!.Value.Item);
+        scan.Step(0.01, drone: true);
+        Assert.Null(scan.Learning);
+        scan.Step(FindScan.Rise + FindScan.Sweep + FindScan.Fold + FindScan.Fly, drone: true);
+        Assert.Equal(0, scan.Holding);
+    }
+
+    /// <summary>One whose hero could have it as its study ended plays it whole, though the hero could not meanwhile.</summary>
+    [Fact]
+    public void AVisionBegunPlaysWhole()
+    {
+        var (scan, batches) = Seen();
+        batches.Add(Learned("droneLamp"));
+        scan.Read(Board, batches, open: false);
+        scan.Step(FindScan.Lead + FindScan.Go + FindScan.Study / 2, drone: true);
+        scan.Step(FindScan.Study / 2 + 0.01, drone: true);
+        scan.Step(FindScan.Vision - 0.1, drone: true, envisions: false);
+        Assert.Equal(LessonStage.Vision, scan.Learning!.Value.Stage);
+        Assert.Null(scan.Over);
     }
 
     [Fact]

@@ -261,16 +261,23 @@ public partial class HeroView : Node2D
     private bool DroneOpen(DroneMode mode) => DroneModes.Opened(mode, _knows);
 
     /// <summary>
-    /// Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows. Not while it shows the
-    /// scan off, just learned: the look, not the work.
+    /// Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows. Not in a form's
+    /// vision (form-vision), whose readout is its own (<see cref="VisionRead"/>).
     /// </summary>
-    public bool Scanning => _figure.Scanner && !_figure.Projects && DroneBecoming == null;
+    public bool Scanning => _figure.Scanner && !_figure.Projects && _vision == null;
 
-    /// <summary>This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is away.</summary>
-    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _figure.DroneScan;
+    /// <summary>
+    /// This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is
+    /// away. In a form's vision, the vision's drone's.
+    /// </summary>
+    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _vision is { } vision ? vision.View.DroneScan : _figure.DroneScan;
 
     /// <summary>What the scanner's gauge does now, after its frame: whether it reads a thing, how far each dot is out from its mark on the drone's reticle.</summary>
-    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _figure.DroneGauge(reads, away);
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away)
+    {
+        if (_vision is { } vision) vision.View.Gauge(reads, away);
+        else _figure.DroneGauge(reads, away);
+    }
 
     /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare
@@ -290,8 +297,6 @@ public partial class HeroView : Node2D
             _droneVisits = value != null;
         }
     }
-    /// <summary>The form this hero's drone shows off by the head, just learned, and how many seconds into the show (drone-lessons); null for none.</summary>
-    public (string Form, double Seconds)? DroneBecoming { private get; set; }
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
@@ -486,8 +491,9 @@ public partial class HeroView : Node2D
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
         _forms.Step(client.World, form => m.Research.Knows(client.Id, form), form => FormHeld?.Invoke(form) ?? false, m.Items.Creative(client.Id), elapsedMs);
-        // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting).
-        _locked = _meetings.ContainsKey(client.Id);
+        // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting); in a form's vision, held where it is (form-vision).
+        Envision(client, m, known, elapsedMs);
+        _locked = _meetings.ContainsKey(client.Id) || _vision != null;
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         InPod = Seating.InPod(m, client.Id);
@@ -586,6 +592,7 @@ public partial class HeroView : Node2D
             Fogged(ship, seated: seat != null);
         }
         if (seat is int seatCell) _previous = _current = Hero.At(ship, seatCell) with { Facing = _current.Facing };
+        if (_vision is { } held) _previous = _current = held.Held;
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
@@ -678,8 +685,7 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         _figure.Paired = m.Players.HasDrone(client.Id);
-        (_figure.HeadLamp, _figure.Scanner) = DroneBecoming is { } becoming ? DroneModes.Becoming(becoming.Form) : DroneModes.Shown(_figure.Paired, _droneMode, _knows);
-        _figure.DroneAlarm = DroneBecoming is { } alarms && alarms.Form == Stillwake.Content.LightDrone.AlarmsMode ? DroneModes.AlarmPulse(alarms.Seconds) : null;
+        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
         _figure.DroneWindow = _ui.DroneWindow;
         _figure.Senses = DroneSensesOf(m, client.Id, _surface) with
         {
@@ -688,7 +694,7 @@ public partial class HeroView : Node2D
             Body = _body.Degrees,
             Flare = m.Hazards.FlareComing,
             Wonder = DroneWonderOf(m, known, elapsedMs),
-            Icon = DroneBecoming != null,
+            Icon = _vision != null,
             Finding = _droneFinds && !_droneVisits,
             Proud = DroneProud(),
             Woke = woke,
@@ -706,9 +712,11 @@ public partial class HeroView : Node2D
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);
         (pose, look) = InMeeting(client.Id, _figure, drawn, pose, look);
+        (pose, look) = InVision(_figure, drawn, pose, look);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         ShowMeeting(client.Id, _figure, m);
         HoldCore(client.Id);
+        ShowVision(_figure, drawn, elapsedMs);
         _figure.Visible = seat == null;
         _ui.DroneLens = _figure.Visible && !passedOut && _figure.DroneLens is { } lens ? (lens.Position.X, lens.Position.Y, lens.Size.X, lens.Size.Y) : null;
         // Its own thrust shows at once (0014); others' as the sim says.

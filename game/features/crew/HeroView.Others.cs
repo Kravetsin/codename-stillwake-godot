@@ -309,11 +309,11 @@ public partial class HeroView
 
     private const double WonderEveryMs = 500;
 
-    /// <summary>Whether a deed lesson's show just ended this frame (drone-thoughts): the drone is proud.</summary>
+    /// <summary>Whether a deed lesson's vision just ended this frame (drone-thoughts, form-vision): the drone is proud.</summary>
     private bool DroneProud()
     {
         string? was = _droneShowed;
-        _droneShowed = DroneBecoming?.Form;
+        _droneShowed = _vision?.Form;
         return was != null && _droneShowed == null && Content.Lessons.All.Any(l => l.Form == was && l.Source is Content.Deed);
     }
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>

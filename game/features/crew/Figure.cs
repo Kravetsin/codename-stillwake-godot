@@ -863,9 +863,6 @@ public partial class Figure : Node2D
     /// <summary>A point of the world its drone flies to, in pixels: over the thing it learns a form from (drone-lessons); null for none.</summary>
     public Vector2? DroneVisit { get; set; }
 
-    /// <summary>How red its drone burns at least, 0..1, showing off the alarms just learned (drone-lessons); null for no show.</summary>
-    public double? DroneAlarm { get; set; }
-
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
 
@@ -1875,7 +1872,6 @@ public partial class Figure : Node2D
                 Reads = _droneReads,
             };
             var intent = _will.Pick(senses, elapsedMs);
-            if (DroneAlarm is { } red) intent = intent with { Tint = Math.Max(intent.Tint, red) };
             _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
             _droneLost = false;
             _drone.Projecting = overDrone;

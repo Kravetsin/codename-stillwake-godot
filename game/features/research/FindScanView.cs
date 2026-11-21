@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Research;
 /// The drone scanning a find (<see cref="FindScan"/>, find-scan), seen by this player only: the item's icon as the bag draws it over the hero's head, the
 /// scan's line swept down it on two threads from the drone's eye, the icon folding into one ember, and the ember flying on its thread to the research
 /// key, which flares as it lands. A form learned (drone-lessons) is a lesson first: the drone flies to the thing it learned from, fixes its eye on it
-/// and fills the scanner's row of ember dots over it, then shows the new form by the head. The icon, the sweep and the dots are on the HUD's layer,
+/// and fills the scanner's row of ember dots over it, then the hero has the form's vision (form-vision). The icon, the sweep and the dots are on the HUD's layer,
 /// under the windows; the flight and the flare over the edge's keys.
 /// </summary>
 public partial class FindScanView : Node
@@ -37,7 +37,8 @@ public partial class FindScanView : Node
     private readonly Func<((float X, float Y)[] Seats, Vector2 Eye, float Tint)?> _drone;
     private readonly Func<int> _slot;
     private readonly Action<Vector2?> _stare, _visit;
-    private readonly Action<(string Form, double Seconds)?> _becoming;
+    private readonly Action<(string Form, double Seconds)?> _envision;
+    private readonly Func<bool> _envisions;
     private readonly Func<string, Rect2?> _teacher;
     private readonly CanvasLayer _hud = new() { Layer = ScreenLayers.Hud }, _edge = new() { Layer = ScreenLayers.TabletEdge };
     /// <summary>The icons, as the bag draws them; the sweep and the folding embers, added; the flying embers and the key's flare, added.</summary>
@@ -62,11 +63,12 @@ public partial class FindScanView : Node
     /// <param name="stare">Where the drone keeps its eye, world px: on the icon it scans, the thing it learns from; null for none.</param>
     /// <param name="teacher">The box, world px, of the thing a form is learned from: the machine near the hero, the wreck last broken; null for none.</param>
     /// <param name="visit">Where the drone flies to, world px, while it learns from a thing; null for none.</param>
-    /// <param name="becoming">The form the drone shows off by the head, and how many seconds into the show; null for none.</param>
+    /// <param name="envision">The form whose vision plays (form-vision), and how many seconds into it; null for none.</param>
+    /// <param name="envisions">Whether this player's hero can have a vision now: awake, not in its drone's meeting.</param>
     public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<((float X, float Y)[] Seats, Vector2 Eye, float Tint)?> drone,
-        Func<int> slot, Action<Vector2?> stare, Func<string, Rect2?> teacher, Action<Vector2?> visit, Action<(string Form, double Seconds)?> becoming)
+        Func<int> slot, Action<Vector2?> stare, Func<string, Rect2?> teacher, Action<Vector2?> visit, Action<(string Form, double Seconds)?> envision, Func<bool> envisions)
     {
-        (_scan, _inWorld, _art, _key, _head, _drone, _slot, _stare, _teacher, _visit, _becoming) = (scan, inWorld, art, key, head, drone, slot, stare, teacher, visit, becoming);
+        (_scan, _inWorld, _art, _key, _head, _drone, _slot, _stare, _teacher, _visit, _envision, _envisions) = (scan, inWorld, art, key, head, drone, slot, stare, teacher, visit, envision, envisions);
         foreach (var added in (ReadOnlySpan<Node2D>)[_swept, _flown]) added.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         _icons.Draw += DrawIcons;
         _swept.Draw += DrawSwept;
@@ -84,7 +86,7 @@ public partial class FindScanView : Node
         bool world = _inWorld();
         var head = world ? _head() : null;
         var drone = world ? _drone() : null;
-        _scan.Step(delta, drone != null);
+        _scan.Step(delta, drone != null, world && _envisions());
         _hud.Visible = _edge.Visible = world;
         var canvas = GetViewport().GetCanvasTransform();
         _overAt = head is { } neck ? canvas * (neck - new Vector2(0, Above)) : null;
@@ -102,7 +104,7 @@ public partial class FindScanView : Node
 
     /// <summary>
     /// A lesson's stages: the drone sent to the thing and its eye fixed on it while it goes and scans, the dots filling over it as it scans, the form
-    /// shown off by the head after; with no thing found, the dots fill over the head. Out of a lesson, the drone looks at the icon over the head.
+    /// shown in its vision after; with no thing found, the dots fill over the head. Out of a lesson, the drone looks at the icon over the head.
     /// </summary>
     private void Learn(FindLesson? lesson, Vector2? head, ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? drone, double delta)
     {
@@ -115,7 +117,7 @@ public partial class FindScanView : Node
         var canvas = GetViewport().GetCanvasTransform();
         _stare(thing is { } seen ? seen.GetCenter()
             : !away && _scan.Over is { } over && _overAt is { } at ? canvas.AffineInverse() * Centre(at, over.Item, over.In) : null);
-        _becoming(lesson is { Stage: LessonStage.Become } becoming ? (becoming.Form, becoming.Progress * FindScan.Become) : null);
+        _envision(lesson is { Stage: LessonStage.Vision } vision ? (vision.Form, vision.Progress * FindScan.Vision) : null);
         // The dots read the thing's top, or the head's point, in cells.
         Vector2? read = thing is { } box ? new Vector2(box.GetCenter().X, box.Position.Y) : head is { } neck ? neck - new Vector2(0, Above) : null;
         var readout = lesson is { Stage: LessonStage.Study } study && read is { } r
