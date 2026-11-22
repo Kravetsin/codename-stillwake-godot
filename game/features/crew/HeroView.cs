@@ -304,11 +304,11 @@ public partial class HeroView : Node2D
     private readonly CanistersSeen _canisters = new();
     /// <summary>
     /// Rams (0103): this client's guard after its own hit, the controller steps it still reels, the creatures charging last frame
-    /// (one leaving its charge by a friend flinches that friend), and the thud, this hero's own through the suit.
+    /// and their damage then (one leaving its charge by a friend, no blow having cut it, flinches that friend), and the thud, this hero's own through the suit.
     /// </summary>
     private readonly Rams.Guard _ramGuard = new();
     private int _reel;
-    private HashSet<int> _charging = [], _chargingNow = [];
+    private Dictionary<int, int> _charging = [], _chargingNow = [];
     // A ram heard by what rams (S.RamHits): this player's own through the suit, a friend's where it is.
     private readonly Voices _thud = new(S.Suit, voices: 2, placed: false), _othersThud = new(S.World, voices: 2);
 
@@ -818,7 +818,8 @@ public partial class HeroView : Node2D
     private (int From, string Species)? RamEndedBy(Registry m, Hero hero)
     {
         foreach (var c in m.Creatures.Creatures)
-            if (_charging.Contains(c.Id) && c.Posture != Stillwake.Sim.Creatures.Posture.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
+            if (_charging.TryGetValue(c.Id, out int damage) && c.Damage <= damage && c.Posture != Stillwake.Sim.Creatures.Posture.Charge
+                && Rams.Touches(c, hero, Rams.FriendMargin))
                 return (c.VX >= 0 ? 1 : -1, c.Species);
         return null;
     }
