@@ -177,6 +177,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
 - лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
 - сентри / sentry → `Creatures.Sentry` = `"sentry"`: a `Clinger` on a wreck, `Guard`, `Return`, `CutTether`, `Pounce`; dev `--sentry` (`=fight`: a line sawn, struck, its wreck broken; `=crawl`) → Creatures
+- разборщик, болванчик, стая, гнездо / breaker, pack, nest → `Creatures.Breaker` = `"breaker"` (`Flyer`, `Swarm`, `Pounce`), c/`Nest`, `Nests.cs`, f/creatures `SleepingNests` (companion-fights) → Creatures
+- бросок оружия, умение спутника / throw, the companion's ability → c/`Abilities` (`Throw`, `ThrowOf`), f/crew `WeaponThrow`, `ThrownDrawing` (the catch), sent as `Handwork.Throw`, `Haul` (companion-fights) → Crew
 - страж шпиля / spire guard → `Creatures.Warden` = `"warden"`: a `Walker` at a `Post`, `Ward`, `Pounce`; dev `--ground=spire-guards`
 - истукан / Istukan → the warden's look: `CreatureLooks.Istukans`, f/creatures `IstukanBodies`, `IstukanArt`, `IstukanMotion`; sounds `Sound.Istukans`
 - клещ / tick → the sentry's look (its pick page's «Клещ»): `CreatureLooks.Ticks`, f/creatures `TickBodies`, `TickArt`, `TickMotion`; sounds `Sound.Ticks`

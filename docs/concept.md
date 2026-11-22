@@ -136,7 +136,9 @@ A living document: what is decided about the game and what is still open. Techni
 - **Dangers:** yes — the game can hurt you: the cold and the vacuum, lava, grazers that ram when struck, and sentries on
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
-  the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
+  the shard, so a hero kills them for circuits or takes the shard and leaves; and breakers, the dead fleet's service machines
+  asleep in nests on far wrecks, that wake in packs to take a hero apart and are there to be mown down
+  ([companion-fights](decisions/2026-11-22-companion-fights.md)). Which others is open.
 - **Temperature:** every place has one in degrees: space −100° by the ship, −200° at the field's line and colder on to the
   world's edge, an aired room +20°, a planet smoothly by its depth, the first one mild on its surface and cold in its caves
   ([temperature-gradients](decisions/2026-11-14-temperature-gradients.md), [mild-surface](decisions/2026-11-18-mild-surface.md)).
@@ -153,7 +155,8 @@ A living document: what is decided about the game and what is still open. Techni
   sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and adds 5° against the cold. Both are a
   planet's, so nothing needed before the first landing is made of them.
-- **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
+- **Fighting:** the axe and the drill up close; the right button is the companion's ability with what is in hand, the axe, the
+  sledgehammer and the spear thrown and hauled back on its thread ([companion-fights](decisions/2026-11-22-companion-fights.md)); almost at the start, the nailer, made at the Fabricator, firing a nail of
   two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
   the gun's damage and its projectile's added, so guns to come fire the same nails their own way
   ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).

@@ -112,10 +112,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
-| [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
+| [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays, no-see-through (in part) |
 | [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes, right-lets-go (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
-| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear (in part) |
+| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear, no-see-through (in part) |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
 | [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
@@ -425,9 +425,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
 | [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted | drone-colour (in part) |
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
+| [companion-fights](2026-11-22-companion-fights.md) | Breakers to mow down, and the weapon thrown on the drone's thread | accepted |  |
 | [drone-colour](2026-11-22-drone-colour.md) | The drone burns in its player's colour; eight suit colours, none amber | accepted |  |
 | [drone-spring](2026-11-22-drone-spring.md) | The drone catches up on a spring and shines from open air | accepted |  |
 | [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |
 | [drone-tow](2026-11-22-drone-tow.md) | In a long flight the drone plays the tug | accepted |  |
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
+| [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
