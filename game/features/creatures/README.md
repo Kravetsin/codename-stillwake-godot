@@ -4,11 +4,11 @@
 
 | File | Purpose |
 | --- | --- |
-| `CreatureBody.cs` | One creature's body (0102): its rig's parts, posed. |
+| `CreatureBody.cs` | One creature's body: its rig's parts, posed. |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
-| `logic/CreatureMotion.cs` | How a body reacts (0102) to the sim and to blows. |
-| `CreatureParts.cs` | Their parts in ink (0102), read as a planet loads. |
-| `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), how far it bends. |
+| `logic/CreatureMotion.cs` | How a body reacts to the sim and to blows. |
+| `CreatureParts.cs` | Their parts in ink, read as a planet loads. |
+| `logic/CreaturePose.cs` | What each node of a creature's rig does this frame, how far it bends. |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures, drawn between ticks where the sim put them. |
 | `logic/Creatures.En.cs` | Its player text |
@@ -29,27 +29,33 @@
 | `logic/LurkerArt.cs` | Its pose and colours. |
 | `logic/LurkerMotion.cs` | How it moves, off the sim. |
 | `logic/LurkerRig.cs` | Where its parts go in a pose: tested. |
-| `SleepingNests.cs` | Packs asleep on wrecks. |
-| `TickBodies.cs` | Ticks (sentry, breaker) by size. |
+| `BreakerBodies.cs` | Breakers out of their nests. |
+| `BreakerSprite.cs` | One breaker's pieces. |
+| `logic/BreakerKind.cs` | Its design and moves. |
+| `logic/BreakerMotion.cs` | Its flight and fight, off the sim. |
+| `logic/BreakerPack.cs` | A nest's pair and the rest. |
+| `logic/BreakerRig.cs` | Its pieces on joints: tested. |
+| `logic/KnotMoves.cs` | «Клубок». |
+| `SleepingNests.cs` | Nests on wrecks: a pair at work on each. |
+| `TickBodies.cs` | Ticks (the sentry). |
 | `ShotsView.cs` | Shots but a guest's own, hits, bursts, arcs. |
 | `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |
 | `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |
 | `logic/TickRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Creatures`)
-spawns, moves, knocks, kills them and drops their loot. Striking one is the hero's hands (`features/crew`): the
-fan of rays from the shoulder and the cutter's beam are tested against each creature's body and a margin
-(`ToolRays`, `Aiming.StrikesOf`, tool-reach), and send `Strike`.
+spawns, moves, knocks, kills them and drops their loot. Striking one is `features/crew`'s (`ToolRays`,
+`Aiming.StrikesOf`), sending `Strike`.
 
 - **Reads:** `CreaturesModule.Creatures`, `Hits`; `Client.InFlight` (this player's own strikes, the frame they are sent);
-  `Ui.Heroes` (whom a creature watches and flinches from); `Ui.Bits` (a friend's running drill); `Session.Progress`.
+  `Ui.Heroes`; `Ui.Bits` (a friend's drill); `Session.Progress`.
 
 ## Rules
 
-- **Only what the camera sees** (no ADR): a body only for a creature within the view and a margin, from a pool that never
-  frees. One gone while drawn was killed, or a guard calmed, no hero in its arena.
-- **Drawn between ticks** (0102): kept at the last two ticks, `Progress` of the way, a tick behind the
-  sim. Upright (0106) but for `CreatureMotion.Tilt`. Steps eased by `StepEase` over `CreatureLooks.StepMs`, from its positions
+- **Only what the camera sees** (no ADR): bodies within the view and a margin, pooled. One gone while drawn was killed,
+  or a guard calmed.
+- **Drawn between ticks**: kept at the last two ticks, `Progress` of the way, a tick behind the
+  sim. Upright (0106) but for `CreatureMotion.Tilt`. Steps eased (`StepEase`) from its positions
   (0106). Faces the way it moves; still, toward a near hero, else the way it last moved.
 - **The body** (`CreatureBody`, 0102): the design its species' `Look` names, in `InkDesigns`: finished pictures, with a white
   copy for the flash (`CreatureParts`, 2026-11-01-creatures-in-ink). A sprite a part in rig order, turned about its
@@ -58,7 +64,7 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 - **Bending parts** ([creatures-bend](../../../docs/decisions/2026-11-14-creatures-bend.md)): a part with a `Bend` is one picture bent
   in a band (`shared/BentPicture`): a knee folds back as its foot lifts, a hock (`Hind`, a sixleg's rear four) forward;
   a neck and tail bend for their turn. A leg fades in inside its body, there at any swing.
-- **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light
+- **Glowing parts give light**: added over it unlit, their spots lights in their colour (`Lights`, the light
   view's `Creatures`).
 - **Each its own** (`CreatureVariety`, 0102): from its id and the surface's seed, hashed, the same on every peer. Size,
   coat, morphs and markings vary, drawn only.
@@ -66,8 +72,8 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
   capped by `CreatureLooks.Runs`. Fast, a gallop. Tucked in the air.
 - **A blow** (`CreatureMotion`, 0102): an own strike reacts as it is sent, another as the sim's `Damage` rises (an own one not
   twice). A white flash, a squash, a flinch the way it is knocked, a shake. A drill's hit is its share of the axe's (`Impacts.ShareOf`).
-- **A ram's tell** (0103), read off `WindUp` and `Charge`: it faces the hero and crouches (`CreatureMotion.Bracing`), trembling; it snorts
-  (`Sound.Snort`). Charging it gallops. Its hit on a hero is `features/crew`'s.
+- **A ram's tell** (0103), read off `WindUp` and `Charge`: it faces the hero and crouches, trembling; it snorts
+  (`Sound.Snort`). Charging it gallops.
 - **Jumps**: a crouch, a spring; landing, a squash as hard as the fall.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
   no blood), thrown from the side facing the hero; `Sound.Creatures` its hit, thump and death, an own on Suit
@@ -77,7 +83,7 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 - **The tick**: `TickRig` places its pictures from its pose (`TickArt`), lit; eye, cracks and a blow's white over it unlit. `TickMotion` reads the sim: `Clamped` grips,
   else legs folded, nose along its flight. Eye teal, yellow `Alerted` or homing, red crouched, cyan aiming. Winding up: red arcs. Flying: a burner.
   `CutLeft`: it saws at the line; `LastCut`: sparks, a recoil. Killed: cracks, crumbling. Heard on Suit (`Sound.Ticks`).
-- **Breakers** (companion-fights): small ticks, stand-ins till picked; three folded on a nest in view.
+- **Breakers** (breakers-look): a nest's pair at work, the rest out from under its piece (`BreakerPack`).
 - **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is. Asleep, lamp dark; woken
   teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World. `--ground=spire-guards`.
 - **Guards and lurkers in ink** ([guards](../../../docs/decisions/2026-11-01-guards-in-ink.md), [lurkers](../../../docs/decisions/2026-11-07-cave-hostiles.md)): `TickRig`, `IstukanRig`, `LurkerRig` place `InkRig`s.

@@ -108,13 +108,17 @@ public static class CreatureLooks
     /// <summary>
     /// The looks drawn as the tick, the sentry page's candidate 3 «Клещ» (<c>TickArt</c>, <c>TickMotion</c>): a sprite posed and
     /// drawn anew each frame, not a rig of painted parts. Each at its size, its burner throwing its share of sparks and smoke, lit
-    /// cruising or only while it acts. The breaker's is a stand-in till its pick page (companion-fights).
+    /// cruising or only while it acts.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, TickLook> Ticks = new Dictionary<string, TickLook>
     {
         [Stillwake.Content.Creatures.Sentry.Look] = new(0.65f, Burn: 1, LitCruising: true),
-        // A pack of eight on screen: less from each burner.
-        [Stillwake.Content.Creatures.Breaker.Look] = new(0.45f, Burn: 0.3f, LitCruising: false),
+    };
+
+    /// <summary>The looks drawn as a breaker of painted pieces (breakers-look), each its kind; a pack is all of one.</summary>
+    public static readonly IReadOnlyDictionary<string, Features.Creatures.BreakerKind> Breakers = new Dictionary<string, Features.Creatures.BreakerKind>
+    {
+        [Stillwake.Content.Creatures.Breaker.Look] = new(CreatureArt.BreakerKnot, Features.Creatures.KnotMoves.One),
     };
 
     /// <summary>How a look drawn as the tick differs (<see cref="Ticks"/>): its size of its pictures', its burner's share, whether that burner lights the world as it cruises.</summary>

@@ -582,7 +582,7 @@ public static class Sound
         Hit: Chop,
         Death: new(Shots("creatures/sentry-death", 1), -1.5f, Heard: BreakReach));
 
-    /// <summary>Each species drawn as a tick (<c>CreatureLooks.Ticks</c>): its cues, levelled alike on the audition page.</summary>
+    /// <summary>Each species drawn as a tick or a breaker (<c>CreatureLooks.Ticks</c>, <c>Breakers</c>): its cues, levelled alike on the audition page.</summary>
     public static readonly IReadOnlyDictionary<string, TickCues> Ticks = new Dictionary<string, TickCues>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = SentryCues,
