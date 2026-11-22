@@ -229,7 +229,8 @@ public partial class HeroView
             : _armUp && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
-        var work = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
+        var work = _throw.Flying ? new Busy(Handwork.Throw, new Point((int)System.Math.Round(_throw.At.X), (int)System.Math.Round(_throw.At.Y)), _throw.Count)
+            : working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
