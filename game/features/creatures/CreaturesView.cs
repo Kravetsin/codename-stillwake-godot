@@ -217,7 +217,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
-        _nests.Frame(creatures.Nests, debris, ui.DebrisTurns, view, drift);
+        _nests.Frame(creatures, debris, ui.DebrisTurns, view, drift);
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);

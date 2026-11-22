@@ -10,7 +10,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The nests asleep (companion-fights): three breakers folded on each nest's piece in view, rocking with its picture, their eyes
+/// The nests asleep (companion-fights): three of its sleepers folded on each nest's piece in view, rocking with its picture, their eyes
 /// nearly out. A stand-in till the breaker's pick page. Drawn from a pool that never frees.
 /// </summary>
 public partial class SleepingNests : Node2D
@@ -39,10 +39,11 @@ public partial class SleepingNests : Node2D
 
     private readonly List<Folded> _folded = [];
 
-    /// <summary>Shows <paramref name="nests"/> on their pieces within <paramref name="view"/> (cells), drawn <paramref name="drift"/> ticks on and turned by <paramref name="turns"/>.</summary>
-    public void Frame(IReadOnlyList<Nest> nests, IDebrisQueries debris, IReadOnlyDictionary<int, double> turns, Rect2 view, double drift)
+    /// <summary>Shows the nests of <paramref name="creatures"/> on their pieces within <paramref name="view"/> (cells), drawn <paramref name="drift"/> ticks on and turned by <paramref name="turns"/>.</summary>
+    public void Frame(CreaturesModule creatures, IDebrisQueries debris, IReadOnlyDictionary<int, double> turns, Rect2 view, double drift)
     {
         int shown = 0;
+        var nests = creatures.Nests;
         var near = view.Grow(8);
         for (int i = 0; i < nests.Count; i++)
         {
@@ -51,7 +52,8 @@ public partial class SleepingNests : Node2D
             var at = new Vector2((float)(x / Unit), (float)(y / Unit));
             if (!near.HasPoint(at) || Spec.Wreckage.SizeOf(piece.Item) is not var (w, h)) continue;
             float rock = (float)turns.GetValueOrDefault(piece.Id);
-            var look = CreatureLooks.Ticks[Spec.Creatures.Breaker.Look];
+            if (creatures.SleeperOn(piece) is not { } species) continue;
+            var look = CreatureLooks.Ticks[Spec.Creatures.Get(species).Look];
             foreach (var lie in Lie)
             {
                 if (shown == _folded.Count) Made();

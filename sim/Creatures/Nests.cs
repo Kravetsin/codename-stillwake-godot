@@ -21,6 +21,9 @@ public sealed partial class CreaturesModule
     /// <summary>The nests asleep on this surface, ascending by their piece's id; live and read-only.</summary>
     public IReadOnlyList<Nest> Nests => State.Nests;
 
+    /// <summary>The species that sleeps on a piece such as <paramref name="piece"/>; null where none does.</summary>
+    public string? SleeperOn(Piece piece) => NestKind(piece)?.Species;
+
     /// <summary>The nests' kind for <paramref name="piece"/>; null for a piece no pack sleeps on.</summary>
     private Spec.Nest? NestKind(Piece piece)
     {
