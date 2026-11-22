@@ -164,7 +164,7 @@ public partial class BreakerBodies : Node2D
                 if (nearest == null) break;
                 (nearest.Leaving, nearest.Worked, nearest.WentAt, nearest.After) = (true, true, pack.WentAt, 0);
                 (nearest.Offset, nearest.LeftAngle) = (worker.At - nearest.Drawn, worker.Angle);
-                nearest.Motion.Turn(worker.Face, worker.Angle);
+                nearest.Motion.Turn(worker.Angle);
                 nearest.Motion.Clock = worker.Clock;
                 taken = true;
             }
@@ -173,7 +173,7 @@ public partial class BreakerBodies : Node2D
             {
                 if (!Of(one, pack)) continue;
                 (one.Leaving, one.WentAt, one.After, one.Offset) = (true, pack.WentAt, after++, pack.Middle - one.Drawn);
-                one.Motion.Turn(one.Drawn.X < pack.Middle.X ? -1 : 1, 0);
+                one.Motion.Turn(Math.Atan2(one.Drawn.Y - pack.Middle.Y, one.Drawn.X - pack.Middle.X));
                 taken = true;
             }
             if (taken) left.RemoveAt(p);
@@ -222,7 +222,7 @@ public partial class BreakerBodies : Node2D
         }
         one.Sprite.Visible = seen;
         one.Sprite.Show(pose, one.Motion.Flash);
-        one.Sprite.Lies(middle, one.Motion.Shake, angle, one.Motion.Side);
+        one.Sprite.Lies(middle, one.Motion.Shake, angle);
 
         if ((moments & BreakerMotion.Moment.WindUp) != 0 && one.Cues is { } cues) _suit.Play(cues.WindUp, middle);
         if ((moments & BreakerMotion.Moment.HeroHit) != 0 && CreatureFx.NearestOf(_heroes, middle) is { } struck)
@@ -241,7 +241,7 @@ public partial class BreakerBodies : Node2D
     {
         one.Motion.Struck();
         var middle = one.Sprite.Position;
-        var hero = CreatureFx.NearestOf(_heroes, middle) ?? middle + new Vector2(one.Motion.Face * 20, 0);
+        var hero = CreatureFx.NearestOf(_heroes, middle) ?? middle + Vector2.FromAngle((float)one.Motion.Angle) * 20;
         var to = hero - middle;
         var at = middle + to / Math.Max(to.Length(), 1) * 6;
         CreatureFx.Sparks(Stages.Of(Layers.Effects), at, Math.Atan2(to.Y, to.X), 1);
@@ -271,7 +271,7 @@ public partial class BreakerBodies : Node2D
             var one = _dying[i];
             one.Motion.Step(default, dt);
             one.Sprite.Show(one.Motion.Pose, one.Motion.Flash);
-            one.Sprite.Lies(one.Drawn + new Vector2((float)one.Motion.Drift.X, (float)one.Motion.Drift.Y), 0, one.Motion.Angle, one.Motion.Side);
+            one.Sprite.Lies(one.Drawn + new Vector2((float)one.Motion.Drift.X, (float)one.Motion.Drift.Y), 0, one.Motion.Angle);
             if (!one.Motion.Gone) continue;
             _dying.RemoveAt(i);
             Put(one);

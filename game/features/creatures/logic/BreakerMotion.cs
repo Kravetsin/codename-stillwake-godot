@@ -3,8 +3,8 @@ using System;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// How one breaker flies and fights (breakers-look), from what the sim decided, as its pick page showed it: it faces its hero,
-/// leans into its flight, lifts its bands winding up, its slits red, reaches as it darts, reels from a blow and, killed, drifts off
+/// How one breaker flies and fights (breakers-look), from what the sim decided, as its pick page showed it: it turns whole to its
+/// hero, never mirrored (the user's: a mirror reads as paper turning), lifts its bands winding up, its slits red, reaches as it darts, reels from a blow and, killed, drifts off
 /// as it comes apart. Times in seconds, speeds in pixels a second. Plain C#, tested.
 /// </summary>
 public sealed class BreakerMotion(double cruise, double phase)
@@ -29,21 +29,19 @@ public sealed class BreakerMotion(double cruise, double phase)
 
     public static readonly TickArt.Rgb Calm = new(255, 225, 150), Acting = TickMotion.Attacking;
 
+    /// <summary>How fast it turns round, in radians a second: never mirrored, a ball turns whole.</summary>
+    public const double TurnRate = 9;
+
     private const double FlashS = 0.09, ShakeS = 0.12, FollowS = 0.1, DriftS = 0.17, DriftPixels = 15;
 
     private bool _seen, _wasWinding, _wasPouncing;
     private int _flightLeft;
-    private double _sinceHit = 99, _sinceHeld = 99, _fly, _tell, _grip, _red, _side = 1, _dying;
+    private double _sinceHit = 99, _sinceHeld = 99, _fly, _tell, _grip, _red, _dying;
     private (double X, double Y) _away;
 
     public double Clock { get; set; } = phase;
 
-    /// <summary>The way it faces, 1 right and −1 left.</summary>
-    public int Face { get; private set; } = 1;
-
-    /// <summary>The way it is turned as it turns round, never edge on.</summary>
-    public double Side => (_side < 0 ? -1 : 1) * Math.Max(0.1, Math.Abs(_side));
-
+    /// <summary>The way its arms point, radians from the right, down positive.</summary>
     public double Angle { get; private set; }
 
     /// <summary>A blow's shake across, in pixels.</summary>
@@ -62,8 +60,8 @@ public sealed class BreakerMotion(double cruise, double phase)
 
     public BreakerPose Pose { get; private set; }
 
-    /// <summary>Faces <paramref name="face"/> at <paramref name="angle"/> at once: as it was at work.</summary>
-    public void Turn(int face, double angle) => (Face, _side, Angle) = (face, face, angle);
+    /// <summary>Turned to <paramref name="angle"/> at once: as it was at work.</summary>
+    public void Turn(double angle) => Angle = angle;
 
     public void Struck() => _sinceHit = 0;
 
@@ -97,11 +95,15 @@ public sealed class BreakerMotion(double cruise, double phase)
 
         double speed = Math.Sqrt(s.Vx * s.Vx + s.Vy * s.Vy);
         bool acting = s.WindingUp || s.Pouncing, reeling = _sinceHit < 0.8;
-        if (!reeling && s.Hero is { } hero && Math.Abs(hero.X) > 7) Face = Math.Sign(hero.X);
-        else if (!reeling && s.Hero == null && Math.Abs(s.Vx) > 25) Face = Math.Sign(s.Vx);
-        double lean = acting && s.Hero is { } at ? Face * Math.Clamp(Math.Atan2(at.Y, Math.Abs(at.X)), -0.4, 0.4) : Math.Clamp(s.Vx * 0.0019, -0.22, 0.22);
-        Angle += (lean - Angle) * Follow(dt, FollowS);
-        _side += Math.Clamp(Face - _side, -dt * 10, dt * 10);
+        // Arms at its hero; with none, along its flight.
+        double? toward = reeling ? null
+            : s.Hero is { } hero && hero.X * hero.X + hero.Y * hero.Y > 4 ? Math.Atan2(hero.Y, hero.X)
+            : speed > 25 ? Math.Atan2(s.Vy, s.Vx) : null;
+        if (toward is { } aim)
+        {
+            double turn = Math.IEEERemainder(aim - Angle, Math.Tau) * Follow(dt, FollowS);
+            Angle = Math.IEEERemainder(Angle + Math.Clamp(turn, -dt * TurnRate, dt * TurnRate), Math.Tau);
+        }
         _fly += (Math.Min(1, speed / cruise) - _fly) * Follow(dt, FollowS);
         _tell += ((s.WindingUp ? 1 : 0) - _tell) * Follow(dt, s.WindingUp ? 0.12 : 0.05);
         _grip += ((s.Pouncing && s.FlightLeft <= 3 || _sinceHeld < HoldS ? 1 : 0) - _grip) * Follow(dt, 0.05);

@@ -118,7 +118,8 @@ public static class CreatureLooks
     /// <summary>The looks drawn as a breaker of painted pieces (breakers-look), each its kind; a pack is all of one.</summary>
     public static readonly IReadOnlyDictionary<string, Features.Creatures.BreakerKind> Breakers = new Dictionary<string, Features.Creatures.BreakerKind>
     {
-        [Stillwake.Content.Creatures.Breaker.Look] = new(CreatureArt.BreakerKnot, Features.Creatures.KnotMoves.One),
+        [Stillwake.Content.Creatures.Breaker.Look] = // Smaller than its box, a tick wanting to latch on (the user's).
+        new(CreatureArt.BreakerKnot, Features.Creatures.KnotMoves.One, Body: "core", Across: 10),
     };
 
     /// <summary>How a look drawn as the tick differs (<see cref="Ticks"/>): its size of its pictures', its burner's share, whether that burner lights the world as it cruises.</summary>

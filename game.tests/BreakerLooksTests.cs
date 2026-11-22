@@ -27,10 +27,24 @@ public class BreakerLooksTests
     }
 
     [Fact]
-    public void ItsBallFillsItsHitBox()
+    public void ItsBallIsDrawnItsWidthWithinItsHitBox()
     {
-        double across = Knot.Design.Parts["core"].W * Knot.Design.Sizes["core"];
-        Assert.InRange(across, Spec.Creatures.Breaker.Body.Height * Camera.Cell - 1.5, Spec.Creatures.Breaker.Body.Height * Camera.Cell + 1.5);
+        Assert.Equal(Knot.Across, Knot.Design.Parts[Knot.Body].W * Knot.Design.Sizes[Knot.Body] * Knot.Fit, 6);
+        Assert.InRange(Knot.Across, Camera.Cell, Spec.Creatures.Breaker.Body.Height * Camera.Cell);
+    }
+
+    [Fact]
+    public void ItTurnsWholeToItsHeroNeverFlipping()
+    {
+        var motion = new BreakerMotion(112, 0);
+        double was = motion.Angle;
+        for (int i = 0; i < 60; i++)
+        {
+            motion.Step(new(false, false, 0, 0, 0, (-30, 0)), 0.02);
+            Assert.True(Math.Abs(Math.IEEERemainder(motion.Angle - was, Math.Tau)) <= BreakerMotion.TurnRate * 0.02 + 1e-9, $"a jump at frame {i}");
+            was = motion.Angle;
+        }
+        Assert.True(Math.Cos(motion.Angle) < -0.95, "its arms at its hero");
     }
 
     [Fact]
@@ -64,7 +78,7 @@ public class BreakerLooksTests
             foreach (var one in new[] { a, b })
             {
                 Assert.True(Math.Abs(one.X) > HalfW / 2 || Math.Abs(one.Y) > HalfH / 2, $"{piece}: over the picture's middle");
-                double reachX = one.Face * Math.Cos(one.Angle), reachY = one.Face * Math.Sin(one.Angle);
+                double reachX = Math.Cos(one.Angle), reachY = Math.Sin(one.Angle);
                 Assert.True(reachX * one.X + reachY * one.Y < 0, $"{piece}: its hands off the piece");
             }
         }

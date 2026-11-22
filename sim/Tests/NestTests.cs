@@ -149,12 +149,13 @@ public class NestTests
     {
         var w = World(x: 2);
         Hero(w, 198, 50, peer: 1);
-        // Round the nearest hero alone a pack too big for one more.
-        for (int i = 0; i < 4; i++) BreakerTests.Put(w, 192, 30 + i * 4);
+        // Round the nearest hero alone packs too big for one more.
+        int round = Kind.PerKeep - 4;
+        for (int i = 0; i < round; i++) BreakerTests.Put(w, 188 + i % 4 * 3, 30 + i / 4 * 4);
         var piece = Nested(w, 160, 50, size: 5);
         piece.Struck = new Blow { By = byStriker ? 0 : FloorStack.Nobody, At = 1 };
         w.Run();
-        Assert.Equal(wakes ? 9 : 4, Pack(w).Count);
+        Assert.Equal(wakes ? round + 5 : round, Pack(w).Count);
     }
 
     [Fact]
@@ -260,14 +261,15 @@ public class NestTests
     public void ItWaitsWhileTheHerosKeepBoxIsFullOfThem()
     {
         var w = World(x: 80);
-        Nested(w, 90, 50, size: 5);
-        Nested(w, 95, 50, size: 5);
+        // As many whole packs as the box holds, and one more.
+        int fit = Kind.PerKeep / Kind.Most;
+        for (int i = 0; i <= fit; i++) Nested(w, 90 + i % 2 * 8, 40 + i * 10, size: Kind.Most);
         w.Run();
-        Assert.Equal(5, Pack(w).Count);
+        Assert.Equal(fit * Kind.Most, Pack(w).Count);
         Assert.Single(w.M.Creatures.Nests);
         State(w).Creatures.Clear();
         w.Run();
-        Assert.Equal(5, Pack(w).Count);
+        Assert.Equal(Kind.Most, Pack(w).Count);
         Assert.Empty(w.M.Creatures.Nests);
     }
 
@@ -319,7 +321,7 @@ public class NestTests
 
     [Theory]
     [InlineData(4u)]
-    [InlineData(22u)]
+    [InlineData(23u)]
     public void AWorldLoadedEveryTickPlaysAPackTheSame(uint seed)
     {
         Scenario Seeded()

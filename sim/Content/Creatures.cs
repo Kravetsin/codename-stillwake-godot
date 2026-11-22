@@ -454,7 +454,7 @@ public static class Creatures
     /// minutes of flying out, never in the stream by the hull. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Nest Dismantlers = new(Breaker.Id, Content.Debris.Far.Id,
-        ["hullSection", "cargoContainer", "machineBlock", "shieldSlab"], PerMille: 100, Least: 4, Most: 8, Wake: 32, PerKeep: 8);
+        ["hullSection", "cargoContainer", "machineBlock", "shieldSlab"], PerMille: 100, Least: 4, Most: 8, Wake: 32, PerKeep: 16);
 
     /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's

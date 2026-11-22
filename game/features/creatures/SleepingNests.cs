@@ -22,7 +22,7 @@ public partial class SleepingNests : Node2D
     private const double LeftS = 0.5;
 
     /// <summary>One at work as last drawn.</summary>
-    public readonly record struct AtWork(Vector2 At, float Angle, int Face, double Clock);
+    public readonly record struct AtWork(Vector2 At, float Angle, double Clock);
 
     /// <summary>A nest as last drawn: what its pack flies out of, when it went.</summary>
     public sealed class Pack
@@ -67,11 +67,11 @@ public partial class SleepingNests : Node2D
             for (int k = 0; k < pack.Count; k++)
             {
                 var worker = BreakerPack.WorkerOf(piece.Id, k, pack.Half.X, pack.Half.Y);
-                var seen = new AtWork(pack.Middle + new Vector2((float)worker.X, (float)worker.Y).Rotated(rock), rock + (float)worker.Angle, worker.Face, worker.At(_seconds));
+                var seen = new AtWork(pack.Middle + new Vector2((float)worker.X, (float)worker.Y).Rotated(rock), rock + (float)worker.Angle, worker.At(_seconds));
                 pack.Workers[k] = seen;
                 var one = Working(shown++, kind);
                 one.Show(new BreakerPose(seen.Clock, Work: 1, Lamp: 0.8 + 0.2 * Math.Sin(seen.Clock * 3), Tint: BreakerMotion.Calm), 0);
-                one.Lies(seen.At, 0, seen.Angle, seen.Face);
+                one.Lies(seen.At, 0, seen.Angle);
                 one.Visible = true;
             }
         }
