@@ -63,6 +63,9 @@ public sealed class DroneFlight
     private Vec _anchor, _pace;
     private double _rate;
     private bool _placed;
+    /// <summary>Riding a tow: where it is from the anchor, how fast by it, and the goal it was last given there.</summary>
+    private Vec _beside, _besideSpeed, _led;
+    private bool _riding;
 
     /// <summary>Where it is, pixels of the world.</summary>
     public Vec At { get; private set; }
@@ -90,7 +93,7 @@ public sealed class DroneFlight
     public static Vec VelocityOf(int vx, int vy) => new(vx * Rig.Cell / Hero.Unit / Hero.StepMs, vy * Rig.Cell / Hero.Unit / Hero.StepMs);
 
     /// <summary>Forgets where it was: the next <see cref="Step"/> puts it at its goal at rest (hidden, then shown).</summary>
-    public void Lose() => _placed = false;
+    public void Lose() => (_placed, _riding) = (false, false);
 
     /// <summary>
     /// Flies it <paramref name="elapsedMs"/> toward <paramref name="goal"/>, its hero's anchor at <paramref name="anchor"/> moving at
@@ -104,6 +107,7 @@ public sealed class DroneFlight
             (_pace, _rate) = (default, 1 / Tune.FollowMs);
             return At;
         }
+        _riding = false;
         var moved = Minus(anchor, _anchor);
         _anchor = anchor;
         double frame = Math.Clamp(elapsedMs, 0, Tune.MaxFrameMs), left = frame;
@@ -121,6 +125,32 @@ public sealed class DroneFlight
             At = Plus(At, Scaled(Velocity, dt));
         }
         Off = Length(Minus(goal, At));
+        return At;
+    }
+
+    /// <summary>
+    /// Flies it <paramref name="elapsedMs"/> held by a tow (<see cref="DroneTow"/>): to <paramref name="goal"/> from the anchor and carried with it,
+    /// as firmly as <paramref name="grip"/>, 0..1. Let go, <see cref="Step"/> goes on with the pace it was carried at.
+    /// </summary>
+    public Vec Ride(Vec anchor, Vec hero, Vec goal, double grip, double elapsedMs)
+    {
+        if (!_placed || Length(Minus(anchor, _anchor)) > Tune.Lost)
+            (_placed, _riding, _beside, _besideSpeed, _led) = (true, true, goal, default, goal);
+        else if (!_riding)
+            (_riding, _beside, _besideSpeed, _led) = (true, Minus(At, _anchor), Minus(Velocity, hero), goal);
+        double frame = Math.Clamp(elapsedMs, 0, Tune.MaxFrameMs), left = frame, rate = DroneTow.Tune.Rate * grip;
+        var moving = frame > 0 ? Scaled(Minus(goal, _led), 1 / frame) : default;
+        while (left > 0)
+        {
+            double dt = Math.Min(left, Tune.StepMs);
+            left -= dt;
+            var to = Minus(goal, Scaled(moving, left));
+            var pull = Plus(Scaled(Minus(to, _beside), rate * rate), Scaled(Minus(moving, _besideSpeed), 2 * DroneTow.Tune.Damped * rate));
+            _besideSpeed = Plus(_besideSpeed, Scaled(pull, dt));
+            _beside = Plus(_beside, Scaled(_besideSpeed, dt));
+        }
+        (_anchor, _led, _pace, _rate) = (anchor, goal, hero, 1 / Tune.FollowMs);
+        (At, Velocity, Off) = (Plus(anchor, _beside), Plus(hero, _besideSpeed), Length(Minus(goal, _beside)));
         return At;
     }
 

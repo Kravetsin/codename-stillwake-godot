@@ -45,7 +45,26 @@ public partial class LightDrone : Node2D
     /// <summary>Its bob as it flies, pixels up and down, and how long one takes, ms.</summary>
     private const double BobPx = 1, BobMs = 1800;
 
-    private float _angle;
+    /// <summary>The tow's picked looks (drone-tow.js, tug): the body tightened and the orbits hurried in a heave; the squint's shutting.</summary>
+    private const float Tighter = 0.12f, Hurried = 2, SquintWide = 0.4f, SquintShut = 0.82f;
+    /// <summary>The thread's widths in screen px of the pick's zoom, its alphas, its beads and their pace a second, and its end's knot.</summary>
+    private const float ThreadDark = 2.4f, ThreadDarkAlpha = 0.4f, ThreadWide = 3.6f, ThreadWideAlpha = 0.07f, ThreadFine = 1.15f, ThreadFineAlpha = 0.72f, Knot = 2.1f, KnotHalo = 6;
+    private const int Beads = 3;
+    private const float BeadPace = 0.9f;
+    /// <summary>What it puffs: how many sparks, how long they live, s, how fast they are left, px a second, and how wide, px.</summary>
+    private const int Puffs = 34;
+    private const float PuffLife = 0.3f, PuffPace = 55, PuffWide = 2.2f;
+    private static readonly Color ThreadShade = new(8 / 255f, 10 / 255f, 14 / 255f, ThreadDarkAlpha);
+
+    private readonly Triangles _towDark = new(Puffs * 2, Puffs * 3);
+    private readonly Vector2[] _thread = new Vector2[DroneTow.Points];
+    private DroneTow? _tow;
+    private Vec _hold;
+    private float _threadLength;
+    private bool _threaded;
+
+    /// <summary>Where its body is turned, and where its eye is: the eye alone glances back on a tow.</summary>
+    private float _angle, _eye;
     private double _timeMs;
     /// <summary>How red it is now, 0..1 (<see cref="DroneIntent.Tint"/>).</summary>
     private float _tint;
@@ -92,7 +111,7 @@ public partial class LightDrone : Node2D
             pointed = DroneSign.Turned(shown, (line.X, line.Y));
         }
         _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle, thinks: _thought != null), _angle, t, pointed, _thought, ShapeOver);
-        _swarm.Bear((float)_orbitLead, (float)_bearing.Tilt, (float)_bearing.Dim, 1 + (float)_bearing.Swell);
+        _swarm.Bear((float)_orbitLead, (float)_bearing.Tilt, (float)_bearing.Dim, 1 + (float)_bearing.Swell, (float)(_tow?.Flat ?? 1));
         foreach (var node in (ReadOnlySpan<Node2D>)[_body, _glow]) node.Scale = Vector2.One * I.Px * (1 + (float)_bearing.Swell);
         for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, _angle, t);
         float turn = _swarm.TurnOf(SwarmShape.Scan, _angle, t);
@@ -101,6 +120,7 @@ public partial class LightDrone : Node2D
             var (x, y) = DroneSwarm.Seat(j, turn);
             _seats[j] = (GlobalPosition.X + x * I.Px, GlobalPosition.Y + y * I.Px);
         }
+        Threads(t);
         _flurry.Step(_elapsedMs / 1000, Projecting);
         for (int i = 0; i < _flurrySparks.Length; i++) _flurrySparks[i] = _flurry.At(i, t);
         _body.QueueRedraw();
@@ -139,7 +159,7 @@ public partial class LightDrone : Node2D
     {
         get
         {
-            var eye = GlobalPosition + Vector2.FromAngle(_angle) * I.EyeAhead * I.Px;
+            var eye = GlobalPosition + Vector2.FromAngle(_eye) * I.EyeAhead * I.Px;
             const float Half = I.Eye * 2 * I.Px;
             return new Rect2(eye.X - Half, eye.Y - Half, 2 * Half, 2 * Half);
         }
@@ -163,21 +183,99 @@ public partial class LightDrone : Node2D
 
     /// <summary>
     /// Flies it by its hero's <paramref name="anchor"/>, moving at <paramref name="hero"/> px/ms, as its will wants
-    /// (<paramref name="intent"/>), with no reach in a <paramref name="window"/>: its eye eased toward the look, red as the tint.
+    /// (<paramref name="intent"/>), with no reach in a <paramref name="window"/>: its eye eased toward the look, red as the tint. Towing
+    /// (<paramref name="tow"/>), it flies ahead instead, its thread to <paramref name="hold"/>, the shoulder as drawn.
     /// </summary>
-    public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs)
+    public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs, DroneTow? tow = null, Vec hold = default)
     {
-        var at = Scripted ? intent.Goal : _flight.Step(anchor, hero, intent.Goal, window, intent.Darting, elapsedMs);
+        var at = Scripted ? intent.Goal
+            : tow is { Riding: true } ? _flight.Ride(anchor, hero, tow.Ahead, tow.Grip, elapsedMs)
+            : _flight.Step(anchor, hero, tow?.Back(anchor, intent.Goal) ?? intent.Goal, window, intent.Darting, elapsedMs);
+        (_tow, _hold) = (tow, hold);
         // A mood moves the body off where it flies (drone-thoughts): a hop, a sink, a lean.
-        (_thought, _bearing) = (intent.Thought, intent.Bearing);
+        var mood = intent.Bearing;
+        _thought = intent.Thought;
+        _bearing = tow == null ? mood : mood with { Tilt = mood.Tilt + tow.Tilt, Swell = mood.Swell - Tighter * tow.Effort, Hurry = mood.Hurry + Hurried * tow.Effort };
         _orbitLead += elapsedMs / 1000 * _bearing.Hurry;
         GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)));
         // It turns after its look, eased, never snapping across.
-        float off = Mathf.Wrap(Mathf.Atan2((float)intent.Look.Y, (float)intent.Look.X) - _angle, -Mathf.Pi, Mathf.Pi);
-        _angle = Mathf.Wrap(_angle + off * (float)(1 - Math.Exp(-elapsedMs / TurnMs)), -Mathf.Pi, Mathf.Pi);
+        float ease = (float)(1 - Math.Exp(-elapsedMs / TurnMs));
+        _angle = TurnedToward(_angle, intent.Look, ease);
+        _eye = TurnedToward(_eye, Scripted ? intent.Look : tow?.Eye(at, hold) ?? intent.Look, ease);
         _tint = (float)intent.Tint;
         _timeMs = timeMs;
         _elapsedMs = elapsedMs;
+    }
+
+    private static float TurnedToward(float from, Vec look, float ease) =>
+        Mathf.Wrap(from + Mathf.Wrap(Mathf.Atan2((float)look.Y, (float)look.X) - from, -Mathf.Pi, Mathf.Pi) * ease, -Mathf.Pi, Mathf.Pi);
+
+    /// <summary>The tow's thread this frame, in the drone's own px, from its coal to the shoulder.</summary>
+    private void Threads(double t)
+    {
+        _threaded = _tow is { Threaded: true } && !Scripted;
+        if (!_threaded) return;
+        Span<Vec> points = stackalloc Vec[DroneTow.Points];
+        var here = GlobalPosition;
+        _threadLength = (float)_tow!.Thread(new Vec(here.X, here.Y), _hold, t, points);
+        float scale = _glow.Scale.X;
+        for (int j = 0; j < points.Length; j++) _thread[j] = (new Vector2((float)points[j].X, (float)points[j].Y) - here) / scale;
+    }
+
+    /// <summary>The thread's dark, under the coal.</summary>
+    private void ThreadUnder()
+    {
+        if (!_threaded) return;
+        _towDark.Clear();
+        float px = I.WorldPx / _body.Scale.X;
+        for (int j = 1; j < _thread.Length; j++) _towDark.Quad(_thread[j - 1], _thread[j], ThreadDark * px, ThreadShade);
+        _towDark.Flush(_body.GetCanvasItem());
+    }
+
+    /// <summary>The thread's light, burning from the coal's ember to the player's colour, its running beads and the knot at its end.</summary>
+    private void ThreadLit(Salts salts, double t)
+    {
+        if (!_threaded) return;
+        float px = I.WorldPx / _glow.Scale.X, gain = salts.Gain, last = _thread.Length - 1;
+        var wide = EmberArt.Of(salts.Line(), ThreadWideAlpha * gain);
+        float fine = Math.Min(1, ThreadFineAlpha * gain);
+        for (int j = 1; j < _thread.Length; j++)
+        {
+            _light.Quad(_thread[j - 1], _thread[j], ThreadWide * px, wide);
+            float burn = Mathf.SmoothStep(0, 1, Math.Max(0.02f, _threadLength * (j - 0.5f) / last) / 6);
+            _light.Quad(_thread[j - 1], _thread[j], ThreadFine * px, EmberArt.Of(salts.Spark(burn), fine));
+        }
+        for (int m = 0; m < Beads; m++)
+        {
+            float u = (float)((t * BeadPace + m / (double)Beads) % 1) * last;
+            int i = Math.Min((int)last - 1, (int)u);
+            var (a, b) = (_thread[i], _thread[i + 1]);
+            var (at, way) = (a.Lerp(b, u - i), (b - a).Normalized());
+            float burn = Mathf.SmoothStep(0, 1, _threadLength * u / last / 6);
+            Tail(_light, new Spark(at.X, at.Y, way.X, way.Y, true, 0, false, 0, 0), 0.9f * Math.Min(1, _threadLength / 5), salts, burn);
+        }
+        var (end, side) = (_thread[^1], Knot * px);
+        _light.Rect(end.X - side / 2, end.Y - side / 2, side, side, EmberArt.Of(salts.Spark(1, 0.35f), Math.Min(1, _threadLength / 4)));
+        if (!_tow!.Caught) Halo(_light, end, KnotHalo * px, EmberArt.Of(salts.Line()), 0.3f * Math.Min(1, _threadLength / 6));
+    }
+
+    /// <summary>It puffs sparks back along the way as it heaves.</summary>
+    private void Puffed(Salts salts, double t)
+    {
+        if (_tow is not { Threaded: true } tow || Scripted) return;
+        float scale = _glow.Scale.X;
+        var back = new Vector2(-(float)tow.Way.X, -(float)tow.Way.Y);
+        var across = new Vector2(-back.Y, back.X);
+        for (int i = 0; i < Puffs; i++)
+        {
+            float f = (float)((t / PuffLife + DroneSwarm.Hash(i + 7)) % 1), age = f * PuffLife;
+            var (heat, along) = tow.Puff(age);
+            if (heat < 0.03) continue;
+            float flutter = (float)(DroneSwarm.Hash(i + 91) - 0.5) * 2 * PuffWide * (0.4f + f) + MathF.Sin(f * 9 + i) * 0.5f;
+            var at = (back * (age * PuffPace - (float)along) + across * flutter) / scale;
+            float hot = (float)heat * (1 - f) * (float)(0.55 + 0.4 * DroneSwarm.Hash(i + 5));
+            Tail(_light, new Spark(at.X, at.Y, back.X, back.Y, true, 0, false, 0, 0), hot, salts, Mathf.SmoothStep(0, 1, f * 2.2f));
+        }
     }
 
     /// <summary>Forgets where it flew and what it formed, hidden: shown again, it starts at its goal, idle.</summary>
@@ -194,6 +292,7 @@ public partial class LightDrone : Node2D
     /// <summary>In the pick's order: the sparks behind the core, the core, the sparks before it.</summary>
     private void DrawBody()
     {
+        ThreadUnder();
         Darks(front: false);
         DrawCore(_body, Vector2.Zero, 1 / I.Px);
         Darks(front: true);
@@ -229,7 +328,9 @@ public partial class LightDrone : Node2D
         _light.Clear();
         float dim = (float)_bearing.Dim;
         Cloud(_light, salts, 1 - I.HaloDim * dim);
-        for (int o = 0; o < 3; o++) Orbit(_light, o, salts, tilt: (float)_bearing.Tilt, dim: dim);
+        Puffed(salts, t);
+        ThreadLit(salts, t);
+        for (int o = 0; o < 3; o++) Orbit(_light, o, salts, tilt: (float)_bearing.Tilt, dim: dim, flat: (float)(_tow?.Flat ?? 1));
         Shape(_swarm.Shape, _swarm.Form(t), _swarm.TurnOf(_swarm.Shape, _angle, t), salts, t, leaving: false);
         var (leaving, form, turn) = _swarm.Leaving(t);
         Shape(leaving, form, turn, salts, t, leaving: true);
@@ -245,7 +346,7 @@ public partial class LightDrone : Node2D
         // The flurry's are fresh from the coal.
         if (_flurry.Shown > 0)
             foreach (var spark in _flurrySparks) Tail(_light, spark, spark.Heat, salts, burn: 0);
-        Coal(_light, Vector2.Zero, _angle, salts, (float)t, dim: dim, glow: (float)_bearing.Glow);
+        Coal(_light, Vector2.Zero, _eye, salts, (float)t, dim: dim, glow: (float)_bearing.Glow, squint: (float)(_tow?.Squint ?? 0));
         _light.Flush(_glow.GetCanvasItem());
     }
 
@@ -265,11 +366,11 @@ public partial class LightDrone : Node2D
     /// <summary>
     /// Orbit thread <paramref name="o"/>: a faint tilted ellipse about the core; only <paramref name="share"/> of it, from its long end
     /// the way its sparks run, as it kindles in the meeting (<see cref="Meeting.Passed"/>); tilted <paramref name="tilt"/> more and faded by
-    /// <paramref name="dim"/> by a mood (drone-thoughts). Its colour goes from ember by the coal to the player's far out.
+    /// <paramref name="dim"/> by a mood (drone-thoughts), <paramref name="flat"/> times as round on a tow. Its colour goes from ember by the coal to the player's far out.
     /// </summary>
-    internal static void Orbit(Triangles into, int o, Salts salts, float share = 1, float tilt = 0, float dim = 0)
+    internal static void Orbit(Triangles into, int o, Salts salts, float share = 1, float tilt = 0, float dim = 0, float flat = 1)
     {
-        float rx = (I.Orbit + o * I.OrbitMore) * I.OrbitWide, ry = rx * I.OrbitFlat;
+        float rx = (I.Orbit + o * I.OrbitMore) * I.OrbitWide, ry = rx * I.OrbitFlat * flat;
         tilt += I.OrbitTilt + o * I.OrbitTiltMore;
         float way = o % 2 == 1 ? -1 : 1;
         float alpha = Math.Min(1, I.OrbitAlpha * salts.Lift(I.OrbitLift) * salts.Gain) * (1 - I.OrbitDim * dim), width = I.OrbitLine * salts.Lift(I.OrbitWiden);
@@ -312,9 +413,9 @@ public partial class LightDrone : Node2D
     /// <summary>
     /// The coal's light at <paramref name="at"/>, pick px, looking <paramref name="angle"/>, in <paramref name="salts"/>' ember at <paramref name="t"/>
     /// s, <paramref name="alpha"/> of it, <paramref name="scale"/> world px a pick px: its halo, three cracks glowing through its crust, an ember eye where it looks (the pick's <c>coal</c>);
-    /// a mood's <paramref name="dim"/> and <paramref name="glow"/> (drone-thoughts); <paramref name="kindled"/> of it lit as the salts' coal, the rest bare.
+    /// a mood's <paramref name="dim"/> and <paramref name="glow"/> (drone-thoughts); <paramref name="kindled"/> of it lit as the salts' coal, the rest bare; the eye shut by <paramref name="squint"/>.
     /// </summary>
-    internal static void Coal(Triangles into, Vector2 at, float angle, Salts salts, float t, float alpha = 1, float scale = 1, float dim = 0, float glow = 0, float kindled = 1)
+    internal static void Coal(Triangles into, Vector2 at, float angle, Salts salts, float t, float alpha = 1, float scale = 1, float dim = 0, float glow = 0, float kindled = 1, float squint = 0)
     {
         float gain = Mathf.Lerp(1, salts.Gain, kindled), lift = Mathf.Lerp(1, salts.Lift(I.CoalLift), kindled) * gain;
         var hot = EmberArt.Of(salts.Coal());
@@ -325,8 +426,9 @@ public partial class LightDrone : Node2D
             into.Quad(at + Vector2.FromAngle(angle + I.Cracks[k]) * I.CrackFrom * scale, at + Vector2.FromAngle(angle + I.Cracks[k + 1] * 0.5f) * I.CrackTo * scale, I.CrackLine * scale, crack);
         var eye = at + Vector2.FromAngle(angle) * I.EyeAhead * scale;
         var pale = EmberArt.Of(salts.Coal(I.EyePale), I.EyeAlpha * flicker);
-        into.Fan(eye, I.Eye * scale * (1 - I.EyeDim * dim), pale, pale, DiscSides);
-        Halo(into, eye, I.EyeHalo * scale, hot, I.EyeHaloAlpha * flicker * gain);
+        float wide = 1 + SquintWide * squint;
+        into.Fan(eye, I.Eye * scale * (1 - I.EyeDim * dim) * wide, pale, pale, DiscSides, (1 - SquintShut * squint) / wide);
+        Halo(into, eye, I.EyeHalo * scale * (1 - SquintWide * squint), hot, I.EyeHaloAlpha * flicker * gain * (1 - 0.6f * squint));
     }
 
     /// <summary>The cloud of the player's colour round the core, <paramref name="share"/> of it.</summary>

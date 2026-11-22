@@ -815,6 +815,8 @@ public partial class Figure : Node2D
 
     /// <summary>Its drone's mind, its perches its own: they may differ between screens.</summary>
     private readonly DroneWill _will = new(new Random());
+    /// <summary>Its drone playing the tug in a long flight (drone-tow).</summary>
+    private readonly DroneTow _tow = new();
     /// <summary>Whether its drone was hidden since it last flew: shown again, it starts at its anchor.</summary>
     private bool _droneLost = true;
     /// <summary>Whether it lies as last shown, and whether it is afloat or tumbles: what its drone's anchor is over then.</summary>
@@ -1872,6 +1874,7 @@ public partial class Figure : Node2D
             {
                 _drone.Lose();
                 _will.Reset();
+                _tow.Lose();
             }
             Vec? lens = !overDrone && (_lampWorn || _scannerWorn) && HeadLampToward is var toward ? new Vec(toward.X, toward.Y) : null;
             if (!overDrone && DroneStare is { } stare && stare.DistanceTo(_drone.GlobalPosition) > 1 && (stare - _drone.GlobalPosition).Normalized() is var way)
@@ -1891,7 +1894,12 @@ public partial class Figure : Node2D
                 StopsLight = StopsLight,
             };
             var intent = _will.Pick(senses, elapsedMs);
-            _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
+            var velocity = DroneFlight.VelocityOf(hero.Vx, hero.Vy);
+            bool mayTow = pose == Pose.Float && intent.Free && !_drone.Scripted;
+            _tow.Step(senses.Anchor, velocity, hero.Facing, senses.At, mayTow, StopsLight, elapsedMs);
+            // On the body as drawn, so a twist never leaves the thread's end beside it.
+            var held = _waist.ToGlobal(new Vector2((float)(_tow.Hold.X * hero.Facing), (float)(_tow.Hold.Y - Rig.H / 2)));
+            _drone.Follow(senses.Anchor, velocity, intent, overDrone, elapsedMs, _timeMs, _tow, new Vec(held.X, held.Y));
             _droneLost = false;
             _drone.Projecting = overDrone;
             _drone.Sign(signing ? Gesture : null);

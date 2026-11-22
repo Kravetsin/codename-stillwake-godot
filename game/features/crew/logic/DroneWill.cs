@@ -46,9 +46,10 @@ public readonly record struct DroneSenses(
 
 /// <summary>
 /// What the drone wants this frame: where to fly, where its lens looks (a unit vector), how red it is, 0..1, and whether it darts; the thought or
-/// mood whose picture its sparks form now (drone-thoughts), none while none forms or holds; how a mood moves its body.
+/// mood whose picture its sparks form now (drone-thoughts), none while none forms or holds; how a mood moves its body; whether
+/// nothing matters more than play, so it may tow its hero (<see cref="DroneTow"/>).
 /// </summary>
-public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool Darting, DroneThought? Thought = null, DroneBearing Bearing = default);
+public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool Darting, DroneThought? Thought = null, DroneBearing Bearing = default, bool Free = false);
 
 /// <summary>
 /// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near, a machine it
@@ -91,6 +92,7 @@ public sealed class DroneWill
         var anchor = senses.Anchor;
         _signHeld = senses.Signing ? _signHeld ?? DroneFlight.Minus(senses.At, anchor) : null;
         Vec goal, look;
+        var pressed = Thoughts.Goal(anchor);
         if (senses.Window is { } window)
         {
             goal = window;
@@ -98,7 +100,6 @@ public sealed class DroneWill
         }
         else
         {
-            var pressed = Thoughts.Goal(anchor);
             // Passed out, its hero cannot be left: it keeps to the anchor, looking its own way.
             (goal, look) = senses.Out ? (anchor, _perchLook)
                 : danger is { } there ? (there, Toward(senses.At, there, _perchLook))
@@ -114,7 +115,9 @@ public sealed class DroneWill
             // What shows over it outranks the mode's aim: warnings, then moods.
             if (!senses.Out && Thoughts.Look(senses.At, anchor) is { } eye) look = eye;
         }
-        return new DroneIntent(goal, look, Math.Max(Tint(danger != null, senses.Low), Thoughts.Red), darting, Thoughts.Forming, Thoughts.Bearing(anchor));
+        bool free = senses.Window == null && senses.Visit == null && danger == null && pressed == null
+            && !senses.Out && !senses.Signing && !senses.Icon && !senses.Quiet && !(Thoughts.Forming is { } shown && DroneThoughts.Alarm(shown));
+        return new DroneIntent(goal, look, Math.Max(Tint(danger != null, senses.Low), Thoughts.Red), darting, Thoughts.Forming, Thoughts.Bearing(anchor), free);
     }
 
     /// <summary>The point it darts at: the meteor's cell, or the bolt's column at the anchor's height; none while no dart lasts.</summary>

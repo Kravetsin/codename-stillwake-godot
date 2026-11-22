@@ -17,6 +17,19 @@ public class DroneWillTests
 
     private static bool InHome(Vec goal, Vec anchor) => Math.Abs(goal.X - anchor.X) <= T.HomeX + 1e-9 && Math.Abs(goal.Y - anchor.Y) <= T.HomeY + 1e-9;
 
+    /// <summary>The tow is play: windows, dangers, visits, signs, a lesson, a meeting and a hero passed out all outrank it.</summary>
+    [Fact]
+    public void ItMayTowOnlyWhileNothingMattersMore()
+    {
+        Assert.True(Will().Pick(Still, 16).Free);
+        DroneSenses[] busier =
+        [
+            Still with { Window = WindowAt }, Still with { Meteor = Meteor }, Still with { Visit = WindowAt },
+            Still with { Signing = true }, Still with { Icon = true }, Still with { Quiet = true }, Still with { Out = true },
+        ];
+        foreach (var senses in busier) Assert.False(Will().Pick(senses, 16).Free);
+    }
+
     [Fact]
     public void AWindowOutranksADartADartAPerch()
     {
