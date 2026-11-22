@@ -5,9 +5,9 @@ namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
 /// A picture of a body in ink placed this frame: its part, turned about its pivot and set in the body's own pixels (origin the middle of its
-/// feet); lit as the world, or shining over it in <paramref name="Tint"/> at <paramref name="Alpha"/>.
+/// feet); lit as the world, or shining over it in <paramref name="Tint"/> at <paramref name="Alpha"/>; <paramref name="Scale"/> times its size.
 /// </summary>
-public readonly record struct InkSlot(string Part, bool Shines, double A, double X, double Y, double Alpha = 1, TickArt.Rgb Tint = default);
+public readonly record struct InkSlot(string Part, bool Shines, double A, double X, double Y, double Alpha = 1, TickArt.Rgb Tint = default, double Scale = 1);
 
 /// <summary>
 /// The tick in ink (2026-11-01-guards-in-ink): where each of its parts goes in a <see cref="TickArt.Pose"/>, the sentry page's pose ported. Four

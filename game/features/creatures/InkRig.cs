@@ -32,6 +32,7 @@ public partial class InkRig : Node2D
             var (sprite, white) = _sprites[i];
             sprite.Position = new Vector2((float)slot.X, (float)slot.Y);
             sprite.Rotation = (float)slot.A;
+            sprite.Scale = new Vector2((float)slot.Scale, (float)slot.Scale);
             if (slot.Shines)
             {
                 sprite.Visible = slot.Alpha > 0.01;
@@ -43,7 +44,7 @@ public partial class InkRig : Node2D
                 sprite.Visible = slot.Alpha > 0.01;
                 sprite.Modulate = new Color(shade, shade, shade, (float)slot.Alpha);
             }
-            if (white != null) (white.Position, white.Rotation, white.Visible, white.SelfModulate) = (sprite.Position, sprite.Rotation, sprite.Visible, new Color(1, 1, 1, (float)slot.Alpha));
+            if (white != null) (white.Position, white.Rotation, white.Scale, white.Visible, white.SelfModulate) = (sprite.Position, sprite.Rotation, sprite.Scale, sprite.Visible, new Color(1, 1, 1, (float)slot.Alpha));
         }
         _flash.Visible = flash > 0.01;
         _flash.Modulate = new Color(1, 1, 1, (float)flash);

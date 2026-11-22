@@ -14,7 +14,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The creatures drawn as the tick (the sentry, its page's candidate 3 «Клещ», and the breaker, small, for now): each its sprite drawn anew each frame from its
+/// The creatures drawn as the tick (the sentry, its page's candidate 3 «Клещ»): each its sprite drawn anew each frame from its
 /// pose (<see cref="TickArt"/>, <see cref="TickMotion"/>), lit as the world, its eye and cracks over it unlit; its eye lamp
 /// lighting the wreck in its colour, red arcs jumping between its legs as it winds up, an amber burner trailing sparks and
 /// smoke while it flies, its feet's magnets glowing while it grips; struck a white flash and fine sparks; a harpoon line it

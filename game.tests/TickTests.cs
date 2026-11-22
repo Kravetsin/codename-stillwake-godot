@@ -18,7 +18,7 @@ public class TickTests
         var rig = new TickRig();
         rig.Place(Standing);
         var body = rig.Slots.First(s => s.Part == "body");
-        foreach (var species in new[] { Stillwake.Content.Creatures.Sentry, Stillwake.Content.Creatures.Breaker })
+        foreach (var species in new[] { Stillwake.Content.Creatures.Sentry })
         {
             double top = (CreatureArt.InkTick.Parts["body"].PivotY - body.Y) * CreatureLooks.Ticks[species.Look].Size;
             // Within a pixel: its soft edge.

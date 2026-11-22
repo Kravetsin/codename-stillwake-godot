@@ -18,7 +18,7 @@ public class CreatureLooksTests
     [Theory]
     [MemberData(nameof(Species))]
     public void EverySpeciesIsDrawnByItsRigOrAsTheTickOrAHero(string species) =>
-        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Breakers.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
 
     [Fact]
     public void EveryOutfitOfAHeroLookHasEveryPictureAndEachCatcherOneByItsId()
@@ -49,7 +49,7 @@ public class CreatureLooksTests
             Assert.All(new[] { guard.Wake, guard.Alert, guard.WindUp, guard.Pounce, guard.Land, guard.Hit, guard.Killed, guard.ShutDown }, cue => Assert.NotNull(cue.Heard));
             return;
         }
-        if (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(species).Look))
+        if (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Breakers.ContainsKey(Spec.Creatures.Get(species).Look))
         {
             Assert.True(Sound.Ticks.TryGetValue(species, out var tick), $"{species} is drawn as the tick with no tick's sounds");
             Assert.All(new[] { tick.Alert, tick.WindUp, tick.Unclamp, tick.Clamp, tick.Snap, tick.Hit, tick.Death }, cue => Assert.NotNull(cue.Heard));
