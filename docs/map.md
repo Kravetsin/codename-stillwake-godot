@@ -55,7 +55,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Light** — f/light: `LightView.cs`, `Lightmap.cs`, `Sources.cs`, `StarField.cs`; f/effects: `EffectsView.cs`, `Impacts.cs`; r/`Lit.cs`, `Luminous.cs`, `Flares.cs`; gc/`Light.cs`, `Fx.cs`
 
-**Sound** — f/sound: `SoundView.cs`, `Hearing.cs`, `Motors.cs`, `GroundSounds.cs`; gc/`Sound.cs` (every cue); game/shared `Cues.cs`; files in `game/audio`
+**Sound** — f/sound: `SoundView.cs`, `Hearing.cs`, `Motors.cs`, `GroundSounds.cs`, `ShipMusic.cs` (ship-music: the tracks' turns and silences); gc/`Sound.cs` (every cue); game/shared `Cues.cs`; files in `game/audio`
 
 **Ship computer** — f/computer: `ComputerPanel.cs` (Set course), `RadarScreen.cs` (contacts, fuel, the course line, the route), `ComputerScreens.cs`, `Readout.cs` (programs brought by modules on its network); c/`Programs.cs`
 

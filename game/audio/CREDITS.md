@@ -252,6 +252,8 @@ its recording's noise floor raised with it, encoded here as OGG; the cue sets th
 | `logistics/drone-grab-2.wav` | UI Audio, `switch20.ogg`, https://kenney.nl/assets/ui-audio | Kenney | CC0 |
 | `logistics/drone-grab-3.wav` | UI Audio, `switch1.ogg`, https://kenney.nl/assets/ui-audio | Kenney | CC0 |
 | `logistics/drone-whir-1.ogg` | generated for Stillwake: noise band-passed at 450 Hz chopped ±25% 37.5 times a second, noise low-passed at 250 Hz under it and a faint 112.5 Hz tone, a 2 s loop rendered offline to −23 dBFS RMS (the audition's "Fan") | Stillwake team | CC0 |
+| `music/ship-1.ogg` | made by the team with Suno (suno.com), "Deep Space Drones", 2026-11-21, levelled to about −17 LUFS with its range narrowed to 5 LU; the ship's music, a placeholder for the playtest | Stillwake team | Suno Basic, non-commercial: replace before sale |
+| `music/ship-2.ogg` | made by the team with Suno (suno.com), "Vazio Profundo", 2026-11-21, levelled to about −17 LUFS with its range narrowed to 5 LU; the ship's music, a placeholder for the playtest | Stillwake team | Suno Basic, non-commercial: replace before sale |
 | `music/space-1.ogg` | generated for Stillwake: the synthesised drone "Wreck" (v2), 80 s looping seamlessly, about −18 LUFS; a placeholder for the bed of space (ADR 0042) until the team writes its own | Stillwake team | CC0 |
 | `music/title-1.ogg` | made by the team with Suno (suno.com) on its free plan, 2026-10-16, normalised to about −18 LUFS | Stillwake team | Suno Basic, non-commercial: replace before sale |
 | `power/charge-full-1.wav` | Freesound, "UI Confirm" (0.27 s from its attack), https://freesound.org/people/unfa/sounds/584184/ | unfa | CC0 |
