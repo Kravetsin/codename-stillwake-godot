@@ -15,6 +15,7 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | `pages/drone-vision.js` | a page without the bag (`window: false`): the drone's meeting as a vision before the giant core |
 | `pages/title-logo.js` | a page with its own font (`fonts`): the name CASTOFF on the title, turning to dust and gathering again in a loop |
 | `pages/form-vision.js` | a page with the game's own pictures (`pictures`): the vision a new drone form plays, the eye led three ways |
+| `pages/drone-colour.js` | one clock for every tile, a frame opened from the address: the player's colour in the drone's embers, its palettes and source |
 
 ## Rules
 
