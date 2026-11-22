@@ -518,4 +518,15 @@ public class MigrationsTests
         }
         Assert.Equal([3], upgraded["slices"]!["players"]!["drones"]!.AsArray().Select(p => p!.GetValue<int>()));
     }
+
+    [Fact]
+    public void MovesEachOfAFormatSeventyOneSavesSixSuitColoursToItsOwnAmongTheEight()
+    {
+        var worn = Enumerable.Range(0, 6).Select(i => (JsonNode?)new JsonObject { ["peer"] = i + 1, ["colour"] = i }).ToArray();
+        var old = new JsonObject { ["slices"] = new JsonObject { ["players"] = new JsonObject { ["colours"] = new JsonArray(worn) } } };
+        var kept = Migrations.Steps[71 - Migrations.Oldest](old)["slices"]!["players"]!["colours"]!.AsArray();
+        Assert.Equal([1, 2, 3, 4, 5, 6], kept.Select(w => w!["peer"]!.GetValue<int>()));
+        // Amber to lime; teal, violet, green, blue and pink to themselves.
+        Assert.Equal([0, 1, 5, 7, 2, 6], kept.Select(w => w!["colour"]!.GetValue<int>()));
+    }
 }
