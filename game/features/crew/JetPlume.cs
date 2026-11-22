@@ -21,8 +21,6 @@ public partial class JetPlume : Node2D
 
     public const double ThrustLeast = 0.3;
 
-    /// <summary>The core's width at its widest, in pixels.</summary>
-    private const float CoreWidth = 1.5f;
     private static readonly (int, int, int) Blue = (110, 170, 255), Ring = (150, 200, 255), Bloomed = (120, 180, 255);
     /// <summary>The colours along the core, nozzle to tip, and how opaque each is.</summary>
     private static readonly Color[] Along = [new(1, 1, 1, 0.95f), new(170 / 255f, 215 / 255f, 1, 0.8f), new(70 / 255f, 120 / 255f, 1, 0.35f), new(40 / 255f, 70 / 255f, 1, 0)];
@@ -32,8 +30,9 @@ public partial class JetPlume : Node2D
     private double _streaks, _motes, _length, _clock;
     private bool _on;
     private Vector2 _nozzle, _way = Vector2.Down;
-    private readonly Vector2[] _shape = new Vector2[9];
-    private readonly Color[] _colours = new Color[9];
+    private readonly (float X, float Y)[] _outline = new (float X, float Y)[PlumeWay.Corners];
+    private readonly Vector2[] _shape = new Vector2[PlumeWay.Corners];
+    private readonly Color[] _colours = new Color[PlumeWay.Corners];
 
     public JetPlume()
     {
@@ -102,20 +101,16 @@ public partial class JetPlume : Node2D
     /// <summary>The core: two curved flanks from the nozzle meeting at its tip, its colour running along it.</summary>
     public override void _Draw()
     {
-        float length = (float)_length;
-        var across = new Vector2(-_way.Y, _way.X);
-        // Stations along it, nozzle to tip, and its half width at each: a quadratic swell from the nozzle's to nothing.
-        ReadOnlySpan<float> at = [0, 0.2f, 0.45f, 0.7f];
+        var (x, y) = PlumeWay.Core(_outline, (_nozzle.X, _nozzle.Y), (_way.X, _way.Y), (float)_length);
+        for (int i = 0; i < _outline.Length; i++) _shape[i] = new Vector2(_outline[i].X, _outline[i].Y);
+        var at = PlumeWay.Stations;
         for (int i = 0; i < at.Length; i++)
         {
-            float t = at[i], u = 1 - t, half = CoreWidth * (0.6f * u * u + 2 * u * t * 1.15f);
-            var point = _nozzle + _way * (length * t);
-            var colour = ColourAt(t);
-            (_shape[i], _shape[8 - i]) = (point + across * half, point - across * half);
-            (_colours[i], _colours[8 - i]) = (colour, colour);
+            var colour = ColourAt(at[i]);
+            (_colours[i], _colours[^(i + 1)]) = (colour, colour);
         }
-        _shape[4] = _nozzle + _way * length;
-        _colours[4] = Along[^1];
+        _colours[at.Length] = Along[^1];
+        DrawSetTransform(new Vector2(x, y));
         DrawPolygon(_shape, _colours);
     }
 

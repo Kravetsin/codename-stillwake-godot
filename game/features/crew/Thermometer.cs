@@ -291,7 +291,14 @@ public partial class Thermometer : CanvasLayer
             crust.Add(new Vector2(Cx + BulbR + G, BulbY + BulbR + G));
             foreach (var piece in Geometry2D.IntersectPolygons(crust.ToArray(), BulbEdge))
             {
-                DrawColoredPolygon(piece, Rime with { A = 0.78f });
+                var (corners, indices) = (piece, Geometry2D.TriangulatePolygon(piece));
+                // DrawColoredPolygon would fail on a crest just inside the rim or touching it: those are filled in strips.
+                if (indices.Length == 0)
+                {
+                    var (points, triangles) = CrustFill.Upright(Array.ConvertAll(piece, p => (p.X, p.Y)));
+                    (corners, indices) = (Array.ConvertAll(points, p => new Vector2(p.X, p.Y)), triangles);
+                }
+                if (indices.Length > 0) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), indices, corners, [Rime with { A = 0.78f }]);
                 DrawPolyline([.. piece, piece[0]], Colors.White with { A = 0.9f }, 0.4f * G, true);
             }
             var bulb = new Vector2(Cx, BulbY);
