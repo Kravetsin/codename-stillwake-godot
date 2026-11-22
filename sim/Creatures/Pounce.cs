@@ -5,13 +5,14 @@ namespace Stillwake.Sim.Creatures;
 /// <summary>
 /// The pounce (the sentry): crouched its wind-up where it clings, then a flight straight at its target — its grudge if within
 /// the flight's run, else the hero nearest within it — at its speed on the longer axis, the other its share, rounded toward
-/// none; never cut short by a blow. No hero within the run, it lets be. However it ends, the drive that began it is told.
+/// none; never cut short by a blow unless cuttable. No hero within the run, it lets be. However it ends but cut, the drive that
+/// began it is told.
 /// </summary>
 internal sealed class PounceMove : MoveRule
 {
     internal override Type Serves => typeof(Spec.Pounce);
 
-    internal override bool Interruptible(Spec.Move mv) => false;
+    internal override bool Interruptible(Spec.Move mv) => ((Spec.Pounce)mv).Cuttable;
 
     internal override void Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
     {
@@ -32,7 +33,7 @@ internal sealed class PounceMove : MoveRule
         }
         var pounce = (Spec.Pounce)mv;
         int run = pounce.Ticks * pounce.Speed / CreaturesModule.Unit;
-        if (Aim(m, c, run) is not var (hx, hy))
+        if ((pounce.AtTarget ? AimAtTarget(m, c, run) : Aim(m, c, run)) is not var (hx, hy))
         {
             m.EndAct(c, spec, 0, hop: false);
             return;
@@ -58,6 +59,12 @@ internal sealed class PounceMove : MoveRule
             return grudge;
         return m.Nearest(c, awake: true) is ({ } hero, int far) && far <= run ? hero : null;
     }
+
+    /// <summary>The cell of <paramref name="c"/>'s target alone, out in space within <paramref name="run"/> cells; null otherwise.</summary>
+    private static (int X, int Y)? AimAtTarget(CreaturesModule m, Creature c, int run) =>
+        c.Target is { Kind: RefKind.Hero } target && m.OutAt(target.Id) is { } at
+        && Math.Max(Math.Abs(at.X - CreaturesModule.Down(c.X, CreaturesModule.Unit)), Math.Abs(at.Y - CreaturesModule.Down(c.Y - 1, CreaturesModule.Unit))) <= run
+            ? at : null;
 
     internal override void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv) { }
 

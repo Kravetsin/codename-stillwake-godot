@@ -48,6 +48,12 @@ public class CreatureContractTests
     /// <summary>A creature of <paramref name="s"/> let out where its body lives, a hero beside it: on a planet's floor, or on a wreck in space.</summary>
     private static (Scenario W, Creature C) LetOut(Tune.Species s)
     {
+        if (s.Brain.Any(d => d is Tune.Swarm))
+        {
+            // Never let out where things float (a release refuses every flyer there): put out by state.
+            var space = BreakerTests.World();
+            return (space, BreakerTests.Put(space, 60, 40));
+        }
         if (s.Body is Tune.Flyer)
         {
             // A catcher let out by hero 1 hunts it: struck by hero 0, it answers.
@@ -89,10 +95,10 @@ public class CreatureContractTests
         Assert.All(Tune.All.Where(s => s.Lifetime != Tune.Lifetime.Posted), s =>
         {
             var (w, c) = LetOut(s);
-            int drive = c.Drive;
+            int drive = c.Drive, step = c.Step;
             w.Do(new Strike(c.Id, Content.Weapons.Axe.Item)).Run();
             // A lurker out of its strike answers by being provoked (lurker-attacks); a shut snail's shell turns the blow aside.
-            bool answered = c.Act != null || c.Drive != drive || GuardDrive.Provoked(w.M.Creatures, c) || CreaturesModule.Shut(c);
+            bool answered = c.Act != null || c.Drive != drive || c.Step != step || GuardDrive.Provoked(w.M.Creatures, c) || CreaturesModule.Shut(c);
             Assert.True(answered, $"{s.Id} struck changed nothing");
         });
         var (_, sentry) = LetOut(Tune.Sentry);
@@ -112,6 +118,7 @@ public class CreatureContractTests
         { "capback", "Guard | Vent Shoot" },
         { "geodeSnail", "Guard Shell | Lunge" },
         { "catcher", "Hunt | Pounce Shoot" },
+        { "breaker", "Swarm | Pounce" },
     };
 
     [Fact]
