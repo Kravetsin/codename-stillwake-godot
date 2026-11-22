@@ -6,12 +6,13 @@
 | --- | --- |
 | `AudioCensus.cs` | Every 10 s a log line: sound players, those playing, fps, the hearing |
 | `logic/AudioTally.cs` | What `AudioCensus` counts, as one line |
-| `logic/GroundSounds.cs` | What a planet's ground sounds like (0093), chosen from what the sim says is there: the boots' step, push-off and … |
-| `logic/Hearing.cs` | The hearing's arithmetic, apart from Godot: how the buses sound at a share of the way from aboard (0) to floating … |
-| `logic/Motors.cs` | A motor heard as it runs (0059), apart from Godot: how fast it spins, from still (0) to full (1), linearly over its … |
-| `SoundView.cs` | The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass falling as it … |
-| `logic/Strikes.cs` | A train of one-shots heard while something works, apart from what it does (0054): the drill's strikes, a hammer … |
-| `logic/VoiceStarts.cs` | Which voice of a placed player starts a sound: a second before Godot's next physics tick on a spare voice … |
+| `logic/GroundSounds.cs` | What a planet's ground sounds like (0093), from what the sim says is there |
+| `logic/Hearing.cs` | The hearing's arithmetic: the buses from aboard (0) to floating (1) |
+| `logic/Motors.cs` | A motor heard as it runs (0059): its spin from still (0) to full (1) |
+| `SoundView.cs` | The hearing (0033, 0042), the music, every button's click |
+| `logic/ShipMusic.cs` | When a ship's track begins and where it is heard |
+| `logic/Strikes.cs` | A train of one-shots while something works (0054) |
+| `logic/VoiceStarts.cs` | Which voice of a placed player starts a sound |
 
 What is heard (0033), in space (0042), machines at work (0059), drones (0062) and a planet (0093). Presentation only:
 nothing in `sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
@@ -33,11 +34,12 @@ Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Hear
   as the square of the way left to `Silent`. Every station at work carries alike (`Sound.StationReach`) and about as
   loud as the next. `Heard2D` turns Godot's fall-off off and sets the volume each frame; Godot still pans.
 - **Starts**: Godot starts a placed sound on the next physics tick, a second play before it replacing the first. So
-  physics ticks 60 a second (the client has none; at 20 a drill lost half its hits), and `Heard2D` gives a second
+  physics ticks 60 a second, and `Heard2D` gives a second
   play in one tick, or one while another rings, a free voice (`VoiceStarts`): a voice is one place.
 - **Tool idle** (0068): a tool working nothing (`DrillWhir`, `Swing`) plays at the one `Sound.ToolIdleDb`.
-- **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows; the bed of
-  space (`Sound.Space`) while the hero floats, the vents' hum taking over aboard.
+- **Music** (0035, 0042, ship-music) on Music, loops stopped once silent: the title's track while it shows; off a planet
+  (`ShipMusic.HeardOn`) a ship's track after `ShipFirstS`, then `ShipGap*S` after each ends, never pitched; the bed of
+  space (`Sound.Space`) while the hero floats and no track plays.
 - **Reset** (0033): the `AudioServer` outlives `ReloadCurrentScene`, so `SoundView._Ready` sets World and Suit clear.
 - **Clicks** (0033, 0081): every `BaseButton` in the tree (found on `_Ready`, then by `NodeAdded`, connected once) and
   whatever asks through `Ui.Clicked` (inventory actions, a canister breathed): `Sound.Click` on UI, once a frame at most.
@@ -83,7 +85,7 @@ Each feature owns its players as children, never in a static.
 
 ## Deliberately not handled
 
-- Music beyond the title and space.
+- Music on a planet or by event, in step between peers.
 - Reverb, occlusion, Doppler; one hiss for every breach. Silence by the room's air (0033).
 - Others' clicks, alarms, swings; swim, passing out, plans, the analyzer, the pod, the inventory: later passes.
 - A jump with its head at a ceiling is silent; another's jump heard over ten steps into its rise is missed.
