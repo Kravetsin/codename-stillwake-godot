@@ -14,7 +14,8 @@ public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spr
 /// (drone-lessons). Its own drone's cues for its thoughts and moods (drone-thoughts, <see cref="DroneThoughts"/>): whether it is this player's, whether
 /// its player knows the alarms (creative does), its hero's body temperature in degrees, whether a magnetic flare's warning is on, the machine it is curious about, whether an
 /// icon or a lesson plays at the drone and an item's icon is scanned, whether a deed lesson just ended or the hero just woke from a death, whether the
-/// hero is in its meeting or seated, and whether the scanner reads.
+/// hero is in its meeting or seated, and whether the scanner reads. Its hero's neck and what stops
+/// light on its surface, to perch in the open air.
 /// </summary>
 public readonly record struct DroneSenses(
     Vec Anchor,
@@ -39,7 +40,9 @@ public readonly record struct DroneSenses(
     bool Proud = false,
     bool Woke = false,
     bool Quiet = false,
-    bool Reads = false);
+    bool Reads = false,
+    Vec Neck = default,
+    Func<double, double, bool>? StopsLight = null);
 
 /// <summary>
 /// What the drone wants this frame: where to fly, where its lens looks (a unit vector), how red it is, 0..1, and whether it darts; the thought or
@@ -95,14 +98,18 @@ public sealed class DroneWill
         }
         else
         {
+            var pressed = Thoughts.Goal(anchor);
             // Passed out, its hero cannot be left: it keeps to the anchor, looking its own way.
             (goal, look) = senses.Out ? (anchor, _perchLook)
                 : danger is { } there ? (there, Toward(senses.At, there, _perchLook))
                 : senses.Visit is { } visit ? (visit, Toward(senses.At, visit, _perchLook))
                 : _signHeld is { } held ? (DroneFlight.Plus(anchor, held), _perchLook)
-                : Thoughts.Goal(anchor) is { } pressed ? (pressed, _perchLook)
+                : pressed is { } helmet ? (helmet, _perchLook)
                 : (DroneFlight.Plus(anchor, _perch), _perchLook);
             if (senses.Hunter is { } hunter) goal = DroneFlight.Plus(goal, DroneFlight.Scaled(Toward(anchor, hunter, default), T.Lean));
+            // A dart, a visit and love go where they go; all else by its hero keeps out of walls and helmet.
+            if (senses.StopsLight is { } stops && (senses.Out || danger == null && senses.Visit == null && pressed == null))
+                goal = OpenAir.Nearest(goal, senses.Neck, stops, (new Vec(senses.Neck.X, senses.Neck.Y - DroneInk.HelmetUp), T.Clear));
             if (senses.ModeLook is { } aim) look = aim;
             // What shows over it outranks the mode's aim: warnings, then moods.
             if (!senses.Out && Thoughts.Look(senses.At, anchor) is { } eye) look = eye;

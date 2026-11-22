@@ -107,6 +107,7 @@ public partial class HeroView
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Room = RoomOf(ship, hero);
+            shown.Figure.StopsLight = _stopsLight ??= StopsLight;
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
