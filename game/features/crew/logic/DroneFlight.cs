@@ -5,44 +5,41 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The light drone's body (drone-motion ADR): where it flies by its hero, in pixels of the world, after the goal its will
-/// gives (<see cref="DroneWill"/>). It keeps the hero's velocity plus a pull to its goal, its own velocity turning toward that at a
-/// bounded acceleration, so a turn carries it on past the head and round, never a jump; outside a window it stays within
-/// <see cref="Tune.Reach"/> of its anchor. It ignores walls (light-drone).
+/// gives (<see cref="DroneWill"/>). A spring that never swings: it learns the hero's pace a little late, so it falls behind a
+/// start or a turn, speeds up past the hero until it is by it again, and keeps by it. Left further it hurries more;
+/// nothing holds it on a circle. It ignores walls (light-drone).
 /// </summary>
 public sealed class DroneFlight
 {
     /// <summary>Its tunables, in px and ms: the client's alone, they never enter the sim.</summary>
     public static class Tune
     {
-        /// <summary>How far its anchor is over the neck, px.</summary>
-        public const double Above = 16;
+        /// <summary>How far its anchor is over the neck standing upright, px: clear of the crown on its lowest perch.</summary>
+        public const double Above = 24;
 
-        /// <summary>How fast it drifts to a goal near, px/ms: to a perch <see cref="Drift"/>, to a window's place <see cref="Cruise"/>.</summary>
-        public const double Drift = 0.025, Cruise = 0.12;
+        /// <summary>How long it takes to answer, ms: following, going to a window's place, darting.</summary>
+        public const double FollowMs = 260, WindowMs = 110, DartMs = 120;
 
-        /// <summary>Near its goal it slows to the way left over this, ms: to a perch <see cref="ArriveMs"/>, to a window's place <see cref="WindowArriveMs"/>.</summary>
-        public const double ArriveMs = 400, WindowArriveMs = 150;
+        /// <summary>How long it takes to learn its hero's new pace, ms, while it follows unhurried.</summary>
+        public const double LearnMs = 180;
 
-        /// <summary>
-        /// Left behind further than <see cref="Slack"/>, px, it catches up at ((way - Slack) / <see cref="Snap"/>)² px/ms more:
-        /// about 24 px behind a running hero, 40 behind the fastest fall.
-        /// </summary>
-        public const double Slack = 12, Snap = 28;
+        /// <summary>Further than its perches it answers quicker: once more each <see cref="Far"/> px, up to <see cref="Hurry"/> times more.</summary>
+        public const double Far = 60, Hurry = 2;
 
-        /// <summary>The fastest it flies, px/ms: past the hero's fastest fall; darting, <see cref="DartSpeed"/>.</summary>
-        public const double Chase = 1.3, DartSpeed = 0.6;
+        /// <summary>How long a change of how quick it answers eases over, ms: it speeds up, it never jerks.</summary>
+        public const double EaseMs = 80;
 
-        /// <summary>How fast its velocity turns toward the wanted one, px/ms².</summary>
-        public const double Accel = 0.002;
+        /// <summary>An anchor jumping further than this in a frame puts it at its goal, px.</summary>
+        public const double Lost = 64;
 
-        /// <summary>The furthest it falls behind its anchor outside a window, px; an anchor jumping further than <see cref="Lost"/> in a frame puts it at its goal.</summary>
-        public const double Reach = 48, Lost = 64;
+        /// <summary>The longest frame it flies by and the steps it flies one in, ms: a stall never flings it.</summary>
+        public const double MaxFrameMs = 50, StepMs = 4;
 
-        /// <summary>The longest frame it flies by, ms: a stall never flings it.</summary>
-        public const double MaxFrameMs = 33;
+        /// <summary>It perches aside, px from its anchor: between <see cref="HomeNear"/> and <see cref="HomeX"/> across either way, up to <see cref="HomeY"/> up or down.</summary>
+        public const double HomeNear = 12, HomeX = 18, HomeY = 3;
 
-        /// <summary>The box round its anchor it perches in, half-sizes, px.</summary>
-        public const double HomeX = 10, HomeY = 5;
+        /// <summary>Shown at its anchor, it leaves for a perch aside this soon after, ms.</summary>
+        public const double AsideMs = 400;
 
         /// <summary>How long it sits on a perch before it is bored of it, ms, drawn between these.</summary>
         public const int BoredMinMs = 8000, BoredMaxMs = 20000;
@@ -60,7 +57,8 @@ public sealed class DroneFlight
         public const double PulseMs = 1200, FlashMs = 300;
     }
 
-    private Vec _anchor;
+    private Vec _anchor, _pace;
+    private double _rate;
     private bool _placed;
 
     /// <summary>Where it is, pixels of the world.</summary>
@@ -73,11 +71,17 @@ public sealed class DroneFlight
     public double Off { get; private set; }
 
     /// <summary>
-    /// Its anchor: <see cref="Tune.Above"/> over the neck at <paramref name="neck"/>, in the column of the feet at
+    /// Its anchor: <see cref="Tune.Above"/> over the neck at <paramref name="neck"/>, in the hero's column at
     /// <paramref name="feetX"/> so a turn moves nothing; lying, over the body's middle at <paramref name="lying"/>.
     /// </summary>
     public static Vec Anchor(Vec neck, double feetX, Vec? lying = null) =>
         lying is { } body ? new Vec(body.X, body.Y - Tune.Above) : new Vec(feetX, neck.Y - Tune.Above);
+
+    /// <summary>
+    /// Its anchor over a body afloat, its middle at <paramref name="middle"/>: where it is over one upright, so the body leaning or
+    /// twisting in flight moves nothing.
+    /// </summary>
+    public static Vec AnchorAfloat(Vec middle) => Anchor(new Vec(middle.X, middle.Y - (Rig.Neck - Rig.H / 2)), middle.X);
 
     /// <summary>A hero's velocity in px/ms from its own, thousandths of a cell a step.</summary>
     public static Vec VelocityOf(int vx, int vy) => new(vx * Rig.Cell / Hero.Unit / Hero.StepMs, vy * Rig.Cell / Hero.Unit / Hero.StepMs);
@@ -87,44 +91,43 @@ public sealed class DroneFlight
 
     /// <summary>
     /// Flies it <paramref name="elapsedMs"/> toward <paramref name="goal"/>, its hero's anchor at <paramref name="anchor"/> moving at
-    /// <paramref name="hero"/> px/ms: <paramref name="darting"/> faster, in a <paramref name="window"/> with no reach. Where it is now.
+    /// <paramref name="hero"/> px/ms: quicker <paramref name="darting"/> and to a <paramref name="window"/>'s place. Where it is now.
     /// </summary>
     public Vec Step(Vec anchor, Vec hero, Vec goal, bool window, bool darting, double elapsedMs)
     {
-        double dt = Math.Clamp(elapsedMs, 0, Tune.MaxFrameMs);
         if (!_placed || Length(Minus(anchor, _anchor)) > Tune.Lost)
         {
-            var placed = window ? goal : Plus(anchor, Capped(Minus(goal, anchor), Tune.Reach));
-            (_placed, _anchor, At, Velocity, Off) = (true, anchor, placed, default, Length(Minus(goal, placed)));
+            (_placed, _anchor, At, Velocity, Off) = (true, anchor, goal, default, 0);
+            (_pace, _rate) = (default, 1 / Tune.FollowMs);
             return At;
         }
+        var moved = Minus(anchor, _anchor);
         _anchor = anchor;
-        // Its own pace, not the hero's: left behind, it catches up the faster the further it is.
-        var way = Minus(goal, At);
-        double gap = Length(way);
-        var wanted = gap < 1e-9 ? default : Scaled(way, Speed(gap, window, darting) / gap);
-        var velocity = Plus(Velocity, Capped(Minus(wanted, Velocity), Tune.Accel * dt));
-        var at = Plus(At, Scaled(velocity, dt));
-        var out_ = Minus(at, anchor);
-        double far = Length(out_);
-        if (!window && far > Tune.Reach)
+        double frame = Math.Clamp(elapsedMs, 0, Tune.MaxFrameMs), left = frame;
+        while (left > 0)
         {
-            var outWay = Scaled(out_, 1 / far);
-            at = Plus(anchor, Scaled(outWay, Tune.Reach));
-            // Held on its circle it keeps the hero's pace outward, no more.
-            double outward = Dot(Minus(velocity, hero), outWay);
-            if (outward > 0) velocity = Minus(velocity, Scaled(outWay, outward));
+            double dt = Math.Min(left, Tune.StepMs);
+            left -= dt;
+            // The anchor went along through the frame: chased at the frame's end alone it led by half a frame's way.
+            var still = Scaled(moved, left / frame);
+            _rate += (Rate(Minus(anchor, still), window, darting) - _rate) * (dt / Tune.EaseMs);
+            // Critically damped about the hero's pace as learnt, not as it is: so it lags a turn and then catches up.
+            _pace = Plus(_pace, Scaled(Minus(hero, _pace), dt * _rate * Tune.FollowMs / Tune.LearnMs));
+            var pull = Plus(Scaled(Minus(Minus(goal, still), At), _rate * _rate), Scaled(Minus(_pace, Velocity), 2 * _rate));
+            Velocity = Plus(Velocity, Scaled(pull, dt));
+            At = Plus(At, Scaled(Velocity, dt));
         }
-        (At, Velocity, Off) = (at, velocity, Length(Minus(goal, at)));
-        return at;
+        Off = Length(Minus(goal, At));
+        return At;
     }
 
-    /// <summary>How fast it wants to fly at <paramref name="gap"/> px from its goal, px/ms: a drift easing in near it, a catch-up past <see cref="Tune.Slack"/>.</summary>
-    private static double Speed(double gap, bool window, bool darting)
+    /// <summary>How quick it answers now, per ms: to a window's place or darting its own, else the quicker the further it is left.</summary>
+    private double Rate(Vec anchor, bool window, bool darting)
     {
-        double drift = window ? Math.Min(gap / Tune.WindowArriveMs, Tune.Cruise) : Math.Min(gap / Tune.ArriveMs, Tune.Drift);
-        double behind = Math.Max(0, gap - Tune.Slack) / Tune.Snap;
-        return Math.Min(drift + behind * behind, darting ? Tune.DartSpeed : Tune.Chase);
+        if (window) return 1 / Tune.WindowMs;
+        if (darting) return 1 / Tune.DartMs;
+        double behind = Math.Max(0, Length(Minus(At, anchor)) - Tune.HomeX);
+        return (1 + Math.Min(behind / Tune.Far, Tune.Hurry)) / Tune.FollowMs;
     }
 
     internal static Vec Plus(Vec a, Vec b) => new(a.X + b.X, a.Y + b.Y);

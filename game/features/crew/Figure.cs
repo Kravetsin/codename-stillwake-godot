@@ -817,8 +817,8 @@ public partial class Figure : Node2D
     private readonly DroneWill _will = new(new Random());
     /// <summary>Whether its drone was hidden since it last flew: shown again, it starts at its anchor.</summary>
     private bool _droneLost = true;
-    /// <summary>Whether it lies or tumbles as last shown: its drone's anchor is over the body's middle then.</summary>
-    private bool _lying;
+    /// <summary>Whether it lies as last shown, and whether it is afloat or tumbles: what its drone's anchor is over then.</summary>
+    private bool _lying, _unweighted;
 
     /// <summary>Its drone's anchor as drawn now, pixels of the world (<see cref="DroneFlight.Anchor"/>).</summary>
     public Vector2 DroneAnchor
@@ -827,7 +827,10 @@ public partial class Figure : Node2D
         {
             var neck = _helmet.GlobalPosition;
             var waist = _waist.GlobalPosition;
-            var anchor = DroneFlight.Anchor(new Vec(neck.X, neck.Y), _frame.GlobalPosition.X, _lying ? new Vec(waist.X, waist.Y) : null);
+            var middle = _body.GlobalPosition;
+            // The figure's own column and middle: the frame's feet swing with the lean and mirror at once on a twist.
+            var anchor = _unweighted ? DroneFlight.AnchorAfloat(new Vec(middle.X, middle.Y))
+                : DroneFlight.Anchor(new Vec(neck.X, neck.Y), GlobalPosition.X, _lying ? new Vec(waist.X, waist.Y) : null);
             return new Vector2((float)anchor.X, (float)anchor.Y);
         }
     }
@@ -1844,7 +1847,7 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend);
         _sealBent.Show(_fit.SealBy(_gaze));
-        _lying = !awake;
+        (_lying, _unweighted) = (pose == Pose.Lie, pose is Pose.Float or Pose.Tumble);
         if (_drone.Visible)
         {
             // Projecting, it flies before the hero's waist, its sparks in a flurry about it (drone-windows); else it flies by its own

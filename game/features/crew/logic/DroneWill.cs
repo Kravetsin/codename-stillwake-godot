@@ -49,7 +49,7 @@ public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool 
 
 /// <summary>
 /// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near, a machine it
-/// visits to learn from (drone-lessons), held still while its hero signs, pressed to the helmet in love, else a perch of its own by the anchor,
+/// visits to learn from (drone-lessons), held still while its hero signs, pressed to the helmet in love, else a perch of its own aside of the anchor,
 /// picked again when bored. A hunter leans it his way. Its <see cref="Thoughts"/> show over it and move its body (drone-thoughts). Its own <see cref="Random"/> picks the perches: they differ between screens, as decoration may.
 /// </summary>
 public sealed class DroneWill
@@ -67,15 +67,15 @@ public sealed class DroneWill
     public DroneWill(Random random)
     {
         _random = random;
-        _boredLeft = Bored();
+        _boredLeft = T.AsideMs;
     }
 
     /// <summary>Its thoughts and moods (drone-thoughts): what shows over it.</summary>
     public DroneThoughts Thoughts { get; } = new();
 
-    /// <summary>Back to its anchor, as it is shown again: on it, bored of it after a while; the dangers it darted at stay darted.</summary>
+    /// <summary>Back to its anchor, as it is shown again: on it, soon off to a perch aside; the dangers it darted at stay darted.</summary>
     public void Reset() =>
-        (_perch, _boredLeft, _darting, _signHeld) = (default, Bored(), false, null);
+        (_perch, _boredLeft, _darting, _signHeld) = (default, T.AsideMs, false, null);
 
     /// <summary>What it wants after <paramref name="ms"/> more, sensing <paramref name="senses"/>.</summary>
     public DroneIntent Pick(in DroneSenses senses, double ms)
@@ -127,12 +127,14 @@ public sealed class DroneWill
         return _dartBolt ? new Vec(bolt!.Value.At.X, senses.Anchor.Y) : meteor!.Value.At;
     }
 
-    /// <summary>Bored of its perch, it picks another in its home box round the anchor, and a look of its own up and out.</summary>
+    /// <summary>Bored of its perch, it picks another either side of the anchor, never over the head, and a look of its own up and out.</summary>
     private void Settle(double ms)
     {
         _boredLeft -= ms;
         if (_boredLeft > 0) return;
-        _perch = new Vec((_random.NextDouble() * 2 - 1) * T.HomeX, (_random.NextDouble() * 2 - 1) * T.HomeY);
+        double across = _random.NextDouble() * 2 - 1;
+        double aside = (across < 0 ? -T.HomeNear : T.HomeNear) + across * (T.HomeX - T.HomeNear);
+        _perch = new Vec(aside, (_random.NextDouble() * 2 - 1) * T.HomeY);
         double angle = -_random.NextDouble() * Math.PI;
         _perchLook = new Vec(Math.Cos(angle), Math.Sin(angle));
         _boredLeft = Bored();

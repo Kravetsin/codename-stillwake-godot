@@ -159,6 +159,20 @@ public class DroneWillTests
         }
     }
 
+    /// <summary>Seen in play flying in the head: soon after it is shown it perches aside, and every perch after is aside.</summary>
+    [Fact]
+    public void EveryPerchIsAsideOfTheHeadFromSoonAfterItIsShown()
+    {
+        var will = Will();
+        for (int ms = 0; ms < 120000; ms += 16)
+        {
+            var goal = will.Pick(Still, 16).Goal;
+            if (ms > T.AsideMs) Assert.InRange(Math.Abs(goal.X - Anchor.X), T.HomeNear - 1e-9, T.HomeX + 1e-9);
+        }
+        will.Reset();
+        Assert.Equal(Anchor, will.Pick(Still, 16).Goal);
+    }
+
     [Fact]
     public void InLampAndScanTheLensFollowsThePointerWhateverItDoes()
     {
