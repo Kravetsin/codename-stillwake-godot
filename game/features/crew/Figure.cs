@@ -590,6 +590,37 @@ public partial class Figure : Node2D
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
 
+    /// <summary>
+    /// What it wields out of the hand, thrown (companion-fights): where, in pixels of the world, and the way it spins; null in hand.
+    /// The hand is drawn empty, the item spinning there, the drone with it on its thread.
+    /// </summary>
+    public (Vector2 At, int Side)? Thrown { get; set; }
+
+    /// <summary>A thrown item's turns a second.</summary>
+    private const double ThrownTurns = 3.5;
+
+    private Sprite2D? _thrown;
+
+    private void ShowThrown(HeldLook? item)
+    {
+        if (Thrown is not var (at, side) || item == null)
+        {
+            if (_thrown != null) _thrown.Visible = false;
+            return;
+        }
+        if (_thrown == null)
+        {
+            _thrown = new Sprite2D { TopLevel = true, ZAsRelative = false, ZIndex = Layers.HeldFront };
+            Lit.Set(_thrown);
+            AddChild(_thrown);
+        }
+        _thrown.Visible = true;
+        _thrown.Texture = HeldArt.Of(item.Picture, PartsOf(item).Layers);
+        _thrown.GlobalPosition = at;
+        _thrown.GlobalRotation = (float)(side * _timeMs / 1000 * Math.Tau * ThrownTurns % Math.Tau);
+        _thrown.GlobalScale = new Vector2(side, 1) * (float)item.Size;
+    }
+
     /// <summary>The modules fitted into what it wields, as the sim says of the stack its hero works with (0098): laid over its picture; none for most.</summary>
     public IReadOnlyList<Content.ModuleSpec> Fitted { get; set; } = [];
 
@@ -1894,12 +1925,18 @@ public partial class Figure : Node2D
                 StopsLight = StopsLight,
             };
             var intent = _will.Pick(senses, elapsedMs);
+            Vec? fetches = Thrown is var (thrownAt, _) ? new Vec(thrownAt.X, thrownAt.Y) : null;
+            if (fetches is { } fetched)
+            {
+                var toThing = new Vector2((float)(fetched.X - senses.At.X), (float)(fetched.Y - senses.At.Y));
+                intent = intent with { Free = false, Thought = null, Bearing = default, Look = toThing.Length() > 1 ? new Vec(toThing.X, toThing.Y) : intent.Look };
+            }
             var velocity = DroneFlight.VelocityOf(hero.Vx, hero.Vy);
             bool mayTow = pose == Pose.Float && intent.Free && !_drone.Scripted;
             _tow.Step(senses.Anchor, velocity, hero.Facing, senses.At, mayTow, StopsLight, elapsedMs);
             // On the body as drawn, so a twist never leaves the thread's end beside it.
             var held = _waist.ToGlobal(new Vector2((float)(_tow.Hold.X * hero.Facing), (float)(_tow.Hold.Y - Rig.H / 2)));
-            _drone.Follow(senses.Anchor, velocity, intent, overDrone, elapsedMs, _timeMs, _tow, new Vec(held.X, held.Y));
+            _drone.Follow(senses.Anchor, velocity, intent, overDrone, elapsedMs, _timeMs, _tow, new Vec(held.X, held.Y), fetches);
             _droneLost = false;
             _drone.Projecting = overDrone;
             _drone.Sign(signing ? Gesture : null);
@@ -1934,7 +1971,8 @@ public partial class Figure : Node2D
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
         ShowOffHand(backArm);
-        _held.Visible = inHand;
+        _held.Visible = inHand && Thrown == null;
+        ShowThrown(item);
         Muzzle = EdgeStart = null;
         if (inHand && item != null)
         {
@@ -1982,7 +2020,7 @@ public partial class Figure : Node2D
         }
         // A struck tool's edge as it is held this frame, in the world, along its shape, and as it was the frame before: where it
         // bites (blade-sparks). A swung one's is what its trail is drawn from; an aimed one, the spear, leaves none. Its reach is not shown (tool-size).
-        bool struckHeld = inHand && item != null && stroke != null && !Spinning, bladeHeld = struckHeld && !item!.Aimed;
+        bool struckHeld = inHand && Thrown == null && item != null && stroke != null && !Spinning, bladeHeld = struckHeld && !item!.Aimed;
         (_edgeWas, _edge) = (_edge, _edgeWas);
         _edge.Clear();
         if (struckHeld)

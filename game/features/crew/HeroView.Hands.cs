@@ -21,7 +21,8 @@ public partial class HeroView
     /// so a door opens with a card or a cable out; the left button held works plans with the screwdriver in
     /// hand (0107); the left button grabs only with a free hand, as it is the card's otherwise, and held
     /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
-    /// unless the click grabbed a piece, hitting what its fan of rays from the shoulder meets (tool-reach); the right button does nothing with a tool.
+    /// unless the click grabbed a piece, hitting what its fan of rays from the shoulder meets (tool-reach); the right button, with a
+    /// drone paired, throws what has a throw (<see cref="AxeThrow"/>, companion-fights).
     /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
@@ -117,21 +118,35 @@ public partial class HeroView
         bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
         _grabHeld = (_grabHeld || grabbed) && _mouse.Buttons.HoldsLeft;
         bool swings = acts && stroke != null && !working && Poses.HoldsIn(pose);
+        // The throw (companion-fights): the arm's overhand raises it and lets go where a swing would strike.
+        var throwing = new ThrowHands(_ui.Wielded.Get(), handFree, passedOut || Seating.Held(m, client.Id), _surface);
+        _throw.Wait(elapsedMs);
+        _throw.Keep(throwing);
+        double slow = AxeSwing.SlowOf(BodyHeat.SpeedOf(Body));
+        if (rightClicked && swings && pointer != null && !_ui.DroneWindow.Open && m.Players.HasDrone(client.Id))
+            _throw.Begin(throwing, stroke!.PaceMs * slow);
+        if (_throw.Leg == ThrowLeg.Raised && (!swings || pointer == null)) _throw.Cancel();
+        ThrowFlies(client, m, elapsedMs);
         if (!swings) _swing.Stop();
-        bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
+        bool raised = _throw.Leg == ThrowLeg.Raised;
+        bool wanted = swings && pointer != null && !_throw.Flying
+            && (raised || !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked));
         // Aimed from the hero as an offset it carries along, its motion picked at the press by the angle the figure, faced to
         // strike, sees: asked only while a stroke is wanted.
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
         var place = AxeSwing.PlaceOf(_current);
         double? angle = wanted ? AimAngle(_figure, AxeSwing.OffsetOf(swingAt, place), _current) : null;
-        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, AxeSwing.SlowOf(BodyHeat.SpeedOf(Body)));
+        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, slow);
         if (swung.Begun)
         {
+            _swingThrows = raised;
             _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
             _current = _current with { Facing = _swingFace };
         }
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
-        if (swung.Hits)
+        if (swung.Hits && _swingThrows)
+            _throw.Leave(Aiming.HandOf(_current), _swing.Toward(_current));
+        else if (swung.Hits)
         {
             // What the stroke's fan of rays from the shoulder meets as it lands (tool-reach): the cells, wrecks and
             // creatures the sim would take its hits on; a creature's flinch and a wreck's chop are theirs to show (0102, DebrisView).
@@ -220,11 +235,12 @@ public partial class HeroView
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : (Busy?)null;
         // A gesture plays while nothing else takes the hands: any work, an aimed arm, the plan or the pose cuts it off (gestures-for-words).
-        if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated, holdsPlan: !handFree)) _gesture.Stop();
+        if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated || _throw.Flying, holdsPlan: !handFree)) _gesture.Stop();
         else if (asked is { } sign && pointer is { } pointed) _gesture.Start(sign, Aiming.PointOf(pointed));
         _gesture.Step(elapsedMs);
         _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
+        _figure.Thrown = _throw.Flying ? (Pixels(_throw.At), _throw.Side) : null;
         ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
         // The computer opens its own window; every other machine its slots under the inventory, the station's own, paired or not.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
@@ -235,6 +251,23 @@ public partial class HeroView
         // A crate or a computer stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
         if (_ui.OpenComputer.Get() is int screen && (passedOut || !Aiming.CrateInReach(m.Grid, _current, screen))) _ui.OpenComputer.Set(null);
+    }
+
+    /// <summary>This hero's throw (companion-fights), and whether the stroke playing lets it go rather than strikes.</summary>
+    private readonly AxeThrow _throw = new();
+    private bool _swingThrows;
+
+    /// <summary>A frame of the throw's flight: what it struck is sent as a swing's hit is, through the one lookup.</summary>
+    private void ThrowFlies(Client client, Registry m, double elapsedMs)
+    {
+        if (!_throw.Flying || _ui.Wielded.Get() is not { } tool) return;
+        var hit = _throw.Step(elapsedMs, m, _current, Outside(m, _current), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        if (hit == null) return;
+        var sent = ToolEdges.CommandsOf(m, client.Id, tool, hit);
+        if (sent.Cells is { } cells) client.Send(cells);
+        if (sent.Pieces is { } pieces) client.Send(pieces);
+        foreach (var strike in sent.Strikes) client.Send(strike);
+        if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, tool, _current, client.Id);
     }
 
     /// <summary>
