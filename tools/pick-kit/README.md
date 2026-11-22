@@ -17,6 +17,7 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | `pages/form-vision.js` | a page with the game's own pictures (`pictures`): the vision a new drone form plays, the eye led three ways |
 | `pages/drone-colour.js` | one clock for every tile, a frame opened from the address: the player's colour in the drone's embers, its palettes and source |
 | `pages/drone-salts.js` | three grounds at once and a raster check of what is drawn: the two colours of the salts and the crew's new colours |
+| `pages/drone-tow.js` | one flight worked out step by step for every tile and checked frame by frame: the companion towed on a thread |
 
 ## Rules
 
