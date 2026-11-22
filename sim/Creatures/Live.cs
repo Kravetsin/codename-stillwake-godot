@@ -108,9 +108,10 @@ public sealed partial class CreaturesModule
         Linger();
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
-        if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
-        // A surface with no life, none let out and no patch left runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
-        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0 && !AnyHunted()) return;
+        if ((Rules.Guards.Count > 0 || Rules.Nests.Count > 0) && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
+        // A surface with no life, none let out or asleep and no patch left runs nothing and draws nothing: aboard, only a guarded or
+        // nested kind drifting in draws.
+        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && s.Nests.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0 && !AnyHunted()) return;
         s.Clock += 1;
         FindHeroes();
         Fume();
@@ -129,6 +130,7 @@ public sealed partial class CreaturesModule
             if (!creature.Dead) all[kept++] = creature;
         }
         all.RemoveRange(kept, all.Count - kept);
+        WakeNests();
         if (s.Clock % Spec.Beat != 0) return;
         Posted();
         if (Habitats.Count > 0) Spawn();

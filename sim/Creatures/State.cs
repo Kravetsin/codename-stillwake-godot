@@ -151,6 +151,13 @@ public sealed class Creature
     [JsonIgnore] public int Left => Act?.Left ?? DriveLeft;
 }
 
+/// <summary>A pack asleep on a piece of debris (companion-fights): the piece by its id, and how many wake.</summary>
+public sealed class Nest
+{
+    [JsonInclude] public int Piece { get; internal set; }
+    [JsonInclude] public int Size { get; internal set; }
+}
+
 /// <summary>The creatures slice. Public so it can be named, its members internal: others read <see cref="CreaturesModule.Creatures"/>.</summary>
 public sealed class CreaturesState
 {
@@ -181,6 +188,13 @@ public sealed class CreaturesState
     /// <summary>The patches as saved: none written while none lie.</summary>
     [JsonInclude, JsonPropertyName("patches"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     internal List<Patch>? SavedPatches { get => Patches.Count > 0 ? Patches : null; set => Patches = value ?? []; }
+
+    /// <summary>The nests asleep (companion-fights), ascending by their piece's id.</summary>
+    [JsonIgnore] internal List<Nest> Nests { get; set; } = [];
+
+    /// <summary>The nests as saved: none written while none sleep, so a world without saves as before them.</summary>
+    [JsonInclude, JsonPropertyName("nests"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Nest>? SavedNests { get => Nests.Count > 0 ? Nests : null; set => Nests = value ?? []; }
 
     /// <summary>The shots ever fired, arcs ever struck and patches ever laid: the next one's id is one more. Ids are never reused.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Fired { get; set; }

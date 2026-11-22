@@ -441,6 +441,22 @@ public static class Creatures
     public static readonly OnDebris Derelicts = new(Sentry.Id, [("engineBlock", 500), ("cargoHold", 500)]);
 
     /// <summary>
+    /// A pack asleep on pieces of one zone (companion-fights): each new piece of <paramref name="Zone"/> and one of
+    /// <paramref name="Kinds"/>, not struck yet, has a nest <paramref name="PerMille"/> times in a thousand, of
+    /// <paramref name="Least"/> to <paramref name="Most"/> of <paramref name="Species"/>, a flyer. It wakes whole when its piece is
+    /// struck or a hero out in space is within <paramref name="Wake"/> cells, while that hero's keep box would hold no more than
+    /// <paramref name="PerKeep"/> of them.
+    /// </summary>
+    public sealed record Nest(string Species, string Zone, IReadOnlyList<string> Kinds, int PerMille, int Least, int Most, int Wake, int PerKeep);
+
+    /// <summary>
+    /// Breakers on one in ten of the far field's lesser wrecks (companion-fights), four to eight to a nest: a pack met within
+    /// minutes of flying out, never in the stream by the hull. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Nest Dismantlers = new(Breaker.Id, Content.Debris.Far.Id,
+        ["hullSection", "cargoContainer", "machineBlock", "shieldSlab"], PerMille: 100, Least: 4, Most: 8, Wake: 32, PerKeep: 8);
+
+    /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's
     /// share of them, rounded down, so a second of the drill's ten hits pushes about as far as the axe's two (the axe's pace).
     /// </summary>
