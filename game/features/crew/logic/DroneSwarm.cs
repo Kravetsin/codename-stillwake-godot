@@ -29,7 +29,7 @@ public enum SwarmShape
 /// One spark as drawn, pick px about the core (<see cref="DroneInk.Px"/> world px each): its middle, its heading for its tail,
 /// whether before the core, how hot (before an alarm), and while it flies a thread from where it left.
 /// </summary>
-public readonly record struct Spark(float X, float Y, float Dx, float Dy, bool Front, float Heat, bool Flying, float FromX, float FromY);
+public readonly record struct Spark(float X, float Y, float Dx, float Dy, bool Front, float Heat, bool Flying, float FromX, float FromY, bool Shaped = false);
 
 /// <summary>
 /// The light drone's body (drone-threads, the pick «Нити»): <see cref="DroneInk.Sparks"/> sparks running round three tilted orbits,
@@ -222,7 +222,7 @@ public sealed class DroneSwarm
         bool toIn = In(i);
         var (tx, ty, tdx, tdy) = toIn ? Place(Shape, i, TurnOf(Shape, aim, timeS), timeS) : (orbit.X, orbit.Y, orbit.Dx, orbit.Dy);
         float k = Progress(i, timeS, toIn);
-        if (k >= 1) return toIn ? new Spark(tx, ty, tdx, tdy, true, HeatOf(i, 1, t), false, 0, 0) : Orbiting(i, orbit, t);
+        if (k >= 1) return toIn ? new Spark(tx, ty, tdx, tdy, true, HeatOf(i, 1, t), false, 0, 0, Shaped: true) : Orbiting(i, orbit, t);
         float f = _fromIn[i] + ((toIn ? 1 : 0) - _fromIn[i]) * k;
         var from = _fromShape[i] switch
         {
@@ -232,12 +232,12 @@ public sealed class DroneSwarm
         };
         if (k <= 0)
             return _fromShape[i] == SwarmShape.Idle ? Orbiting(i, orbit, t)
-                : new Spark(from.X, from.Y, from.Dx, from.Dy, f > 0.5f || orbit.Z >= 0, HeatOf(i, f, t), false, 0, 0);
+                : new Spark(from.X, from.Y, from.Dx, from.Dy, f > 0.5f || orbit.Z >= 0, HeatOf(i, f, t), false, 0, 0, Shaped: f > 0);
         float s = Smooth(k), x = from.X + (tx - from.X) * s, y = from.Y + (ty - from.Y) * s;
         float dx = tx - from.X, dy = ty - from.Y, d = MathF.Sqrt(dx * dx + dy * dy);
         if (d < 1e-4f) (dx, dy, d) = (tdx, tdy, 1);
         float heat = HeatOf(i, f, t) + I.FlightBump * MathF.Sin(k * MathF.PI);
-        return new Spark(x, y, dx / d, dy / d, f > 0.5f || orbit.Z >= 0, heat, true, from.X, from.Y);
+        return new Spark(x, y, dx / d, dy / d, f > 0.5f || orbit.Z >= 0, heat, true, from.X, from.Y, Shaped: f > 0);
     }
     /// <summary>Spark <paramref name="i"/>'s rank along a shape, -1 if it keeps orbiting through every shape.</summary>
     public static int RankOf(int i) => Ranks[i];

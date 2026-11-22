@@ -61,8 +61,8 @@ public sealed class CornerClock
 }
 
 /// <summary>
-/// The drone's frame round a drone window (drone-windows, the pick «Уголки»), screen px: no border, four ember brackets just outside its
-/// corners, each made by a spark shot from the drone's eye, sparks running along its arms. The pick's faint threads from the eye to
+/// The drone's frame round a drone window (drone-windows, the pick «Уголки»), screen px: no border, four brackets in the player's colour just
+/// outside its corners, each made by an ember shot from the drone's eye, sparks burning into the colour along its arms (drone-salts). The pick's faint threads from the eye to
 /// the corners and the shots' lines back to it show only when asked (<see cref="Threads"/>, a dev key): what stretches across the
 /// screen from the drone is to go. Client only.
 /// </summary>
@@ -119,7 +119,7 @@ public static class CornerFrame
         float e = flight * flight * (3 - 2 * flight), wx = corner.X - eye.X, wy = corner.Y - eye.Y, d = MathF.Max(1e-4f, MathF.Sqrt(wx * wx + wy * wy));
         float x = eye.X + wx * e, y = eye.Y + wy * e, way = opening ? 1 : -1;
         if (Threads) into.Segment(eye.X, eye.Y, x, y, I.ShotLine, 0, I.ShotAlpha * (opening ? 1 : flight));
-        into.Spark(x, y, way * wx / d, way * wy / d, 1, I.Shot);
+        into.Spark(x, y, way * wx / d, way * wy / d, 1, I.Shot, burn: 0);
     }
 
     /// <summary>A landed corner: its bracket's lines, the sparks running out along its arms, its glowing square, its landing's halo.</summary>
@@ -140,10 +140,10 @@ public static class CornerFrame
             for (int m = 0; m < I.ArmSparks; m++)
             {
                 float s = Frac(seconds * I.ArmPace + m / (float)I.ArmSparks + k * I.ArmLater);
-                into.Spark(corner.X + dx * I.Arm * s, corner.Y + dy * I.Arm * s, dx, dy, I.ArmHeat * (1 - s * I.ArmFade));
+                into.Spark(corner.X + dx * I.Arm * s, corner.Y + dy * I.Arm * s, dx, dy, I.ArmHeat * (1 - s * I.ArmFade), burn: s);
             }
         }
-        into.Glow(corner.X, corner.Y, I.CornerSquare, I.CornerHeat);
+        into.Glow(corner.X, corner.Y, I.CornerSquare, I.CornerHeat, burn: 0);
         into.Add(new EmberMarks.Halo(corner.X, corner.Y, I.LandHalo, 0, I.LandHaloAlpha * (1 - landed)));
     }
 
@@ -152,7 +152,7 @@ public static class CornerFrame
     {
         into.Segment(eye.X, eye.Y, corner.X, corner.Y, I.CornerThread, 0, I.CornerThreadAlpha);
         float wx = corner.X - eye.X, wy = corner.Y - eye.Y, d = MathF.Max(1e-4f, MathF.Sqrt(wx * wx + wy * wy)), s = Frac(seconds * I.Creep + k * I.CreepLater);
-        into.Spark(eye.X + wx * s, eye.Y + wy * s, wx / d, wy / d, I.CreepHeat);
+        into.Spark(eye.X + wx * s, eye.Y + wy * s, wx / d, wy / d, I.CreepHeat, burn: s);
     }
 
     private static float Frac(float v) => v - MathF.Floor(v);

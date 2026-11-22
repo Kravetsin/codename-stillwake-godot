@@ -17,6 +17,7 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public partial class FormVisionView : Node2D
 {
+    /// <summary>The meteor's ember, an alarm's reds: the vision's threads and dots are the player's (<see cref="EmberArt.Mine"/>).</summary>
     private static readonly Color Ember = Rgb(I.Ember), Red = Rgb(I.Red), Hot = Ember.Lerp(Red, 0.5f), CrackHot = Ember.Lerp(Red, 0.75f);
     private static readonly Color LampLight = Rgb((255, 236, 206)), Ice = Rgb((206, 224, 236)), Ink = Rgb((22, 23, 27)), CableLit = Rgb((120, 126, 134));
     private static readonly Color CrackLit = Rgb((160, 168, 178)), Dark = Rgb((3, 4, 7)), Star = Rgb((206, 216, 232)), Shade = Rgb((2, 3, 5));
@@ -49,6 +50,9 @@ public partial class FormVisionView : Node2D
     /// </summary>
     private readonly Node2D _stage = new(), _void = new(), _under = new(), _things = new(), _threads = new(), _dotDark = new(), _dotLight = new(), _shade = new();
     private readonly LightDrone _drone = new();
+    private Salts _salts;
+    /// <summary>The player's colour, as its threads are drawn.</summary>
+    private Color _own;
     private readonly Triangles _tri = new(512, 768);
     private readonly List<Vec[]> _cut = [];
     private readonly List<Vector2> _segments = [];
@@ -126,6 +130,8 @@ public partial class FormVisionView : Node2D
         var goal = home.Lerp(stage * W(drone.At), (float)frame.Veil);
         var look = Turned(new Vector2(MathF.Cos((float)drone.Look), MathF.Sin((float)drone.Look)), facing);
         _drone.Visible = true;
+        (_salts, _drone.Salts) = (EmberArt.Mine, EmberArt.Mine);
+        _own = EmberArt.Of(_salts.Line());
         _drone.Follow(V(goal), default, new DroneIntent(V(goal), V(look), drone.Red, false, drone.Thought, default), true, elapsedMs, _clockMs);
         _drone.Scanning = drone.Shape == SwarmShape.Scan;
         _drone.Idle = drone.Shape is not (SwarmShape.Scan or SwarmShape.Lamp);
@@ -446,7 +452,7 @@ public partial class FormVisionView : Node2D
                     if (shown is { } q)
                     {
                         float k = (float)q.Alpha * v;
-                        Diagram(q, (float)q.Trace, k, Ember, t);
+                        Diagram(q, (float)q.Trace, k, _own, t);
                         if (q.Cracked && q.Trace > 0)
                             Halo(W(FormVision.Placed(q, q.Prop.Blow)), BlowHalo, Red, BlowAlpha * (float)q.Trace * k * (0.75f + 0.25f * MathF.Sin(t * 5)));
                     }
@@ -456,19 +462,19 @@ public partial class FormVisionView : Node2D
                 if (f > 0)
                 {
                     Cut([[lamp.Pivot, lamp.Top]], f);
-                    Threads(a, Ember, 0.6f);
-                    Diagram(hung, f, a, Ember, t);
+                    Threads(a, _own, 0.6f);
+                    Diagram(hung, f, a, _own, t);
                 }
                 float lit = (float)lamp.Light * v, inBeam = lit * (float)lamp.InCone;
                 if (inBeam > 0.003f) Halo(W(crate.At), 70, LampLight, 0.18f * inBeam);
-                Diagram(crate, (float)crate.Trace, lit, Ember, t);
+                Diagram(crate, (float)crate.Trace, lit, _own, t);
                 // The drone copies the dish: a thread from its eye to the bulb, a spark running home along it.
                 float study = (float)lamp.Study * a;
                 if (study > 0.003f)
                 {
                     var bulb = W(lamp.Bulb);
-                    _tri.Quad(_eye, bulb, 0.4f, new Color(Ember, 0.25f * study));
-                    Halo(bulb.Lerp(_eye, (float)FormVision.Sm(lamp.StudyRun)), 5, Ember, 0.7f * study);
+                    _tri.Quad(_eye, bulb, 0.4f, new Color(_own, 0.25f * study));
+                    Halo(bulb.Lerp(_eye, (float)FormVision.Sm(lamp.StudyRun)), 5, _own, 0.7f * study);
                 }
                 break;
             case VisionForm.Alarms:
@@ -478,7 +484,7 @@ public partial class FormVisionView : Node2D
                     var line = new Vec[front.Length];
                     for (int i = 0; i < front.Length; i++) line[i] = V(front[i]);
                     Cut([line], frost.Trace);
-                    Threads((float)frost.Alpha * v, Ember, 1);
+                    Threads((float)frost.Alpha * v, _own, 1);
                 }
                 if (_f.Meteor is { } meteor)
                 {
@@ -496,7 +502,7 @@ public partial class FormVisionView : Node2D
     }
 
     /// <summary>
-    /// What the drone has understood of <paramref name="q"/>, <paramref name="f"/> of it: its outline and its main lines in ember threads drawn up to
+    /// What the drone has understood of <paramref name="q"/>, <paramref name="f"/> of it: its outline and its main lines in the player's threads drawn up to
     /// that share, a cracked one's cracks flickering red, and sparks running round its outline as far as it is drawn.
     /// </summary>
     private void Diagram(PropShown q, float f, float alpha, Color hot, float t)
@@ -528,7 +534,7 @@ public partial class FormVisionView : Node2D
             for (int m = 0; m < 3; m++)
             {
                 float back = m * 1.3f;
-                var colour = new Color(hot.Lerp(Colors.White, 0.3f * (1 - m / 3f)), (0.95f - m * 0.3f) * heat);
+                var colour = new Color(Paled(hot, 0.3f * (1 - m / 3f)), (0.95f - m * 0.3f) * heat);
                 _tri.Rect((float)(at.X - heading.X * back) - 0.6f, (float)(at.Y - heading.Y * back) - 0.6f, 1.2f, 1.2f, colour);
             }
         }
@@ -547,9 +553,12 @@ public partial class FormVisionView : Node2D
             var points = new Vector2[line.Length];
             for (int i = 0; i < line.Length; i++) points[i] = W(line[i]);
             _threads.DrawPolyline(points, new Color(hot, 0.08f * alpha * k), Wide, true);
-            _threads.DrawPolyline(points, new Color(hot.Lerp(Colors.White, 0.2f), 0.55f * alpha * k), Fine, true);
+            _threads.DrawPolyline(points, new Color(Paled(hot, 0.2f), 0.55f * alpha * k), Fine, true);
         }
     }
+
+    /// <summary><paramref name="hot"/> toward white: the player's colour as far as it has room, an alarm's red whole.</summary>
+    private Color Paled(Color hot, float pale) => hot.Lerp(Colors.White, hot == _own ? pale * _salts.Room : pale);
 
     // ---------- the gauge's dots ----------
 
@@ -584,15 +593,16 @@ public partial class FormVisionView : Node2D
         for (int j = 0; j < _dots.Length; j++)
         {
             if (DotOf(j) is not { } d) continue;
-            if (d.Way != Vector2.Zero && j % I.DotThreadEvery == 0) _tri.Quad(d.From, d.At, I.ThreadLine, new Color(Ember, I.ThreadAlpha));
+            if (d.Way != Vector2.Zero && j % I.DotThreadEvery == 0) _tri.Quad(d.From, d.At, I.ThreadLine, new Color(_own, I.ThreadAlpha));
             float lit = (float)d.Dot.Lit, flicker = I.DotFlicker + I.DotFlickerSwing * MathF.Sin(t * I.DotFlickerPace + j * I.DotFlickerStep);
             float dotHeat = lit > 0 ? (I.DotLit + I.DotLitMore * lit) * flicker : I.DotDark;
             float heat = Math.Min(1, Mathf.Lerp(I.OnShape + I.OnShapeSwing * MathF.Sin(t * I.OnShapePace + j), dotHeat, (float)d.Dot.Away));
             if (heat <= 0.02f) continue;
+            float burn = Salts.DotBurn(j, t, (float)d.Dot.Away);
             for (int m = 0; m < I.Tail; m++)
             {
                 var at = d.At - d.Way * I.TailStep * m;
-                var colour = new Color(Ember.Lerp(Colors.White, I.TailPale * (1 - m / (float)I.Tail)), (I.TailAlpha - m * I.TailFade) * heat);
+                var colour = EmberArt.Of(_salts.Spark(burn, I.TailPale * (1 - m / (float)I.Tail)), (I.TailAlpha - m * I.TailFade) * heat * _salts.Gain);
                 _tri.Rect(at.X - d.Side / 2, at.Y - d.Side / 2, d.Side, d.Side, colour);
             }
         }

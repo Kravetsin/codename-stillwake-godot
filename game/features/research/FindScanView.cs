@@ -27,7 +27,10 @@ public partial class FindScanView : Node
     /// <summary>The fill of a lesson's dots is read as this many parts, so the last dot lit kindles smoothly.</summary>
     private const int FillParts = 1000;
 
-    private static readonly Color Ember = new(DroneInk.Ember.R / 255f, DroneInk.Ember.G / 255f, DroneInk.Ember.B / 255f), Hot = Ember.Lerp(Colors.White, 0.45f);
+    /// <summary>The scan's light in the player's colour (drone-salts), and paler where it is hottest.</summary>
+    private static Color Own => EmberArt.Of(EmberArt.Mine.Line());
+
+    private static Color Hot => EmberArt.Of(EmberArt.Mine.Line(0.45f));
 
     private readonly FindScan _scan;
     private readonly Func<bool> _inWorld;
@@ -210,11 +213,11 @@ public partial class FindScanView : Node
         Vector2 a = new(box.Position.X, y), e = new(box.End.X, y);
         if (_eyeAt is { } eye)
         {
-            _swept.DrawLine(eye, a, Ember with { A = 0.12f }, 1);
-            _swept.DrawLine(eye, e, Ember with { A = 0.12f }, 1);
+            _swept.DrawLine(eye, a, Own with { A = 0.12f }, 1);
+            _swept.DrawLine(eye, e, Own with { A = 0.12f }, 1);
         }
-        _swept.DrawLine(a, e, Ember with { A = 0.1f }, 3);
-        _swept.DrawLine(a, e, Ember with { A = 0.85f }, 1);
+        _swept.DrawLine(a, e, Own with { A = 0.1f }, 3);
+        _swept.DrawLine(a, e, Own with { A = 0.85f }, 1);
         Square(_swept, a, 2, Hot);
         Square(_swept, e, 2, Hot);
     }
@@ -230,17 +233,17 @@ public partial class FindScanView : Node
             var record = _scan.RecordAt(i);
             if (record.Fly is not { } fly || From(record) is not { } from) continue;
             var at = from.Lerp(to, (float)fly);
-            _flown.DrawLine(from, at, Ember with { A = 0.16f * (1 - 0.6f * (float)fly) }, 1);
+            _flown.DrawLine(from, at, Own with { A = 0.16f * (1 - 0.6f * (float)fly) }, 1);
             Halo(_flown, at, 7, 0.5f);
             var back = (to - from).Normalized() * Pixel * 1.3f;
             for (int m = 2; m >= 0; m--)
-                Square(_flown, at - back * m, Pixel, Ember.Lerp(Colors.White, 0.3f * (1 - m / 3f)) with { A = 0.95f - 0.3f * m });
+                Square(_flown, at - back * m, Pixel, EmberArt.Of(EmberArt.Mine.Line(0.3f * (1 - m / 3f))) with { A = 0.95f - 0.3f * m });
         }
         float glow = (float)_scan.Glow;
         if (glow <= 0 || key is not { } box) return;
         float spread = Spread * (1 - glow);
-        _flown.DrawRect(box.Grow(2 + spread), Ember with { A = 0.7f * glow }, false, 2);
-        _flown.DrawRect(box.Grow(4 + spread * 1.6f), Ember with { A = 0.22f * glow }, false, 4);
+        _flown.DrawRect(box.Grow(2 + spread), Own with { A = 0.7f * glow }, false, 2);
+        _flown.DrawRect(box.Grow(4 + spread * 1.6f), Own with { A = 0.22f * glow }, false, 4);
         _flown.DrawRect(box, Hot with { A = 0.35f * glow * glow });
     }
 
@@ -253,5 +256,5 @@ public partial class FindScanView : Node
 
     /// <summary>The ember's soft light, <paramref name="radius"/> px, <paramref name="alpha"/> in its middle.</summary>
     private static void Halo(Node2D on, Vector2 at, float radius, float alpha) =>
-        on.DrawTextureRect(PixelArt.Glow, new Rect2(at - Vector2.One * radius, Vector2.One * 2 * radius), false, Ember with { A = alpha });
+        on.DrawTextureRect(PixelArt.Glow, new Rect2(at - Vector2.One * radius, Vector2.One * 2 * radius), false, Own with { A = alpha });
 }

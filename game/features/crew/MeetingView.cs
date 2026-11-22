@@ -204,7 +204,7 @@ public partial class MeetingView : Node2D
             var (breathing, waking) = Meeting.SmallHalos(u, Meeting.Breath(_f.ClockS), _core.R);
             Halo(at, (float)(5.4 * _core.R + 34), Rgb(Meeting.Ember), (float)breathing);
             Halo(at, (float)(5.4 * _core.R + 26), Rgb(Meeting.Ember), (float)waking);
-            if (_face.Lens > 0) LightDrone.Coal(_tri, at, (float)_core.Angle, LightDrone.Ember, (float)_f.SwarmS, (float)_face.Lens, DroneInk.Px);
+            if (_face.Lens > 0) LightDrone.Coal(_tri, at, (float)_core.Angle, EmberArt.Mine, (float)_f.SwarmS, (float)_face.Lens, DroneInk.Px, kindled: KindledShare);
             if (Phase == MeetingPhase.Home) Embers();
         }
         _tri.Flush(_overAdd.GetCanvasItem());
@@ -218,13 +218,20 @@ public partial class MeetingView : Node2D
     private void Kindling()
     {
         _tri.Clear();
-        for (int o = 0; o < 3; o++) LightDrone.Orbit(_tri, o, LightDrone.Ember, (float)Meeting.Kindled(o, _f.U));
+        var salts = EmberArt.Mine;
+        LightDrone.Cloud(_tri, salts, KindledShare);
+        for (int o = 0; o < 3; o++) LightDrone.Orbit(_tri, o, salts, (float)Meeting.Kindled(o, _f.U));
         for (int i = 0; i < _sparks.Length; i++)
-            if (Kindled(i)) LightDrone.Tail(_tri, _sparks[i], _sparks[i].Heat, LightDrone.Ember);
+            if (Kindled(i)) LightDrone.Tail(_tri, _sparks[i], _sparks[i].Heat, salts, Salts.OutOf(_sparks[i].X, _sparks[i].Y));
         _overAdd.DrawSetTransform(W(_core.At), 0, new Vector2(DroneInk.Px, DroneInk.Px));
         _tri.Flush(_overAdd.GetCanvasItem());
         _overAdd.DrawSetTransform(Vector2.Zero, 0);
     }
+
+    /// <summary>How much of it has kindled into the drone it will be, so nothing pops as the meeting ends.</summary>
+    private float KindledShare => Phase == MeetingPhase.Home
+        ? (float)(Meeting.Kindled(0, _f.U) + Meeting.Kindled(1, _f.U) + Meeting.Kindled(2, _f.U)) / 3
+        : 0;
 
     /// <summary>Where the lying core's picture's top-left is.</summary>
     private Vector2 Box => W(_scene.Core) - W(Meeting.InPicture);

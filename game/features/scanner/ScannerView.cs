@@ -13,13 +13,14 @@ namespace Stillwake.Game.Features.Scanner;
 /// </summary>
 public partial class ScannerView : CanvasLayer
 {
-    private static readonly Color Ember = Rgb(I.Ember), Red = Rgb(I.Red), Dark = Rgb(I.Dark);
+    private static readonly Color Dark = Rgb(I.Dark);
 
     private readonly ScanDots _dots = new();
     private readonly float[] _away = new float[ScanDots.Count];
     private readonly Node2D _dark = new(), _light = new();
     private readonly Triangles _darks = new(), _lights = new();
     private float _zoom = 1, _tint;
+    private double _seconds;
 
     public ScannerView()
     {
@@ -47,6 +48,7 @@ public partial class ScannerView : CanvasLayer
     {
         _dots.Step(now, drone?.Seats, elapsedMs / 1000);
         _tint = drone?.Tint ?? 0;
+        _seconds += elapsedMs / 1000;
         Visible = _dots.Visible;
         for (int j = 0; j < ScanDots.Count; j++) _away[j] = Visible ? _dots.Dot(j).Away : 0;
         if (!Visible) return;
@@ -68,8 +70,6 @@ public partial class ScannerView : CanvasLayer
     /// <summary>A side of <paramref name="world"/> px in whole screen pixels, at least one.</summary>
     private float Side(float world) => Math.Max(1, MathF.Round(world * _zoom));
 
-    private Color Hot => Ember.Lerp(Red, Math.Min(1, _tint * I.AlarmRed));
-
     private void DrawDark()
     {
         _darks.Clear();
@@ -87,7 +87,8 @@ public partial class ScannerView : CanvasLayer
     private void DrawLight()
     {
         _lights.Clear();
-        var hot = Hot;
+        var salts = EmberArt.Mine.Reddened(_tint * I.AlarmRed);
+        var thread = salts.Line();
         float step = I.TailStep * I.Px * _zoom;
         for (int j = 0; j < ScanDots.Count; j++)
         {
@@ -96,23 +97,23 @@ public partial class ScannerView : CanvasLayer
             if (dot.Away > 0)
             {
                 if (dot.Flying && j % I.DotThreadEvery == 0)
-                    _lights.Quad(Screen(dot.FromX, dot.FromY), at, I.ThreadLine * I.Px * _zoom, new Color(hot, I.ThreadAlpha * dot.Alpha));
-                Glow(at, Side(dot.Side), new Vector2(dot.Dx, dot.Dy) * step, Math.Min(1, dot.Heat + _tint * I.AlarmHeat * dot.Alpha), hot);
+                    _lights.Quad(Screen(dot.FromX, dot.FromY), at, I.ThreadLine * I.Px * _zoom, EmberArt.Of(thread, I.ThreadAlpha * dot.Alpha));
+                Glow(at, Side(dot.Side), new Vector2(dot.Dx, dot.Dy) * step, Math.Min(1, dot.Heat + _tint * I.AlarmHeat * dot.Alpha), salts, Salts.DotBurn(j, _seconds, dot.Away));
             }
             if (_dots.Ember(j) is { } ember)
-                Glow(Screen(ember.X, ember.Y), Side(I.Dot * I.WorldPx * ember.Side), Vector2.Zero, Math.Min(1, ember.Heat + _tint * I.AlarmHeat), hot);
+                Glow(Screen(ember.X, ember.Y), Side(I.Dot * I.WorldPx * ember.Side), Vector2.Zero, Math.Min(1, ember.Heat + _tint * I.AlarmHeat), salts, burn: 2 * (1 - ember.Side));
         }
         _lights.Flush(_light.GetCanvasItem());
     }
 
-    /// <summary>A glow <paramref name="heat"/> hot at <paramref name="at"/>: its square and two behind it by <paramref name="back"/>, paler and fainter.</summary>
-    private void Glow(Vector2 at, float side, Vector2 back, float heat, Color hot)
+    /// <summary>A glow <paramref name="heat"/> hot at <paramref name="at"/>: its square and two behind it by <paramref name="back"/>, paler and fainter, <paramref name="burn"/> burnt.</summary>
+    private void Glow(Vector2 at, float side, Vector2 back, float heat, Salts salts, float burn)
     {
         if (heat <= 0.02f) return;
         for (int m = 0; m < I.Tail; m++)
         {
-            var colour = hot.Lerp(Colors.White, I.TailPale * (1 - m / (float)I.Tail));
-            Square(_lights, new Vector2(MathF.Round(at.X - back.X * m), MathF.Round(at.Y - back.Y * m)), side, new Color(colour, (I.TailAlpha - m * I.TailFade) * heat));
+            var colour = salts.Spark(burn, I.TailPale * (1 - m / (float)I.Tail));
+            Square(_lights, new Vector2(MathF.Round(at.X - back.X * m), MathF.Round(at.Y - back.Y * m)), side, EmberArt.Of(colour, (I.TailAlpha - m * I.TailFade) * heat * salts.Gain));
         }
     }
 

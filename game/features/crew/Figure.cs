@@ -1136,6 +1136,7 @@ public partial class Figure : Node2D
         look ??= Look.Zero;
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
         (_colour, _helmetWorn, _bodyWorn, _look) = (colour, helmet, body, look);
+        _drone.Salts = Shared.Salts.Of(colour);
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
         foreach (var (sprite, part, isFar) in _parts)
         {

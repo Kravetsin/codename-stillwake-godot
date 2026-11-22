@@ -678,7 +678,9 @@ public partial class HeroView : Node2D
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var (helmet, body, cape, effect) = Suits.DressedAs(m.Items, m.Players, client.Id);
-        _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
+        int colour = Suits.Of(m.Players, client.Id);
+        _figure.Wear(colour, helmet, body, m.Players.LookOf(client.Id));
+        EmberArt.Mine = Salts.Of(colour);
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
