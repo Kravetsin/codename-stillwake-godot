@@ -40,7 +40,7 @@ a fight.
 |---|---|---|
 | Pack: nests, release, the `Swarm` drive on the flyer body (`sim/Creatures`) | breakers on far wrecks | vessels, raids |
 | Knock along the blow for a flyer afloat (`Hurt`, the one hit path) | breakers, by any weapon or shot | every flying dummy |
-| Companion abilities, one table by the item in hand (`sim/Content`) | the axe's throw | spear and sledgehammer throws, the palm shot, strengthened weapons |
+| Companion abilities, one table by the item in hand (`sim/Content`) | the axe's, sledgehammer's and spear's throws | the palm shot, strengthened weapons |
 | One lookup along a segment (`ToolRays`, lifted out of `Fan`) | the swing, both legs of a throw | every later throw |
 
 ### Nests
@@ -81,7 +81,8 @@ a fight.
 
 ### The throw
 
-- Content: `Abilities`, a row by item, the axe's `Throw(Range, Out, Home, Pull)`. A row exists only with a user.
+- Content: `Abilities`, a row by item, `Throw(Range, Out, Home, Pull, Spin, Twice)`: the axe's, the sledgehammer's, the
+  spear's. A row exists only with a user; the pickaxe has none (mining from afar), nor a tool that runs.
 - **Confirmed after the first play:** it has weight, the drone hauls it without leaving its place or its mode, and it shows
   flying what the blade shows in a swing. It leaves with the hero's speed, slows to a stop at its range (or is knocked back
   by the cell that stops it), and is hauled up to speed on an arc.
@@ -90,9 +91,12 @@ a fight.
   does nothing, silently. Food, the canister, the driver, guns and the plan keep theirs.
 - The client flies it along the aim to its range or the first cell that stops a ray, then home to the hero as it is
   that frame. Out it sends today's `Strike`, `HewPieces` and `HewCells`; home `Strike` and `HewPieces` only, nothing
-  past a solid cell. All through the one lookup, each target once a throw, each command validated as it applies: a
+  past a solid cell. All through the one lookup, each target once a throw (the axe, turned at its range and by no wall,
+  once each way: the second hit waits for the thread's yank), each command validated as it applies: a
   wreck's hit refused to a thrower who went aboard is accepted.
-- No cooldown: the next leaves once this one is home, and no sooner than the axe's `Weapons` pace after the last.
+- No cooldown: the next leaves once this one is home, and no sooner than its weapon's pace after the last's stroke began,
+  two paces after one that struck both ways; no swing of that weapon meanwhile. So a throw never out-hits swings, a cold
+  body's slower ones too.
 - While it is out the hand is drawn empty and swings nothing. It ends at once, hits and drawing, when the axe is no
   longer wielded (a switch, a drop, death), the building plan comes out, the hero passes out, is held by a scene, sits,
   flies or changes surface. A wheel or a window opened stops only new throws.
@@ -123,7 +127,9 @@ a fight.
 | Knock | 1200, shed a quarter a tick down to 175: about 4 cells |
 | Yield | one scrap chunk with chance 1/2, a breaker |
 | Limits | `Max` 40 a surface; 8 breakers in a hero's keep box |
-| Throw | 18 cells; leaves at 72 cells/s, hauled at 240 cells/s² up to 90: about 0.9 s |
+| Axe thrown | 18 cells; leaves at 72 cells/s, hauled at 240 cells/s² up to 90: about 0.9 s; strikes both ways; 90% of swings |
+| Sledgehammer thrown | 12 cells; 36 cells/s, hauled at 80 up to 45: about 1.2 s; one blow; 89% of swings |
+| Spear thrown | 26 cells; 120 cells/s, hauled at 400 up to 120: about 0.8 s, point first; one hit; 60% of swings |
 
 Budget: at most 40 creatures and some 60 sleeping nests among 640 pieces. A tick stays under 2 ms with 40 breakers and
 four heroes.
@@ -137,7 +143,9 @@ four heroes.
 - A pack may wake unseen, by a wreck struck far off. A wreck broken by the blow that would have woken its nest takes
   the nest with it.
 - A hit afloat without a jetpack masks the keys and shoves nobody (`Hero.Step`), as today.
-- No throw shown to one joining mid-flight, no axe lost or stuck, no aim assist, no prediction, no drone health.
+- No throw shown to one joining mid-flight, no weapon lost or stuck, no aim assist, no prediction, no drone health.
+- A friend's throw is heard on ground only where its stroke's fan would meet it, as swings are; the flight's far hits on
+  ground are silent there.
 - No shake, rings or blade particles; the 50 ms arm stop stays.
 
 ## Plan: the try
@@ -178,11 +186,11 @@ a step, filtered tests, no push. Steps 1–5 are one try, played in one window.
 ### 4. The throw (sim content, client)
 
 - `sim/Content/Abilities.cs` (new), the table. `game/features/crew/logic/ToolRays.cs`: the segment lookup lifted out of
-  `Fan`, the fan unchanged by its tests. `game/features/crew/logic/AxeThrow.cs` (new, Godot-free): legs, once a
+  `Fan`, the fan unchanged by its tests. `game/features/crew/logic/WeaponThrow.cs` (new, Godot-free): legs, once a
   target, the cancels.
 - `HeroView.Hands.cs`: the right click and the hits sent; `LightDrone.cs`: the drone with the axe, the thread and the
   axe drawn; the arm by today's overhand.
-- Tests `game.tests/AxeThrowTests.cs`: range and stop at a wall; once over two legs; nothing past a wall and no cells
+- Tests `game.tests/WeaponThrowTests.cs`: range and stop at a wall; once over two legs; nothing past a wall and no cells
   coming home; every cancel; none mid-flight; never sooner than the pace.
 
 ### 5. Friends, then the user plays

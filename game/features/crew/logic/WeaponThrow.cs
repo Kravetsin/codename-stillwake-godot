@@ -20,9 +20,9 @@ public enum ThrowLeg { None, Raised, Out, Home }
 /// An item thrown and hauled back on the drone's thread (companion-fights), the thrower's client's word as a swing is. It has weight:
 /// it leaves with its hero's own speed, slows to a stop at its range or is knocked back by the first cell that stops a ray, and the
 /// thread, caught, has to turn it and bring it up to speed. Cells are struck out only, and nothing past a solid cell home; each
-/// target once a throw. In thousandths of a cell, seconds and frames of milliseconds.
+/// target once a throw, or once each way for one that strikes twice. In thousandths of a cell, seconds and frames of milliseconds.
 /// </summary>
-public sealed class AxeThrow
+public sealed class WeaponThrow
 {
     /// <summary>How long the thread takes from its cast to holding the item, ms: cast so it holds as the item stops.</summary>
     public const double CastMs = 120;
@@ -36,12 +36,17 @@ public sealed class AxeThrow
     /// <summary>How near the hand it is caught, and how far short of the cell that stopped it it turns, so it never starts inside that cell.</summary>
     private const double CatchWithin = 800, ShortOfWall = 100;
 
+    /// <summary>How far the thread yanks it from where it turned before it strikes again: what it stopped in takes two hits, not a double one.</summary>
+    private const double StrikesAgainAfter = 500;
+
     private readonly HashSet<(Sim.Building.TargetKind, int)> _targets = [];
     private readonly HashSet<int> _pieces = [], _creatures = [];
     private Spec.Abilities.Throw? _spec;
     private (double X, double Y) _way, _carried, _velocity;
-    private double _speed, _castMs, _waitMs;
-    private bool _walled;
+    private double _speed, _castMs, _paceMs, _clock;
+    private readonly Dictionary<string, double> _readyAt = [];
+    private (double X, double Y) _turnedAt;
+    private bool _walled, _strikesAgain;
     private int _surface;
 
     public ThrowLeg Leg { get; private set; }
@@ -62,7 +67,16 @@ public sealed class AxeThrow
     public int Count { get; private set; }
 
     /// <summary>A frame of <paramref name="elapsedMs"/> toward the next throw's pace, whether one is out or none.</summary>
-    public void Wait(double elapsedMs) => _waitMs = Math.Max(0, _waitMs - elapsedMs);
+    public void Wait(double elapsedMs) => _clock += elapsedMs;
+
+    /// <summary>Whether <paramref name="item"/> still rests from its throw: each weapon its own, and no swing of it meanwhile.</summary>
+    public bool Rests(string? item) => item != null && _readyAt.TryGetValue(item, out double at) && _clock < at;
+
+    /// <summary>The raised one's stroke begun: its rest counts from it, as a swing's pace does.</summary>
+    public void Swung()
+    {
+        if (Leg == ThrowLeg.Raised) _readyAt[_spec!.Item] = _clock + _paceMs;
+    }
 
     /// <summary>
     /// The arm raised for a throw of what <paramref name="hands"/> wield, no sooner than <paramref name="paceMs"/> after the last;
@@ -70,8 +84,9 @@ public sealed class AxeThrow
     /// </summary>
     public bool Begin(ThrowHands hands, double paceMs)
     {
-        if (Leg != ThrowLeg.None || _waitMs > 0 || hands.Held || !hands.Free || Spec.Abilities.ThrowOf(hands.Wielded) is not { } spec) return false;
-        (_spec, _surface, _waitMs, Leg) = (spec, hands.Surface, paceMs, ThrowLeg.Raised);
+        if (Leg != ThrowLeg.None || hands.Held || !hands.Free || Spec.Abilities.ThrowOf(hands.Wielded) is not { } spec || Rests(spec.Item)) return false;
+        (_spec, _surface, _paceMs, Leg) = (spec, hands.Surface, paceMs, ThrowLeg.Raised);
+        _readyAt[spec.Item] = _clock + paceMs;
         return true;
     }
 
@@ -90,7 +105,7 @@ public sealed class AxeThrow
         _way = length > 0 ? (dx / length, dy / length) : (hero.Facing, 0);
         (_carried, _speed) = (SpeedOf(hero), (double)_spec!.Out * World.TicksPerSecond);
         _velocity = (_carried.X + _way.X * _speed, _carried.Y + _way.Y * _speed);
-        (At, _castMs, _walled, Hauled, Leg) = ((hand.X, hand.Y), 0, false, false, ThrowLeg.Out);
+        (At, _castMs, _walled, _strikesAgain, Hauled, Leg) = ((hand.X, hand.Y), 0, false, false, false, ThrowLeg.Out);
         _targets.Clear();
         _pieces.Clear();
         _creatures.Clear();
@@ -134,7 +149,15 @@ public sealed class AxeThrow
             _speed = stops ? 0 : _speed - slows * going;
             (At, _velocity) = (to, (_carried.X + _way.X * _speed, _carried.Y + _way.Y * _speed));
             Hauled |= _speed / slows <= CastMs / 1000;
-            if (stops) Leg = ThrowLeg.Home;
+            if (stops)
+            {
+                Leg = ThrowLeg.Home;
+                if (spec.Twice)
+                {
+                    (_strikesAgain, _turnedAt) = (true, to);
+                    _readyAt[spec.Item] += _paceMs;
+                }
+            }
         }
         return Fresh(m, hit, cuts: true);
     }
@@ -161,6 +184,12 @@ public sealed class AxeThrow
             to = caught ? (hand.X, hand.Y) : (from.X + _velocity.X * s, from.Y + _velocity.Y * s);
         }
         At = to;
+        if (_strikesAgain && _castMs >= CastMs && Distance(to, _turnedAt) >= StrikesAgainAfter)
+        {
+            _strikesAgain = false;
+            _pieces.Clear();
+            _creatures.Clear();
+        }
         if (caught) Cancel();
         if (_walled) return null;
         var (hit, stopped) = ToolRays.Segment(m, from, to, outside, progress, solid);

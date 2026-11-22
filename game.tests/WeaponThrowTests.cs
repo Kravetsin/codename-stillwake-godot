@@ -6,8 +6,8 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The thrown axe (companion-fights): two legs, each target once, cells out only, nothing past a wall, and what ends it.</summary>
-public class AxeThrowTests
+/// <summary>A thrown weapon (companion-fights): two legs, how often each strikes and rests, cells out only, nothing past a wall, and what ends it.</summary>
+public class WeaponThrowTests
 {
     private const int Unit = Hero.Unit, Wall = 20;
     private const double Frame = 1000 / 60.0, PaceMs = 500;
@@ -49,15 +49,15 @@ public class AxeThrowTests
         return hero with { X = x * Unit - hand.X, Y = 12 * Unit + 500 - hand.Y };
     }
 
-    private static AxeThrow Thrown(Hero from, int toX)
+    private static WeaponThrow Thrown(Hero from, int toX, Spec.Abilities.Throw? spec = null)
     {
-        var thrown = new AxeThrow();
-        Assert.True(thrown.Begin(Hands, PaceMs));
+        var thrown = new WeaponThrow();
+        Assert.True(thrown.Begin(Hands with { Wielded = (spec ?? Axe).Item }, PaceMs));
         Assert.True(thrown.Leave(from, new Point(toX * Unit, 12 * Unit + 500)));
         return thrown;
     }
 
-    private static List<(ThrowLeg Leg, EdgeHit Hit)> Flown(TestWorld w, AxeThrow thrown, Hero hero, Func<ThrowLeg, Hero>? later = null)
+    private static List<(ThrowLeg Leg, EdgeHit Hit)> Flown(TestWorld w, WeaponThrow thrown, Hero hero, Func<ThrowLeg, Hero>? later = null)
     {
         var hits = new List<(ThrowLeg, EdgeHit)>();
         for (int i = 0; i < 300 && thrown.Flying; i++)
@@ -116,7 +116,7 @@ public class AxeThrowTests
             if (thrown.Hauled) hauled += Frame;
             thrown.Step(Frame, w.M, hero, true, 0, Opaque);
         }
-        Assert.InRange(hauled, AxeThrow.CastMs - 2 * Frame, AxeThrow.CastMs + Frame);
+        Assert.InRange(hauled, WeaponThrow.CastMs - 2 * Frame, WeaponThrow.CastMs + Frame);
     }
 
     [Fact]
@@ -163,13 +163,113 @@ public class AxeThrowTests
         Assert.Empty(hits.SelectMany(h => h.Hit.Wrecks));
     }
 
+    public static TheoryData<string> AllThrown() => [.. Spec.Abilities.Throws.Select(t => t.Item)];
+
+    public static TheoryData<string> Once() => [.. Spec.Abilities.Throws.Where(t => !t.Twice).Select(t => t.Item)];
+
+    [Theory]
+    [MemberData(nameof(AllThrown))]
+    public void EachThrownWeaponIsStruckWithGoesItsRangeAndComesHome(string item)
+    {
+        Assert.NotNull(Spec.Weapons.Of(item));
+        Assert.NotNull(Strokes.Of(item));
+        var spec = Spec.Abilities.ThrowOf(item)!;
+        var w = Space();
+        var hero = At(30);
+        var thrown = Thrown(hero, 60, spec);
+        double farthest = 0, ms = 0;
+        for (; ms < 2000 && thrown.Flying; ms += Frame)
+        {
+            thrown.Step(Frame, w.M, hero, true, 0, Opaque);
+            farthest = Math.Max(farthest, thrown.At.X);
+        }
+        Assert.False(thrown.Flying);
+        Assert.Equal(Aiming.HandOf(hero).X + spec.Range, farthest, 1.0);
+    }
+
     [Fact]
-    public void EachTargetIsStruckOnceOverBothLegs()
+    public void TheAxeStrikesBothWays()
     {
         var w = Space(38);
         var hero = At(30);
         var hits = Flown(w, Thrown(hero, 60), hero);
-        Assert.Equal([1], hits.SelectMany(h => h.Hit.Wrecks).Select(p => p.Id));
+        Assert.Equal([ThrowLeg.Out, ThrowLeg.Home], hits.Where(h => h.Hit.Wrecks.Count > 0).Select(h => h.Leg));
+    }
+
+    [Fact]
+    public void WhatItTurnsInIsYankedThroughNotHitTwiceAtOnce()
+    {
+        var w = Space(48);
+        var hero = At(30);
+        var thrown = Thrown(hero, 60);
+        var struckAt = new List<double>();
+        for (double ms = 0; ms < 2000 && thrown.Flying; ms += Frame)
+            if (thrown.Step(Frame, w.M, hero, true, 0, Opaque) is { Wrecks.Count: > 0 }) struckAt.Add(ms);
+        Assert.Equal(2, struckAt.Count);
+        Assert.True(struckAt[1] - struckAt[0] > WeaponThrow.CastMs / 2);
+    }
+
+    [Fact]
+    public void AWallTurnsItWithOneHitAndOnePace()
+    {
+        var w = Space(14);
+        var hero = At(6);
+        var thrown = Thrown(hero, 60);
+        Assert.Equal([1], Flown(w, thrown, hero).SelectMany(h => h.Hit.Wrecks).Select(p => p.Id));
+        thrown.Wait(PaceMs);
+        Assert.False(thrown.Rests(Axe.Item));
+    }
+
+    [Theory]
+    [MemberData(nameof(Once))]
+    public void OneThatStrikesOnceStrikesEachTargetOnceOverBothLegs(string item)
+    {
+        var w = Space(38);
+        var hero = At(30);
+        var thrown = Thrown(hero, 60, Spec.Abilities.ThrowOf(item));
+        Assert.Equal([1], Flown(w, thrown, hero).SelectMany(h => h.Hit.Wrecks).Select(p => p.Id));
+        thrown.Wait(PaceMs);
+        Assert.False(thrown.Rests(item));
+    }
+
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(5.0)]
+    public void TwoHitsRestTwoPacesHoweverSlowTheBody(double slow)
+    {
+        var w = Space();
+        var hero = At(30);
+        var thrown = new WeaponThrow();
+        Assert.True(thrown.Begin(Hands, PaceMs * slow));
+        Assert.True(thrown.Leave(hero, new Point(60 * Unit, 12 * Unit + 500)));
+        Flown(w, thrown, hero);
+        thrown.Wait(2 * PaceMs * slow - 1);
+        Assert.True(thrown.Rests(Axe.Item));
+        Assert.False(thrown.Begin(Hands, PaceMs * slow));
+        thrown.Wait(1);
+        Assert.True(thrown.Begin(Hands, PaceMs * slow));
+    }
+
+    [Fact]
+    public void ItsRestCountsFromItsStroke()
+    {
+        var thrown = new WeaponThrow();
+        Assert.True(thrown.Begin(Hands, PaceMs));
+        thrown.Wait(300);
+        thrown.Swung();
+        thrown.Wait(PaceMs - 1);
+        Assert.True(thrown.Rests(Axe.Item));
+        thrown.Wait(1);
+        Assert.False(thrown.Rests(Axe.Item));
+    }
+
+    [Fact]
+    public void EachWeaponRestsByItself()
+    {
+        var thrown = Thrown(At(30), 60);
+        thrown.Cancel();
+        Assert.False(thrown.Rests(Spec.Weapons.Spear.Item));
+        Assert.True(thrown.Begin(Hands with { Wielded = Spec.Weapons.Spear.Item }, PaceMs));
     }
 
     [Fact]
@@ -206,7 +306,7 @@ public class AxeThrowTests
 
     [Fact]
     public void OnlyWhatHasAThrowBeginsOne() =>
-        Assert.False(new AxeThrow().Begin(Hands with { Wielded = Spec.Weapons.Spear.Item }, PaceMs));
+        Assert.False(new WeaponThrow().Begin(Hands with { Wielded = Spec.Weapons.Pickaxe.Item }, PaceMs));
 
     public static TheoryData<string> Cancels() => ["switched", "dropped", "plan", "held", "surface"];
 

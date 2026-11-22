@@ -22,7 +22,7 @@ public partial class HeroView
     /// hand (0107); the left button grabs only with a free hand, as it is the card's otherwise, and held
     /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
     /// unless the click grabbed a piece, hitting what its fan of rays from the shoulder meets (tool-reach); the right button, with a
-    /// drone paired, throws what has a throw (<see cref="AxeThrow"/>, companion-fights).
+    /// drone paired, throws what has a throw (<see cref="WeaponThrow"/>, companion-fights).
     /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
@@ -130,7 +130,7 @@ public partial class HeroView
         if (!swings) _swing.Stop();
         bool raised = _throw.Leg == ThrowLeg.Raised;
         bool wanted = swings && pointer != null && !_throw.Flying
-            && (raised || !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked));
+            && (raised || !_throw.Rests(_ui.Wielded.Get()) && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked));
         // Aimed from the hero as an offset it carries along, its motion picked at the press by the angle the figure, faced to
         // strike, sees: asked only while a stroke is wanted.
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
@@ -140,6 +140,7 @@ public partial class HeroView
         if (swung.Begun)
         {
             _swingThrows = raised;
+            if (raised) _throw.Swung();
             _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
             _current = _current with { Facing = _swingFace };
         }
@@ -255,7 +256,7 @@ public partial class HeroView
     }
 
     /// <summary>This hero's throw (companion-fights), and whether the stroke playing lets it go rather than strikes.</summary>
-    private readonly AxeThrow _throw = new();
+    private readonly WeaponThrow _throw = new();
     private bool _swingThrows;
 
     /// <summary>A frame of the throw's flight: what it struck is sent as a swing's hit is, through the one lookup.</summary>

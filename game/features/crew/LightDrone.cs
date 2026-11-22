@@ -68,7 +68,7 @@ public partial class LightDrone : Node2D
     /// <summary>How far a haul drags it toward what it hauls, px, how much tighter it draws, and how long both ease, ms.</summary>
     private const float HaulLeanPx = 3, HaulTighter = 0.12f, HaulEaseMs = 50;
 
-    private (Vec At, double Cast)? _haul;
+    private (Vec At, double Cast, double Effort)? _haul;
     private Vector2 _strain;
 
     /// <summary>Where its body is turned, and where its eye is: the eye alone glances back on a tow.</summary>
@@ -196,7 +196,7 @@ public partial class LightDrone : Node2D
     /// (<paramref name="haul"/>, companion-fights, how far the thread is cast to it, 0..1) it watches and hauls from where it is.
     /// </summary>
     public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs, DroneTow? tow = null, Vec hold = default,
-        (Vec At, double Cast)? haul = null)
+        (Vec At, double Cast, double Effort)? haul = null)
     {
         _haul = Scripted ? null : haul;
         var at = Scripted ? intent.Goal
@@ -208,7 +208,8 @@ public partial class LightDrone : Node2D
         _thought = intent.Thought;
         _bearing = tow == null ? mood : mood with { Tilt = mood.Tilt + tow.Tilt, Swell = mood.Swell - Tighter * tow.Effort, Hurry = mood.Hurry + Hurried * tow.Effort };
         _orbitLead += elapsedMs / 1000 * _bearing.Hurry;
-        var pulled = _haul is { Cast: >= 1, At: var thing } ? new Vector2((float)(thing.X - at.X), (float)(thing.Y - at.Y)).Normalized() : Vector2.Zero;
+        var pulled = _haul is { Cast: >= 1, At: var thing, Effort: var effort }
+            ? new Vector2((float)(thing.X - at.X), (float)(thing.Y - at.Y)).Normalized() * (float)effort : Vector2.Zero;
         _strain = _strain.Lerp(pulled, (float)(1 - Math.Exp(-elapsedMs / HaulEaseMs)));
         _bearing = _bearing with { Swell = _bearing.Swell - HaulTighter * _strain.Length() };
         GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)))
@@ -240,7 +241,7 @@ public partial class LightDrone : Node2D
             for (int j = 0; j < _thread.Length; j++)
             {
                 float u = j / last;
-                float bend = HaulSag * loose * MathF.Sin(u * 8 - (float)t * 11) + HaulBuzz * (1 - loose) * MathF.Sin(u * 21 - (float)t * 70);
+                float bend = HaulSag * loose * MathF.Sin(u * 8 - (float)t * 11) + HaulBuzz * (float)haul.Effort * (1 - loose) * MathF.Sin(u * 21 - (float)t * 70);
                 _thread[j] = (end * u + across * bend * MathF.Sin(MathF.PI * u)) / _glow.Scale.X;
             }
             _threadLength = end.Length();

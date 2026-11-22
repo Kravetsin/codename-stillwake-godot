@@ -27,7 +27,7 @@ public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = nu
 /// <summary>
 /// What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the
 /// drill running aimed at a point (0054); a sign made in place of words (<see cref="Gestures"/>, gestures-for-words); or what
-/// they wield out of them, thrown, and the drone's thread cast to it, hauled (<see cref="AxeThrow"/>, companion-fights).
+/// they wield out of them, thrown, and the drone's thread cast to it, hauled (<see cref="WeaponThrow"/>, companion-fights).
 /// </summary>
 public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Throw, Haul }
 
@@ -35,7 +35,7 @@ public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Throw, Hau
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
 /// own position; chopping, the point its latest swing is aimed at (<see cref="AxeSwing.At"/>) and how many
 /// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did; throwing, where the thing
-/// flies and the throw's number (<see cref="AxeThrow.Count"/>).
+/// flies and the throw's number (<see cref="WeaponThrow.Count"/>).
 /// </summary>
 public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
 {

@@ -322,6 +322,8 @@ public class RemoteTests
     [InlineData(Handwork.Beam, null)]
     [InlineData(Handwork.Throw, "fireAxe")]
     [InlineData(Handwork.Haul, "fireAxe")]
+    [InlineData(Handwork.Throw, "sledgehammer")]
+    [InlineData(Handwork.Haul, "spear")]
     public void GoThroughTheWireWithWhatTheyWieldAndWorkAt(Handwork work, string? wields)
     {
         var sent = new SentHero(new Seen(HeroAt(1200, 3400), 0.2, work == Handwork.Beam, wields, new Busy(work, Wreck)), 1250);
