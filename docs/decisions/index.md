@@ -425,7 +425,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
 | [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted | drone-colour (in part) |
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
-| [companion-fights](2026-11-22-companion-fights.md) | Breakers to mow down, and the weapon thrown on the drone's thread | accepted |  |
+| [breakers-look](2026-11-22-breakers-look.md) | Breakers are robots of painted pieces, a pack all of one kind | accepted |  |
+| [companion-fights](2026-11-22-companion-fights.md) | Breakers to mow down, and the weapon thrown on the drone's thread | accepted | breakers-look (in part) |
 | [drone-colour](2026-11-22-drone-colour.md) | The drone burns in its player's colour; eight suit colours, none amber | accepted |  |
 | [drone-spring](2026-11-22-drone-spring.md) | The drone catches up on a spring and shines from open air | accepted |  |
 | [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |

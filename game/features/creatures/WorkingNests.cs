@@ -13,7 +13,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// The nests (companion-fights, breakers-look): a pair of each at work on its piece in view, rocking with its picture, the rest unseen
 /// under it (<see cref="BreakerPack"/>). One gone is kept a moment for the bodies of its pack to fly out of. Drawn from a pool that never frees.
 /// </summary>
-public partial class SleepingNests : Node2D
+public partial class WorkingNests : Node2D
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = CreaturesModule.Unit;

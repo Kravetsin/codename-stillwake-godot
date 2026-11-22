@@ -56,7 +56,7 @@ public partial class BreakerBodies : Node2D
     /// A frame of the creatures in <paramref name="breakers"/>, tick <paramref name="tick"/> drawn <paramref name="progress"/> of the way to
     /// the next, those just come flown out of <paramref name="nests"/>; what their slits light goes into <paramref name="lights"/>.
     /// </summary>
-    public void Frame(CreaturesModule creatures, IReadOnlyList<Creature> breakers, SleepingNests nests, int tick, double progress, double elapsedMs,
+    public void Frame(CreaturesModule creatures, IReadOnlyList<Creature> breakers, WorkingNests nests, int tick, double progress, double elapsedMs,
         IReadOnlyList<(float X, float Y)> heroes, List<LightSource> lights, IReadOnlySet<int> shotByOwn)
     {
         _clockMs += elapsedMs;
@@ -149,7 +149,7 @@ public partial class BreakerBodies : Node2D
     }
 
     /// <summary>Those just come given their places in the pack that went: the nearest to each at work leaves the rim, the rest the piece's underside, in turn.</summary>
-    private void ComeOut(List<SleepingNests.Pack> left)
+    private void ComeOut(List<WorkingNests.Pack> left)
     {
         for (int p = left.Count - 1; p >= 0; p--)
         {
@@ -180,7 +180,7 @@ public partial class BreakerBodies : Node2D
         }
     }
 
-    private static bool Of(Shown one, SleepingNests.Pack pack)
+    private static bool Of(Shown one, WorkingNests.Pack pack)
     {
         var off = (one.Drawn - pack.Middle).Abs() - pack.Half;
         return !one.Leaving && one.Species == pack.Species && off.X <= PackReach && off.Y <= PackReach;

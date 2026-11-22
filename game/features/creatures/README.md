@@ -36,7 +36,7 @@
 | `logic/BreakerPack.cs` | A nest's pair and the rest. |
 | `logic/BreakerRig.cs` | Its pieces on joints: tested. |
 | `logic/KnotMoves.cs` | «Клубок». |
-| `SleepingNests.cs` | Nests on wrecks: a pair at work on each. |
+| `WorkingNests.cs` | Nests on wrecks: a pair at work on each. |
 | `TickBodies.cs` | Ticks (the sentry). |
 | `ShotsView.cs` | Shots but a guest's own, hits, bursts, arcs. |
 | `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |

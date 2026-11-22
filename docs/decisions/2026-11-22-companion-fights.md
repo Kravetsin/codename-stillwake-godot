@@ -1,6 +1,6 @@
 # Breakers to mow down, and the weapon thrown on the drone's thread
 
-- Status: accepted
+- Status: accepted; the breakers' look, their nests' look and how many wake at a hero superseded by [breakers-look](2026-11-22-breakers-look.md)
 - Date: 2026-11-22
 
 ## Context

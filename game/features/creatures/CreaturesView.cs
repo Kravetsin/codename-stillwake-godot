@@ -111,7 +111,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private readonly List<Creature> _ticked = [];
 
     /// <summary>The packs asleep on their wrecks (companion-fights), drawn from the sim's nests.</summary>
-    private readonly SleepingNests _nests = new();
+    private readonly WorkingNests _nests = new();
 
     /// <summary>The creatures drawn as breakers (<see cref="CreatureLooks.Breakers"/>): painted pieces, out of their nests.</summary>
     private readonly BreakerBodies _breakers = new();

@@ -15,7 +15,7 @@
 | `Hunt.cs` | The catcher's hunt. |
 | `Live.cs` | The tick. |
 | `Lunge.cs` | A ram along the ground. |
-| `Nests.cs` | Sleeping packs. |
+| `Nests.cs` | Packs on wrecks. |
 | `Paths.cs` | A*: runs, flights. |
 | `Patches.cs` | Gas, slime. |
 | `Pounce.cs` | A flight at a hero. |
