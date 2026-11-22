@@ -5,28 +5,30 @@
 | File | Purpose |
 | --- | --- |
 | `Arcs.cs` | `Bolted`, `StrikeArc`, `Linger`; `Arcs`, `BeamStop`. |
-| `Bounty.cs` | Catchers for hunted heroes. |
-| `Clinger.cs` | The sentry clinging to its wreck. |
+| `Bounty.cs` | Catchers sent. |
+| `Clinger.cs` | The sentry's grip. |
 | `Creatures.cs` | Commands, queries, the hit path. |
-| `Drives.cs` | Grazers: `Graze`, `Flee`, `Retaliate`, `Escape`. |
-| `Flyer.cs` | The catcher's body: stops at solid. |
-| `Fuzz.cs` | Commands the desync suite draws. |
-| `Guard.cs` | `Guard` (sentry, lurkers), `Return`, `CutTether`. |
+| `Drives.cs` | Grazers' drives. |
+| `Flyer.cs` | A flying body. |
+| `Fuzz.cs` | For the desync suite. |
+| `Guard.cs` | `Guard`, `Return`, `CutTether`. |
 | `Hunt.cs` | The catcher's hunt. |
-| `Live.cs` | Dead swept, patches aged, ticks. |
+| `Live.cs` | The tick. |
 | `Lunge.cs` | A ram along the ground. |
+| `Nests.cs` | Sleeping packs. |
 | `Paths.cs` | A*: runs, flights. |
-| `Patches.cs` | Gas, slime: laid, aged, paid by heroes. |
-| `Pounce.cs` | A flight at a hero, never cut. |
-| `Rules.cs` | Rule contracts; `RuleBook` finds them. |
-| `Shell.cs` | The snail's shell: open near a hero, shut it shields. |
-| `Shoot.cs` | The arc: aimed, struck, recovered. |
-| `Shots.cs` | Shots: `Fire`, flight, homing, hits, pierces, bursts. |
-| `Spawn.cs` | Spawning: posts, herds, guards. |
-| `State.cs` | The saved slice: `Creature`, `Shot`. |
+| `Patches.cs` | Gas, slime. |
+| `Pounce.cs` | A flight at a hero. |
+| `Rules.cs` | Contracts, `RuleBook`. |
+| `Shell.cs` | The snail's shell. |
+| `Shoot.cs` | The arc. |
+| `Shots.cs` | Shots, bursts. |
+| `Spawn.cs` | Posts, herds, guards. |
+| `State.cs` | The saved slice. |
+| `Swarm.cs` | A pack's drive. |
 | `Ward.cs` | The spire guards' drive. |
-| `Vent.cs` | The capback's vent: its gas, a cooldown. |
-| `Walker.cs` | Steering, stepping, leaping (0102, 0106). |
+| `Vent.cs` | The capback's vent. |
+| `Walker.cs` | Steps, leaps. |
 
 Every creature composed (creatures-are-composed): a species names a body, life, faction, ranked
 drives, moves and yields, each a rule here. The dead are gone to all from the blow.
@@ -35,7 +37,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   (queries, `Unreel`, `Hit`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
-  `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
+  `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Nests`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
 - **Runs** after `Crew` and `Debris`; shots fly after.
 
 ## Adding a species or a rule
@@ -67,6 +69,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   ahead or near; a `Salvo`; shut out, lobs a charge (`Lob`), held `Tell`. Pounces in `Strike`, answers blows. Out of `Ticks`,
   killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no salvo: it keeps its `Range` at `Accel`, round a flown path,
   leads its beam, fires a `Barrage` and a `Missile`; its quarry in a room, thrown `Standoff` off.
+- **Packs** (companion-fights): a far piece may draw a `Nest`, which wakes struck or neared, all out or waits, gone with it.
+  `Swarm` rings the nearest hero out; one `Every` pounces (`AtTarget`, `Cuttable`). A flyer afloat is knocked along a blow.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
   none tied to it. Woken by an awake hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`: to the first
@@ -94,7 +98,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 
 ## Guarantees
 
-- Every creature on the grid, walker or catcher out of solid, one afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
+- Every creature on the grid, walker or flyer out of solid, a catcher afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
   ticks never past a length; a charge, or an arc a hero, hurts once at most; suits in range; a shut
   shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, in reach, never through solid (`ShotsInvariantTests`).
 - Nothing to spawn: nothing drawn; only `Watermark` moves.

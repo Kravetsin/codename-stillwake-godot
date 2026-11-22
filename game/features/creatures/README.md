@@ -7,7 +7,7 @@
 | `CreatureBody.cs` | One creature's body (0102): its rig's parts, posed. |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How a body reacts (0102) to the sim and to blows. |
-| `CreatureParts.cs` | The creatures' parts as pictures in ink (0102), read once, shared, as a planet loads. |
+| `CreatureParts.cs` | Their parts in ink (0102), read as a planet loads. |
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), how far it bends. |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures, drawn between ticks where the sim put them. |
@@ -29,8 +29,9 @@
 | `logic/LurkerArt.cs` | Its pose and colours. |
 | `logic/LurkerMotion.cs` | How it moves, off the sim. |
 | `logic/LurkerRig.cs` | Where its parts go in a pose: tested. |
-| `TickBodies.cs` | The tick (the sentry), drawn at `TickRig.Size`: sprite, lamp, arcs, burner, sparks, death. |
-| `ShotsView.cs` | Every peer's shots but a guest's own, a tick behind; heard fired; their hits; charges' bursts; the sentry's arcs. |
+| `SleepingNests.cs` | Packs asleep on wrecks. |
+| `TickBodies.cs` | Ticks (sentry, breaker) by size. |
+| `ShotsView.cs` | Shots but a guest's own, hits, bursts, arcs. |
 | `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |
 | `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |
 | `logic/TickRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
@@ -76,6 +77,7 @@ fan of rays from the shoulder and the cutter's beam are tested against each crea
 - **The tick**: `TickRig` places its pictures from its pose (`TickArt`), lit; eye, cracks and a blow's white over it unlit. `TickMotion` reads the sim: `Clamped` grips,
   else legs folded, nose along its flight. Eye teal, yellow `Alerted` or homing, red crouched, cyan aiming. Winding up: red arcs. Flying: a burner.
   `CutLeft`: it saws at the line; `LastCut`: sparks, a recoil. Killed: cracks, crumbling. Heard on Suit (`Sound.Ticks`).
+- **Breakers** (companion-fights): small ticks, stand-ins till picked; three folded on a nest in view.
 - **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is. Asleep, lamp dark; woken
   teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World. `--ground=spire-guards`.
 - **Guards and lurkers in ink** ([guards](../../../docs/decisions/2026-11-01-guards-in-ink.md), [lurkers](../../../docs/decisions/2026-11-07-cave-hostiles.md)): `TickRig`, `IstukanRig`, `LurkerRig` place `InkRig`s.

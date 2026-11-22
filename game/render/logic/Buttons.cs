@@ -7,8 +7,8 @@ public readonly record struct ButtonEvent(bool Down, (double X, double Y) At);
 
 /// <summary>
 /// The mouse buttons as the world reads them (render/camera.ts's <c>take*</c>): the left and right buttons' presses
-/// and releases since the last take, in order, at their world points, and whether each is held. The left button is
-/// the front layer, the right the back (0107). Read from the buttons held after each event, so a press or release of
+/// and releases since the last take, in order, at their world points, and whether each is held.
+/// Read from the buttons held after each event, so a press or release of
 /// one button while another is held still counts. Only what began with a press on the world is the world's: a drag
 /// begun on a panel crosses it unread.
 /// </summary>
@@ -48,7 +48,7 @@ public sealed class Buttons
     /// <summary>Whether the left button is held now, pressed on the world.</summary>
     public bool HoldsLeft => _leftDown;
 
-    /// <summary>Whether the right button is held now, pressed on the world: what the hands do, they do to the back layer.</summary>
+    /// <summary>Whether the right button is held now, pressed on the world.</summary>
     public bool HoldsRight => _rightDown;
 
     /// <summary>
@@ -62,7 +62,7 @@ public sealed class Buttons
         return clicked;
     }
 
-    /// <summary>Whether the right button was pressed on the world since the last call: a canister in hand is breathed (0047), an axe swung at the back.</summary>
+    /// <summary>Whether the right button was pressed on the world since the last call: what is in hand is used or thrown (companion-fights).</summary>
     public bool TakeRightClick()
     {
         bool clicked = _rightClicked;
@@ -85,14 +85,4 @@ public sealed class Buttons
         _right = [];
         return taken;
     }
-}
-
-/// <summary>Which layer the buttons work (0107): the left the front, the right the back, everywhere.</summary>
-public static class Layering
-{
-    /// <summary>
-    /// Whether what the hands do with <paramref name="left"/> and <paramref name="right"/> held goes to the back layer: the
-    /// right alone. Both held, the front keeps them.
-    /// </summary>
-    public static bool Back(bool left, bool right) => right && !left;
 }

@@ -62,6 +62,14 @@ public partial class LightDrone : Node2D
     private Vec _hold;
     private float _threadLength;
     private bool _threaded;
+    /// <summary>The thread it hauls a thrown thing by (companion-fights): how it hangs as it is cast and buzzes taut, px.</summary>
+    private const float HaulSag = 6, HaulBuzz = 0.7f;
+
+    /// <summary>How far a haul drags it toward what it hauls, px, how much tighter it draws, and how long both ease, ms.</summary>
+    private const float HaulLeanPx = 3, HaulTighter = 0.12f, HaulEaseMs = 50;
+
+    private (Vec At, double Cast, double Effort)? _haul;
+    private Vector2 _strain;
 
     /// <summary>Where its body is turned, and where its eye is: the eye alone glances back on a tow.</summary>
     private float _angle, _eye;
@@ -184,10 +192,13 @@ public partial class LightDrone : Node2D
     /// <summary>
     /// Flies it by its hero's <paramref name="anchor"/>, moving at <paramref name="hero"/> px/ms, as its will wants
     /// (<paramref name="intent"/>), with no reach in a <paramref name="window"/>: its eye eased toward the look, red as the tint. Towing
-    /// (<paramref name="tow"/>), it flies ahead instead, its thread to <paramref name="hold"/>, the shoulder as drawn.
+    /// (<paramref name="tow"/>), it flies ahead instead, its thread to <paramref name="hold"/>, the shoulder as drawn. A thing thrown
+    /// (<paramref name="haul"/>, companion-fights, how far the thread is cast to it, 0..1) it watches and hauls from where it is.
     /// </summary>
-    public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs, DroneTow? tow = null, Vec hold = default)
+    public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs, DroneTow? tow = null, Vec hold = default,
+        (Vec At, double Cast, double Effort)? haul = null)
     {
+        _haul = Scripted ? null : haul;
         var at = Scripted ? intent.Goal
             : tow is { Riding: true } ? _flight.Ride(anchor, hero, tow.Ahead, tow.Grip, elapsedMs)
             : _flight.Step(anchor, hero, tow?.Back(anchor, intent.Goal) ?? intent.Goal, window, intent.Darting, elapsedMs);
@@ -197,11 +208,17 @@ public partial class LightDrone : Node2D
         _thought = intent.Thought;
         _bearing = tow == null ? mood : mood with { Tilt = mood.Tilt + tow.Tilt, Swell = mood.Swell - Tighter * tow.Effort, Hurry = mood.Hurry + Hurried * tow.Effort };
         _orbitLead += elapsedMs / 1000 * _bearing.Hurry;
-        GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)));
+        var pulled = _haul is { Cast: >= 1, At: var thing, Effort: var effort }
+            ? new Vector2((float)(thing.X - at.X), (float)(thing.Y - at.Y)).Normalized() * (float)effort : Vector2.Zero;
+        _strain = _strain.Lerp(pulled, (float)(1 - Math.Exp(-elapsedMs / HaulEaseMs)));
+        _bearing = _bearing with { Swell = _bearing.Swell - HaulTighter * _strain.Length() };
+        GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)))
+            + _strain * HaulLeanPx;
         // It turns after its look, eased, never snapping across.
         float ease = (float)(1 - Math.Exp(-elapsedMs / TurnMs));
         _angle = TurnedToward(_angle, intent.Look, ease);
-        _eye = TurnedToward(_eye, Scripted ? intent.Look : tow?.Eye(at, hold) ?? intent.Look, ease);
+        var watched = _haul is { At: var watch } ? DroneFlight.Minus(watch, at) : (Vec?)null;
+        _eye = TurnedToward(_eye, Scripted ? intent.Look : watched ?? tow?.Eye(at, hold) ?? intent.Look, ease);
         _tint = (float)intent.Tint;
         _timeMs = timeMs;
         _elapsedMs = elapsedMs;
@@ -213,8 +230,23 @@ public partial class LightDrone : Node2D
     /// <summary>The tow's thread this frame, in the drone's own px, from its coal to the shoulder.</summary>
     private void Threads(double t)
     {
-        _threaded = _tow is { Threaded: true } && !Scripted;
+        _threaded = !Scripted && (_haul is { Cast: > 0 } || _tow is { Threaded: true });
         if (!_threaded) return;
+        if (_haul is { Cast: > 0 } haul)
+        {
+            float cast = (float)haul.Cast, loose = 1 - cast * cast;
+            var end = (new Vector2((float)haul.At.X, (float)haul.At.Y) - GlobalPosition) * cast;
+            var across = new Vector2(-end.Y, end.X).Normalized();
+            float last = _thread.Length - 1;
+            for (int j = 0; j < _thread.Length; j++)
+            {
+                float u = j / last;
+                float bend = HaulSag * loose * MathF.Sin(u * 8 - (float)t * 11) + HaulBuzz * (float)haul.Effort * (1 - loose) * MathF.Sin(u * 21 - (float)t * 70);
+                _thread[j] = (end * u + across * bend * MathF.Sin(MathF.PI * u)) / _glow.Scale.X;
+            }
+            _threadLength = end.Length();
+            return;
+        }
         Span<Vec> points = stackalloc Vec[DroneTow.Points];
         var here = GlobalPosition;
         _threadLength = (float)_tow!.Thread(new Vec(here.X, here.Y), _hold, t, points);
@@ -256,13 +288,13 @@ public partial class LightDrone : Node2D
         }
         var (end, side) = (_thread[^1], Knot * px);
         _light.Rect(end.X - side / 2, end.Y - side / 2, side, side, EmberArt.Of(salts.Spark(1, 0.35f), Math.Min(1, _threadLength / 4)));
-        if (!_tow!.Caught) Halo(_light, end, KnotHalo * px, EmberArt.Of(salts.Line()), 0.3f * Math.Min(1, _threadLength / 6));
+        if (_haul is { Cast: > 0 } || _tow is { Caught: false }) Halo(_light, end, KnotHalo * px, EmberArt.Of(salts.Line()), 0.3f * Math.Min(1, _threadLength / 6));
     }
 
     /// <summary>It puffs sparks back along the way as it heaves.</summary>
     private void Puffed(Salts salts, double t)
     {
-        if (_tow is not { Threaded: true } tow || Scripted) return;
+        if (_tow is not { Threaded: true } tow || Scripted || _haul is { Cast: > 0 }) return;
         float scale = _glow.Scale.X;
         var back = new Vector2(-(float)tow.Way.X, -(float)tow.Way.Y);
         var across = new Vector2(-back.Y, back.X);

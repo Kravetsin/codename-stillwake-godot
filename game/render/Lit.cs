@@ -73,7 +73,7 @@ public static class Lit
             uniform sampler2D spotmap : filter_linear, repeat_disable, hint_default_black;
             uniform vec2 lightmap_at = vec2(0.0);
             uniform float lightmap_texel = 1.0;
-            // The walls round see_at (pixels) fade to see_least within see_radius, so the back wall worked behind shows (0107).
+            // The walls round see_at (pixels) fade to see_least within see_radius, so the back wall behind shows (back-focus-faint).
             uniform vec2 see_at = vec2(0.0);
             uniform float see_radius = 0.0;
             uniform float see_least = 0.35;
@@ -171,33 +171,26 @@ public static class Lit
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
     private static Vector2? _seeThrough;
 
-    /// <summary>How far round the pointer the walls fade while the back layer is worked, in pixels: three cells (0107).</summary>
-    public const float SeeRadius = 3 * ShipCamera.Cell;
-
     /// <summary>
-    /// Fades the walls, edges and doors round <paramref name="at"/>, in pixels of the world, to <paramref name="least"/>, so the back
-    /// wall the right button works shows through them (0107); null for none. While <paramref name="bare"/> the back walls there are
-    /// drawn as painted, out of the light (back-focus-faint). <paramref name="radius"/> in pixels. Set every frame, sent only when it changes.
+    /// Fades the walls, edges and doors within <paramref name="radius"/> of <paramref name="at"/>, in pixels of the world, to
+    /// <paramref name="least"/>, the back walls there drawn as painted, out of the light (back-focus-faint); null for none.
+    /// Set every frame, sent only when it changes.
     /// </summary>
-    public static void SeeThrough(Vector2? at, float least = SeeLeast, bool bare = false, float radius = SeeRadius)
+    public static void SeeThrough(Vector2? at, float least, float radius)
     {
-        if (at == _seeThrough && least == _seeLeast && bare == _seeBare && radius == _seeRadius) return;
-        (_seeThrough, _seeLeast, _seeBare, _seeRadius) = (at, least, bare, radius);
+        if (at == _seeThrough && least == _seeLeast && radius == _seeRadius) return;
+        (_seeThrough, _seeLeast, _seeRadius) = (at, least, radius);
         foreach (var material in Every) See(material);
     }
 
-    /// <summary>How much of the walls is left at the pointer as a hand digs the back layer (0107): about a third.</summary>
-    public const float SeeLeast = 0.35f;
-
-    private static float _seeLeast = SeeLeast, _seeRadius = SeeRadius;
-    private static bool _seeBare;
+    private static float _seeLeast, _seeRadius;
 
     private static void See(ShaderMaterial material)
     {
         material.SetShaderParameter("see_at", _seeThrough ?? Vector2.Zero);
         material.SetShaderParameter("see_radius", _seeThrough == null ? 0f : _seeRadius);
         material.SetShaderParameter("see_least", _seeLeast);
-        material.SetShaderParameter("see_bare", _seeBare ? 1f : 0f);
+        material.SetShaderParameter("see_bare", _seeThrough == null ? 0f : 1f);
     }
 
     /// <summary>

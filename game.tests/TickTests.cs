@@ -18,9 +18,33 @@ public class TickTests
         var rig = new TickRig();
         rig.Place(Standing);
         var body = rig.Slots.First(s => s.Part == "body");
-        double top = (CreatureArt.InkTick.Parts["body"].PivotY - body.Y) * TickRig.Size;
-        // Within a pixel: its soft edge.
-        Assert.InRange(top, 0, Stillwake.Content.Creatures.Sentry.Body.Height * PixelsPerCell + 1);
+        foreach (var species in new[] { Stillwake.Content.Creatures.Sentry, Stillwake.Content.Creatures.Breaker })
+        {
+            double top = (CreatureArt.InkTick.Parts["body"].PivotY - body.Y) * CreatureLooks.Ticks[species.Look].Size;
+            // Within a pixel: its soft edge.
+            Assert.InRange(top, 0, species.Body.Height * PixelsPerCell + 1);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void APounceStoppedShortStruckAHeroUnlessABlowCutIt(bool blown, bool struck)
+    {
+        var motion = new TickMotion(() => 0.5);
+        var flying = Watching with { Clamped = false, Pouncing = true, FlightLeft = 5, Vx = 100 };
+        motion.Step(flying, 0.05);
+        var moments = motion.Step(flying with { Pouncing = false, FlightLeft = 0, Blown = blown }, 0.05);
+        Assert.Equal(struck, moments.HasFlag(TickMotion.Moment.HeroHit));
+    }
+
+    [Fact]
+    public void WindingUpAfloatItFacesTheHeroHoweverItDrifts()
+    {
+        var motion = new TickMotion(() => 0.5);
+        motion.Step(Watching with { Clamped = false, WindingUp = true, Vx = 80, Hero = (-40, 0) }, 0.05);
+        Assert.Equal(-1, motion.Face);
+        Assert.InRange(motion.Angle, -0.1, 0.1);
     }
 
     [Fact]

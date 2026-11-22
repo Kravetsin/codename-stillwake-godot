@@ -254,7 +254,7 @@ public sealed partial class CreaturesModule
                 int away = s.VX != 0 ? Math.Sign(s.VX) : AwayFrom(creature, HeroCell(peer));
                 // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
                 int knock = Math.Min(Spec.KnockPace, Content.Shots.GunOf(s.Gun)?.Knock ?? 0);
-                return Hurt(creature, Spec.Get(creature.Species), damage, new Hit(peer, away, knock, _debris.Clock, Shot: true));
+                return Hurt(creature, Spec.Get(creature.Species), damage, new Hit(peer, away, knock, _debris.Clock, Shot: true, Line: (s.VX, s.VY)));
             default:
                 return _debrisOps.Hit(peer, target.Pass.Id, damage);
         }

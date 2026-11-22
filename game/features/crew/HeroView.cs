@@ -141,7 +141,6 @@ public partial class HeroView : Node2D
     private AxeSwing _swing;
     private int _swingFace = 1;
     private bool _grabHeld;
-    /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
     /// <summary>
     /// The harpoon (0044) and the grappling gun (grapple-climbs): each one's rod and the cooldown every gun of its kind
     /// waits for, the line to the rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the
@@ -305,11 +304,11 @@ public partial class HeroView : Node2D
     private readonly CanistersSeen _canisters = new();
     /// <summary>
     /// Rams (0103): this client's guard after its own hit, the controller steps it still reels, the creatures charging last frame
-    /// (one leaving its charge by a friend flinches that friend), and the thud, this hero's own through the suit.
+    /// and their damage then (one leaving its charge by a friend, no blow having cut it, flinches that friend), and the thud, this hero's own through the suit.
     /// </summary>
     private readonly Rams.Guard _ramGuard = new();
     private int _reel;
-    private HashSet<int> _charging = [], _chargingNow = [];
+    private Dictionary<int, int> _charging = [], _chargingNow = [];
     // A ram heard by what rams (S.RamHits): this player's own through the suit, a friend's where it is.
     private readonly Voices _thud = new(S.Suit, voices: 2, placed: false), _othersThud = new(S.World, voices: 2);
 
@@ -565,7 +564,11 @@ public partial class HeroView : Node2D
             _letsGo |= HarpoonShot.LetsGoBy(taken);
             // Pulled by the grapple or hanging from it, the line moves the hero, not the keys; pulled, it faces the hook.
             var pull = passedOut ? null : _harpoon.PullTo;
-            int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face ?? taken.Face;
+            // With a weapon out, the stroke over, it faces that, the arm held out to catch it.
+            bool awaits = !swinging && _throw.Flying;
+            int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace
+                : awaits ? Poses.FaceOf((_throw.At.X / Hero.Unit, _throw.At.Y / Hero.Unit), _current) ?? _current.Facing
+                : face ?? taken.Face;
             // Shift in space with a jetpack thrusts where the keys point, or with none toward the pointer.
             bool afloat = ship.Space(_current.BodyCell(ship.Width));
             var thrust = canThrust && afloat && taken.Sprint && pull == null
@@ -577,7 +580,7 @@ public partial class HeroView : Node2D
                 : taken with
                 {
                     Face = faces,
-                    Swings = swinging || _armUp,
+                    Swings = swinging || awaits || _armUp,
                     Pull = pull,
                     PullBy = _harpoon.PullBy,
                     Jetpack = jetpack,
@@ -819,7 +822,8 @@ public partial class HeroView : Node2D
     private (int From, string Species)? RamEndedBy(Registry m, Hero hero)
     {
         foreach (var c in m.Creatures.Creatures)
-            if (_charging.Contains(c.Id) && c.Posture != Stillwake.Sim.Creatures.Posture.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
+            if (_charging.TryGetValue(c.Id, out int damage) && c.Damage <= damage && c.Posture != Stillwake.Sim.Creatures.Posture.Charge
+                && Rams.Touches(c, hero, Rams.FriendMargin))
                 return (c.VX >= 0 ? 1 : -1, c.Species);
         return null;
     }

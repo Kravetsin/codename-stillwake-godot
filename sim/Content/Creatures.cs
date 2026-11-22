@@ -188,6 +188,14 @@ public static class Creatures
     /// </summary>
     public sealed record Lob(int Every, int Tell, int Flight, int Standoff, string Projectile);
 
+    /// <summary>
+    /// A pack's one drive (companion-fights): flying at the nearest hero out in space to one of eight places
+    /// <paramref name="Ring"/> cells round it, its velocity turned by at most <paramref name="Accel"/> a tick on each axis up to
+    /// <paramref name="Speed"/>; within <paramref name="Strike"/> cells in line it makes its first move, one of the pack beginning
+    /// one at a hero each <paramref name="Every"/> ticks. Knocked, it drifts till slowed to a quarter of its speed.
+    /// </summary>
+    public sealed record Swarm(int Ring, int Speed, int Accel, int Strike, int Every) : Drive;
+
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
 
@@ -218,10 +226,12 @@ public static class Creatures
 
     /// <summary>
     /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
-    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed). A walker's flies
-    /// with no gravity and ends at the first solid cell on its way; a clinger's passes walls.
+    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed) unless
+    /// <paramref name="Cuttable"/>. <paramref name="AtTarget"/> (companion-fights): at the hero it was begun at alone, let be out of
+    /// run or no longer out in space. A walker's flies with no gravity and ends at the first solid cell on its way; a clinger's
+    /// passes walls.
     /// </summary>
-    public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage) : Move(Damage);
+    public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage, bool Cuttable = false, bool AtTarget = false) : Move(Damage);
 
     /// <summary>
     /// An arc from where it clings (2026-10-27-sentry-arc): crouched <paramref name="WindUp"/> ticks, its eye flickering, its aim
@@ -403,7 +413,19 @@ public static class Creatures
         Yields: [new("scrapChunk", 2, 4), new("circuit", 1, 1), new("crystal", 1, 1, OneIn: 5), new("opal", 1, 1, OneIn: 10)],
         Purse: new(150, 300));
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher];
+    /// <summary>
+    /// The breaker («Разборщик», companion-fights): the dead fleet's service machine on its last order, to take apart what drifts,
+    /// two cells by two, in packs. It flies at 14 cells a second round a hero out in space and darts at it, a crouch of 0.6 s, then
+    /// 30 cells a second for 0.3 s, one unit of a suit; one of a pack begins each 1.5 s. A blow cuts the dart and flings it some four
+    /// cells along the blow. Four hit points, two of the axe's. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Breaker = new("breaker", Look: "breaker", Body: new Flyer(Width: 2, Height: 2),
+        Life: new(Hp: 4, Knock: 1200, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
+        Brain: [new Swarm(Ring: 4, Speed: 700, Accel: 150, Strike: 9, Every: 30)],
+        Moves: [new Pounce(WindUp: 12, Speed: 1500, Ticks: 6, Damage: 1, Cuttable: true, AtTarget: true)],
+        Yields: [new("scrapChunk", 1, 1, OneIn: 2)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Breaker];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):
@@ -417,6 +439,22 @@ public static class Creatures
     /// on (<c>Wreckage.Perches</c>): a sortie's prize is guarded. Pod clusters have none.
     /// </summary>
     public static readonly OnDebris Derelicts = new(Sentry.Id, [("engineBlock", 500), ("cargoHold", 500)]);
+
+    /// <summary>
+    /// A pack asleep on pieces of one zone (companion-fights): each new piece of <paramref name="Zone"/> and one of
+    /// <paramref name="Kinds"/>, not struck yet, has a nest <paramref name="PerMille"/> times in a thousand, of
+    /// <paramref name="Least"/> to <paramref name="Most"/> of <paramref name="Species"/>, a flyer. It wakes whole when its piece is
+    /// struck or a hero out in space is within <paramref name="Wake"/> cells, while that hero's keep box would hold no more than
+    /// <paramref name="PerKeep"/> of them.
+    /// </summary>
+    public sealed record Nest(string Species, string Zone, IReadOnlyList<string> Kinds, int PerMille, int Least, int Most, int Wake, int PerKeep);
+
+    /// <summary>
+    /// Breakers on one in ten of the far field's lesser wrecks (companion-fights), four to eight to a nest: a pack met within
+    /// minutes of flying out, never in the stream by the hull. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Nest Dismantlers = new(Breaker.Id, Content.Debris.Far.Id,
+        ["hullSection", "cargoContainer", "machineBlock", "shieldSlab"], PerMille: 100, Least: 4, Most: 8, Wake: 32, PerKeep: 8);
 
     /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's
