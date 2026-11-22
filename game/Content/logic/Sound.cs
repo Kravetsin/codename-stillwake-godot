@@ -747,7 +747,7 @@ public static class Sound
     public const double MusicFadeS = 2.5;
 
     /// <summary>
-    /// The quiet bed that fills the silence of space (0042), on the Music bus: faded in over
+    /// The quiet bed that fills the silence of space (0042), only while no ship track plays (ship-music), on the Music bus: faded in over
     /// <see cref="SpaceInS"/> seconds as this player's hero leaves the ship, out over <see cref="SpaceOutS"/>
     /// back aboard; 3 dB lower since 0059, under what the hero touches. A placeholder, the synthesised drone "Wreck", until the
     /// team's own track.
@@ -755,6 +755,17 @@ public static class Sound
     public static readonly Cue Space = new(["res://audio/music/space-1.ogg"], -13, Loops: true);
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
+
+    /// <summary>
+    /// The ship's music (ship-music), on the Music bus, heard aboard and out in space, never on a planet; the bed
+    /// of space plays only in its silences: about half as loud as the title's (10 dB under it,
+    /// the tracks levelled 1 dB hotter). No pitch varied: they are music. Placeholders made with Suno, played once each in turn by <c>ShipMusic</c>.
+    /// </summary>
+    public static readonly IReadOnlyList<Cue> ShipTracks =
+        [new(["res://audio/music/ship-1.ogg"], -13, Pitch: 0), new(["res://audio/music/ship-2.ogg"], -13, Pitch: 0)];
+
+    /// <summary>Seconds off a planet before the first track; the silence after a track, least and most; its fade in and out.</summary>
+    public const double ShipFirstS = 60, ShipGapLeastS = 180, ShipGapMostS = 360, ShipInS = 2.5, ShipOutS = 2;
 
     /// <summary>
     /// A drop pod's engine (the descent's sounds): the jetpack's thrust, lower and louder, placed on the pod and heard far on the
@@ -788,7 +799,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, .. ShipTracks, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

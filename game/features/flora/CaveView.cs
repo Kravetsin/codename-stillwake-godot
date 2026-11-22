@@ -33,7 +33,7 @@ public partial class CaveView : Node2D, ILightSource
     private readonly uint _seed;
     /// <summary>The chunks in view found with no growth and no vein glint: none drawn, till the grid changes there.</summary>
     private readonly HashSet<int> _bare = [];
-    private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> _lamps;
+    private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> _lamps;
     private readonly int _across;
     /// <summary>The standing cave growths by chunk; the cells of every plant standing, cave or not, ascending (<see cref="Felling"/>); those just felled.</summary>
     private readonly Dictionary<int, List<Plant>> _byChunk = new();
@@ -61,7 +61,7 @@ public partial class CaveView : Node2D, ILightSource
     private double _dripQuietS;
 
     /// <param name="seed">The planet's seed: which of its vein cells glint (<see cref="VeinGlints"/>).</param>
-    public CaveView(IGridQueries grid, BuildingModule building, Spec.PlanetType type, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps, uint seed)
+    public CaveView(IGridQueries grid, BuildingModule building, Spec.PlanetType type, Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> lamps, uint seed)
     {
         (_grid, _building, _type, _lamps, _seed) = (grid, building, type, lamps, seed);
         _across = (grid.Width + Chunk - 1) / Chunk;
@@ -383,7 +383,7 @@ public partial class CaveView : Node2D, ILightSource
                 float best = 0;
                 for (int i = 0; i < lamps.Count; i++)
                 {
-                    var (from, toward, _) = lamps[i];
+                    var (from, toward) = lamps[i];
                     var d = at - from;
                     float far = d.Length();
                     if (far > reach || far < 1) continue;

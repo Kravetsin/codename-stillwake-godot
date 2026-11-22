@@ -1,7 +1,8 @@
 # The wheels and the edge keys are single ember threads
 
 - Status: accepted; supersedes in part [hologram-keys](2026-11-05-hologram-keys.md) (the keys' green phosphor motifs and the suit's
-  key) and [light-drone](2026-11-21-light-drone.md) (the F wheel's look)
+  key) and [light-drone](2026-11-21-light-drone.md) (the F wheel's look); the threads in ember superseded by
+  [drone-colour](2026-11-22-drone-colour.md)
 - Date: 2026-11-21
 
 ## Context

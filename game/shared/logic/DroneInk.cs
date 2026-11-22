@@ -60,6 +60,27 @@ public static class DroneInk
     /// <summary>The eye: how far ahead of the core's middle, its radius, paleness and alpha; its halo's radius and alpha.</summary>
     public const float EyeAhead = 1.386f, Eye = 1.2f, EyePale = 0.5f, EyeAlpha = 0.9f, EyeHalo = 4, EyeHaloAlpha = 0.5f;
 
+    /// <summary>
+    /// The player's colour in the embers, the pick «С облачком» (drone-salts.js, candidate flame): light burns ember below BurnEmber of the way
+    /// out of the coal, the ember's Cream by BurnCream, the player's colour by BurnSalt; how far out is pick px from the core, from OutFrom over OutOver.
+    /// </summary>
+    public const float BurnEmber = 0.25f, BurnCream = 0.45f, BurnSalt = 0.75f, Cream = 0.65f, OutFrom = 2.8f, OutOver = 4.6f;
+
+    /// <summary>
+    /// A colour lighter than the ember is paled less, by RoomFall a step of brightness down to RoomLeast, and lit by the root of their ratio
+    /// between GainLeast and GainMost, so every colour holds; an icon's run pales by RunPale.
+    /// </summary>
+    public const float RoomFall = 2.3f, RoomLeast = 0.35f, GainLeast = 0.85f, GainMost = 1.3f, RunPale = 0.6f;
+
+    /// <summary>The colour's cloud round the drone: its radius and alpha; how much brighter and wider the orbits; how much brighter the coal, its halo at most.</summary>
+    public const float Cloud = 17, CloudAlpha = 0.22f, OrbitLift = 3, OrbitWiden = 1.4f, CoalLift = 1.3f, CoalHaloMost = 0.8f;
+
+    /// <summary>
+    /// A spark on a shape and a gauge's dot are born of the coal over and over, Born times a second, each late by its hash past Later, burning
+    /// into the colour over In of each life; an icon's run burns by RunAlong of how far along it is and RunBehind of how far behind its head.
+    /// </summary>
+    public const float SparkBorn = 0.7f, SparkBornIn = 0.5f, SparkBornLater = 9, DotBorn = 0.5f, DotBornIn = 0.2f, DotBornLater = 21, RunAlong = 1.1f, RunBehind = 0.55f;
+
     /// <summary>The colours, rgb 0..255: the embers', an alarm's red, a spark's dark.</summary>
     public static readonly (int R, int G, int B) Ember = (255, 138, 58), Red = (255, 58, 40), Dark = (38, 39, 43);
 

@@ -242,7 +242,7 @@ public partial class Main : Node2D, ITogether
         // The volumes as kept, before the title's music begins.
         Settings.ApplyVolumes();
         // Before everything else, so every button made after it clicks.
-        var sound = new SoundView(Floats, () => _title != null, Fogged);
+        var sound = new SoundView(Floats, () => _title != null, OffPlanet, Fogged);
         AddChild(sound);
         // What is heard, counted into the log now and then: a sound bug of co-op's second descent (heard-every-other).
         AddChild(new Features.Sound.AudioCensus(Log, sound, () => _session is Session s ? s.Client.World.SurfaceOf(s.Client.Id) : null));
@@ -540,6 +540,9 @@ public partial class Main : Node2D, ITogether
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
     // In a drop pod the hero hears as in air, the vacuum outside or not: the pod holds its own.
     private bool Floats() => _session != null && _hero is { Placed: true, Floats: true, InPod: false };
+
+    /// <summary>Whether this player's placed hero is off a planet, aboard or out in space by any vessel: the ship's music is heard (ship-music).</summary>
+    private bool OffPlanet() => _session != null && _hero is { Placed: true } && Features.Sound.ShipMusic.HeardOn(_m.Rules);
 
     /// <summary>How deep in a planet's fog this player's placed hero is, 0 to 1 (fog-edges): the world dulls in it as in space.</summary>
     private double Fogged() => _session != null && _hero is { Placed: true } hero && Shared.FogEdges.Of(_m.Grid, _m.Rules) is { } fog

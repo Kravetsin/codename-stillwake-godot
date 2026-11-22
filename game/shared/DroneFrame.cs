@@ -5,7 +5,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// The drone's frame round its open windows (drone-windows, the pick «Уголки»), one per client, over the windows: for each window
-/// handed to <see cref="Ui.Windows"/> and shown, four ember brackets at its corners, each laid by a spark shot from the drone's eye
+/// handed to <see cref="Ui.Windows"/> and shown, four brackets in the player's colour at its corners, each laid by a spark shot from the drone's eye
 /// (<see cref="CornerFrame"/>). It tells the rest whether a drone window is out (<see cref="Ui.DroneWindow"/>). Screen px; drawn
 /// each frame only while a window shows.
 /// </summary>

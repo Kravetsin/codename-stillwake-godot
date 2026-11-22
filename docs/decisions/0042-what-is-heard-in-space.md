@@ -1,7 +1,8 @@
 # 0042 — What is heard in space
 
 - Status: accepted; superseded in part by [0059](0059-machines-heard-at-work.md): the Suit bus raised 6 dB in
-  space, the bed 11 dB under the title's track
+  space, the bed 11 dB under the title's track; by [ship-music](2026-11-22-ship-music.md): the bed
+  only in the silences between the ship's tracks
 - Supersedes: of [0033](0033-first-sound.md), "only Suit is left" while floating and the consequence
   "a low pressing drone in space may come later; the silence is the first answer"; of
   [0034](0034-wreckage-and-the-axe.md), every peer hearing every hit and break; of

@@ -24,7 +24,8 @@ the item only as gear; the readout is the client's, read from the debris module'
   menu, a computer or the tree open).
 - **`left / max`**: the kind's `Wreckage.HpOf` less the piece's `Damage`, never below 0; at the middle of the wreck's
   picture's top edge where it is drawn this frame (`PieceDrawn`), so it drifts with it.
-- **Ember dots** (drone-threads, [scan-form](../../../docs/decisions/2026-11-21-scan-form.md)): 26 over the wreck, dot j lit
+- **Ember dots** (drone-threads, [scan-form](../../../docs/decisions/2026-11-21-scan-form.md)), burning into this player's colour
+  ([drone-colour](../../../docs/decisions/2026-11-22-drone-colour.md)): 26 over the wreck, dot j lit
   `clamp(left / (max / 26) - j, 0, 1)` (`ScanDots`). Each is the spark of one of the reticle's 26 marks: it leaves its mark for the
   row, hops from wreck to wreck without coming back, and comes home when the pointer leaves, its mark dim while it is out (with no
   drone the dots come and go in place); lost ones burst off as falling embers; red with the drone's alarm; none at `max <= 0`. On a layer that

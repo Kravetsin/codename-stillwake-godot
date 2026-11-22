@@ -5,37 +5,104 @@ using T = Stillwake.Game.Features.Crew.DroneFlight.Tune;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The light drone's body flies by its hero on its own (drone-motion ADR): no jump on a turn, never out of reach.</summary>
+/// <summary>The light drone's body flies by its hero on its own (drone-spring ADR): no jump on a turn, no wall, caught up smoothly.</summary>
 public class DroneFlightTests
 {
     private static double Apart(Vec a, Vec b) => DroneFlight.Length(DroneFlight.Minus(a, b));
 
     private static readonly double RunSpeed = DroneFlight.Length(DroneFlight.VelocityOf(Content.Hero.Run, 0));
 
+    private static readonly double JetSpeed = DroneFlight.Length(DroneFlight.VelocityOf(Content.Jetpack.Top, 0));
+
+    private readonly record struct Flown(double Fastest, double Hardest, double Furthest, double Left, double Past);
+
+    /// <summary>Flies it by a hero moving as <paramref name="moving"/> says at each ms, its goal a perch aside.</summary>
+    private static Flown Fly(Func<double, Vec, Vec> moving, int fps, double forMs)
+    {
+        double ms = 1000.0 / fps;
+        var flight = new DroneFlight();
+        var aside = new Vec(14, 0);
+        Vec anchor = default, hero = default, was = default, speed = default;
+        flight.Step(anchor, hero, aside, false, false, ms);
+        was = flight.At;
+        double fastest = 0, hardest = 0, furthest = 0, left = 0, past = 0;
+        for (double at = ms; at < forMs; at += ms)
+        {
+            hero = moving(at, hero);
+            anchor = DroneFlight.Plus(anchor, DroneFlight.Scaled(hero, ms));
+            var goal = DroneFlight.Plus(anchor, aside);
+            var now = flight.Step(anchor, hero, goal, false, false, ms);
+            var flew = DroneFlight.Scaled(DroneFlight.Minus(now, was), 1 / ms);
+            (fastest, hardest) = (Math.Max(fastest, DroneFlight.Length(flew)), Math.Max(hardest, Apart(flew, speed) / ms));
+            (was, speed, left) = (now, flew, Apart(now, goal));
+            furthest = Math.Max(furthest, left);
+            if (hero.X < 0) past = Math.Max(past, now.X - goal.X);
+        }
+        return new Flown(fastest, hardest, furthest, left, past);
+    }
+
+    /// <summary>A jetpack's velocity a frame on from <paramref name="hero"/> thrusting toward <paramref name="toward"/>, full speed in half a second.</summary>
+    private static Vec Thrust(Vec hero, Vec toward, int fps) =>
+        DroneFlight.Plus(hero, DroneFlight.Capped(DroneFlight.Minus(toward, hero), JetSpeed / 500 * 1000 / fps));
+
+    /// <summary>In play it hung behind a flight as on a wall: it must outfly the hero until it is by it again, and then keep by it.</summary>
     [Theory]
     [InlineData(30)]
     [InlineData(144)]
-    public void ARunReversedLeavesItBehindItCatchesUpAndNeverJumpsAFrame(int fps)
+    public void LeftBehindAFlightItSpeedsUpPastTheHeroUntilItHasCaughtUp(int fps)
     {
-        double frameMs = 1000.0 / fps, dt = Math.Min(frameMs, T.MaxFrameMs);
-        var flight = new DroneFlight();
-        var anchor = new Vec(0, 0);
-        double fastest = 0, behind = 0, past = 0;
-        for (double ms = 0; ms < 4000; ms += frameMs)
-        {
-            int way = ms < 2000 ? 1 : -1;
-            var hero = new Vec(way * RunSpeed, 0);
-            anchor = DroneFlight.Plus(anchor, DroneFlight.Scaled(hero, frameMs));
-            var was = flight.At;
-            var at = flight.Step(anchor, hero, anchor, window: false, darting: false, frameMs);
-            if (ms > 0) fastest = Math.Max(fastest, Apart(at, was) / dt);
-            if (ms is > 1500 and < 2000) behind = Math.Max(behind, anchor.X - at.X);
-            if (ms >= 2000) past = Math.Max(past, at.X - anchor.X);
-        }
-        // It trails the run some cells behind and catches up at no more than a run and a half: never a jump.
-        Assert.True(fastest <= RunSpeed * 1.5, $"flew {fastest / RunSpeed:F2} runs fast in a frame");
-        Assert.InRange(behind, T.Slack, T.Reach);
-        Assert.True(past > T.Slack, $"trailed only {past:F1} px after the turn");
+        var flown = Fly((_, hero) => Thrust(hero, new Vec(JetSpeed, 0), fps), fps, 5000);
+        Assert.InRange(flown.Furthest, 16, 56);
+        Assert.InRange(flown.Fastest, JetSpeed * 1.1, JetSpeed * 1.4);
+        Assert.True(flown.Left < 2, $"still {flown.Left:F1} px behind a steady flight");
+    }
+
+    /// <summary>In play it changed place in a blink as the hero twisted in fast flight: a turn bends its way, never snaps it.</summary>
+    [Theory]
+    [InlineData(30)]
+    [InlineData(144)]
+    public void AFlightTurnedBackOrRoundAndRoundBendsItsWayWithoutASnap(int fps)
+    {
+        var back = Fly((ms, hero) => Thrust(hero, new Vec(ms < 2500 ? JetSpeed : -JetSpeed, 0), fps), fps, 6000);
+        var round = Fly((ms, hero) => Thrust(hero, DroneFlight.Scaled(new Vec(Math.Cos(ms / 350), Math.Sin(ms / 350)), JetSpeed), fps), fps, 6000);
+        Assert.True(back.Hardest < 0.0012, $"turned back at {back.Hardest:F4} px/ms²");
+        Assert.True(round.Hardest < 0.0012, $"rounded at {round.Hardest:F4} px/ms²");
+        Assert.True(back.Past > 16, $"carried only {back.Past:F1} px past the turn");
+        Assert.True(back.Left < 2, $"still {back.Left:F1} px off after the turn");
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(144)]
+    public void ARunReversedLeavesItBehindAndItCatchesUp(int fps)
+    {
+        var flown = Fly((ms, _) => new Vec(ms < 2000 ? RunSpeed : -RunSpeed, 0), fps, 5000);
+        Assert.True(flown.Fastest <= RunSpeed * 1.8, $"flew {flown.Fastest / RunSpeed:F2} runs fast");
+        Assert.True(flown.Past > 16, $"trailed only {flown.Past:F1} px after the turn");
+        Assert.True(flown.Left < 2, $"still {flown.Left:F1} px off after the run");
+    }
+
+    /// <summary>The longest fall is left behind some cells, then made good: no circle stops it dead.</summary>
+    [Theory]
+    [InlineData(30)]
+    [InlineData(144)]
+    public void TheLongestFallMeetsNoWall(int fps)
+    {
+        double fastest = DroneFlight.Length(DroneFlight.VelocityOf(0, Content.Hero.MaxFall));
+        var flown = Fly((ms, _) => new Vec(0, ms < 3000 ? Math.Min(fastest, fastest * ms / 1000) : 0), fps, 7000);
+        Assert.True(flown.Hardest < 0.016, $"stopped or flung at {flown.Hardest:F4} px/ms²");
+        Assert.InRange(flown.Furthest, 60, 160);
+        Assert.True(flown.Left < 2, $"still {flown.Left:F1} px off after the landing");
+    }
+
+    /// <summary>Seen in play sitting in the helmet: its reticle clears the crown on every perch, and the body turned any way afloat.</summary>
+    [Fact]
+    public void ItsLowestPerchClearsTheCrown()
+    {
+        const double reticle = 5;
+        var neck = new Vec(100, 50);
+        double lowest = DroneFlight.Anchor(neck, 100).Y + T.HomeY + reticle;
+        Assert.True(lowest < neck.Y - (Rig.H - Rig.Neck), $"{lowest - neck.Y + Rig.H - Rig.Neck:F1} px into the helmet");
     }
 
     [Fact]
@@ -51,27 +118,13 @@ public class DroneFlightTests
     }
 
     [Fact]
-    public void ItStaysWithinReachAtAnyHeroMotionUpToTheFastestFall()
+    public void AfloatItsAnchorClearsABodyTurnedAnyWay()
     {
-        var random = new Random(7);
-        double fastest = DroneFlight.Length(DroneFlight.VelocityOf(0, Content.Hero.MaxFall));
-        var flight = new DroneFlight();
-        var anchor = new Vec(0, 0);
-        var hero = new Vec(0, 0);
-        var goal = anchor;
-        for (int frame = 0; frame < 20000; frame++)
-        {
-            if (frame % 30 == 0)
-            {
-                double angle = random.NextDouble() * Math.Tau, speed = random.NextDouble() * fastest;
-                hero = new Vec(Math.Cos(angle) * speed, Math.Sin(angle) * speed);
-                goal = new Vec(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200);
-            }
-            double ms = random.Next(4, 40);
-            anchor = DroneFlight.Plus(anchor, DroneFlight.Scaled(hero, ms));
-            var at = flight.Step(anchor, hero, DroneFlight.Plus(anchor, goal), false, darting: frame % 60 < 30, ms);
-            Assert.InRange(Apart(at, anchor), 0, T.Reach + 1e-9);
-        }
+        var middle = new Vec(100, 50);
+        var anchor = DroneFlight.AnchorAfloat(middle);
+        Assert.Equal(middle.X, anchor.X);
+        // A body turned any way reaches half its height from its middle, and the reticle 5 px from the drone.
+        Assert.True(anchor.Y + 5 < middle.Y - Rig.H / 2, $"{anchor.Y} is in the body");
     }
 
     [Fact]
