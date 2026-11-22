@@ -1,4 +1,4 @@
-// The form vision (docs/plans/form-vision.md): when the light drone learns a form, the world fades to black, the hero floats
+// The form vision (docs/decisions/2026-11-22-form-vision.md): when the light drone learns a form, the world fades to black, the hero floats
 // held, and the drone shows what the form does, one thing at a time: a thing arrives alone, holds while the eye reads it, the
 // drone takes it, the result holds. The look is picked («Проступает схема»: the game's pictures, a spark thread running over a
 // thing as the drone takes it, the picture darkening and its diagram staying); the open question is how the eye is led: a

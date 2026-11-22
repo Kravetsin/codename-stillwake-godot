@@ -22,7 +22,7 @@ public readonly record struct DroneBearing(Vec Off, double Tilt, double Swell, d
 /// starting only when nothing higher shows (a window, a gesture, an icon or lesson at the drone, the dart, a thought before a mood), love, pride
 /// and curious never resumed once cut; nothing while its hero is passed out, in its meeting or seated. The alarms show once its player knows them: the dart's
 /// meteor or bolt while it darts, cold and heat when the body's level, a <see cref="Tune.Step"/> of degrees off normal each, rises above
-/// the highest shown and held (one cut sooner shows again), which resets once the body is back within a step of normal; a magnetic flare once as its warning begins, shown again if cut before it held. 
+/// the highest shown and held (one cut sooner shows again), which resets once the body is back within a step of normal; a magnetic flare once as its warning begins, shown again if cut before it held.
 /// Love on waking from a death and pride after a deed lesson play once nothing higher shows, never lost; curious about a teaching machine (once
 /// each) waits a plain gap; bored after standing still shows till the hero moves, back after any cut while it still stands, under every other
 /// mood. Moods wait while the scanner reads. A find hops the body only.

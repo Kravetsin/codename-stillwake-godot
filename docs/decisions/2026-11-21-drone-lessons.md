@@ -1,7 +1,7 @@
 # The drone learns its forms from what its player does
 
 - Status: accepted; supersedes in part [light-drone](2026-11-21-light-drone.md) (the lamp and scanner bought on the market for
-  the crew)
+  the crew); superseded in part by [drone-thoughts](2026-11-22-drone-thoughts.md) and [form-vision](2026-11-22-form-vision.md)
 - Date: 2026-11-21
 
 ## Context
@@ -30,7 +30,7 @@ The user wanted the drone to learn from many sources, each player's own, so that
 - **The «Спутник» board district** (`companion`) holds the forms in table order: a known one its thread icon, an unknown one the
   board's plain «?», with no hint of how to learn it and no count (the user's call; a hint comes only if playtests need one).
 - **The beat** of a form learned is the find scan's lesson ([find-scan](2026-11-21-find-scan.md)); the grant itself is instant.
-- **The alarms gate the drone's thoughts** (`docs/plans/drone-thoughts.md`, not built). The dart toward danger stays innate.
+- **The alarms gate the drone's thoughts** ([drone-thoughts](2026-11-22-drone-thoughts.md), built after this). The dart toward danger stays innate.
 - `-- --lessons` plays it: a hero paired by an emergency lamp and a wreck, nine broken, learns the alarms, then the scan.
 
 ## Deliberately not handled

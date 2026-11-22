@@ -28,9 +28,10 @@ What is learned is Knowledge's, each player's own. A surface module, registered,
 
 ## API
 
-- **Queries** (`ILessonsQueries`): `Teacher(cell, kind)` — the machine of `kind` nearest `cell` within `Reach` of its footprint,
+- **Queries** (`ILessonsQueries`): `Teacher(cell, kind, reach = Reach)` — the machine of `kind` nearest `cell` within `reach` of its footprint,
   the first in `MachinesOf` order on a tie, null for none: what a near lesson is learned from, and where the client's drone flies
-  to look as the lesson plays (research's `FindScan`).
+  to look as the lesson plays (research's `FindScan`); at `Lessons.Wonder` (40) what it is curious about (drone-thoughts): only
+  `Reach` teaches.
 - **Operations:** none.
 
 ## Invariants
