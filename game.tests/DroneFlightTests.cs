@@ -5,7 +5,7 @@ using T = Stillwake.Game.Features.Crew.DroneFlight.Tune;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The light drone's body flies by its hero on its own (drone-motion ADR): no jump on a turn, no wall, caught up smoothly.</summary>
+/// <summary>The light drone's body flies by its hero on its own (drone-spring ADR): no jump on a turn, no wall, caught up smoothly.</summary>
 public class DroneFlightTests
 {
     private static double Apart(Vec a, Vec b) => DroneFlight.Length(DroneFlight.Minus(a, b));

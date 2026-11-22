@@ -4,10 +4,10 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The light drone's body (drone-motion ADR): where it flies by its hero, in pixels of the world, after the goal its will
+/// The light drone's body (drone-spring ADR): where it flies by its hero, in pixels of the world, after the goal its will
 /// gives (<see cref="DroneWill"/>). A spring that never swings: it learns the hero's pace a little late, so it falls behind a
 /// start or a turn, speeds up past the hero until it is by it again, and keeps by it. Left further it hurries more;
-/// nothing holds it on a circle. It ignores walls (light-drone).
+/// nothing holds it on a circle. It flies through walls.
 /// </summary>
 public sealed class DroneFlight
 {
