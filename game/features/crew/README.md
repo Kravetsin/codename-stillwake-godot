@@ -37,11 +37,11 @@ This hero and others', client-authoritative (0002).
 | `UsePrompt.cs` | shown |
 | `logic/Tether.cs` | |
 | `logic/DrillPace.cs` | |
-| `logic/RunSounds.cs` | sounds |
+| `logic/RunSounds.cs` | |
 | `logic/ToolEdge.cs` | beam |
 | `logic/ToolRays.cs` | hits |
 | `WreckPixels.cs` | |
-| `ToolWork.cs` | tools |
+| `ToolWork.cs` | |
 | `logic/ToolHaze.cs` | |
 | `logic/CutterJet.cs` | |
 | `logic/Motor.cs` | |
@@ -67,7 +67,7 @@ This hero and others', client-authoritative (0002).
 | `logic/TrackerBlink.cs` | |
 | `Figure.cs` | |
 | `logic/BodyFit.cs` | |
-| `LightDrone.cs` | drone |
+| `LightDrone.cs` | |
 | `logic/DroneFlight.cs` | body |
 | `logic/DroneWill.cs` | mind |
 | `logic/DroneTow.cs` | tug |
@@ -91,9 +91,9 @@ This hero and others', client-authoritative (0002).
 | `logic/Cape.cs` | |
 | `logic/Spring.cs` | |
 | `CapeView.cs` | drawn |
-| `HeroView.cs` | hero |
+| `HeroView.cs` | |
 | `HeroView.Hands.cs` | |
-| `HeroView.Guns.cs` | gun |
+| `HeroView.Guns.cs` | |
 | `HeroView.Feel.cs` | |
 | `logic/GunHand.cs` | cooldown |
 | `HeroView.Others.cs` | |
@@ -124,6 +124,7 @@ This hero and others', client-authoritative (0002).
 | `logic/MealTips.cs` | cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | |
+| `logic/CrustFill.cs` | |
 | `logic/Tunnel.cs` | |
 | `TunnelView.cs` | drawn |
 | `logic/VisorFog.cs` | |
