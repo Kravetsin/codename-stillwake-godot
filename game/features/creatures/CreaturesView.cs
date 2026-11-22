@@ -146,7 +146,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _istukans.Reset();
             _lurkers.Reset();
             _of = creatures;
-            if (rules is Spec.PlanetType { Creatures.Count: > 0 }) CreatureParts.Warm();
+            if (rules is Spec.PlanetType { Creatures.Count: > 0 } || rules.Nests.Count > 0) CreatureParts.Warm();
         }
         _seed = seed;
         _bursts.On(grid, rooms, rules);

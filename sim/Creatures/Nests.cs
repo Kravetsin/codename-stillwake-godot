@@ -27,8 +27,12 @@ public sealed partial class CreaturesModule
     /// <summary>The nests' kind for <paramref name="piece"/>; null for a piece no pack sleeps on.</summary>
     private Spec.Nest? NestKind(Piece piece)
     {
-        foreach (var kind in Rules.Nests)
-            if (kind.Zone == piece.Zone && kind.Kinds.Contains(piece.Item, StringComparer.Ordinal)) return kind;
+        // Asked of every nest every tick: by index, for an enumerator is an allocation.
+        var all = Rules.Nests;
+        for (int i = 0; i < all.Count; i++)
+            if (all[i].Zone == piece.Zone)
+                for (int k = 0; k < all[i].Kinds.Count; k++)
+                    if (string.Equals(all[i].Kinds[k], piece.Item, StringComparison.Ordinal)) return all[i];
         return null;
     }
 
@@ -81,7 +85,7 @@ public sealed partial class CreaturesModule
         return _hatch.Count > 0;
     }
 
-    /// <summary>The bottom middles round <paramref name="piece"/> where a body of <paramref name="spec"/> lies wholly in open space, up to <paramref name="most"/>, in <see cref="_hatch"/>.</summary>
+    /// <summary>The bottom middles round <paramref name="piece"/> where a body of <paramref name="spec"/> lies wholly in open space and in nothing solid, up to <paramref name="most"/>, in <see cref="_hatch"/>.</summary>
     private void FreePlaces(Piece piece, Spec.Species spec, int most)
     {
         _hatch.Clear();
@@ -91,7 +95,8 @@ public sealed partial class CreaturesModule
         {
             if (_hatch.Count == most) return;
             int x = piece.X + place.X * offX / Unit, y = piece.Y + place.Y * offY / Unit + spec.Body.Height * Unit / 2;
-            if (InSpace(spec.Body, x, y)) _hatch.Add((x, y));
+            // A platform out there is space to the rooms, and solid to a body (as a lair is asked).
+            if (InSpace(spec.Body, x, y) && !Overlaps(spec.Body, x, y)) _hatch.Add((x, y));
         }
     }
 }

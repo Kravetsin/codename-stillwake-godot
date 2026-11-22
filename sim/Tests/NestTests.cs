@@ -74,6 +74,90 @@ public class NestTests
     }
 
     [Fact]
+    public void ItsFourKindsAreTheLesserWrecksAndEachHasNests()
+    {
+        string[] four = ["hullSection", "cargoContainer", "machineBlock", "shieldSlab"];
+        Assert.Equal(four, Kind.Kinds);
+        var w = World(x: 4);
+        var of = four.ToDictionary(k => k, _ => 0);
+        var sizes = new HashSet<int>();
+        for (int round = 0; round < 80; round++)
+        {
+            var pieces = four.SelectMany(k => Enumerable.Range(0, 4).Select(i => Out(w, k, 150 + i, 50))).ToList();
+            w.Run();
+            foreach (var nest in w.M.Creatures.Nests)
+            {
+                if (pieces.Find(p => p.Id == nest.Piece) is not { } piece) continue;
+                of[piece.Item] += 1;
+                sizes.Add(nest.Size);
+            }
+            ((DebrisState)w.M.Debris.Slice).Pieces.Clear();
+            State(w).Nests.Clear();
+        }
+        foreach (string kind in four) Assert.InRange(of[kind] * 1000 / 320, 50, 160);
+        Assert.Equal(Enumerable.Range(4, 5), sizes.Order());
+    }
+
+    [Fact]
+    public void APieceStruckBeforeItIsSeenHasNone()
+    {
+        var w = World(x: 4);
+        for (int round = 0; round < 20; round++)
+        {
+            for (int i = 0; i < 8; i++) Out(w, "hullSection", 150 + i, 50).Struck = new Blow { By = FloorStack.Nobody, At = 1 };
+            w.Run();
+            Assert.Empty(w.M.Creatures.Nests);
+            ((DebrisState)w.M.Debris.Slice).Pieces.Clear();
+        }
+    }
+
+    [Fact]
+    public void BreakersSleepOnTheirFourKindsOfTheFarFieldAlone()
+    {
+        var w = World();
+        Assert.Equal(Tune.Breaker.Id, w.M.Creatures.SleeperOn(Out(w, "shieldSlab", 150, 50)));
+        Assert.Null(w.M.Creatures.SleeperOn(Out(w, "cargoCrate", 150, 50)));
+        Assert.Null(w.M.Creatures.SleeperOn(Out(w, "shieldSlab", 150, 50, Spec.Debris.Ship.Id)));
+    }
+
+    [Fact]
+    public void ItWakesAtItsReachAndNotACellPast()
+    {
+        var past = World(x: 100 - Kind.Wake - 1);
+        Nested(past, 100, 50);
+        past.Run(3);
+        Assert.Empty(Pack(past));
+        var at = World(x: 100 - Kind.Wake);
+        Nested(at, 100, 50);
+        at.Run();
+        Assert.Equal(5, Pack(at).Count);
+    }
+
+    [Fact]
+    public void TheLargestNestWakesWholeInOpenSpace()
+    {
+        var w = World(x: 75);
+        Nested(w, 100, 50, size: Kind.Most);
+        w.Run();
+        Assert.Equal(Kind.Most, Pack(w).Select(c => (c.X, c.Y)).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void TheStrikersBoxIsAskedNotTheNearestHeros(bool byStriker, bool wakes)
+    {
+        var w = World(x: 2);
+        Hero(w, 198, 50, peer: 1);
+        // Round the nearest hero alone a pack too big for one more.
+        for (int i = 0; i < 4; i++) BreakerTests.Put(w, 192, 30 + i * 4);
+        var piece = Nested(w, 160, 50, size: 5);
+        piece.Struck = new Blow { By = byStriker ? 0 : FloorStack.Nobody, At = 1 };
+        w.Run();
+        Assert.Equal(wakes ? 9 : 4, Pack(w).Count);
+    }
+
+    [Fact]
     public void AHeroOutComingNearWakesItWhole()
     {
         var w = World();
@@ -150,6 +234,21 @@ public class NestTests
         for (int y = 38; y <= 62; y++)
             for (int x = 88; x <= 112; x++)
                 map[y][x] = '#';
+        var w = World(x: 75, map: map);
+        Nested(w, 100, 50);
+        w.Run(3);
+        Assert.Empty(Pack(w));
+        Assert.Single(w.M.Creatures.Nests);
+    }
+
+    [Fact]
+    public void NoneHatchesInAFloor()
+    {
+        var map = Space();
+        // A platform in open space is space to the rooms, and no less solid to a body.
+        for (int y = 38; y <= 62; y++)
+            for (int x = 88; x <= 112; x++)
+                map[y][x] = '=';
         var w = World(x: 75, map: map);
         Nested(w, 100, 50);
         w.Run(3);
@@ -264,14 +363,32 @@ public class NestTests
         Assert.True(woke && cut && killed, $"woke {woke}, cut {cut}, killed {killed}: the run reached too little");
     }
 
-    public sealed record Field(int Ground, int Nests, int Heroes, int Ticks);
+    [Fact]
+    public void AWorldLoadedEveryTickDrawsTheSameNests()
+    {
+        var (live, loaded) = (World(x: 4, seed: 7), World(x: 4, seed: 7));
+        bool nested = false;
+        for (int tick = 0; tick < 80; tick++)
+        {
+            foreach (var w in new[] { live, loaded }) Out(w, Kind.Kinds[tick % Kind.Kinds.Count], 150 + tick % 30, 50);
+            loaded.Reload();
+            live.Run();
+            loaded.Run();
+            Assert.Equal(live.World.Hash(), loaded.World.Hash());
+            nested |= live.M.Creatures.Nests.Count > 0;
+        }
+        Assert.True(nested, "none drew a nest");
+    }
+
+    public sealed record Field(int Ground, int Nests, int Crowd, int Heroes, int Ticks);
 
     private static Gen<Field> Fields() =>
         from ground in Gen.Choose(0, int.MaxValue)
         from nests in Gen.Choose(1, 30)
+        from crowd in Gen.OneOf(Gen.Constant(0), Gen.Choose(Tune.Max - 8, Tune.Max))
         from heroes in Gen.Choose(1, 4)
         from ticks in Gen.Choose(20, 120)
-        select new Field(ground, nests, heroes, ticks);
+        select new Field(ground, nests, crowd, heroes, ticks);
 
     [Property(MaxTest = 40)]
     public Property NeverPastTheCapNorInWhatIsSolidAndIdsOnlyGrow() => Prop.ForAll(Arb.From(Fields()), field =>
@@ -284,9 +401,20 @@ public class NestTests
             int wide = 1 + (int)rng.Below(10), high = 1 + (int)rng.Below(10);
             for (int y = top; y < top + high; y++)
                 for (int x = left; x < left + wide; x++)
-                    map[y][x] = '#';
+                    map[y][x] = i % 3 == 0 ? '=' : '#';
         }
         var w = World(map: map, seed: (uint)field.Ground | 1);
+        // Catchers out already, up to the surface's cap and in no pack's box: nests alone, eight a box, never come near it.
+        for (int tries = 0, put = 0; put < field.Crowd && tries < 20 * Tune.Max; tries++)
+        {
+            int x = 1 + (int)rng.Below(Width - 2), y = 1 + (int)rng.Below(Height - 3);
+            int atX = x * Unit + Unit / 2, atY = (y + 2) * Unit;
+            if (w.M.Creatures.Overlaps(Tune.Catcher.Body, atX, atY)) continue;
+            var catcher = new Creature { Id = State(w).NextId++, Species = Tune.Catcher.Id, X = atX, Y = atY, SeenAt = State(w).Clock };
+            State(w).Creatures.Add(catcher);
+            HuntDrive.Start(w.M.Creatures, catcher, Tune.Catcher, 0);
+            put++;
+        }
         for (int i = 0; i < field.Nests; i++)
             Nested(w, (int)rng.Below(Width), (int)rng.Below(Height), Kind.Least + (int)rng.Below((uint)(Kind.Most - Kind.Least + 1)), Kind.Kinds[i % Kind.Kinds.Count]);
         for (int peer = 0; peer < field.Heroes; peer++) Hero(w, (int)rng.Below(Width), (int)rng.Below(Height), peer);
@@ -299,7 +427,8 @@ public class NestTests
             for (int i = 0; i < all.Count; i++)
             {
                 if (i > 0 && all[i - 1].Id >= all[i].Id) return false.Label($"ids {all[i - 1].Id} then {all[i].Id}");
-                if (w.M.Creatures.Overlaps(Tune.Get(all[i].Species).Body, all[i].X, all[i].Y)) return false.Label($"{all[i].Id} in what is solid");
+                // A catcher leaving its hunt flies through anything (CreaturesInvariantTests).
+                if (all[i].Species == Tune.Breaker.Id && w.M.Creatures.Overlaps(Tune.Breaker.Body, all[i].X, all[i].Y)) return false.Label($"{all[i].Id} in what is solid");
             }
         }
         return true.Label("fine");

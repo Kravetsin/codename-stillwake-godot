@@ -81,10 +81,68 @@ public class BreakerTests
     }
 
     [Fact]
+    public void AShortWallBetweenHoldsItsDart()
+    {
+        var map = Space();
+        for (int y = 37; y <= 43; y++) map[y][43] = '#';
+        var w = World(map: map);
+        var c = Put(w, 47, 40);
+        w.Run();
+        Assert.False(Pouncing(c));
+        // With nothing between, the same place is a dart's.
+        var open = World();
+        var other = Put(open, 47, 40);
+        open.Run();
+        Assert.True(Pouncing(other));
+    }
+
+    [Fact]
+    public void AHeroGoneOutMidTellIsNotDartedAt()
+    {
+        var w = World();
+        var c = Put(w, 46, 40);
+        w.Run();
+        Assert.True(Pouncing(c));
+        ((CrewState)w.M.Crew.Slice).Heroes[0].Out = 1000;
+        w.Run(Pounce.WindUp);
+        Assert.False(Pouncing(c));
+    }
+
+    [Fact]
+    public void LetBeItSlowsToRest()
+    {
+        var w = World();
+        var c = Put(w, 80, 40);
+        c.VX = Swarm.Speed;
+        ((CrewState)w.M.Crew.Slice).Heroes[0].Out = 1000;
+        w.Run();
+        Assert.InRange(c.VX, 1, Swarm.Speed - 1);
+        w.Run(40);
+        Assert.Equal(0, Run(c));
+    }
+
+    [Theory]
+    [InlineData(6, 3, 900, 450)]
+    [InlineData(6, -2, 900, -300)]
+    [InlineData(-3, 6, -450, 900)]
+    public void ABlowOffTheDiagonalFlingsItAlongItsOwnLine(int dx, int dy, int vx, int vy)
+    {
+        var w = World();
+        var c = Put(w, 40 + dx, 40 + dy);
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.Equal((vx, vy), (c.VX, c.VY));
+    }
+
+    [Fact]
+    public void ADartsReachCoversWhereItBegins() => Assert.True(Pounce.Ticks * Pounce.Speed >= Swarm.Strike * Unit);
+
+    [Fact]
     public void ADartHitsForItsDamageAndItRecoils()
     {
-        var w = new Scenario(string.Join('\n', Space().Select(r => new string(r))), cells: true).Suit(0);
-        Hero(w, 40, 40).Run();
+        var w = new Scenario(string.Join('\n', Space().Select(r => new string(r))), cells: true).Suit(0).Suit(1);
+        Hero(w, 40, 40);
+        // Far off, the same suit breathed as long.
+        Hero(w, 2, 78, peer: 1).Run();
         var c = Put(w, 46, 40);
         w.Run();
         Assert.True(Pouncing(c));
@@ -95,7 +153,10 @@ public class BreakerTests
         w.Do(new HitBy(c.Id)).Run();
         Assert.Empty(w.Refusals);
         Assert.False(Pouncing(c));
-        Assert.True(c.VX > 0);
+        Assert.Equal(1, w.M.Crew.HeroOf(1)!.Air - w.M.Crew.HeroOf(0)!.Air);
+        // Back at half the dart, a tick of its slowing run.
+        int back = -vx / 2;
+        Assert.Equal(back - back / 4, c.VX);
         Assert.Equal(SwarmDrive.Thrown, c.Step);
     }
 

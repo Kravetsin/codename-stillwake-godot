@@ -98,7 +98,9 @@ public class CreatureContractTests
             int drive = c.Drive, step = c.Step;
             w.Do(new Strike(c.Id, Content.Weapons.Axe.Item)).Run();
             // A lurker out of its strike answers by being provoked (lurker-attacks); a shut snail's shell turns the blow aside.
-            bool answered = c.Act != null || c.Drive != drive || c.Step != step || GuardDrive.Provoked(w.M.Creatures, c) || CreaturesModule.Shut(c);
+            // A swarm's answer is the drift from the blow; any other's step counts its gait, and changes unstruck.
+            bool flung = s.Brain.Any(d => d is Tune.Swarm) && step != SwarmDrive.Thrown && c.Step == SwarmDrive.Thrown;
+            bool answered = c.Act != null || c.Drive != drive || flung || GuardDrive.Provoked(w.M.Creatures, c) || CreaturesModule.Shut(c);
             Assert.True(answered, $"{s.Id} struck changed nothing");
         });
         var (_, sentry) = LetOut(Tune.Sentry);
