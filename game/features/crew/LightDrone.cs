@@ -91,7 +91,7 @@ public partial class LightDrone : Node2D
             if (line.Length() < 1) line = Vector2.FromAngle(_angle);
             pointed = DroneSign.Turned(shown, (line.X, line.Y));
         }
-        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle, thinks: _thought != null), _angle, t, pointed, _thought);
+        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle, thinks: _thought != null), _angle, t, pointed, _thought, ShapeOver);
         _swarm.Bear((float)_orbitLead, (float)_bearing.Tilt, (float)_bearing.Dim, 1 + (float)_bearing.Swell);
         foreach (var node in (ReadOnlySpan<Node2D>)[_body, _glow]) node.Scale = Vector2.One * I.Px * (1 + (float)_bearing.Swell);
         for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, _angle, t);
@@ -122,6 +122,15 @@ public partial class LightDrone : Node2D
     /// <summary>Whether a drone window of its is out (its own or a friend's): it forms no shape meanwhile.</summary>
     public bool Projecting { get; set; }
 
+
+    /// <summary>
+    /// Whether a script flies it (form-vision): put on its goal as given, not flown after it, and a mark whose dot is out never drawn as a spark,
+    /// as the reticle falls apart too.
+    /// </summary>
+    public bool Scripted { get; set; }
+
+    /// <summary>How long the shape it changes to takes, s; none: the shape's own time.</summary>
+    public float? ShapeOver { get; set; }
 
     /// <summary>The box round its eye as drawn, in pixels of the world: where what it sends out flies from.</summary>
     public Rect2 LensBox
@@ -156,7 +165,7 @@ public partial class LightDrone : Node2D
     /// </summary>
     public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs)
     {
-        var at = _flight.Step(anchor, hero, intent.Goal, window, intent.Darting, elapsedMs);
+        var at = Scripted ? intent.Goal : _flight.Step(anchor, hero, intent.Goal, window, intent.Darting, elapsedMs);
         // A mood moves the body off where it flies (drone-thoughts): a hop, a sink, a lean.
         (_thought, _bearing) = (intent.Thought, intent.Bearing);
         _orbitLead += elapsedMs / 1000 * _bearing.Hurry;
@@ -178,7 +187,7 @@ public partial class LightDrone : Node2D
     }
 
     /// <summary>Whether spark <paramref name="i"/> is out as its gauge dot, which the scanner draws: a seed of the reticle formed, its dot away.</summary>
-    private bool Out(int i) => _swarm.Shape == SwarmShape.Scan && DroneSwarm.SeedOf(i) is int j and >= 0 && _away[j] > 0;
+    private bool Out(int i) => (Scripted || _swarm.Shape == SwarmShape.Scan) && DroneSwarm.SeedOf(i) is int j and >= 0 && _away[j] > 0;
 
     /// <summary>The hot colour now: the embers', reddened by an alarm.</summary>
     private Color Hot => Ember.Lerp(Red, Math.Min(1, _tint * I.AlarmRed));

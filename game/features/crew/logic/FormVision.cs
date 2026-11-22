@@ -2,18 +2,35 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Shared;
+using I = Stillwake.Game.Shared.DroneInk;
 
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>Which vision a drone's form plays (form-vision): what it shows the hero the form does.</summary>
 public enum VisionForm { Scan, Lamp, Alarms }
 
+/// <summary>A beat of a vision, s from its start: a thing arrives, is read, is taken, its result is read, and it goes, a beat each.</summary>
+public readonly record struct Beat(double From, double To)
+{
+    /// <summary>The first beat: from <paramref name="from"/>, <paramref name="lasts"/> long.</summary>
+    public static Beat First(double from, double lasts) => new(from, from + lasts);
+
+    /// <summary>The beat after this one, <paramref name="lasts"/> long.</summary>
+    public Beat Then(double lasts) => new(To, To + lasts);
+
+    /// <summary>How far through it <paramref name="u"/> is, 0..1; an empty one steps.</summary>
+    public double Run(double u) => To <= From ? u >= From ? 1 : 0 : Math.Clamp((u - From) / (To - From), 0, 1);
+
+    /// <summary>The same, eased.</summary>
+    public double Eased(double u) => FormVision.Sm(Run(u));
+}
+
 /// <summary>
 /// A thing shown in the void (form-vision): the game's own picture (<c>res://art/hd/{Picture}.png</c>), <see cref="W"/> by <see cref="H"/> of
 /// its pixels drawn <see cref="Scale"/> times, and the lines its diagram is traced in, picture px: its outline traced from the picture's alpha,
-/// its main lines placed by hand, a cracked one's cracks, a lamp's bulb.
+/// its main lines placed by hand, a cracked one's cracks and their blow, a lamp's bulb.
 /// </summary>
-public sealed record VisionProp(string Picture, double W, double H, double Scale, Vec[] Outline, Vec[][] Lines, Vec[][] Cracks, Vec Bulb = default);
+public sealed record VisionProp(string Picture, double W, double H, double Scale, Vec[] Outline, Vec[][] Lines, Vec[][] Cracks, Vec Bulb = default, Vec Blow = default);
 
 /// <summary>
 /// A prop as shown: where its middle is and how it is turned (pick px, radians), how far it has come out of the dark, 0..1, how far its
@@ -22,46 +39,82 @@ public sealed record VisionProp(string Picture, double W, double H, double Scale
 public readonly record struct PropShown(VisionProp Prop, Vec At, double Angle, double Alpha, double Trace, bool Cracked);
 
 /// <summary>
-/// The vision's drone: where its eye looks (pick px angle), the shape its sparks form, the thought's picture in <see cref="SwarmShape.Thought"/>,
-/// how red an alarm turns it, 0..1, and how far it darts off its place, pick px.
+/// The vision's drone: where it hangs and where its eye looks (pick px, radians), the shape its sparks form and the s they take into it, or out
+/// of the one before, the thought's picture in <see cref="SwarmShape.Thought"/>, how red an alarm turns it, 0..1, and whether its reticle is open.
 /// </summary>
-public readonly record struct VisionDrone(double Look, SwarmShape Shape, DroneThought? Thought, double Red, Vec Dart);
+public readonly record struct VisionDrone(Vec At, double Look, SwarmShape Shape, double ShapeOver, DroneThought? Thought, double Red, bool Reads);
 
-/// <summary>What the scanner reads in the vision: piece <see cref="Piece"/>'s hit points left of the most, the middle of its top, pick px.</summary>
-public readonly record struct VisionRead(int Piece, int Left, int Max, Vec Top);
+/// <summary>The frame that follows («Кадр следует»): the pick's point at the screen's middle and how far it has glided in, 1 at rest.</summary>
+public readonly record struct VisionCam(Vec Middle, double Zoom);
 
 /// <summary>
-/// The lamp's vision: the cable from its pivot to the lamp's top, the bulb, the beam's way and how lit it is, how much of the crate it covers, how much
-/// of the crate's diagram has been seen (it stays), how the drone studies the lamp (a thread from its eye), and the lamp's diagram run, 0..1.
+/// A dot of the scanner's gauge out of its mark: flown <see cref="Along"/> its way from <see cref="From"/> to <see cref="To"/> (a piece, or
+/// <see cref="FormVision.Seat"/>), how far out it is, 0..1, and how lit.
 /// </summary>
-public readonly record struct VisionLamp(Vec Pivot, Vec Top, Vec Bulb, double Beam, double Light, double InCone, double Seen, double Study, double Trace);
+public readonly record struct VisionDot(int From, int To, double Along, double Away, double Lit);
 
-/// <summary>The cold creeping in from the screen's edge the hero faces: its front, pick px from that edge; how much shows; its front's diagram run.</summary>
+/// <summary>
+/// The lamp's vision: the cable from its pivot to the lamp's top, the bulb, how lit the beam is (it lies along the drone's look), how much of the
+/// crate it covers, and how the drone studies the lamp's dish: a thread from its eye, and a spark that far home along it, 0..1.
+/// </summary>
+public readonly record struct VisionLamp(Vec Pivot, Vec Top, Vec Bulb, double Light, double InCone, double Study, double StudyRun);
+
+/// <summary>The cold creeping in from the edge the hero faces: its front, pick px; how much shows; its front's diagram run.</summary>
 public readonly record struct VisionFrost(double Front, double Alpha, double Trace);
 
-/// <summary>The meteor crossing: how far along its path (0 entering the pick's frame, 1 leaving it), its spin, its diagram run.</summary>
-public readonly record struct VisionMeteor(double Along, double Spin, double Trace);
+/// <summary>The meteor: its head and way, pick px, how large it is drawn, how much shows, its spin, its diagram run.</summary>
+public readonly record struct VisionMeteor(Vec Head, Vec Way, double Scale, double Alpha, double Spin, double Trace);
 
 /// <summary>
-/// The vision at a moment (form-vision): how dark the void is (<see cref="Veil"/>) and how much HUD shows, the drone, and what the form's scene
-/// holds now. Pick px (the page's, four to a world px), the hero's feet at <see cref="FormVision.Feet"/>, facing left: the view mirrors it for a
-/// hero facing right.
+/// The vision at a moment (form-vision): how dark the void is (<see cref="Veil"/>) and how much HUD shows, the frame, the drone, and what the
+/// form's scene holds now. Pick px (the page's, four to a world px), the hero's feet at <see cref="FormVision.Feet"/>, facing left: the view
+/// mirrors it for a hero facing right.
 /// </summary>
-public readonly record struct VisionFrame(VisionForm Form, double U, double Veil, double Hud, VisionDrone Drone, PropShown? First, PropShown? Second,
-    VisionRead? Read, VisionLamp? Lamp, VisionFrost? Frost, VisionMeteor? Meteor);
+public readonly record struct VisionFrame(VisionForm Form, double U, double Veil, double Hud, VisionCam Cam, VisionDrone Drone, PropShown? First,
+    PropShown? Second, VisionLamp? Lamp, VisionFrost? Frost, VisionMeteor? Meteor);
 
 /// <summary>
-/// The vision of a form the light drone learned (form-vision, the pick «Проступает схема»): for 5 s the world goes, the hero floats held, and the
-/// drone before him shows what the form does. Its frame is shared: 0.6 s in, 3.8 shown, 0.6 out; each form's scene is a method over it. The scanner:
-/// two wreck pieces drift in, the reticle reads the whole one, a full row, then hops to the cracked one, half a row. The lamp: a lamp hangs in the
-/// dark, the drone copies its dish and its beam finds a crate no one could see. The alarms: cold creeps from an edge, a snowflake; a meteor crosses,
-/// the drone darts red with its glyph. Props are the game's pictures until the drone takes them: a thread of sparks runs over each, the picture
-/// darkens to about 35% and its diagram stays. The page's numbers (tools/pick-kit/pages/form-vision.js), pick px and seconds; client only.
+/// The vision of a form the light drone learned (form-vision, the picks «Проступает схема» and «Кадр следует»): the world goes, the hero floats
+/// held, and the drone before him shows what the form does, one thing at a time: a thing arrives alone and holds while it is read, the drone
+/// takes it, the result holds, it goes, and while anything moves nothing new appears. The scanner: a whole piece, the gauge's row full, then a
+/// cracked one, the row half lit. The lamp: the drone copies a lamp's dish and its beam finds a crate in the dark. The alarms: the cold and a
+/// snowflake, then a far meteor creeping nearer and the drone darting red at it. A thread of sparks runs over what the drone takes, its picture
+/// darkens and its diagram stays; the view glides in to each thing, takes in the drone as it acts, and glides back, no shake. The page's numbers
+/// (tools/pick-kit/pages/form-vision.js), pick px and seconds; client only.
 /// </summary>
 public static class FormVision
 {
-    /// <summary>The vision's frame, s: coming in, the whole of it, going out.</summary>
-    public const double In = 0.6, Length = 5, Out = 0.6;
+    /// <summary>The world going and coming back, s.</summary>
+    public const double In = 0.6, Out = 0.6;
+
+    /// <summary>The HUD going and coming back, s.</summary>
+    private const double HudS = 0.3;
+
+    /// <summary>The scanner's beats.</summary>
+    public static class ScanBeats
+    {
+        public static readonly Beat AIn = Beat.First(0.4, 1.1), ARead = AIn.Then(1.25), Forms = ARead.Then(0.5), FormHold = Forms.Then(0.4),
+            ATrace = FormHold.Then(0.7), ADots = ATrace.Then(1.3), AResult = ADots.Then(1.15), AOut = AResult.Then(0.7), AGap = AOut.Then(0.25),
+            BIn = AGap.Then(1.1), BRead = BIn.Then(1.2), BAim = BRead.Then(0.3), BTrace = BAim.Then(0.7), BDots = BTrace.Then(1.05),
+            BResult = BDots.Then(1.1), End = BResult.Then(Out);
+    }
+
+    /// <summary>The lamp's beats.</summary>
+    public static class LampBeats
+    {
+        public static readonly Beat LIn = Beat.First(0.5, 1.2), LRead = LIn.Then(1.3), Go = LRead.Then(1.0), LTrace = Go.Then(0.8),
+            Dish = LTrace.Then(0.6), LResult = Dish.Then(1.2), LOut = LResult.Then(1.0), LGap = LOut.Then(0.25), LightOn = LGap.Then(0.3),
+            Sweep = LightOn.Then(2.0), CTrace = Sweep.Then(0.7), CResult = CTrace.Then(1.25), End = CResult.Then(Out);
+    }
+
+    /// <summary>The alarms' beats.</summary>
+    public static class AlarmBeats
+    {
+        public static readonly Beat CIn = Beat.First(0.6, 1.4), CRead = CIn.Then(1.2), CGlyph = CRead.Then(0.6), CHold = CGlyph.Then(0.4),
+            CTrace = CHold.Then(0.6), CResult = CTrace.Then(1.1), COut = CResult.Then(0.9), MGap = COut.Then(0.25), MIn = MGap.Then(0.8),
+            MRead = MIn.Then(1.2), Dart = MRead.Then(0.6), MHold = Dart.Then(0.4), MTrace = MHold.Then(0.6), MResult = MTrace.Then(1.1),
+            Pass = MResult.Then(1.15), End = Pass.Then(Out);
+    }
 
     /// <summary>Pick px a world px (the kit's zoom).</summary>
     public const double PerWorldPx = 4;
@@ -70,13 +123,16 @@ public static class FormVision
     public const double HeroTall = 40;
 
     /// <summary>
-    /// The vision's zoom on a screen <paramref name="height"/> px tall, screen px a world px: a whole number of them a picture's px (the pick's
-    /// <see cref="PerWorldPx"/>), so its pictures stay crisp, the hero about a quarter of the screen's height; 4 on a 720 px screen, 8 on 1080.
+    /// The vision's zoom at rest on a screen <paramref name="height"/> px tall, screen px a world px: a whole number of them a picture's px (the
+    /// pick's <see cref="PerWorldPx"/>), so its pictures stay crisp, the hero about a quarter of the screen's height; 4 on a 720 px screen, 8 on 1080.
     /// </summary>
     public static float Zoom(double height) => (float)(PerWorldPx * Math.Max(1, Math.Round(height / 4 / HeroTall / PerWorldPx)));
 
     /// <summary>Where the hero's feet are in the pick's frame, and the pick's frame's size.</summary>
     public static readonly Vec Feet = new(780, 470), Frame = new(1000, 540);
+
+    /// <summary>The pick's frame's middle: where the view rests.</summary>
+    public static readonly Vec Middle = new(Frame.X / 2, Frame.Y / 2);
 
     /// <summary>Where the drone hangs in the void before the hero.</summary>
     public static readonly Vec Void = new(672, 292);
@@ -84,30 +140,33 @@ public static class FormVision
     /// <summary>The beam's half-angle (the scan-form's cone), radians.</summary>
     public const double Half = 0.26;
 
-    /// <summary>How long a prop's diagram takes to run over it, s, and how dark its picture goes under it.</summary>
-    public const double TraceS = 0.7, TraceDark = 0.65;
+    /// <summary>How dark a picture goes under its diagram; the lamp's, only half.</summary>
+    public const double TraceDark = 0.65, LampDark = 0.5;
 
-    /// <summary>The cracked piece's hit points left of its most, and the whole one's: its row half lit, the other full.</summary>
+    /// <summary>The pieces' hit points left of their most: the whole one's row full, the cracked one's 13 of 26.</summary>
     public static readonly (int Left, int Max)[] Reads = [(520, 520), (150, 300)];
 
-    /// <summary>The scanner's beats, s: the reticle forms, reads the first, hops to the second, its dots home, it lets go.</summary>
-    public const double ScanForm = 1.0, ScanRead = 1.75, ScanHop = 2.75, ScanHome = 3.6, ScanLet = 4.15;
+    private static readonly Vec PieceA = new(330, 236), PieceB = new(345, 250);
 
-    /// <summary>The lamp's beats, s: the dish forms, the light on, the sweep from the lamp to the crate, the light off, it lets go.</summary>
-    public const double LampAt = 1.3, LightOn = 1.9, SweepFrom = 2.0, SweepTo = 3.0, LightOff = 4.0, LampLet = 4.15;
+    /// <summary>The middle of the gauge's row over each piece at rest.</summary>
+    public static readonly Vec[] Rows = [RowOver(PieceA, Props.Section), RowOver(PieceB, Props.Machine)];
 
-    /// <summary>The meteor crossing the pick's frame, s: from, for.</summary>
-    public const double MeteorFrom = 2.6, MeteorFor = 0.8;
+    /// <summary>A lamp's cable from its pivot over the frame, and how far under the cable's end the lamp hangs.</summary>
+    private const double Cable = 132, Hang = 30;
 
-    /// <summary>The meteor's path across the pick's frame.</summary>
-    public static readonly Vec MeteorIn = new(1060, 20), MeteorOutAt = new(-80, 300);
+    private static readonly Vec Pivot = new(470, -12), LampPlace = new(470, 150), ByLamp = new(560, 204), CratePlace = new(300, 420);
+    private static readonly Vec ColdPlace = new(140, 270);
+    private static readonly Vec MeteorFar = new(905, 70), MeteorNear = new(893, 79), MeteorPast = new(-150, 390);
+    private static readonly Vec MeteorWay = Unit(MeteorNear, MeteorPast), DartTo = Unit(Void, MeteorFar);
 
-    /// <summary>The alarms' two dangers in order: each glyph's start, coming in, held and going, s.</summary>
-    public static readonly (DroneThought Glyph, double From, double ComeIn, double Hold, double GoOut)[] Alarms =
-        [(DroneThought.Cold, 1.0, 0.4, 0.9, 0.3), (DroneThought.Meteor, 2.6, 0.4, 0.9, 0.3)];
+    /// <summary>How far the drone darts at the meteor.</summary>
+    private const double DartFar = 40;
 
     /// <summary>The drone's eye with nothing to look at.</summary>
     public static readonly double Rest = Math.Atan2(46, -22);
+
+    /// <summary>The beam from the void toward where the lamp hung, and down to the crate.</summary>
+    private static readonly double SweepFromLook = To(Void, LampPlace), SweepToLook = To(Void, CratePlace);
 
     /// <summary>The vision <paramref name="form"/> plays; none for a form with none (a test holds every lesson's form to have one).</summary>
     public static VisionForm? Of(string form) =>
@@ -115,19 +174,35 @@ public static class FormVision
         : form == Content.LightDrone.LampMode ? VisionForm.Lamp
         : form == Content.LightDrone.AlarmsMode ? VisionForm.Alarms : null;
 
-    /// <summary>How dark the void is <paramref name="u"/> s in, 0..1: in over <see cref="In"/>, whole while shown, out over <see cref="Out"/>.</summary>
-    public static double Veil(double u) => u < In ? Sm(u / In) : u > Length - Out ? 1 - Sm((u - (Length - Out)) / Out) : 1;
+    /// <summary>How long <paramref name="form"/>'s vision lasts, s: the scanner's 13.8, the lamp's 12.7, the alarms' 13.5.</summary>
+    public static double SecondsOf(VisionForm form) => form switch
+    {
+        VisionForm.Scan => ScanBeats.End.To,
+        VisionForm.Lamp => LampBeats.End.To,
+        _ => AlarmBeats.End.To,
+    };
 
-    /// <summary>How much of the HUD shows <paramref name="u"/> s in, 0..1: gone in the first 0.3 s, back in the last.</summary>
-    public static double Hud(double u) => u < 0.3 ? 1 - Sm(u / 0.3) : u > Length - 0.3 ? Sm((u - (Length - 0.3)) / 0.3) : 0;
+    /// <summary>How dark the void is <paramref name="u"/> s into <paramref name="form"/>'s, 0..1: in over <see cref="In"/>, whole while shown, out over <see cref="Out"/>.</summary>
+    public static double Veil(VisionForm form, double u)
+    {
+        double back = SecondsOf(form) - Out;
+        return u < In ? Sm(u / In) : u > back ? 1 - Sm((u - back) / Out) : 1;
+    }
 
-    /// <summary>Whether the vision is still on <paramref name="u"/> s in.</summary>
-    public static bool Playing(double u) => u >= 0 && u < Length;
+    /// <summary>How much of the HUD shows <paramref name="u"/> s into <paramref name="form"/>'s, 0..1: gone in the first 0.3 s, back in the last.</summary>
+    public static double Hud(VisionForm form, double u)
+    {
+        double back = SecondsOf(form) - HudS;
+        return u < HudS ? 1 - Sm(u / HudS) : u > back ? Sm((u - back) / HudS) : 0;
+    }
+
+    /// <summary>Whether <paramref name="form"/>'s vision is still on <paramref name="u"/> s in.</summary>
+    public static bool Playing(VisionForm form, double u) => u >= 0 && u < SecondsOf(form);
 
     /// <summary>How the hero floats <paramref name="u"/> s in: risen, world px; its knees and its lean, the void's share of them.</summary>
-    public static (double Lift, double Kneel, double Lean) Float(double u)
+    public static (double Lift, double Kneel, double Lean) Float(VisionForm form, double u)
     {
-        double v = Veil(u);
+        double v = Veil(form, u);
         return (v * (12 - 3 * Math.Sin(u * 0.9)) / PerWorldPx, 0.16 * v, (-0.07 + 0.03 * Math.Sin(u * 0.53)) * v);
     }
 
@@ -136,88 +211,187 @@ public static class FormVision
     {
         VisionForm.Scan => Scan(u),
         VisionForm.Lamp => Lamp(u),
-        _ => AlarmsAt(u),
+        _ => Alarms(u),
     };
 
-    /// <summary>How far a diagram has run over a prop the drone took at <paramref name="from"/> s, <paramref name="u"/> s in.</summary>
-    public static double Traced(double u, double from) => Sm((u - from) / TraceS);
+    /// <summary>A thing at rest still floats a little: its <paramref name="k"/>-th way.</summary>
+    private static Vec Drift(double u, int k) => new(2 * Math.Sin(u * 0.5 + k), 2 * Math.Sin(u * 0.7 + k * 1.3));
 
     // ---------- the scanner ----------
 
     private static VisionFrame Scan(double u)
     {
-        double eA = Sm((u - 0.2) / 1.1), eB = Sm((u - 0.4) / 1.1);
-        var a = new PropShown(Props.Section, new Vec(Lerp(-140, 250, eA) + 4 * Math.Sin(u * 0.5), Lerp(150, 200, eA) + 3 * Math.Sin(u * 0.7)),
-            Lerp(-0.3, -0.05, eA), Sm((u - 0.15) / 0.8), Traced(u, ScanRead - 0.15), false);
-        var b = new PropShown(Props.Machine, new Vec(Lerp(330, 455, eB) + 3 * Math.Sin(u * 0.6 + 1), Lerp(640, 402, eB) + 3 * Math.Sin(u * 0.8)),
-            Lerp(0.25, 0.05, eB), Sm((u - 0.35) / 0.8), Traced(u, ScanHop), true);
-        double look = Aim(u, (0, () => Rest), (0.9, () => To(Void, a.At)), (ScanHop, () => To(Void, b.At)), (3.75, () => Rest));
-        var shape = u >= ScanForm && u < ScanLet ? SwarmShape.Scan : SwarmShape.Idle;
-        int? piece = u >= ScanRead && u < ScanHop ? 0 : u >= ScanHop && u < ScanHome ? 1 : null;
-        VisionRead? read = piece is int p ? new VisionRead(p, Reads[p].Left, Reads[p].Max, TopOf(p == 0 ? a : b)) : null;
-        return new VisionFrame(VisionForm.Scan, u, Veil(u), Hud(u), new VisionDrone(look, shape, null, 0, default), a, b, read, null, null, null);
+        double aIn = ScanBeats.AIn.Eased(u), aOut = ScanBeats.AOut.Eased(u), bIn = ScanBeats.BIn.Eased(u);
+        Vec fa = Drift(u, 0), fb = Drift(u, 2);
+        var a = new PropShown(Props.Section, new Vec(Lerp(-160, PieceA.X, aIn) - 60 * aOut + fa.X, Lerp(190, PieceA.Y, aIn) + 50 * aOut + fa.Y),
+            Lerp(-0.3, -0.05, aIn) - 0.1 * aOut, Sm(ScanBeats.AIn.Run(u) / 0.7) * (1 - aOut), ScanBeats.ATrace.Eased(u), false);
+        var b = new PropShown(Props.Machine, new Vec(Lerp(190, PieceB.X, bIn) + fb.X, Lerp(650, PieceB.Y, bIn) + fb.Y),
+            Lerp(0.25, 0.05, bIn), Sm(ScanBeats.BIn.Run(u) / 0.7), ScanBeats.BTrace.Eased(u), true);
+        double look = Aim(u, (ScanBeats.Forms, To(Void, PieceA)), (ScanBeats.BAim, To(Void, PieceB)), (ScanBeats.End, Rest));
+        bool formed = u >= ScanBeats.Forms.From && u < ScanBeats.End.From;
+        var drone = new VisionDrone(Void, look, formed ? SwarmShape.Scan : SwarmShape.Idle, formed ? ScanBeats.Forms.To - ScanBeats.Forms.From : Out,
+            null, 0, u >= ScanBeats.ATrace.From && u < ScanBeats.End.From);
+        var cam = Follow(u, Void, 120,
+            (ScanBeats.AIn, Lead.Thing, PieceA), (ScanBeats.Forms, Lead.Act, PieceA), (ScanBeats.AOut, Lead.Home, PieceA),
+            (ScanBeats.BIn, Lead.Thing, PieceB), (ScanBeats.BAim, Lead.Act, PieceB), (ScanBeats.End, Lead.Home, PieceB));
+        return new VisionFrame(VisionForm.Scan, u, Veil(VisionForm.Scan, u), Hud(VisionForm.Scan, u), cam, drone, a, b, null, null, null);
     }
 
-    /// <summary>The middle of a prop's top as it stands, pick px: where the scanner's row hangs over.</summary>
-    private static Vec TopOf(PropShown q) => new(q.At.X, q.At.Y - q.Prop.H * q.Prop.Scale / 2);
+    private static Vec RowOver(Vec at, VisionProp prop) => new(at.X, at.Y - prop.H / 2 - I.DotsAbove);
+
+    /// <summary>Where a gauge's dot comes from or goes to when it is the reticle's mark.</summary>
+    public const int Seat = -1;
+
+    /// <summary>The gauge's four flights: when the first dot leaves, how long after each next does, a share of lag by the dot's hash, how long one flies, between what.</summary>
+    private static readonly (double At, double Each, double Lag, double Fly, int From, int To)[] Flights =
+    [
+        (ScanBeats.ADots.From, EachOf(ScanBeats.ADots), 0, DotFly, Seat, 0),
+        (ScanBeats.AOut.From, 0, 0.25, 0.45, 0, Seat),
+        (ScanBeats.BDots.From, EachOf(ScanBeats.BDots), 0, DotFly, Seat, 1),
+        (ScanBeats.End.From, 0, 0.2, 0.4, 1, Seat),
+    ];
+
+    /// <summary>How long a dot flies out to a row, s: one by one, the last there as its beat ends.</summary>
+    private const double DotFly = 0.3;
+
+    private static double EachOf(Beat beat) => (beat.To - beat.From - DotFly) / (I.Dots - 1);
+
+    /// <summary>Gauge dot <paramref name="j"/> <paramref name="u"/> s into the scanner's vision; none while it sits in its mark, a spark of the drone's.</summary>
+    public static VisionDot? DotAt(int j, double u)
+    {
+        VisionDot? now = null;
+        foreach (var (at, each, lag, fly, from, to) in Flights)
+        {
+            double leaves = at + j * each + DroneSwarm.Hash(j + 2) * lag;
+            if (u < leaves) continue;
+            double q = Math.Min(1, (u - leaves) / fly), e = Sm(q);
+            if (to == Seat) now = q >= 1 ? null : new VisionDot(from, to, e, 1 - e, LitOf(from, j) * (1 - e));
+            else now = new VisionDot(from, to, e, e, LitOf(to, j) * e);
+        }
+        return now;
+    }
+
+    /// <summary>How lit piece <paramref name="piece"/>'s dot <paramref name="j"/> is, each a 26th of its most.</summary>
+    private static double LitOf(int piece, int j) => Math.Clamp(Reads[piece].Left * (double)I.Dots / Reads[piece].Max - j, 0, 1);
 
     // ---------- the lamp ----------
 
-    /// <summary>The lamp's cable's pivot, out of the frame's top, and its length; the lamp hangs this far under its end.</summary>
-    private static readonly Vec Pivot = new(470, -12);
-
-    private const double Cable = 132, Hang = 30;
-
     private static VisionFrame Lamp(double u)
     {
-        double sway = 0.05 * Math.Sin(u * 1.4);
+        double sway = 0.03 * Math.Sin(u * 1.1);
         var top = new Vec(Pivot.X - Math.Sin(sway) * Cable, Pivot.Y + Math.Cos(sway) * Cable);
-        var lamp = new PropShown(Props.Lamp, new Vec(top.X - Math.Sin(sway) * Hang, top.Y + Math.Cos(sway) * Hang), sway, Sm((u - 0.25) / 0.7), Traced(u, 1.0), false);
-        var crate = new PropShown(Props.Crate, new Vec(300 + 3 * Math.Sin(u * 0.6), 420 + 2 * Math.Sin(u * 0.9)), 0.12, 1, 0, false);
-        double toLamp = To(Void, lamp.At), toCrate = To(Void, crate.At);
-        double beam = AngLerp(toLamp, toCrate, Sm((u - SweepFrom) / (SweepTo - SweepFrom)));
-        double light = Sm((u - LightOn) / 0.15) * (1 - Sm((u - LightOff) / 0.15));
-        double inCone = Sm(1 - AngDiff(beam, toCrate) / Half);
-        // The sweep closes in on the crate and rests there: its diagram, once seen, stays.
-        double seen = u >= SweepTo ? 1 : u < LightOn ? 0 : inCone;
-        double look = Aim(u, (0, () => Rest), (0.9, () => toLamp), (LightOn, () => beam));
-        var shape = u >= LampAt && u < LampLet ? SwarmShape.Lamp : SwarmShape.Idle;
-        var shown = new VisionLamp(Pivot, top, Placed(lamp, Props.Lamp.Bulb), beam, light, inCone, seen, Bump(u, 1.0, 1.15, 1.6), lamp.Trace);
-        return new VisionFrame(VisionForm.Lamp, u, Veil(u), Hud(u), new VisionDrone(look, shape, null, 0, default), lamp, crate with { Trace = seen }, null, shown, null, null);
+        var lamp = new PropShown(Props.Lamp, new Vec(top.X - Math.Sin(sway) * Hang, top.Y + Math.Cos(sway) * Hang), sway,
+            LampBeats.LIn.Eased(u) * (1 - LampBeats.LOut.Eased(u)), LampBeats.LTrace.Eased(u), false);
+        var f = Drift(u, 4);
+        var crate = new PropShown(Props.Crate, new Vec(CratePlace.X + f.X, CratePlace.Y + f.Y), 0.12, 1, LampBeats.CTrace.Eased(u), false);
+        var at = Lerp(Void, ByLamp, LampBeats.Go.Eased(u) * (1 - LampBeats.LOut.Eased(u)));
+        double end = LampBeats.End.From;
+        double beam = Aim(u, (LampBeats.Go, To(ByLamp, LampPlace)), (LampBeats.LOut, SweepFromLook), (LampBeats.Sweep, SweepToLook));
+        double look = AngLerp(beam, Rest, new Beat(end + LightOffS, LampBeats.End.To).Eased(u));
+        double light = LampBeats.LightOn.Eased(u) * (1 - Sm((u - end) / LightOffS));
+        double inCone = Sm(1 - AngDiff(look, To(at, CratePlace)) / Half);
+        var dish = LampBeats.Dish;
+        var shown = new VisionLamp(Pivot, top, Placed(lamp, Props.Lamp.Bulb), light, inCone, Bump(u, dish.From, dish.From + 0.15, dish.To), dish.Run(u));
+        bool formed = u >= dish.From && u < end + DishOffS;
+        var drone = new VisionDrone(at, look, formed ? SwarmShape.Lamp : SwarmShape.Idle, formed ? dish.To - dish.From : DishOffS, null, 0, false);
+        double reach = Dist(Void, CratePlace);
+        // The frame follows the beam, not the eye turning home after the light is out: the glide back would jump.
+        var beamTip = new Vec(at.X + Math.Cos(beam) * reach, at.Y + Math.Sin(beam) * reach);
+        var cam = Follow(u, at, 70,
+            (LampBeats.LIn, Lead.Thing, LampPlace), (LampBeats.Go, Lead.Act, LampPlace), (LampBeats.LOut, Lead.Drone, LampPlace),
+            (new Beat(LampBeats.LightOn.From, LampBeats.Sweep.To), Lead.Beam, beamTip), (LampBeats.End, Lead.Home, CratePlace));
+        return new VisionFrame(VisionForm.Lamp, u, Veil(VisionForm.Lamp, u), Hud(VisionForm.Lamp, u), cam, drone, lamp, crate, shown, null, null);
     }
+
+    /// <summary>The light going out as the world returns, and then the dish, s.</summary>
+    private const double LightOffS = 0.25, DishOffS = 0.3;
 
     // ---------- the alarms ----------
 
-    private static VisionFrame AlarmsAt(double u)
+    /// <summary>The two dangers in order: each glyph's start, coming in, held till, and going out.</summary>
+    private static readonly (DroneThought Glyph, double From, double ComeIn, double Until, double GoOut)[] Glyphs =
+    [
+        (DroneThought.Cold, AlarmBeats.CGlyph.From, 0.6, AlarmBeats.COut.From, 0.6),
+        (DroneThought.Meteor, AlarmBeats.Dart.From, 0.6, AlarmBeats.Pass.From, 1),
+    ];
+
+    /// <summary>From this much of its pass on the meteor fades, out of the pick's frame by then: a wider screen sees it go, not vanish.</summary>
+    private const double MeteorFades = 0.94;
+
+    private static VisionFrame Alarms(double u)
     {
         DroneThought? glyph = null;
-        double red = 0;
-        foreach (var (kind, from, comeIn, hold, goOut) in Alarms)
+        double red = 0, over = 0.6;
+        foreach (var (kind, from, comeIn, until, goOut) in Glyphs)
         {
-            double held = from + comeIn + hold;
-            if (u < from || u >= held + goOut) continue;
-            double f = u < from + comeIn ? Sm((u - from) / comeIn) : u < held ? 1 : 1 - Sm((u - held) / goOut);
-            // The glyph while it is held; its red fading after (DroneInk's alarm swing).
-            if (u < held) glyph = kind;
-            red = f * (0.6 + 0.4 * Math.Sin(u * Math.Tau * 2.4));
+            if (u < from || u >= until + goOut) continue;
+            bool held = u < until;
+            double f = u < from + comeIn ? Sm((u - from) / comeIn) : held ? 1 : 1 - Sm((u - until) / goOut);
+            if (held) glyph = kind;
+            over = held ? comeIn : goOut;
+            red = f * (I.AlarmLow + I.AlarmSwing * Math.Sin(u * Math.Tau * I.AlarmBeats));
             break;
         }
-        double dart = Bump(u, 2.6, 2.68, 3.05);
-        var meteorAt = () => To(Void, Lerp(MeteorIn, MeteorOutAt, Math.Clamp((u - MeteorFrom) / MeteorFor, 0, 1)));
-        double look = Aim(u, (0, () => Rest), (0.8, () => Math.PI), (2.5, meteorAt), (3.5, () => Rest));
-        var drone = new VisionDrone(look, glyph != null ? SwarmShape.Thought : SwarmShape.Idle, glyph, red, new Vec(9 * dart, 10 * dart));
-        var frost = new VisionFrost(Lerp(-10, 300, Sm((u - 0.7) / 1.5)), Sm((u - 0.6) / 0.3) * (1 - Sm((u - 2.8) / 0.7)), Traced(u, 1.0));
-        // Entering a little before the pick's frame and leaving after, so it crosses a wider screen whole.
-        double along = (u - MeteorFrom) / MeteorFor;
-        VisionMeteor? meteor = along >= -MeteorBeyond && along <= 1 + MeteorBeyond ? new VisionMeteor(along, u * 5, Traced(u, 2.65)) : null;
-        return new VisionFrame(VisionForm.Alarms, u, Veil(u), Hud(u), drone, null, null, null, null, frost, meteor);
+        double dart = AlarmBeats.Dart.Eased(u) * (1 - Sm(AlarmBeats.Pass.Run(u) / 0.6));
+        var at = new Vec(Void.X + DartTo.X * DartFar * dart, Void.Y + DartTo.Y * DartFar * dart);
+        double look = Aim(u, (AlarmBeats.CGlyph, Math.PI), (AlarmBeats.COut, Rest), (AlarmBeats.Dart, To(Void, MeteorFar)), (AlarmBeats.Pass, Rest));
+        var drone = new VisionDrone(at, look, glyph != null ? SwarmShape.Thought : SwarmShape.Idle, over, glyph, red, false);
+
+        var frost = new VisionFrost(Lerp(-10, 260, AlarmBeats.CIn.Eased(u)) - 270 * AlarmBeats.COut.Eased(u),
+            Sm(AlarmBeats.CIn.Run(u) * 2.5) * (1 - Sm((AlarmBeats.COut.Run(u) - 0.4) / 0.6)), AlarmBeats.CTrace.Eased(u));
+
+        // A glint far off creeping nearer, then it passes.
+        VisionMeteor? meteor = null;
+        if (u >= AlarmBeats.MIn.From && u < AlarmBeats.Pass.To)
+        {
+            double c = Math.Clamp((u - AlarmBeats.MIn.From) / (AlarmBeats.Pass.From - AlarmBeats.MIn.From), 0, 1), e = AlarmBeats.Pass.Eased(u);
+            meteor = new VisionMeteor(e > 0 ? Lerp(MeteorNear, MeteorPast, e) : Lerp(MeteorFar, MeteorNear, c), MeteorWay,
+                Lerp(0.32, 0.4, c) + 0.35 * e, AlarmBeats.MIn.Eased(u) * (1 - Sm((e - MeteorFades) / (1 - MeteorFades))), u * 0.8, AlarmBeats.MTrace.Eased(u));
+        }
+
+        var cam = Follow(u, at, 190,
+            (AlarmBeats.CIn, Lead.Thing, ColdPlace), (AlarmBeats.CGlyph, Lead.Act, ColdPlace), (AlarmBeats.COut, Lead.Home, ColdPlace),
+            (AlarmBeats.MIn, Lead.Thing, MeteorFar), (AlarmBeats.Dart, Lead.Meteor, MeteorFar), (AlarmBeats.Pass, Lead.Home, MeteorFar));
+        return new VisionFrame(VisionForm.Alarms, u, Veil(VisionForm.Alarms, u), Hud(VisionForm.Alarms, u), cam, drone, null, null, null, frost, meteor);
     }
 
-    /// <summary>How far past the pick's frame the meteor flies on either side, shares of its crossing.</summary>
-    public const double MeteorBeyond = 0.45;
+    // ---------- the frame that follows («Кадр следует») ----------
 
-    /// <summary>The meteor's head <paramref name="along"/> its path.</summary>
-    public static Vec MeteorHead(double along) => Lerp(MeteorIn, MeteorOutAt, along);
+    /// <summary>What the view frames: the whole; a thing alone; a thing and the drone acting on it, the beam's end or the meteor too; the drone.</summary>
+    private enum Lead { Home, Thing, Act, Beam, Meteor, Drone }
+
+    /// <summary>How close the view comes to a thing, to the drone alone.</summary>
+    private const double ThingZoom = 1.3, DroneZoom = 1.15;
+
+    /// <summary>The share of the frame a thing and the drone are fitted into; how much room the beam's end and the meteor take, pick px round them.</summary>
+    private const double Fitted = 0.8, SmallRadius = 80;
+
+    /// <summary>
+    /// The view <paramref name="u"/> s in: eased from key to key inside beats that move anyway, the drone at <paramref name="drone"/>, a thing
+    /// <paramref name="radius"/> px round; kept in the pick's frame.
+    /// </summary>
+    private static VisionCam Follow(double u, Vec drone, double radius, params (Beat In, Lead Lead, Vec At)[] keys)
+    {
+        var (middle, zoom) = (Middle, 1.0);
+        foreach (var (beat, lead, at) in keys)
+        {
+            if (u < beat.From) break;
+            var (to, close) = (Middle, 1.0);
+            if (lead == Lead.Thing) (to, close) = (at, ThingZoom);
+            else if (lead == Lead.Drone) (to, close) = (drone, DroneZoom);
+            else if (lead is Lead.Act or Lead.Beam or Lead.Meteor)
+            {
+                double round = 2 * (lead == Lead.Act ? radius : SmallRadius);
+                to = Lerp(at, drone, 0.5);
+                close = Math.Clamp(Math.Min(Frame.X * Fitted / (Math.Abs(at.X - drone.X) + round), Frame.Y * Fitted / (Math.Abs(at.Y - drone.Y) + round)), 1, ThingZoom);
+            }
+            double e = beat.Eased(u);
+            (middle, zoom) = (Lerp(middle, to, e), Lerp(zoom, close, e));
+        }
+        double halfW = Frame.X / 2 / zoom, halfH = Frame.Y / 2 / zoom;
+        // At rest the halves are the whole: Min and Max rather than Clamp, whose bounds may cross by a rounding.
+        return new VisionCam(new Vec(Math.Min(Math.Max(middle.X, halfW), Frame.X - halfW), Math.Min(Math.Max(middle.Y, halfH), Frame.Y - halfH)), zoom);
+    }
 
     /// <summary>The cold's crystals: where each sits in the pick's frame, its size, turn and twinkle (the page's 46, by the kit's rng).</summary>
     public static readonly (double X, double Y, double Size, double Turn, double Twinkle)[] Crystals = CrystalsOf();
@@ -271,7 +445,7 @@ public static class FormVision
             [P(4, 67, 103, 67), Box(21, 24, 66, 60), .. new[] { 30, 37, 43, 49, 55 }.Select(y => P(24, y, 63, y)), Circ(125, 43, 13, 20), Circ(125, 43, 4, 10),
                 Box(110, 84, 152, 113), .. new[] { 118, 127, 136, 145 }.Select(x => P(x, 87, x, 110)), P(152, 94, 176, 94), P(152, 99, 176, 99), .. new[] { 16, 34, 52 }.Select(x => P(x, 105, x + 9, 90))],
             // The cracked one's network out of its blow, as a wreck's cracks are drawn (WreckCracks).
-            [P(70, 82, 60, 76, 52, 74, 44, 69), P(70, 82, 80, 88, 90, 86, 99, 93), P(70, 82, 66, 94, 72, 104, 68, 116), P(60, 76, 61, 70), P(80, 88, 83, 97), P(132, 50, 141, 58, 147, 57)]);
+            [P(70, 82, 60, 76, 52, 74, 44, 69), P(70, 82, 80, 88, 90, 86, 99, 93), P(70, 82, 66, 94, 72, 104, 68, 116), P(60, 76, 61, 70), P(80, 88, 83, 97), P(132, 50, 141, 58, 147, 57)], Blow: new Vec(70, 82));
 
         public static readonly VisionProp Lamp = new("machine_lamp", 64, 64, 1,
             P(17.5, 1.5, 46.5, 1.5, 45.5, 8.5, 35.5, 9.5, 35.5, 14.5, 41.5, 15.5, 41.5, 22.5, 46.5, 30.5, 45.5, 41.5, 41.5, 46.5, 35.5, 49.5, 28.5, 49.5, 22.5, 46.5, 17.5, 39.5, 17.5, 30.5, 19.5, 25.5, 22.5, 22.5, 22.5, 15.5, 29.5, 14.5, 28.5, 9.5, 17.5, 9.5, 17.5, 1.5),
@@ -382,11 +556,15 @@ public static class FormVision
 
     // ---------- the page's helpers ----------
 
-    /// <summary>The eye's way through keyed looks: each eased in over 0.3 s from where the one before had it.</summary>
-    private static double Aim(double u, params (double From, Func<double> Look)[] keys)
+    /// <summary>The eye's way from its rest through keyed looks, each eased in over its beat from where the one before had it.</summary>
+    private static double Aim(double u, params (Beat In, double Look)[] keys)
     {
-        double a = keys[0].Look();
-        for (int i = 1; i < keys.Length && u >= keys[i].From; i++) a = AngLerp(a, keys[i].Look(), Sm((u - keys[i].From) / 0.3));
+        double a = Rest;
+        foreach (var (beat, look) in keys)
+        {
+            if (u < beat.From) break;
+            a = AngLerp(a, look, beat.Eased(u));
+        }
         return a;
     }
 
@@ -420,6 +598,12 @@ public static class FormVision
     private static double Lerp(double a, double b, double k) => a + (b - a) * k;
 
     public static Vec Lerp(Vec a, Vec b, double k) => new(a.X + (b.X - a.X) * k, a.Y + (b.Y - a.Y) * k);
+
+    private static Vec Unit(Vec from, Vec to)
+    {
+        double d = Dist(from, to);
+        return new Vec((to.X - from.X) / d, (to.Y - from.Y) / d);
+    }
 
     private static double Dist(Vec a, Vec b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 

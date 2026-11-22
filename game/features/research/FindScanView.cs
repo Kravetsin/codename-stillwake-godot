@@ -38,7 +38,7 @@ public partial class FindScanView : Node
     private readonly Func<int> _slot;
     private readonly Action<Vector2?> _stare, _visit;
     private readonly Action<(string Form, double Seconds)?> _envision;
-    private readonly Func<bool> _envisions;
+    private readonly Func<string, double> _visionS;
     private readonly Func<string, Rect2?> _teacher;
     private readonly CanvasLayer _hud = new() { Layer = ScreenLayers.Hud }, _edge = new() { Layer = ScreenLayers.TabletEdge };
     /// <summary>The icons, as the bag draws them; the sweep and the folding embers, added; the flying embers and the key's flare, added.</summary>
@@ -64,11 +64,11 @@ public partial class FindScanView : Node
     /// <param name="teacher">The box, world px, of the thing a form is learned from: the machine near the hero, the wreck last broken; null for none.</param>
     /// <param name="visit">Where the drone flies to, world px, while it learns from a thing; null for none.</param>
     /// <param name="envision">The form whose vision plays (form-vision), and how many seconds into it; null for none.</param>
-    /// <param name="envisions">Whether this player's hero can have a vision now: awake, not in its drone's meeting.</param>
+    /// <param name="visionS">How long the vision of a form is that this player's hero can have now, s; 0 while it can have none.</param>
     public FindScanView(FindScan scan, Func<bool> inWorld, Func<Rect2> art, Func<Rect2?> key, Func<Vector2?> head, Func<((float X, float Y)[] Seats, Vector2 Eye, float Tint)?> drone,
-        Func<int> slot, Action<Vector2?> stare, Func<string, Rect2?> teacher, Action<Vector2?> visit, Action<(string Form, double Seconds)?> envision, Func<bool> envisions)
+        Func<int> slot, Action<Vector2?> stare, Func<string, Rect2?> teacher, Action<Vector2?> visit, Action<(string Form, double Seconds)?> envision, Func<string, double> visionS)
     {
-        (_scan, _inWorld, _art, _key, _head, _drone, _slot, _stare, _teacher, _visit, _envision, _envisions) = (scan, inWorld, art, key, head, drone, slot, stare, teacher, visit, envision, envisions);
+        (_scan, _inWorld, _art, _key, _head, _drone, _slot, _stare, _teacher, _visit, _envision, _visionS) = (scan, inWorld, art, key, head, drone, slot, stare, teacher, visit, envision, visionS);
         foreach (var added in (ReadOnlySpan<Node2D>)[_swept, _flown]) added.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         _icons.Draw += DrawIcons;
         _swept.Draw += DrawSwept;
@@ -86,7 +86,7 @@ public partial class FindScanView : Node
         bool world = _inWorld();
         var head = world ? _head() : null;
         var drone = world ? _drone() : null;
-        _scan.Step(delta, drone != null, world && _envisions());
+        _scan.Step(delta, drone != null, world ? _visionS : null);
         _hud.Visible = _edge.Visible = world;
         var canvas = GetViewport().GetCanvasTransform();
         _overAt = head is { } neck ? canvas * (neck - new Vector2(0, Above)) : null;
@@ -117,7 +117,7 @@ public partial class FindScanView : Node
         var canvas = GetViewport().GetCanvasTransform();
         _stare(thing is { } seen ? seen.GetCenter()
             : !away && _scan.Over is { } over && _overAt is { } at ? canvas.AffineInverse() * Centre(at, over.Item, over.In) : null);
-        _envision(lesson is { Stage: LessonStage.Vision } vision ? (vision.Form, vision.Progress * FindScan.Vision) : null);
+        _envision(lesson is { Stage: LessonStage.Vision } vision ? (vision.Form, vision.Seconds) : null);
         // The dots read the thing's top, or the head's point, in cells.
         Vector2? read = thing is { } box ? new Vector2(box.GetCenter().X, box.Position.Y) : head is { } neck ? neck - new Vector2(0, Above) : null;
         var readout = lesson is { Stage: LessonStage.Study } study && read is { } r

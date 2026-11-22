@@ -262,7 +262,7 @@ public partial class HeroView : Node2D
 
     /// <summary>
     /// Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows. Not in a form's
-    /// vision (form-vision), whose readout is its own (<see cref="VisionRead"/>).
+    /// vision (form-vision), whose gauge is the vision's own.
     /// </summary>
     public bool Scanning => _figure.Scanner && !_figure.Projects && _vision == null;
 
@@ -273,11 +273,7 @@ public partial class HeroView : Node2D
     public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _vision is { } vision ? vision.View.DroneScan : _figure.DroneScan;
 
     /// <summary>What the scanner's gauge does now, after its frame: whether it reads a thing, how far each dot is out from its mark on the drone's reticle.</summary>
-    public void DroneGauge(bool reads, ReadOnlySpan<float> away)
-    {
-        if (_vision is { } vision) vision.View.Gauge(reads, away);
-        else _figure.DroneGauge(reads, away);
-    }
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _figure.DroneGauge(reads, away);
 
     /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare
@@ -323,6 +319,7 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        FormVisionView.Load();
         _glyph = new ModeGlyph(ui);
         _bodies = new BodyView(ui);
         // Plans placed: the planner in the hero's hand beams them in, cell by cell; the others see it beam at the first.

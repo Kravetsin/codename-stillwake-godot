@@ -51,7 +51,7 @@ public partial class ScannerView : CanvasLayer
         for (int j = 0; j < ScanDots.Count; j++) _away[j] = Visible ? _dots.Dot(j).Away : 0;
         if (!Visible) return;
         // Drawn in screen pixels from the point it reads, so each dot keeps whole ones as the camera eases.
-        _zoom = Math.Max(0.01f, ((FollowViewportEnabled ? GetViewport().GetCanvasTransform() : Transform2D.Identity) * Transform).X.Length());
+        _zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
         var r = _dots.Shown!.Value;
         var at = new Vector2((float)(r.X * Camera.Cell), (float)(r.Y * Camera.Cell));
         foreach (var layer in (ReadOnlySpan<Node2D>)[_dark, _light])

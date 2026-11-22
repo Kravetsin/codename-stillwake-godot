@@ -173,9 +173,6 @@ public static class ScreenLayers
     /// <summary>The last breath's tunnel (<c>Features.Crew.TunnelView</c>), over the HUD it blurs, under the bars (2026-11-05-the-last-breath).</summary>
     public const int LastBreath = 5;
 
-    /// <summary>The scanner's gauge in a scanner's vision (form-vision): over the vision, on a layer the cutscene leaves where it is, unlike the HUD's.</summary>
-    public const int VisionGauge = LastBreath;
-
     /// <summary>A cutscene's colour grade over all the scene shows, the last breath's tunnel too (<c>Features.Crew.CutsceneView</c>, drone-meeting); the HUD and bars are hidden meanwhile.</summary>
     public const int Grade = 6;
 

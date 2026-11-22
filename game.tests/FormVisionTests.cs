@@ -1,13 +1,25 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Features.Crew;
-using Stillwake.Game.Features.Research;
+using Stillwake.Game.Shared;
 using Xunit;
+using A = Stillwake.Game.Features.Crew.FormVision.AlarmBeats;
+using L = Stillwake.Game.Features.Crew.FormVision.LampBeats;
+using S = Stillwake.Game.Features.Crew.FormVision.ScanBeats;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A form's vision (form-vision, the pick «Проступает схема»): every form a lesson teaches has one, and each shows what its pick shows when it does.</summary>
+/// <summary>
+/// A form's vision (form-vision, the picks «Проступает схема» and «Кадр следует»): every form a lesson teaches has one, paced as its page's check
+/// holds it: one thing at a time, held while it is read, the result held, the view gliding to each.
+/// </summary>
 public class FormVisionTests
 {
+    private const double Frame = 1 / 60.0;
+
+    public static TheoryData<VisionForm> Forms => new() { VisionForm.Scan, VisionForm.Lamp, VisionForm.Alarms };
+
     [Fact]
     public void EveryFormALessonTeachesHasAVision()
     {
@@ -15,67 +27,242 @@ public class FormVisionTests
         foreach (var form in Content.Lessons.Forms) Assert.NotNull(FormVision.Of(form));
     }
 
-    /// <summary>The lesson's vision stage is the vision whole: the hero is let go as it ends, not before or after.</summary>
-    [Fact]
-    public void TheLessonsVisionStageIsTheVisionsLength() => Assert.Equal(FormVision.Length, FindScan.Vision);
+    [Theory]
+    [InlineData(VisionForm.Scan, 13.8)]
+    [InlineData(VisionForm.Lamp, 12.7)]
+    [InlineData(VisionForm.Alarms, 13.5)]
+    public void EachVisionLastsAsItsPagePacesIt(VisionForm form, double seconds) => Assert.Equal(seconds, FormVision.SecondsOf(form), 9);
+
+    /// <summary>The sim spares a hero through the longest vision and a second's trip to the host, one window for every form.</summary>
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public void TheSimSparesTheHeroThroughEveryVision(VisionForm form) =>
+        Assert.True(Content.Crew.VisionTicks >= (FormVision.SecondsOf(form) + 1) * Sim.World.TicksPerSecond - 1e-6);
 
     /// <summary>The void comes in and the HUD goes, both gone while it shows, and both back as it ends; the hero floats only in the void.</summary>
-    [Fact]
-    public void TheWorldGoesAndComesBack()
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public void TheWorldGoesAndComesBack(VisionForm form)
     {
-        Assert.Equal((0.0, 1.0), (FormVision.Veil(0), FormVision.Hud(0)));
-        Assert.Equal((1.0, 0.0), (FormVision.Veil(FormVision.Length / 2), FormVision.Hud(FormVision.Length / 2)));
-        Assert.Equal(0, FormVision.Veil(FormVision.Length), 6);
-        Assert.Equal(1, FormVision.Hud(FormVision.Length), 6);
-        Assert.Equal(0, FormVision.Float(0).Lift, 6);
-        Assert.True(FormVision.Float(2).Lift > 0);
-        Assert.False(FormVision.Playing(FormVision.Length));
+        double length = FormVision.SecondsOf(form);
+        Assert.Equal((0.0, 1.0), (FormVision.Veil(form, 0), FormVision.Hud(form, 0)));
+        for (double u = FormVision.In; u <= length - FormVision.Out; u += Frame) Assert.Equal((1.0, 0.0), (FormVision.Veil(form, u), FormVision.Hud(form, u)));
+        Assert.Equal(0, FormVision.Veil(form, length), 6);
+        Assert.Equal(1, FormVision.Hud(form, length), 6);
+        Assert.Equal(0, FormVision.Float(form, 0).Lift, 6);
+        Assert.True(FormVision.Float(form, length / 2).Lift > 0);
+        Assert.True(FormVision.Playing(form, length - Frame));
+        Assert.False(FormVision.Playing(form, length));
     }
 
-    /// <summary>The scanner reads the whole piece, a full row, then hops to the cracked one, half a row, then lets go.</summary>
-    [Fact]
-    public void TheScannerReadsTheWholeThenTheCracked()
+    /// <summary>What shows of a form's things: how present each is, where, how far the drone has taken it (its diagram, its dots out).</summary>
+    private static (double Alpha, Vec At, double Taken)[] Things(VisionFrame f)
     {
-        Assert.Null(FormVision.At(VisionForm.Scan, FormVision.ScanRead - 0.1).Read);
-        var whole = FormVision.At(VisionForm.Scan, (FormVision.ScanRead + FormVision.ScanHop) / 2).Read!.Value;
-        Assert.Equal((0, whole.Max), (whole.Piece, whole.Left));
-        var cracked = FormVision.At(VisionForm.Scan, (FormVision.ScanHop + FormVision.ScanHome) / 2);
-        Assert.Equal(1, cracked.Read!.Value.Piece);
-        Assert.Equal(cracked.Read.Value.Max, 2 * cracked.Read.Value.Left);
-        Assert.True(cracked.Second!.Value.Cracked);
-        Assert.Null(FormVision.At(VisionForm.Scan, FormVision.ScanHome + 0.1).Read);
+        double Dots(int piece)
+        {
+            double sum = 0;
+            for (int j = 0; j < DroneInk.Dots; j++)
+                if (FormVision.DotAt(j, f.U) is { } d && (d.To == piece || d.From == piece)) sum += d.Away;
+            return sum;
+        }
+        return f.Form switch
+        {
+            VisionForm.Scan => [(f.First!.Value.Alpha, f.First.Value.At, f.First.Value.Trace + Dots(0)), (f.Second!.Value.Alpha, f.Second.Value.At, f.Second.Value.Trace + Dots(1))],
+            VisionForm.Lamp => [(f.First!.Value.Alpha, f.First.Value.At, f.First.Value.Trace), (f.Lamp!.Value.Light * f.Lamp.Value.InCone, f.Second!.Value.At, f.Second.Value.Trace)],
+            _ => [(f.Frost!.Value.Alpha, new Vec(f.Frost.Value.Front, 270), f.Frost.Value.Trace), (f.Meteor?.Alpha ?? 0, f.Meteor?.Head ?? default, f.Meteor?.Trace ?? 0)],
+        };
+    }
+
+    /// <summary>One thing at a time: never two to look at.</summary>
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public void OneThingAtATime(VisionForm form)
+    {
+        for (double u = 0; u < FormVision.SecondsOf(form); u += Frame)
+            Assert.True(Things(FormVision.At(form, u)).Count(q => q.Alpha > 0.02) <= 1, $"two at once at {u:0.00} s");
+    }
+
+    /// <summary>The page's holds: a thing arrived read 1.2 s, a result 1 s, a shape whole 0.35 s, 0.2 s of stillness before a thing appears.</summary>
+    public static IEnumerable<object[]> Holds =>
+    [
+        [VisionForm.Scan, S.ARead, 1.2], [VisionForm.Scan, S.FormHold, 0.35], [VisionForm.Scan, S.AResult, 1.0], [VisionForm.Scan, S.AGap, 0.2],
+        [VisionForm.Scan, S.BRead, 1.2], [VisionForm.Scan, S.BResult, 1.0],
+        [VisionForm.Lamp, L.LRead, 1.2], [VisionForm.Lamp, L.LResult, 1.0], [VisionForm.Lamp, L.LGap, 0.2], [VisionForm.Lamp, L.CResult, 1.0],
+        [VisionForm.Alarms, A.CRead, 1.2], [VisionForm.Alarms, A.CHold, 0.35], [VisionForm.Alarms, A.CResult, 1.0], [VisionForm.Alarms, A.MGap, 0.2],
+        [VisionForm.Alarms, A.MRead, 1.2], [VisionForm.Alarms, A.MHold, 0.35], [VisionForm.Alarms, A.MResult, 1.0],
+    ];
+
+    /// <summary>Through each hold nothing moves but the things' slow float: no presence, place, taking, shape, drone, aim, light or frame.</summary>
+    [Theory]
+    [MemberData(nameof(Holds))]
+    public void NothingMovesThroughAHold(VisionForm form, Beat hold, double atLeast)
+    {
+        Assert.True(hold.To - hold.From >= atLeast - 1e-9, $"held {hold.To - hold.From:0.00} s, under {atLeast}");
+        var was = FormVision.At(form, hold.From + 1e-4);
+        for (double u = hold.From + 1e-4 + Frame; u < hold.To; u += Frame)
+        {
+            var now = FormVision.At(form, u);
+            var (before, after) = (Things(was), Things(now));
+            for (int k = 0; k < after.Length; k++)
+            {
+                Assert.True(Math.Abs(after[k].Alpha - before[k].Alpha) / Frame <= 0.08, $"thing {k}'s presence at {u:0.00} s");
+                Assert.Equal(before[k].Taken, after[k].Taken, 5);
+                if (after[k].Alpha > 0.02) Assert.True(Apart(after[k].At, before[k].At) / Frame <= 12, $"thing {k}'s place at {u:0.00} s");
+            }
+            Assert.Equal((was.Drone.Shape, was.Drone.Thought), (now.Drone.Shape, now.Drone.Thought));
+            Assert.True(Apart(now.Drone.At, was.Drone.At) / Frame <= 12, $"the drone at {u:0.00} s");
+            Assert.True(FormVision.AngDiff(now.Drone.Look, was.Drone.Look) / Frame <= 0.15, $"the aim at {u:0.00} s");
+            Assert.Equal(was.Lamp?.Light ?? 0, now.Lamp?.Light ?? 0, 5);
+            Assert.True(Apart(now.Cam.Middle, was.Cam.Middle) / Frame <= 12, $"the frame at {u:0.00} s");
+            Assert.True(Math.Abs(now.Cam.Zoom - was.Cam.Zoom) / Frame <= 0.05, $"the frame's zoom at {u:0.00} s");
+            was = now;
+        }
+    }
+
+    /// <summary>The scanner: the whole piece, then the cracked one, each taken by the reticle, opened meanwhile.</summary>
+    [Fact]
+    public void TheScannerTakesTheWholeThenTheCracked()
+    {
+        var read = FormVision.At(VisionForm.Scan, Mid(S.ARead));
+        Assert.Equal((1.0, 0.0, SwarmShape.Idle), (read.First!.Value.Alpha, read.First.Value.Trace, read.Drone.Shape));
+        var formed = FormVision.At(VisionForm.Scan, Mid(S.Forms));
+        Assert.Equal((SwarmShape.Scan, false), (formed.Drone.Shape, formed.Drone.Reads));
+        Assert.Equal(0.5, formed.Drone.ShapeOver, 9);
+        var whole = FormVision.At(VisionForm.Scan, Mid(S.AResult));
+        Assert.Equal((1.0, false, true), (whole.First!.Value.Trace, whole.First.Value.Cracked, whole.Drone.Reads));
+        var cracked = FormVision.At(VisionForm.Scan, Mid(S.BResult));
+        Assert.Equal((0.0, 1.0, true), (cracked.First!.Value.Alpha, cracked.Second!.Value.Trace, cracked.Second.Value.Cracked));
     }
 
     /// <summary>
-    /// The scanner's gauge played through a scanner's vision at 60 frames a second, as Main feeds it: its whole row out over the whole piece 0.8 s
-    /// into its read, all of it out over the cracked one 0.8 s after the hop, half lit, and gone 0.6 s after the dots go home (u 3.6): from 4.2 s in,
-    /// 7.2 s into <c>--form-vision</c>, none shows.
+    /// The gauge played at 60 frames a second: its dots leave their marks one by one in order, the whole piece's row holds all 26 lit, they come
+    /// home, the cracked piece's row is a whole 26 again, 13 lit and the rest dim, and they are home as the vision ends.
     /// </summary>
     [Fact]
-    public void TheGaugeRowsShowWhileTheScannerReads()
+    public void TheGaugeFliesOutDotByDot()
     {
-        var dots = new Features.Scanner.ScanDots();
-        var seats = new (float X, float Y)[Features.Scanner.ScanDots.Count];
-        (bool Visible, int Out, int? Id) At(double until, ref double u)
+        int Out(double u) => Enumerable.Range(0, DroneInk.Dots).Count(j => FormVision.DotAt(j, u) != null);
+        Assert.Equal(0, Out(S.ADots.From - Frame));
+        foreach (var beat in new[] { S.ADots, S.BDots })
         {
-            for (; u < until; u += 1 / 60.0)
+            int was = 0;
+            for (double u = beat.From; u < beat.To; u += Frame)
             {
-                var read = FormVision.At(VisionForm.Scan, u).Read;
-                dots.Step(read is { } r ? new Features.Scanner.Readout(r.Piece, r.Top.X / 32, r.Top.Y / 32, r.Left, r.Max) : null, seats, 1 / 60.0);
+                int out_ = Out(u);
+                Assert.InRange(out_, was, was + 1);
+                for (int j = 0; j < out_; j++) Assert.NotNull(FormVision.DotAt(j, u));
+                was = out_;
             }
-            int out_ = 0;
-            for (int j = 0; j < Features.Scanner.ScanDots.Count; j++) out_ += dots.Dot(j).Away >= 1 ? 1 : 0;
-            return (dots.Visible, out_, dots.Shown?.Id);
+            Assert.Equal(DroneInk.Dots, was);
         }
-        double u = 0;
-        Assert.False(At(FormVision.ScanRead - 0.05, ref u).Visible);
-        Assert.Equal((true, Features.Scanner.ScanDots.Count, (int?)0), At(FormVision.ScanRead + 0.8, ref u));
-        Assert.Equal((true, Features.Scanner.ScanDots.Count, (int?)1), At(FormVision.ScanHop + 0.8, ref u));
-        Assert.Equal(Features.Scanner.ScanDots.Count / 2, Enumerable.Range(0, Features.Scanner.ScanDots.Count).Count(j => Features.Scanner.ScanDots.Lit(150, 300, j) >= 1));
-        Assert.False(At(FormVision.ScanHome + 0.6, ref u).Visible);
+        foreach (var (beat, piece, lit) in new[] { (S.AResult, 0, 26), (S.BResult, 1, 13) })
+            for (double u = beat.From + 1e-4; u < beat.To; u += Frame)
+                for (int j = 0; j < DroneInk.Dots; j++)
+                {
+                    var dot = FormVision.DotAt(j, u)!.Value;
+                    Assert.Equal((piece, 1.0, j < lit ? 1.0 : 0.0), (dot.To, dot.Away, dot.Lit));
+                }
+        Assert.Equal(0, Out(Mid(S.AGap)));
+        Assert.Equal(0, Out(S.End.To));
     }
 
-    /// <summary>The vision's zoom: whole picture px on the screen, the hero about a quarter of its height.</summary>
+    /// <summary>The crate is unseen till the beam is on and finds it, and its diagram comes only then; the light only with the dish formed.</summary>
+    [Fact]
+    public void TheLampsBeamFindsTheCrate()
+    {
+        for (double u = 0; u < L.End.To; u += Frame)
+        {
+            var f = FormVision.At(VisionForm.Lamp, u);
+            if (u < L.LightOn.From) Assert.Equal((0.0, 0.0), (f.Lamp!.Value.Light, f.Second!.Value.Trace));
+            if (f.Second!.Value.Trace > 0 && u < L.End.From) Assert.Equal((1.0, true), (f.Lamp!.Value.Light, f.Lamp.Value.InCone > 0.99));
+            if (f.Lamp!.Value.Light > 0) Assert.Equal(SwarmShape.Lamp, f.Drone.Shape);
+        }
+        var found = FormVision.At(VisionForm.Lamp, Mid(L.CResult));
+        Assert.Equal((1.0, 1.0), (found.Lamp!.Value.Light, found.Second!.Value.Trace));
+        Assert.Equal(0, FormVision.At(VisionForm.Lamp, L.End.To).Lamp!.Value.Light, 6);
+    }
+
+    /// <summary>The alarms: the cold's glyph, then the slow far meteor's with the drone darting red at it; no red or dart but with its glyph.</summary>
+    [Fact]
+    public void TheAlarmsShowTheColdThenTheMeteor()
+    {
+        var seen = new List<DroneThought>();
+        double reddest = 0;
+        for (double u = 0; u < A.End.To; u += Frame)
+        {
+            var f = FormVision.At(VisionForm.Alarms, u);
+            if (f.Drone.Thought is { } glyph && (seen.Count == 0 || seen[^1] != glyph)) seen.Add(glyph);
+            if (u < A.CGlyph.From || u >= A.COut.From + 0.6 && u < A.Dart.From) Assert.Equal(0, f.Drone.Red);
+            if (u < A.Dart.From) Assert.Equal(0, Apart(f.Drone.At, FormVision.Void), 6);
+            else if (u < A.Pass.From) reddest = Math.Max(reddest, f.Drone.Red);
+        }
+        Assert.Equal([DroneThought.Cold, DroneThought.Meteor], seen);
+        Assert.True(reddest > 0.9);
+        var held = FormVision.At(VisionForm.Alarms, Mid(A.MResult));
+        Assert.Equal(40, Apart(held.Drone.At, FormVision.Void), 6);
+        var (far, near) = (FormVision.At(VisionForm.Alarms, A.MIn.To).Meteor!.Value, FormVision.At(VisionForm.Alarms, A.MResult.To - Frame).Meteor!.Value);
+        Assert.True(Apart(far.Head, near.Head) / (A.MResult.To - A.MIn.To) < 5, "the meteor far off creeps");
+        Assert.True(far.Scale < near.Scale && near.Scale <= 0.41);
+    }
+
+    /// <summary>The frame: at rest whole, 1.3 in on a thing as it is read, kept in the pick's frame, back at rest between the things and at the end.</summary>
+    [Fact]
+    public void TheFrameFollowsAndComesBack()
+    {
+        foreach (var (form, beat) in new[] { (VisionForm.Scan, S.ARead), (VisionForm.Scan, S.BRead), (VisionForm.Lamp, L.LRead), (VisionForm.Alarms, A.CRead), (VisionForm.Alarms, A.MRead) })
+            Assert.Equal(1.3, FormVision.At(form, Mid(beat)).Cam.Zoom, 9);
+        var piece = FormVision.At(VisionForm.Scan, Mid(S.ARead)).Cam;
+        Assert.Equal(500 / 1.3, piece.Middle.X, 6);
+        Assert.Equal(236, piece.Middle.Y, 6);
+        foreach (var (form, u) in new[]
+        {
+            (VisionForm.Scan, Mid(S.AGap)), (VisionForm.Scan, S.End.To), (VisionForm.Lamp, L.End.To), (VisionForm.Alarms, Mid(A.MGap)), (VisionForm.Alarms, A.End.To),
+        })
+        {
+            var cam = FormVision.At(form, u).Cam;
+            Assert.Equal(1, cam.Zoom, 9);
+            Assert.Equal(0, Apart(cam.Middle, FormVision.Middle), 6);
+        }
+    }
+
+    /// <summary>The frame takes in the drone and what it acts on: both are in view as each result holds.</summary>
+    [Fact]
+    public void TheFrameTakesInTheDroneAsItActs()
+    {
+        foreach (var (form, beat, thing) in new[]
+        {
+            (VisionForm.Scan, S.AResult, 0), (VisionForm.Scan, S.BResult, 1), (VisionForm.Lamp, L.LResult, 0),
+            (VisionForm.Lamp, L.CResult, 1), (VisionForm.Alarms, A.MResult, 1),
+        })
+        {
+            var f = FormVision.At(form, Mid(beat));
+            double halfW = 500 / f.Cam.Zoom, halfH = 270 / f.Cam.Zoom;
+            foreach (var at in new[] { f.Drone.At, Things(f)[thing].At })
+            {
+                Assert.InRange(at.X, f.Cam.Middle.X - halfW, f.Cam.Middle.X + halfW);
+                Assert.InRange(at.Y, f.Cam.Middle.Y - halfH, f.Cam.Middle.Y + halfH);
+            }
+        }
+    }
+
+    /// <summary>It only glides: never a jump, never out of the pick's frame, so no shake.</summary>
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public void TheFrameGlidesWithNoJump(VisionForm form)
+    {
+        var was = FormVision.At(form, 0).Cam;
+        for (double u = 0; u < FormVision.SecondsOf(form); u += Frame)
+        {
+            var cam = FormVision.At(form, u).Cam;
+            Assert.True(Apart(cam.Middle, was.Middle) < 14 && Math.Abs(cam.Zoom - was.Zoom) < 0.02, $"a jump at {u:0.00} s");
+            Assert.InRange(cam.Zoom, 1 - 1e-9, 1.3 + 1e-9);
+            Assert.InRange(cam.Middle.X, 500 / cam.Zoom - 1e-6, 1000 - 500 / cam.Zoom + 1e-6);
+            Assert.InRange(cam.Middle.Y, 270 / cam.Zoom - 1e-6, 540 - 270 / cam.Zoom + 1e-6);
+            was = cam;
+        }
+    }
+
+    /// <summary>The vision's zoom at rest: whole picture px on the screen, the hero about a quarter of its height.</summary>
     [Theory]
     [InlineData(720, 4)]
     [InlineData(1080, 8)]
@@ -87,30 +274,7 @@ public class FormVisionTests
         Assert.InRange(FormVision.HeroTall * zoom / height, 0.15, 0.32);
     }
 
-    /// <summary>The crate is unseen till the beam is on and finds it, and its diagram stays once found; the beam is on only in its window.</summary>
-    [Fact]
-    public void TheLampsBeamFindsTheCrate()
-    {
-        var dark = FormVision.At(VisionForm.Lamp, FormVision.LampAt);
-        Assert.Equal((0.0, 0.0), (dark.Lamp!.Value.Light, dark.Lamp.Value.Seen));
-        var found = FormVision.At(VisionForm.Lamp, FormVision.SweepTo + 0.2);
-        Assert.Equal((1.0, 1.0), (found.Lamp!.Value.Light, found.Lamp.Value.Seen));
-        Assert.True(found.Lamp.Value.InCone > 0.99);
-        var after = FormVision.At(VisionForm.Lamp, FormVision.LightOff + 0.3);
-        Assert.Equal((0.0, 1.0), (after.Lamp!.Value.Light, after.Second!.Value.Trace));
-    }
+    private static double Mid(Beat beat) => (beat.From + beat.To) / 2;
 
-    /// <summary>The alarms: the cold's glyph, then the meteor's with the drone darting red at it; nothing more.</summary>
-    [Fact]
-    public void TheAlarmsShowTheColdThenTheMeteor()
-    {
-        Assert.Equal(DroneThought.Cold, FormVision.At(VisionForm.Alarms, 1.8).Drone.Thought);
-        var meteor = FormVision.At(VisionForm.Alarms, 2.68);
-        Assert.Equal(DroneThought.Meteor, meteor.Drone.Thought);
-        Assert.True(meteor.Drone.Dart.X > 8);
-        Assert.NotNull(meteor.Meteor);
-        Assert.True(FormVision.At(VisionForm.Alarms, 3).Drone.Red > 0.5);
-        Assert.Equal(0, FormVision.At(VisionForm.Alarms, 1.68).Drone.Dart.X, 6);
-        Assert.Null(FormVision.At(VisionForm.Alarms, 4.5).Drone.Thought);
-    }
+    private static double Apart(Vec a, Vec b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 }

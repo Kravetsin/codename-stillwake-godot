@@ -36,22 +36,13 @@ public partial class HeroView
     public Func<double, (string Form, double Seconds)?>? VisionScript { private get; set; }
 
     /// <summary>
-    /// Whether this player's hero can have a form's vision now: one that is there and not passed out, not in its drone's meeting. A lesson whose
-    /// study ends while it cannot skips its vision.
+    /// How long the vision of <paramref name="form"/> is that this player's hero can have now, s: one that is there and not passed out, not in its
+    /// drone's meeting; 0 for none. A lesson whose study ends while it is 0 skips its vision.
     /// </summary>
-    public bool CanEnvision => _m != null && _client != null && _m.Crew.EnvisionProblem(_client.Id) == null && !_meetings.ContainsKey(_client.Id);
-
-    /// <summary>Whether this player is in a form's vision this frame.</summary>
-    public bool Envisions => _vision != null;
-
-    /// <summary>How this player's vision's layer is zoomed over the screen this frame, the world to the screen; none outside one. The scanner's gauge follows it.</summary>
-    public Transform2D? VisionLayer => _vision?.View.Vision.Transform;
-
-    /// <summary>
-    /// What the scanner reads in a scanner's vision this frame: an id of its own for each piece, over the middle of its top in cells, its hit points
-    /// left of the most; none outside one.
-    /// </summary>
-    public (int Id, double X, double Y, int Left, int Max)? VisionRead => _vision?.View.Read;
+    public double VisionSeconds(string form) =>
+        _m != null && _client != null && _m.Crew.EnvisionProblem(_client.Id) == null && !_meetings.ContainsKey(_client.Id) && FormVision.Of(form) is { } kind
+            ? FormVision.SecondsOf(kind)
+            : 0;
 
     /// <summary>
     /// Starts, plays on or ends this player's vision as its lesson says, before the hero steps: a vision begins held where the hero is, its speed
@@ -60,9 +51,9 @@ public partial class HeroView
     private void Envision(Client client, Registry m, Sim.Crew.Hero? known, double elapsedMs)
     {
         var wanted = VisionScript != null ? VisionScript(elapsedMs) : DroneVision;
-        if (_vision is { } playing && (wanted is not { } now || now.Form != playing.Form || !FormVision.Playing(now.Seconds) || known == null))
+        if (_vision is { } playing && (wanted is not { } now || now.Form != playing.Form || !FormVision.Playing(playing.Kind, now.Seconds) || known == null))
             EndVision();
-        if (wanted is not { } shown || !FormVision.Playing(shown.Seconds) || known == null || FormVision.Of(shown.Form) is not { } kind) return;
+        if (wanted is not { } shown || known == null || FormVision.Of(shown.Form) is not { } kind || !FormVision.Playing(kind, shown.Seconds)) return;
         if (_vision == null)
         {
             if (_meetings.ContainsKey(client.Id) || known.Out > 0) return;
@@ -88,11 +79,11 @@ public partial class HeroView
     {
         if (_vision is not { } vision) return (pose, look);
         var frame = FormVision.At(vision.Kind, vision.U);
-        var (_, kneel, lean) = FormVision.Float(vision.U);
+        var (lift, kneel, lean) = FormVision.Float(vision.Kind, vision.U);
         figure.Kneel = new Kneeling(kneel, lean);
         figure.DroneShown = false;
         var aim = FormVisionView.AimOf(frame, FeetOf(hero), hero.Facing);
-        var neck = FeetOf(hero) - new Vector2(0, (float)(Rig.Neck + FormVision.Float(vision.U).Lift));
+        var neck = FeetOf(hero) - new Vector2(0, (float)(Rig.Neck + lift));
         return (Pose.Kneel, frame.Veil * Poses.HeadTurn((aim.X - neck.X) * hero.Facing, aim.Y - neck.Y));
     }
 
@@ -102,7 +93,7 @@ public partial class HeroView
         if (_vision is not { } vision) return;
         var frame = FormVision.At(vision.Kind, vision.U);
         Place(figure, vision.View.Vision);
-        figure.Transform = new Transform2D(0, new Vector2(hero.Facing, 1), 0, FeetOf(hero) - new Vector2(0, (float)FormVision.Float(vision.U).Lift));
+        figure.Transform = new Transform2D(0, new Vector2(hero.Facing, 1), 0, FeetOf(hero) - new Vector2(0, (float)FormVision.Float(vision.Kind, vision.U).Lift));
         vision.View.Show(frame, FeetOf(hero), hero.Facing, vision.Home, elapsedMs);
         Cutscene = (0, frame.Hud);
         // Off the world's lights his dark suit would sink into the void: brightened a little as it comes.

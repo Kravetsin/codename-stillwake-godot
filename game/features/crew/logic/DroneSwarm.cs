@@ -82,6 +82,9 @@ public sealed class DroneSwarm
     private double _changedS = double.NegativeInfinity;
     private float _wasForm, _wasTurn;
     private float? _pointed;
+    /// <summary>How long the change under way takes, s, as asked of it (form-vision); none: the shape's own time.</summary>
+    private float? _over;
+
     /// <summary>The thought whose picture it forms, and the one it left.</summary>
     private DroneThought? _thought, _wasThought;
     /// <summary>A mood's bearing (<see cref="Bear"/>): the orbits' own clock, s, their tilt, how dim it is and how swollen.</summary>
@@ -108,9 +111,9 @@ public sealed class DroneSwarm
     /// Sends it into <paramref name="shape"/> at <paramref name="timeS"/>, the lens aimed <paramref name="aim"/>, a sign turned to
     /// <paramref name="pointed"/> (none: up), a thought's picture <paramref name="thought"/>'s; the same shape only turns it. Each spark leaves
     /// from where it is now: one still on the orbits or a shape keeps running there till it leaves, one mid-flight or on a thought's picture
-    /// from where it is.
+    /// from where it is. The change takes <paramref name="over"/> s; none: the shape's own time.
     /// </summary>
-    public void Become(SwarmShape shape, float aim, double timeS, float? pointed = null, DroneThought? thought = null)
+    public void Become(SwarmShape shape, float aim, double timeS, float? pointed = null, DroneThought? thought = null, float? over = null)
     {
         if (shape == Shape && (shape != SwarmShape.Thought || thought == _thought))
         {
@@ -131,7 +134,7 @@ public sealed class DroneSwarm
             _flies[i] = f > 0 || _fromShape[i] == null || Takes(shape, i);
         }
         (_wasForm, _wasTurn, _wasThought) = (Form(timeS), TurnOf(Shape, aim, timeS), _thought);
-        (_was, Shape, _changedS, _pointed, _thought) = (Shape, shape, timeS, pointed, shape == SwarmShape.Thought ? thought : null);
+        (_was, Shape, _changedS, _pointed, _thought, _over) = (Shape, shape, timeS, pointed, shape == SwarmShape.Thought ? thought : null, over);
     }
 
     /// <summary>
@@ -145,7 +148,7 @@ public sealed class DroneSwarm
     public void Reset()
     {
         (Shape, _was, _changedS, _pointed, _wasForm, _thought, _wasThought) = (SwarmShape.Idle, SwarmShape.Idle, double.NegativeInfinity, null, 0, null, null);
-        (_reading, _readS, _openFrom) = (false, double.NegativeInfinity, 0);
+        (_reading, _readS, _openFrom, _over) = (false, double.NegativeInfinity, 0, null);
         Array.Clear(_flies);
         Array.Clear(_fromIn);
     }
@@ -357,7 +360,7 @@ public sealed class DroneSwarm
 
     /// <summary>How far into a change, in forming times: a thought's picture forms and falls apart in its own (<see cref="DroneInk.ThoughtIn"/>).</summary>
     private float Elapsed(double timeS) =>
-        (float)Math.Min(1e6, (timeS - _changedS) / (Shape == SwarmShape.Thought ? I.ThoughtIn : _was == SwarmShape.Thought ? I.ThoughtOut : I.Form));
+        (float)Math.Min(1e6, (timeS - _changedS) / (_over ?? (Shape == SwarmShape.Thought ? I.ThoughtIn : _was == SwarmShape.Thought ? I.ThoughtOut : I.Form)));
 
     /// <summary>A thought's picture standing over the core: <see cref="DroneInk.ThoughtSize"/> pick px a unit, <see cref="DroneInk.ThoughtAbove"/> up.</summary>
     private static float[][]? Stood(DroneThought thought) =>

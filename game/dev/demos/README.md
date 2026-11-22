@@ -36,7 +36,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `VitalsScenario.cs` | `--vitals`: the hero in space with three stores on the belt, the grinder, canisters, foods, the heavy helmet and a spare accumulator, not creative (hud-dials) |
 | `LessonsScenario.cs` | `--lessons`: a hero paired by an emergency lamp and a wreck, nine broken: walks into the lamp's reach and learns the alarms, breaks the tenth and learns the scan (drone-lessons) |
 | `DroneMoodsScenario.cs` | `--drone-moods`: a hero in a helmet alone standing still, paired and knowing the alarms, a lamp 30 cells off: curious, cold at 20 and 40 s, a meteor at 27 s, a flare at 32 s, creative at 43 s, bored at 60 s, a death at 67 s and love on waking (drone-thoughts) |
-| `FormVisionScenario.cs` | `--form-vision`: a hero paired and creative in a corridor; the scanner's, the lamp's and the alarms' visions at 3, 11 and 19 s, 5 s each (form-vision) |
+| `FormVisionScenario.cs` | `--form-vision`: a hero paired and creative in a corridor; the scanner's vision at 3-16.8 s, the lamp's at 18-30.7, the alarms' at 32-45.5, each whole (form-vision) |
 | `ThermometerScenario.cs` | `--thermometer`: the first planet, the hero suited and creative with a cape on the hotbar; F6 the next band's cave, F7 night or day (hud-dials, body-temperature) |
 
 ## How a run is put together

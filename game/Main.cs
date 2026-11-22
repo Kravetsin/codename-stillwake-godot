@@ -460,7 +460,7 @@ public partial class Main : Node2D, ITogether
         AddChild(new FindScanView(tech.Scan, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null,
             () => _hero?.Shown?.Head, () => _hero?.DroneScan, () => _hands.Ui.Slot, at => { if (_hero != null) _hero.DroneStare = at; },
             form => _session is Session s ? FindScanView.TeacherOf(_m, s.Client.Id, form, _debris.LastBroken) : null, at => { if (_hero != null) _hero.DroneVisit = at; },
-            show => { if (_hero != null) _hero.DroneVision = show; }, () => _hero?.CanEnvision == true));
+            show => { if (_hero != null) _hero.DroneVision = show; }, form => _hero?.VisionSeconds(form) ?? 0));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
@@ -734,11 +734,7 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
-        // In a scanner's vision (form-vision) it reads the vision's pieces, over the vision, which the HUD's layer is moved off with.
-        _scanner.Layer = _hero?.Envisions == true ? ScreenLayers.VisionGauge : ScreenLayers.Hud;
-        (_scanner.FollowViewportEnabled, _scanner.Transform) = _hero?.VisionLayer is { } zoomed ? (false, zoomed) : (true, Transform2D.Identity);
-        _scanner.Frame(_hero?.VisionRead is { } vision ? new Features.Scanner.Readout(vision.Id, vision.X, vision.Y, vision.Left, vision.Max)
-            : _hero?.Scanning == true && _hero.Pointer() is { } pointer
+        _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null,
             _hero?.DroneScan, delta * 1000);
         _hero?.DroneGauge(_scanner.Reads, _scanner.Away);
