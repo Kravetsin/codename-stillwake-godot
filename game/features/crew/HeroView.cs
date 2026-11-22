@@ -452,20 +452,26 @@ public partial class HeroView : Node2D
     public (Vector2 Head, Vector2 Feet)? Shown => _placed && _figure.Visible ? (_figure.HeadAt, _figure.Stance.Feet) : null;
 
     /// <summary>
-    /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels, and the way it
-    /// points, where its head looks, and the helmet's neck, inside the hero (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
+    /// Where every helmet lamp worn on this surface shines from this frame, in the world's pixels, in its hero's open air, and
+    /// the way it points (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
     /// everyone in it. What the light draws.
     /// </summary>
-    public IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)> HeadLamps()
+    public IReadOnlyList<(Vector2 At, Vector2 Toward)> HeadLamps()
     {
         _headLamps.Clear();
-        if (_figure.Shines && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward, _figure.HeadAt));
+        if (_figure.Shines && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward));
         foreach (var (_, shown) in _shownOthers)
-            if (shown.Figure.Visible && shown.Figure.Shines) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward, shown.Figure.HeadAt));
+            if (shown.Figure.Visible && shown.Figure.Shines) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward));
         return _headLamps;
     }
 
-    private readonly List<(Vector2 At, Vector2 Toward, Vector2 Head)> _headLamps = [];
+    private readonly List<(Vector2 At, Vector2 Toward)> _headLamps = [];
+
+    private Func<double, double, bool>? _stopsLight;
+
+    /// <summary>Whether a point of this surface, as this peer shows it, stops light: what keeps a drone and its light in the open air.</summary>
+    private bool StopsLight(double x, double y) =>
+        _ship is { } ship && Shared.OpenAir.Blocks(ship.StructureAt, ship.Width, ship.Height, ShipCamera.Cell, x, y);
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
@@ -678,7 +684,9 @@ public partial class HeroView : Node2D
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var (helmet, body, cape, effect) = Suits.DressedAs(m.Items, m.Players, client.Id);
-        _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
+        int colour = Suits.Of(m.Players, client.Id);
+        _figure.Wear(colour, helmet, body, m.Players.LookOf(client.Id));
+        EmberArt.Mine = Salts.Of(colour);
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
@@ -706,6 +714,7 @@ public partial class HeroView : Node2D
         _figure.Suffers(Report.ColdOf(Body), Report.HeatOf(Body));
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Room = RoomOf(ship, drawn);
+        _figure.StopsLight = _stopsLight ??= StopsLight;
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);

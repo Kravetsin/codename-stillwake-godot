@@ -189,7 +189,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
-| [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
+| [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes, drone-colour |
 | [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted | board-islands (in part) |
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted | board-islands (in part) |
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted | board-islands (in part) |
@@ -413,18 +413,21 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted | drone-threads, drone-windows (in part) |
 | [drone-lessons](2026-11-21-drone-lessons.md) | The drone learns its forms from what its player does | accepted | drone-thoughts, form-vision (in part) |
 | [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted | drone-threads (in part) |
-| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted | drone-thoughts (in part) |
-| [drone-threads](2026-11-21-drone-threads.md) | The drone of threads: a coal core and sparks, no plates and no holograms | accepted | drone-windows, scan-form (in part) |
-| [drone-windows](2026-11-21-drone-windows.md) | The drone's windows open in four ember corners; before the pairing only the gear and the stations open | accepted |  |
+| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted | drone-spring, drone-thoughts (in part) |
+| [drone-threads](2026-11-21-drone-threads.md) | The drone of threads: a coal core and sparks, no plates and no holograms | accepted | drone-windows, scan-form, drone-colour (in part) |
+| [drone-windows](2026-11-21-drone-windows.md) | The drone's windows open in four ember corners; before the pairing only the gear and the stations open | accepted | drone-colour (in part) |
 | [find-scan](2026-11-21-find-scan.md) | The drone scans each find over the hero's head | accepted | form-vision (in part) |
 | [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |
 | [gear-roles](2026-11-21-gear-roles.md) | Helmets and suits each add their degrees; the heated and heat helmets | accepted |  |
-| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted | drone-lessons, drone-threads, thread-icons (in part) |
+| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted | drone-lessons, drone-threads, thread-icons, drone-spring (in part) |
 | [own-knowledge](2026-11-21-own-knowledge.md) | Each player learns for themself; purchases are the crew's | accepted |  |
 | [scan-form](2026-11-21-scan-form.md) | The drone's scan form is a reticle, its marks the gauge's dots | accepted |  |
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
-| [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted |  |
+| [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted | drone-colour (in part) |
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
+| [drone-colour](2026-11-22-drone-colour.md) | The drone burns in its player's colour; eight suit colours, none amber | accepted |  |
+| [drone-spring](2026-11-22-drone-spring.md) | The drone catches up on a spring and shines from open air | accepted |  |
 | [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |
+| [drone-tow](2026-11-22-drone-tow.md) | In a long flight the drone plays the tug | accepted |  |
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |

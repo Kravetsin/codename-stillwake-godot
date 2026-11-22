@@ -2,7 +2,8 @@
 
 - Status: accepted; supersedes in part [drone-frame](2026-11-21-drone-frame.md) (the tablets' fade and buzzing frame, the
   machine windows as the drone's, everything opening before the pairing), [drone-threads](2026-11-21-drone-threads.md) (the
-  windows' two rows of ember squares) and [drone-companion](2026-11-21-drone-companion.md) (only the bag waiting for the pairing)
+  windows' two rows of ember squares) and [drone-companion](2026-11-21-drone-companion.md) (only the bag waiting for the pairing);
+  the corners in ember superseded by [drone-colour](2026-11-22-drone-colour.md)
 - Date: 2026-11-21
 
 ## Context

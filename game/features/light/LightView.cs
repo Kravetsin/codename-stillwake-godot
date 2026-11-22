@@ -92,7 +92,7 @@ public partial class LightView : Node2D
     /// Where each helmet lamp worn on this surface shines from this frame, in pixels of the world, and the way it points, a
     /// unit vector (0077): none till the crew answers it.
     /// </summary>
-    public Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps { get; set; } = () => [];
+    public Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps { get; set; } = () => [];
 
     /// <summary>
     /// The views whose lights are drawn too, each frame's: plants' glowing parts, caves' growths, lava, homes, spires, benches'
@@ -267,9 +267,9 @@ public partial class LightView : Node2D
             _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
         }
         // A helmet lamp: its beam the way the head looks, and a faint glow round it, both from its lens.
-        foreach (var (at, toward, head) in HeadLamps())
+        foreach (var (at, toward) in HeadLamps())
         {
-            var (beam, glow) = Sources.HeadLamp((at.X, at.Y), (toward.X, toward.Y), (head.X, head.Y), _blocks ??= Blocks);
+            var (beam, glow) = Sources.HeadLamp((at.X, at.Y), (toward.X, toward.Y));
             _main.Add(beam);
             _main.Add(glow);
         }
@@ -319,11 +319,6 @@ public partial class LightView : Node2D
         _lightmap.Frame(view, _main, _spots);
         Game.Dev.FrameLog.End("lightmap", started);
     }
-
-    private Func<double, double, bool>? _blocks;
-
-    /// <summary>Whether a point of the world, in pixels, lies where light stops.</summary>
-    private bool Blocks(double x, double y) => Sources.Blocks(_grid.StructureAt, _grid.Width, _grid.Height, Cell, x, y);
 
     /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels, within twenty; else twelve cells under it.</summary>
     private double FloorUnder(int cell)

@@ -48,7 +48,7 @@ public class GrateTests
         var cells = new byte[3];
         Sources.Occupy(structure, new int[structure.Length], c => structure[c], 3, new Stillwake.Sim.Box(0, 0, 2, 0), cells);
         Assert.Equal(new[] { Sources.Open, Sources.Wall, Sources.Open }, cells);
-        Assert.False(Sources.Blocks(c => structure[c], 3, 1, 16, 8, 8));
+        Assert.False(Stillwake.Game.Shared.OpenAir.Blocks(c => structure[c], 3, 1, 16, 8, 8));
     }
 
     /// <summary>The hero's floors map with its decks of grates: it stands on one, drops through with down, and down held takes it through both.</summary>

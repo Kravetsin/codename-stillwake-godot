@@ -29,7 +29,7 @@ public enum SwarmShape
 /// One spark as drawn, pick px about the core (<see cref="DroneInk.Px"/> world px each): its middle, its heading for its tail,
 /// whether before the core, how hot (before an alarm), and while it flies a thread from where it left.
 /// </summary>
-public readonly record struct Spark(float X, float Y, float Dx, float Dy, bool Front, float Heat, bool Flying, float FromX, float FromY);
+public readonly record struct Spark(float X, float Y, float Dx, float Dy, bool Front, float Heat, bool Flying, float FromX, float FromY, bool Shaped = false);
 
 /// <summary>
 /// The light drone's body (drone-threads, the pick «Нити»): <see cref="DroneInk.Sparks"/> sparks running round three tilted orbits,
@@ -88,7 +88,7 @@ public sealed class DroneSwarm
     /// <summary>The thought whose picture it forms, and the one it left.</summary>
     private DroneThought? _thought, _wasThought;
     /// <summary>A mood's bearing (<see cref="Bear"/>): the orbits' own clock, s, their tilt, how dim it is and how swollen.</summary>
-    private float _orbitLead, _tilt, _dim, _swell = 1;
+    private float _orbitLead, _tilt, _dim, _swell = 1, _flat = 1;
 
     /// <summary>The shape it is in or forming.</summary>
     public SwarmShape Shape { get; private set; } = SwarmShape.Idle;
@@ -140,9 +140,9 @@ public sealed class DroneSwarm
     /// <summary>
     /// A mood's bearing this frame (drone-thoughts): its orbits <paramref name="orbitLead"/> seconds ahead of the swarm's time (hurried or slowed),
     /// tilted <paramref name="tilt"/>, its idle sparks <paramref name="dim"/>, its body <paramref name="swell"/> times its size, which its
-    /// thought's picture keeps out of.
+    /// thought's picture keeps out of; a tow's effort makes them <paramref name="flat"/> times as round (drone-tow).
     /// </summary>
-    public void Bear(float orbitLead, float tilt, float dim, float swell) => (_orbitLead, _tilt, _dim, _swell) = (orbitLead, tilt, dim, swell);
+    public void Bear(float orbitLead, float tilt, float dim, float swell, float flat = 1) => (_orbitLead, _tilt, _dim, _swell, _flat) = (orbitLead, tilt, dim, swell, flat);
 
     /// <summary>Back on the idle orbits at once, nothing in flight: shown again after it was hidden, or on a load.</summary>
     public void Reset()
@@ -218,11 +218,11 @@ public sealed class DroneSwarm
     public Spark SparkAt(int i, float aim, double timeS)
     {
         float t = (float)timeS;
-        var orbit = Orbit(i, (float)timeS + _orbitLead, _tilt);
+        var orbit = Orbit(i, (float)timeS + _orbitLead, _tilt, _flat);
         bool toIn = In(i);
         var (tx, ty, tdx, tdy) = toIn ? Place(Shape, i, TurnOf(Shape, aim, timeS), timeS) : (orbit.X, orbit.Y, orbit.Dx, orbit.Dy);
         float k = Progress(i, timeS, toIn);
-        if (k >= 1) return toIn ? new Spark(tx, ty, tdx, tdy, true, HeatOf(i, 1, t), false, 0, 0) : Orbiting(i, orbit, t);
+        if (k >= 1) return toIn ? new Spark(tx, ty, tdx, tdy, true, HeatOf(i, 1, t), false, 0, 0, Shaped: true) : Orbiting(i, orbit, t);
         float f = _fromIn[i] + ((toIn ? 1 : 0) - _fromIn[i]) * k;
         var from = _fromShape[i] switch
         {
@@ -232,12 +232,12 @@ public sealed class DroneSwarm
         };
         if (k <= 0)
             return _fromShape[i] == SwarmShape.Idle ? Orbiting(i, orbit, t)
-                : new Spark(from.X, from.Y, from.Dx, from.Dy, f > 0.5f || orbit.Z >= 0, HeatOf(i, f, t), false, 0, 0);
+                : new Spark(from.X, from.Y, from.Dx, from.Dy, f > 0.5f || orbit.Z >= 0, HeatOf(i, f, t), false, 0, 0, Shaped: f > 0);
         float s = Smooth(k), x = from.X + (tx - from.X) * s, y = from.Y + (ty - from.Y) * s;
         float dx = tx - from.X, dy = ty - from.Y, d = MathF.Sqrt(dx * dx + dy * dy);
         if (d < 1e-4f) (dx, dy, d) = (tdx, tdy, 1);
         float heat = HeatOf(i, f, t) + I.FlightBump * MathF.Sin(k * MathF.PI);
-        return new Spark(x, y, dx / d, dy / d, f > 0.5f || orbit.Z >= 0, heat, true, from.X, from.Y);
+        return new Spark(x, y, dx / d, dy / d, f > 0.5f || orbit.Z >= 0, heat, true, from.X, from.Y, Shaped: f > 0);
     }
     /// <summary>Spark <paramref name="i"/>'s rank along a shape, -1 if it keeps orbiting through every shape.</summary>
     public static int RankOf(int i) => Ranks[i];
@@ -253,14 +253,14 @@ public sealed class DroneSwarm
     /// Spark <paramref name="i"/> on its orbit at <paramref name="t"/>: its place, heading and side (before the core from 0): the
     /// pick's <c>orbit</c>, hurried and widened as «Нити» runs it; the orbits tilted <paramref name="tilted"/> more by a mood.
     /// </summary>
-    public static (float X, float Y, float Dx, float Dy, float Z) Orbit(int i, float t, float tilted = 0)
+    public static (float X, float Y, float Dx, float Dy, float Z) Orbit(int i, float t, float tilted = 0, float flat = 1)
     {
         var (phase, r1) = Seeds[i];
         int o = i % 3;
         float way = o % 2 == 1 ? -1 : 1, th = phase + t * (I.OrbitPace + I.OrbitPaceMore * o) * way * I.OrbitHurry;
         float rx = (I.Orbit + o * I.OrbitMore + (r1 - 0.5f) * I.OrbitSpread) * I.OrbitWide, tilt = I.OrbitTilt + o * I.OrbitTiltMore + tilted;
-        var (x, y) = Rotate(MathF.Cos(th) * rx, MathF.Sin(th) * rx * I.OrbitFlat, tilt);
-        var (vx, vy) = Rotate(-MathF.Sin(th) * way, MathF.Cos(th) * I.OrbitFlat * way, tilt);
+        var (x, y) = Rotate(MathF.Cos(th) * rx, MathF.Sin(th) * rx * I.OrbitFlat * flat, tilt);
+        var (vx, vy) = Rotate(-MathF.Sin(th) * way, MathF.Cos(th) * I.OrbitFlat * flat * way, tilt);
         float v = MathF.Sqrt(vx * vx + vy * vy);
         if (v == 0) v = 1;
         return (x, y, vx / v, vy / v, MathF.Sin(th));

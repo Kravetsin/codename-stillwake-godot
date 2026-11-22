@@ -4,7 +4,7 @@
   [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) (the helmet lamp, an item),
   [gestures-for-words](2026-11-16-gestures-for-words.md) and [crew-pings](2026-11-16-crew-pings.md) (their key, F); its look and a gesture's hologram superseded by [drone-threads](2026-11-21-drone-threads.md);
   the modes bought on the market superseded by [drone-lessons](2026-11-21-drone-lessons.md), the wheel's look by
-  [thread-icons](2026-11-21-thread-icons.md)
+  [thread-icons](2026-11-21-thread-icons.md), walls ignored by its perch and light by [drone-spring](2026-11-22-drone-spring.md)
 - Date: 2026-11-21
 
 ## Context

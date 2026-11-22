@@ -4,12 +4,12 @@ using Stillwake.Sim.Players;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The suit colours (features/crew/suits.ts), one for each of <c>Content.Crew.Colours</c>: far apart, and
-/// none red, which the screen keeps for danger and refusals. Colours are 0xRRGGBB.
+/// The suit colours (the pick «Восемь экипажа»), one for each of <c>Content.Crew.Colours</c>: far apart, none red, which
+/// the screen keeps for danger and refusals, none amber, which would be lost in the drone's ember. Colours are 0xRRGGBB.
 /// </summary>
 public static class Suits
 {
-    public static readonly int[] All = [0xe8b04a, 0x5fc8c0, 0xa08cf0, 0x8cd06a, 0x5a8ef0, 0xe88cc8];
+    public static readonly int[] All = [0xd8ec54, 0x5fc8c0, 0x5a8ef0, 0xdc54cc, 0x8cc4f8, 0x8c64e8, 0xe88cc8, 0x8cd06a];
 
     /// <summary>The suit colour hero <paramref name="id"/> wears, as the sim says; the first while the sim does not know it.</summary>
     public static int Of(IPlayersQueries players, int id) =>

@@ -815,10 +815,12 @@ public partial class Figure : Node2D
 
     /// <summary>Its drone's mind, its perches its own: they may differ between screens.</summary>
     private readonly DroneWill _will = new(new Random());
+    /// <summary>Its drone playing the tug in a long flight (drone-tow).</summary>
+    private readonly DroneTow _tow = new();
     /// <summary>Whether its drone was hidden since it last flew: shown again, it starts at its anchor.</summary>
     private bool _droneLost = true;
-    /// <summary>Whether it lies or tumbles as last shown: its drone's anchor is over the body's middle then.</summary>
-    private bool _lying;
+    /// <summary>Whether it lies as last shown, and whether it is afloat or tumbles: what its drone's anchor is over then.</summary>
+    private bool _lying, _unweighted;
 
     /// <summary>Its drone's anchor as drawn now, pixels of the world (<see cref="DroneFlight.Anchor"/>).</summary>
     public Vector2 DroneAnchor
@@ -827,7 +829,10 @@ public partial class Figure : Node2D
         {
             var neck = _helmet.GlobalPosition;
             var waist = _waist.GlobalPosition;
-            var anchor = DroneFlight.Anchor(new Vec(neck.X, neck.Y), _frame.GlobalPosition.X, _lying ? new Vec(waist.X, waist.Y) : null);
+            var middle = _body.GlobalPosition;
+            // The figure's own column and middle: the frame's feet swing with the lean and mirror at once on a twist.
+            var anchor = _unweighted ? DroneFlight.AnchorAfloat(new Vec(middle.X, middle.Y))
+                : DroneFlight.Anchor(new Vec(neck.X, neck.Y), GlobalPosition.X, _lying ? new Vec(waist.X, waist.Y) : null);
             return new Vector2((float)anchor.X, (float)anchor.Y);
         }
     }
@@ -885,8 +890,21 @@ public partial class Figure : Node2D
         for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
     }
 
-    /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
-    public Vector2 HeadLampAt => _drone.GlobalPosition;
+    /// <summary>Whether a point of its surface stops light; none where it stands on no grid.</summary>
+    public Func<double, double, bool>? StopsLight { get; set; }
+
+    /// <summary>Where its drone's light shines from, pixels of the world: its lens, or in a wall or past one the open point nearest it.</summary>
+    public Vector2 HeadLampAt
+    {
+        get
+        {
+            var lens = _drone.GlobalPosition;
+            if (StopsLight is not { } stops) return lens;
+            var neck = HeadAt;
+            var open = OpenAir.Nearest(new Vec(lens.X, lens.Y), new Vec(neck.X, neck.Y), stops);
+            return new Vector2((float)open.X, (float)open.Y);
+        }
+    }
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
     public Vector2 Visor => _crown.ToGlobal(VisorOn);
@@ -899,7 +917,7 @@ public partial class Figure : Node2D
 
     /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces, a bolted helmet's too.</summary>
     public Vector2 HeadLampToward =>
-        LampAim is { } aim && aim.DistanceTo(_drone.GlobalPosition) > 1 ? (aim - _drone.GlobalPosition).Normalized()
+        LampAim is { } aim && HeadLampAt is var lit && aim.DistanceTo(lit) > 1 ? (aim - lit).Normalized()
             : _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
@@ -1136,6 +1154,7 @@ public partial class Figure : Node2D
         look ??= Look.Zero;
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
         (_colour, _helmetWorn, _bodyWorn, _look) = (colour, helmet, body, look);
+        _drone.Salts = Shared.Salts.Of(colour);
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
         foreach (var (sprite, part, isFar) in _parts)
         {
@@ -1843,7 +1862,7 @@ public partial class Figure : Node2D
         _crown.Transform = Turned(crown);
         foreach (var picture in _helmetPictures) picture.Show(bend);
         _sealBent.Show(_fit.SealBy(_gaze));
-        _lying = !awake;
+        (_lying, _unweighted) = (pose == Pose.Lie, pose is Pose.Float or Pose.Tumble);
         if (_drone.Visible)
         {
             // Projecting, it flies before the hero's waist, its sparks in a flurry about it (drone-windows); else it flies by its own
@@ -1855,6 +1874,7 @@ public partial class Figure : Node2D
             {
                 _drone.Lose();
                 _will.Reset();
+                _tow.Lose();
             }
             Vec? lens = !overDrone && (_lampWorn || _scannerWorn) && HeadLampToward is var toward ? new Vec(toward.X, toward.Y) : null;
             if (!overDrone && DroneStare is { } stare && stare.DistanceTo(_drone.GlobalPosition) > 1 && (stare - _drone.GlobalPosition).Normalized() is var way)
@@ -1870,9 +1890,16 @@ public partial class Figure : Node2D
                 Visit = !overDrone && DroneVisit is { } visit ? new Vec(visit.X, visit.Y) : null,
                 Icon = Senses.Icon || DroneStare != null || DroneVisit != null,
                 Reads = _droneReads,
+                Neck = new Vec(HeadAt.X, HeadAt.Y),
+                StopsLight = StopsLight,
             };
             var intent = _will.Pick(senses, elapsedMs);
-            _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
+            var velocity = DroneFlight.VelocityOf(hero.Vx, hero.Vy);
+            bool mayTow = pose == Pose.Float && intent.Free && !_drone.Scripted;
+            _tow.Step(senses.Anchor, velocity, hero.Facing, senses.At, mayTow, StopsLight, elapsedMs);
+            // On the body as drawn, so a twist never leaves the thread's end beside it.
+            var held = _waist.ToGlobal(new Vector2((float)(_tow.Hold.X * hero.Facing), (float)(_tow.Hold.Y - Rig.H / 2)));
+            _drone.Follow(senses.Anchor, velocity, intent, overDrone, elapsedMs, _timeMs, _tow, new Vec(held.X, held.Y));
             _droneLost = false;
             _drone.Projecting = overDrone;
             _drone.Sign(signing ? Gesture : null);

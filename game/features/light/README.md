@@ -20,7 +20,7 @@
 | `logic/VesselLights.cs` | Their looks, by its seed. |
 
 A dim ship lit by lamps, fires, glows and the stars, whole in open space, falling off
-within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at the 8 px
+within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at 8 px
 cell (0104); the shader walks up to 160 cells a line. Numbers: `game/Content/logic/Light.cs`; `LightView` holds
 the reaches of fire, particles, screens.
 
@@ -74,9 +74,9 @@ the reaches of fire, particles, screens.
   × `OreShine`, its brightness and the atlas's specular mask (`OreMask`, a vein less its host).
   `CanvasModulate` of `Light.Ambient` tints only what is drawn without `Lit`, not unshaded things.
 - **Lit:** cells, machines, cables, floor stacks, debris, heroes; not fire, glows, particles, plans, overlays.
-- **Light drones** (0077, `HeroView.HeadLamps()`): a `HeadLamp` beam within
-  `HeadLampHalfAngle` of the head's way, plus `HeadGlow` round, both from its lens, or in a wall the open
-  point next to it toward the neck (`Sources.HeadLamp`). A beam is a `LightSource` with a `Toward`.
+- **Light drones** (0077, `HeroView.HeadLamps`): a `HeadLamp` beam within
+  `HeadLampHalfAngle` of the aim, else the head's way, and `HeadGlow` round, both from its lens or the open
+  point nearest it in the neck's sight (`OpenAir`, drone-spring): `Sources.HeadLamp`, a beam by `Toward`.
 - **Underground is black** (0077): no ambient (`Lit.Ambient` from the sky; the ship keeps `Light.Ambient`).
   Daylight keeps `GroundKeep` a cell of air in from the open, `GroundDownKeep` down a shaft. Lamps and
   beams enter solid ground by `wall_keep` a cell (`through`), aboard too; on a planet

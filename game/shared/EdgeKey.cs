@@ -5,8 +5,8 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// A key on the tablet's edge (<see cref="TabletEdge"/>) in the thread icons' look, the pick «Одна нить»: a dark ember glass, its rim and
-/// its motif each one ember thread (<see cref="ThreadIcon"/>), dim unless the pointer nears the screen's foot. Under the pointer a spark
+/// A key on the tablet's edge (<see cref="TabletEdge"/>) in the thread icons' look, the pick «Одна нить»: a glass darkly of the player's colour, its
+/// rim and motif each one thread of that colour (<see cref="ThreadIcon"/>), dim unless the pointer nears the screen's foot. Under the pointer a spark
 /// runs the motif; held it stands and the key sinks a pixel; while what it switches is on a spark walks it slowly on a warmer glass;
 /// while it tells of something waiting it pulses. A number it carries stands on a plate at its foot, counted to and flared
 /// (<see cref="CountFlare"/>).
@@ -34,7 +34,7 @@ public partial class EdgeKey : Control
     private readonly float _seed;
     private bool _down, _hover, _counted;
     private double _t;
-    private (float, bool, bool, bool, int, double, bool) _drawn;
+    private (float, bool, bool, bool, int, double, bool, Salts) _drawn;
     private readonly StyleBoxFlat _box = new() { AntiAliasing = true };
 
     /// <param name="name">Its motif, one of <see cref="EdgeRow.Keys"/>: its thread icon (<see cref="ThreadIcon.Named"/>).</param>
@@ -85,7 +85,7 @@ public partial class EdgeKey : Control
         var look = Look;
         // Drawn each frame only while a spark runs or it pulses: still, only when what it shows changes.
         bool moving = look.Waiting || !look.Held && (look.Hover > 0.01f || look.On);
-        var drawn = (look.Level, look.On, look.Held, look.Waiting, _count.Shown, moving ? _t : 0, _counted);
+        var drawn = (look.Level, look.On, look.Held, look.Waiting, _count.Shown, moving ? _t : 0, _counted, EmberArt.Mine);
         if (drawn == _drawn) return;
         _drawn = drawn;
         _marks.Clear();
@@ -118,7 +118,7 @@ public partial class EdgeKey : Control
     {
         float b = _drawn.Item1;
         if (b <= 0.01f) return;
-        var deep = EmberArt.Ember;
+        var deep = EmberArt.Mine.Line();
         _box.BgColor = _on() ? new Color(deep.R * 0.3f, deep.G * 0.3f, deep.B * 0.3f, 0.7f) : new Color(deep.R * 0.1f, deep.G * 0.1f, deep.B * 0.1f, Mathf.Min(0.75f, 0.25f + 0.5f * b));
         DrawStyleBox(_box, Screen.Grow(-0.5f));
     }
@@ -135,8 +135,8 @@ public partial class EdgeKey : Control
             float wide = NumberFont.GetStringSize(text, HorizontalAlignment.Left, -1, NumberSize).X + 6, mid = Side / 2f, baseline = s.End.Y + NumberDown;
             var plate = new Rect2(mid - wide / 2, baseline - 12, wide, 14);
             DrawRect(plate, new Color(4 / 255f, 6 / 255f, 9 / 255f, 0.85f));
-            DrawRect(plate.Grow(-0.5f), EmberArt.Ember with { A = 0.55f * b }, false, 1);
-            var ink = EmberArt.Of(0.45f, Mathf.Min(1, b)).Lerp(Flared, (float)key._count.Heat * 0.6f);
+            DrawRect(plate.Grow(-0.5f), EmberArt.Of(EmberArt.Mine.Line(), 0.55f * b), false, 1);
+            var ink = EmberArt.Of(EmberArt.Mine.Line(0.45f), b).Lerp(Flared, (float)key._count.Heat * 0.6f);
             DrawString(NumberFont, new Vector2(plate.Position.X + 3, baseline), text, HorizontalAlignment.Left, -1, NumberSize, ink);
         }
     }
