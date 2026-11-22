@@ -7,7 +7,7 @@
     const moves = rig.move(s), at = {}, out = [];
     const visit = p => {
       if (at[p.id]) return at[p.id];
-      const m = moves[p.id] || {}, k = p.k || 1;
+      const m = moves[p.id] || {}, grown = m.grow === undefined ? 1 : m.grow, k = (p.k || 1) * grown;
       let o = p.at, a = (p.a || 0) + (m.a || 0);
       if (m.x || m.y) o = [o[0] + (m.x || 0), o[1] + (m.y || 0)];
       if (p.parent) {
@@ -15,11 +15,13 @@
         o = [P.o[0] + x * Math.cos(P.a) - y * Math.sin(P.a), P.o[1] + x * Math.sin(P.a) + y * Math.cos(P.a)];
         a = P.a + a * P.flip;
       }
-      return (at[p.id] = { part: p, o, a, k, flip: p.flip ? -1 : 1, pic: m.pic || p.pic, hidden: m.hidden });
+      return (at[p.id] = { part: p, o, a, k, flip: p.flip ? -1 : 1, pic: m.pic || p.pic, hidden: grown < .02 });
     };
     for (const p of rig.parts) out.push(visit(p));
     return out;
   }
+  // what a sleeper folds away grows back out of its joint as it wakes
+  function awake(s) { const u = Math.max(0, Math.min(1, (.9 - s.sleep) / .65)); return s.dead ? 1 : u * u * (3 - 2 * u); }
   // c stands at the body's middle in world px; res picks the cut: 'hd' (the game's) or 'hi'
   function draw(c, rig, s, images, res = 'hd') {
     let n = -1;
@@ -49,5 +51,5 @@
   }
   // the states every body answers to, each 0..1 but t (seconds) and v (its flight along its own axes, -1..1)
   const rest = o => ({ t: 0, v: [0, 0], sleep: 0, tell: 0, grip: 0, hurt: 0, dead: 0, ...o });
-  root.BreakerRig = { posed, draw, ready, rest };
+  root.BreakerRig = { posed, draw, ready, rest, awake };
 })(typeof window === 'undefined' ? globalThis : window);

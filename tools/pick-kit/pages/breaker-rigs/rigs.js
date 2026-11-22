@@ -3,7 +3,7 @@
 (root => {
   const R = root.RIGS = root.RIGS || {}, TAU = Math.PI * 2, PI = Math.PI;
   const off = s => s.sleep > .5 || s.dead > 0;
-  const asleep = s => s.sleep > .6 && !s.dead;
+  const out = s => root.BreakerRig.awake(s);
   const fast = s => Math.min(1, Math.hypot(s.v[0], s.v[1]));
   const shake = s => s.tell * Math.sin(s.t * 47) * .03;
   const body = (id, scale, parts, joints, move) => { R[id] = { id, scale, parts, joints, move }; };
@@ -13,8 +13,8 @@
     parts.push({ id: `hand${n}`, pic: 'open', parent: `arm${n}`, at: J.elbow, pivot: J.wrist, a: 0, k, flip });
   };
   const hands = (m, n, s, shoulder, bend) => {
-    m[`arm${n}`] = { a: shoulder, hidden: asleep(s) };
-    m[`hand${n}`] = { a: bend, hidden: asleep(s), pic: s.grip > .5 ? 'shut' : 'open' };
+    m[`arm${n}`] = { a: shoulder, grow: out(s) };
+    m[`hand${n}`] = { a: bend, grow: out(s), pic: s.grip > .5 ? 'shut' : 'open' };
   };
 
   // «Прорва»: a ring, four thrusters that steer, six arms into the hole
@@ -47,7 +47,7 @@
       const w = Math.sin(s.t * 4), m = {};
       m.shell = { pic: off(s) ? 'dead' : 'shell', a: w * .04 + shake(s) - s.tell * .28 + s.grip * .16 - s.hurt * .4, y: s.sleep * 22 };
       m.rear = { a: w * .1 + fast(s) * .5 + s.tell * .6 - s.sleep * .2 };
-      m.under = { hidden: asleep(s) };
+      m.under = { grow: out(s) };
       for (let i = 0; i < 2; i++) { const u = Math.sin(s.t * 5 + i * 2); hands(m, i, s, u * .2 - s.tell * 1.1 - s.grip * .7 + s.hurt * .6, -.6 + u * .25 - s.tell * .5 + s.grip * .5); }
       return m;
     });
@@ -70,7 +70,7 @@
         m[`plate${i}`] = { a: w * .07 * (1 - s.sleep) + fast(s) * .45 + s.tell * (rests[i] * 1.2 + .15) - s.sleep * rests[i] * .75 + s.hurt * (i - 1.5) * .3 };
         hands(m, i, s, w * .18 - s.tell * .5 + s.grip * (1.5 - i) * .12, -.35 + w * .3 - s.tell * .7 + s.grip * .5);
       }
-      m.inner = { hidden: asleep(s) };
+      m.inner = { grow: out(s) };
       return m;
     });
   }
@@ -89,7 +89,7 @@
       m.top = { pic: off(s) ? 'dead' : 'top', y: -open, a: -s.tell * .3 + s.grip * .12 - s.hurt * .35 - fast(s) * .05 };
       m.low = { y: open, a: s.tell * .3 - s.grip * .12 + s.hurt * .3 + fast(s) * .05 };
       for (let i = 0; i < 4; i++) { const w = Math.sin(s.t * 6 + i * 1.5); hands(m, i, s, w * .16 + s.tell * (i - 1.5) * .25, w * .3 - s.grip * (i - 1.5) * .2); }
-      m.cable0 = { hidden: asleep(s) }; m.cable1 = { hidden: asleep(s) };
+      m.cable0 = { grow: out(s) }; m.cable1 = { grow: out(s) };
       return m;
     });
   }
@@ -156,9 +156,9 @@
       for (let i = 0; i < 5; i++) {
         const side = i < 2 ? 1 : i > 2 ? -1 : 0, w = Math.sin(s.t * 4 - i * .9) * (1 - s.sleep);
         const curl = side || 1;
-        m[`root${i}`] = { a: w * .12 + (2 - i) * (s.tell * .3 - fast(s) * .08 - s.sleep * .12) + side * s.grip * 2.2 + s.hurt * w * .4, hidden: asleep(s) };
-        m[`middle${i}`] = { a: w * .2 + curl * (s.tell * .5 - s.grip * .15), hidden: asleep(s) };
-        m[`claw${i}`] = { a: w * .3 + curl * (s.tell * .4 + s.grip * .5), hidden: asleep(s), pic: s.grip > .5 ? 'hook' : 'claw' };
+        m[`root${i}`] = { a: w * .12 + (2 - i) * (s.tell * .3 - fast(s) * .08 - s.sleep * .12) + side * s.grip * 2.2 + s.hurt * w * .4, grow: out(s) };
+        m[`middle${i}`] = { a: w * .2 + curl * (s.tell * .5 - s.grip * .15), grow: out(s) };
+        m[`claw${i}`] = { a: w * .3 + curl * (s.tell * .4 + s.grip * .5), grow: out(s), pic: s.grip > .5 ? 'hook' : 'claw' };
       }
       return m;
     });

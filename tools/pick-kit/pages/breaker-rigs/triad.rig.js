@@ -22,8 +22,8 @@
       };
       const wave = Math.sin(s.t * 4.2 + i * 2.1) * .16;
       const bend = .95 + wave - s.tell * .8 - s.grip * .95 + s.hurt * .4;
-      m[`arm${i}`] = { a: -.5 + wave * .5 + s.tell * .35 + s.grip * .5, hidden: s.sleep > .6 };
-      m[`hand${i}`] = { a: bend, pic: s.grip > .5 ? 'shut' : 'open', hidden: s.sleep > .6 };
+      m[`arm${i}`] = { a: -.5 + wave * .5 + s.tell * .35 + s.grip * .5, grow: root.BreakerRig.awake(s) };
+      m[`hand${i}`] = { a: bend, pic: s.grip > .5 ? 'shut' : 'open', grow: root.BreakerRig.awake(s) };
     }
     m.core = { pic: s.sleep > .5 || s.dead ? 'dead' : 'core', a: tremble };
     return m;
