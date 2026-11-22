@@ -410,10 +410,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
 | [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |
 | [vessel-wrecks](2026-11-18-vessel-wrecks.md) | Vessel wrecks | accepted |  |
-| [drone-companion](2026-11-21-drone-companion.md) | Each hero pairs once with a shard of the alien core; the bag comes with it | accepted |  |
-| [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted |  |
-| [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted |  |
-| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted |  |
 | [drone-companion](2026-11-21-drone-companion.md) | Each hero pairs once with a shard of the alien core; the bag comes with it | accepted | drone-windows (in part) |
 | [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted | drone-threads, drone-windows (in part) |
 | [drone-lessons](2026-11-21-drone-lessons.md) | The drone learns its forms from what its player does | accepted | drone-thoughts, form-vision (in part) |
