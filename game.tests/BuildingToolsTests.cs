@@ -245,9 +245,10 @@ public class BuildingToolsTests
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
-        // Aboard, the axe's dig fades the front round the pointer with the plan away, not with it out.
-        Assert.True(plan.SeesThrough(digsBack: true));
-        Assert.False(plan.SeesThrough(digsBack: false));
+        // Aboard too, with the plan away nothing fades, whatever the focus was left at (no-see-through).
+        plan.Focus.Set(Focus.Back);
+        Assert.False(plan.Clears);
+        plan.Focus.Set(Focus.Front);
         plan.Toggle();
         plan.Pick(Card("lamp"));
         plan.SetMode(PlanMode.Wiring);
@@ -263,13 +264,13 @@ public class BuildingToolsTests
         plan.SetMode(PlanMode.Build);
         plan.PutPlanAway();
         plan.Aboard.Set(false);
-        Assert.False(plan.SeesThrough(digsBack: true));
+        Assert.False(plan.Clears);
         plan.Toggle();
         plan.ToggleFocus();
         // The plan's layers turn away too; nothing fades.
         Assert.Equal(Focus.Back, plan.Focus.Get());
         Assert.Null(plan.Shown);
-        Assert.False(plan.SeesThrough(digsBack: true));
+        Assert.False(plan.Clears);
         // A back wall's card still sets what the right button takes; the world draws whole.
         plan.Pick(Card("backWall:iron"));
         Assert.Equal(Focus.Back, plan.Focus.Get());
@@ -278,7 +279,6 @@ public class BuildingToolsTests
         Assert.Equal(Focus.Back, plan.Shown);
         // Aboard with the back walls focused the front clears round the pointer, no button held (back-focus-faint).
         Assert.True(plan.Clears);
-        Assert.True(plan.SeesThrough(digsBack: false));
         plan.ToggleFocus();
         Assert.False(plan.Clears);
     }
@@ -367,11 +367,6 @@ public class BuildingToolsTests
     [Fact]
     public void EveryCardPlansOnTheLeftTheRightLetsItGoAndRemovesInTheFocusedLayerWithNone()
     {
-        // The hands: the right button alone is the back; both held, the front (the axe's and the drill's).
-        Assert.False(Layering.Back(left: true, right: false));
-        Assert.True(Layering.Back(left: false, right: true));
-        Assert.False(Layering.Back(left: true, right: true));
-        Assert.False(Layering.Back(left: false, right: false));
         foreach (var card in Tools.All.OfType<PlaceTool>())
             foreach (var focus in Enum.GetValues<Focus>())
             {

@@ -141,7 +141,6 @@ public partial class HeroView : Node2D
     private AxeSwing _swing;
     private int _swingFace = 1;
     private bool _grabHeld;
-    /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
     /// <summary>
     /// The harpoon (0044) and the grappling gun (grapple-climbs): each one's rod and the cooldown every gun of its kind
     /// waits for, the line to the rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the
