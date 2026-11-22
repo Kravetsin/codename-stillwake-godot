@@ -252,12 +252,50 @@ public partial class HeroView : Node2D
     private readonly Func<string, bool> _knows;
     private readonly Func<DroneMode, bool> _droneOpen;
 
-    private bool Knows(string node) => _m != null && _client != null && _m.Research.Knows(_client.Id, node);
+    /// <summary>Whether this player knows <paramref name="node"/>; a drone's form only once its lesson has played (<see cref="FormsOpen"/>).</summary>
+    private bool Knows(string node) => _m != null && _client != null && _m.Research.Knows(_client.Id, node)
+        && (!Stillwake.Content.Lessons.Forms.Contains(node) || _forms.Opened(node));
+
+    private readonly FormsOpen _forms = new();
+
+    /// <summary>Whether a lesson of a drone's form is still to play or playing, as the research key shows it (drone-lessons); none: never.</summary>
+    public Func<string, bool>? FormHeld { private get; set; }
 
     private bool DroneOpen(DroneMode mode) => DroneModes.Opened(mode, _knows);
 
-    /// <summary>Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows.</summary>
-    public bool Scanning => _figure.Scanner && !_figure.Projects;
+    /// <summary>
+    /// Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows. Not in a form's
+    /// vision (form-vision), whose gauge is the vision's own.
+    /// </summary>
+    public bool Scanning => _figure.Scanner && !_figure.Projects && _vision == null;
+
+    /// <summary>
+    /// This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is
+    /// away. In a form's vision, the vision's drone's.
+    /// </summary>
+    public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _vision is { } vision ? vision.View.DroneScan : _figure.DroneScan;
+
+    /// <summary>What the scanner's gauge does now, after its frame: whether it reads a thing, how far each dot is out from its mark on the drone's reticle.</summary>
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _figure.DroneGauge(reads, away);
+
+    /// <summary>A point of the world this hero's drone keeps its eye on: a find it scans over the head; null for none.</summary>
+    public Vector2? DroneStare
+    {
+        set
+        {
+            _figure.DroneStare = value;
+            _droneFinds = value != null;
+        }
+    }
+    /// <summary>A point of the world this hero's drone flies to: over a machine it learns a form from (drone-lessons); null for none.</summary>
+    public Vector2? DroneVisit
+    {
+        set
+        {
+            _figure.DroneVisit = value;
+            _droneVisits = value != null;
+        }
+    }
     /// <summary>The spot this player last pinged with a tap of the gesture key, and every ping shown, this one's and friends'.</summary>
     private readonly Ping _ping = new();
     private readonly PingView _pingView = new() { ZIndex = Layers.Glows };
@@ -284,6 +322,7 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        FormVisionView.Load();
         _glyph = new ModeGlyph(ui);
         _bodies = new BodyView(ui);
         // Plans placed: the planner in the hero's hand beams them in, cell by cell; the others see it beam at the first.
@@ -294,7 +333,6 @@ public partial class HeroView : Node2D
         };
         _ui.Breathed += () => _breathe = true;
         _ui.Ate += food => _eat = food;
-        _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -452,8 +490,10 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules, m.Liquids.AmountAt);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
-        // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting).
-        _locked = _meetings.ContainsKey(client.Id);
+        _forms.Step(client.World, form => m.Research.Knows(client.Id, form), form => FormHeld?.Invoke(form) ?? false, m.Items.Creative(client.Id), elapsedMs);
+        // Meeting its drone, the hero stands where it pressed E, held still as if seated till it ends (drone-meeting); in a form's vision, held where it is (form-vision).
+        Envision(client, m, known, elapsedMs);
+        _locked = _meetings.ContainsKey(client.Id) || _vision != null;
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         InPod = Seating.InPod(m, client.Id);
@@ -491,6 +531,7 @@ public partial class HeroView : Node2D
             _snap = true;
         }
         bool woke = _wasOut && !passedOut;
+        HoldVision(moved || woke || (passedOut && !_wasOut));
         _wasOut = passedOut;
         // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
         // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.
@@ -552,6 +593,7 @@ public partial class HeroView : Node2D
             Fogged(ship, seated: seat != null);
         }
         if (seat is int seatCell) _previous = _current = Hero.At(ship, seatCell) with { Facing = _current.Facing };
+        if (_vision is { } held) _previous = _current = held.Held;
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
@@ -646,7 +688,19 @@ public partial class HeroView : Node2D
         _figure.Paired = m.Players.HasDrone(client.Id);
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
         _figure.DroneWindow = _ui.DroneWindow;
-        _figure.Senses = DroneSensesOf(m, client.Id, _surface);
+        _figure.Senses = DroneSensesOf(m, client.Id, _surface) with
+        {
+            Own = true,
+            Alarms = _knows(Stillwake.Content.LightDrone.AlarmsMode),
+            Body = _body.Degrees,
+            Flare = m.Hazards.FlareComing,
+            Wonder = DroneWonderOf(m, known, elapsedMs),
+            Icon = _vision != null,
+            Finding = _droneFinds && !_droneVisits,
+            Proud = DroneProud(),
+            Woke = woke,
+            Quiet = _locked || seat != null,
+        };
         _ui.DroneAt = _figure.DroneLens is { } droneLens ? (droneLens.GetCenter().X, droneLens.GetCenter().Y) : null;
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;
         _figure.CapeWorn = cape;
@@ -659,9 +713,11 @@ public partial class HeroView : Node2D
         _figure.InWater = ship.Wading(drawn.FeetCell(ship.Width));
         _figure.Ledge = LedgeOf(ship, drawn);
         (pose, look) = InMeeting(client.Id, _figure, drawn, pose, look);
+        (pose, look) = InVision(_figure, drawn, pose, look);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         ShowMeeting(client.Id, _figure, m);
         HoldCore(client.Id);
+        ShowVision(_figure, drawn, elapsedMs);
         _figure.Visible = seat == null;
         _ui.DroneLens = _figure.Visible && !passedOut && _figure.DroneLens is { } lens ? (lens.Position.X, lens.Position.Y, lens.Size.X, lens.Size.Y) : null;
         // Its own thrust shows at once (0014); others' as the sim says.
@@ -711,7 +767,7 @@ public partial class HeroView : Node2D
     private void Rammed(Client client, Registry m)
     {
         int tick = client.World.Tick;
-        if (!_ramGuard.Open(tick) || Rams.Contact(m.Creatures.Creatures, _current) is not { } c || m.Creatures.HitByProblem(c.Id) != null) return;
+        if (!_ramGuard.Open(tick) || Rams.RamOf(m, client.Id, _current) is not { } c) return;
         client.Send(new Stillwake.Sim.Creatures.HitBy(c.Id));
         _ramGuard.Sent(tick);
         int away = Rams.Away(c, _current);
@@ -737,7 +793,7 @@ public partial class HeroView : Node2D
         _arcsSeen.RemoveWhere(id => !arcs.Any(a => a.Id == id));
         foreach (var arc in arcs)
         {
-            if (!Rams.Hits(arc, _current, _arcsSeen) || m.Creatures.BoltedProblem(client.Id, arc.Id) != null) continue;
+            if (!Rams.Bolts(m, client.Id, arc, _current, _arcsSeen)) continue;
             client.Send(new Stillwake.Sim.Creatures.Bolted(arc.Id));
             int away = arc.X1 >= arc.X0 ? 1 : -1;
             _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(null, arc.Projectile));

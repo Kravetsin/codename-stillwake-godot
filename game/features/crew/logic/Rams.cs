@@ -26,6 +26,22 @@ public static class Rams
         return null;
     }
 
+    /// <summary>
+    /// The creature whose ram on <paramref name="hero"/>, <paramref name="peer"/>'s, this client reports now (<see cref="Contact"/>): one
+    /// the sim would take a <c>HitBy</c> for; none for none, and none while the sim spares the hero (drone-meeting, form-vision): held, it is
+    /// thrown by nothing.
+    /// </summary>
+    public static Creature? RamOf(Stillwake.Sim.Registry m, int peer, Hero hero) =>
+        !m.Crew.Spared(peer) && Contact(m.Creatures.Creatures, hero) is { } c && m.Creatures.HitByProblem(c.Id) == null ? c : null;
+
+    /// <summary>
+    /// Whether this client reports <paramref name="arc"/> crossing <paramref name="hero"/>, <paramref name="peer"/>'s, now (<see cref="Hits"/>,
+    /// the arcs it is done with in <paramref name="judged"/>): one the sim would take a <c>Bolted</c> for. Spared, none: an arc is still judged, so
+    /// it is past once the hero is let go.
+    /// </summary>
+    public static bool Bolts(Stillwake.Sim.Registry m, int peer, Arc arc, Hero hero, ISet<int> judged) =>
+        Hits(arc, hero, judged) && !m.Crew.Spared(peer) && m.Creatures.BoltedProblem(peer, arc.Id) == null;
+
     /// <summary>Whether <paramref name="c"/>'s body and <paramref name="margin"/> round it, in thousandths of a cell, touch <paramref name="hero"/>'s body.</summary>
     public static bool Touches(Creature c, Hero hero, int margin)
     {

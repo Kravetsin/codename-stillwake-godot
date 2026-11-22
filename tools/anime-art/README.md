@@ -57,7 +57,6 @@ finish is `wash.js`, one for every subject.
 | `scanner` | `hero_scanner`, `hero_<helmet>_scanner`, `_lit_<n>`, `items/scanner`; `ScannerInk.cs` |
 | `helmets`, `quilted`, `heatSuit` | traced: `hero_<helmet>_shell`, `_visor` (`_collar`; bell `_seal`; `hero_visor`, card `hero_helmet`), `items/<id>`; `hero_heatSuit_<part>` |
 | `charge`, `missile` | `hero_blastCharge` (`icons/` lit), `shot_blastCharge_spark`: its fuse in flight; `shot_missile` |
-| `edgekeys` | `holo_<key>`, `_glow`: the edge keys' masks |
 | `signs`, `credit`, `capsule`, `gauge`, `titlename` | `sign_*`: bolts, plug, wrench, tips; `credit`, the chip; `capsule`, `capsule_flame_<n>`; `gauge_*`, the vitals' light; `menu/title_name*`, the title's name (Oswald, `fonts/`) |
 | `upgrades` | `upgrade_bag`, `_belt`, `_tradeSlots`, `_canister`: wares, no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit porthole, `wrist_*`, `tablet_*` |

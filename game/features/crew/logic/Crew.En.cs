@@ -40,7 +40,6 @@ public static partial class En
         ["crew.withstandsHeat"] = "Withstands heat up to {n}°",
         ["crew.here"] = "Here {n}",
         ["crew.noSuitMode"] = "Your suit has no mode",
-        ["suit.key"] = "Suit mode ({key:suit})",
         ["markers.home"] = "Lifepod",
         ["markers.friend"] = "Crewmate",
         ["markers.ping"] = "A marked spot",

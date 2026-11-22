@@ -290,7 +290,7 @@ public partial class Main : Node2D, ITogether
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = DevScript();
-            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins), FormHeld = form => _tablet?.Scan.Holds(form) == true });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
             // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.
@@ -334,7 +334,7 @@ public partial class Main : Node2D, ITogether
             // A canister's cooldown, on the suit gauge's ring and the canister's slots (canister-mark).
             int CanisterIn() => _session is Session s ? _m.Crew.HeroOf(s.Client.Id)?.CanisterIn ?? 0 : 0;
             _items.Panel.CanisterIn = CanisterIn;
-            _items.Panel.Paired = () => _session is not Session s || _m.Players.HasDrone(s.Client.Id);            // Its own layer, above the world: read from whatever registry the session runs now.
+            _items.Panel.Paired = _hands.Ui.Paired = () => _session is not Session s || _m.Players.HasDrone(s.Client.Id);            // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true),
                 CanisterIn, () => _session is Session s ? _m.Crew.PartsOf(s.Client.Id) : [], _hands.Ui);
             AddChild(gauge);
@@ -440,7 +440,8 @@ public partial class Main : Node2D, ITogether
             tech.Close();
             handbook.Close();
         });
-        // The drone's soot framing the open drone window, under the edge's keys (drone-frame).
+        // The drone's sparks framing the open drone window, under the edge's keys (drone-frame).
+        AddChild(new DroneFrame(_hands.Ui));
         // The tablet's top edge along the foot: every tablet rises from it, and its keys float over the one that is up, only those that can be used now.
         Func<bool> inWorld = () => _session != null && _hero != null;
         var edge = _edge = new TabletEdge(_hands.Ui, inWorld);
@@ -448,13 +449,19 @@ public partial class Main : Node2D, ITogether
         edge.Put(_hands.Menu.Cap, "build.key");
         edge.Put(tech.Cap, "research.key", () => tech.CapShows);
         edge.Put(tech.MarketCap, "research.marketKey", () => tech.MarketCapShows);
-        Func<bool> suitOn = () => _session is Session s && _m.Crew.SuitOn(s.Client.Id);
-        edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, suitOn), "suit.key", () => suitOn() || _session is Session s && _m.Crew.SuitModeProblem(s.Client.Id) == null);
         edge.Put(handbook.Cap, "handbook.key");
         edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
-        foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
+        // The drone projects these: its corners frame them (drone-windows).
+        foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet])
+        {
+            tablet.Corners = _hands.Ui.Windows;
+            edge.Follow(tablet);
+        }
         AddChild(edge);
-        AddChild(new FindFlashView(tech.Flash, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null));
+        AddChild(new FindScanView(tech.Scan, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null,
+            () => _hero?.Shown?.Head, () => _hero?.DroneScan, () => _hands.Ui.Slot, at => { if (_hero != null) _hero.DroneStare = at; },
+            form => _session is Session s ? FindScanView.TeacherOf(_m, s.Client.Id, form, _debris.LastBroken) : null, at => { if (_hero != null) _hero.DroneVisit = at; },
+            show => { if (_hero != null) _hero.DroneVision = show; }, form => _hero?.VisionSeconds(form) ?? 0));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
@@ -737,7 +744,9 @@ public partial class Main : Node2D, ITogether
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
         _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
-            ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null, delta * 1000);
+            ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null,
+            _hero?.DroneScan, delta * 1000);
+        _hero?.DroneGauge(_scanner.Reads, _scanner.Away);
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
         _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);
         _frameLog?.Mark("creatures");

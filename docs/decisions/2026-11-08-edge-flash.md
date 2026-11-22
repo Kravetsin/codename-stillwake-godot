@@ -1,6 +1,6 @@
 # A find flashes along the tablet's edge, once a batch; the bulb and the flight go
 
-- Status: accepted
+- Status: superseded by [find-scan](2026-11-21-find-scan.md)
 - Date: 2026-11-08
 - Supersedes the bulb and the find's flight of [hologram-keys](2026-11-05-hologram-keys.md); its keys, numbers and credits stay
 

@@ -40,7 +40,6 @@ public static partial class Ru
         ["crew.withstandsHeat"] = "Выдерживает жар до {n}°",
         ["crew.here"] = "Здесь {n}",
         ["crew.noSuitMode"] = "У твоего костюма нет режима",
-        ["suit.key"] = "Режим костюма ({key:suit})",
         ["markers.home"] = "Спасательная капсула",
         ["markers.friend"] = "Напарник",
         ["markers.ping"] = "Метка",

@@ -10,7 +10,11 @@ public readonly record struct DroneDanger(int Cell, Vec At, int Surface, int Spr
 /// <summary>
 /// What a light drone senses this frame (drone-motion ADR), pixels of the world: its hero's anchor and surface, where it
 /// is, the window's place before the waist while one is open, the lens's aim in lamp or scan, the meteor
-/// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing.
+/// coming and the bolt glowing, the hunter's place, whether its hero is low on air, passed out, or signing; the machine it visits to learn a form from
+/// (drone-lessons). Its own drone's cues for its thoughts and moods (drone-thoughts, <see cref="DroneThoughts"/>): whether it is this player's, whether
+/// its player knows the alarms (creative does), its hero's body temperature in degrees, whether a magnetic flare's warning is on, the machine it is curious about, whether an
+/// icon or a lesson plays at the drone and an item's icon is scanned, whether a deed lesson just ended or the hero just woke from a death, whether the
+/// hero is in its meeting or seated, and whether the scanner reads.
 /// </summary>
 public readonly record struct DroneSenses(
     Vec Anchor,
@@ -23,15 +27,30 @@ public readonly record struct DroneSenses(
     Vec? Hunter = null,
     bool Low = false,
     bool Out = false,
-    bool Signing = false);
-
-/// <summary>What the drone wants this frame: where to fly, where its lens looks (a unit vector), how red it is, 0..1, and whether it darts.</summary>
-public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool Darting);
+    bool Signing = false,
+    Vec? Visit = null,
+    bool Own = false,
+    bool Alarms = false,
+    double Body = BodyHeat.Normal,
+    bool Flare = false,
+    DroneWonder? Wonder = null,
+    bool Icon = false,
+    bool Finding = false,
+    bool Proud = false,
+    bool Woke = false,
+    bool Quiet = false,
+    bool Reads = false);
 
 /// <summary>
-/// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near,
-/// held still while its hero signs, else a perch of its own by the anchor, picked again when bored.
-/// A hunter leans it his way. Its own <see cref="Random"/> picks the perches: they differ between screens, as decoration may.
+/// What the drone wants this frame: where to fly, where its lens looks (a unit vector), how red it is, 0..1, and whether it darts; the thought or
+/// mood whose picture its sparks form now (drone-thoughts), none while none forms or holds; how a mood moves its body.
+/// </summary>
+public readonly record struct DroneIntent(Vec Goal, Vec Look, double Tint, bool Darting, DroneThought? Thought = null, DroneBearing Bearing = default);
+
+/// <summary>
+/// The light drone's mind (drone-motion ADR): by rank, a window's place before the waist, a dart at a meteor or bolt near, a machine it
+/// visits to learn from (drone-lessons), held still while its hero signs, pressed to the helmet in love, else a perch of its own by the anchor,
+/// picked again when bored. A hunter leans it his way. Its <see cref="Thoughts"/> show over it and move its body (drone-thoughts). Its own <see cref="Random"/> picks the perches: they differ between screens, as decoration may.
 /// </summary>
 public sealed class DroneWill
 {
@@ -51,6 +70,9 @@ public sealed class DroneWill
         _boredLeft = Bored();
     }
 
+    /// <summary>Its thoughts and moods (drone-thoughts): what shows over it.</summary>
+    public DroneThoughts Thoughts { get; } = new();
+
     /// <summary>Back to its anchor, as it is shown again: on it, bored of it after a while; the dangers it darted at stay darted.</summary>
     public void Reset() =>
         (_perch, _boredLeft, _darting, _signHeld) = (default, Bored(), false, null);
@@ -60,6 +82,8 @@ public sealed class DroneWill
     {
         _clockMs += ms;
         var danger = Dart(senses);
+        bool darting = danger != null && senses.Window == null && !senses.Out;
+        Thoughts.Step(senses, darting ? (_dartBolt ? DroneThought.Bolt : DroneThought.Meteor, (_dartBolt ? _boltDarted : _meteorDarted)!.Value) : null, ms);
         Settle(ms);
         var anchor = senses.Anchor;
         _signHeld = senses.Signing ? _signHeld ?? DroneFlight.Minus(senses.At, anchor) : null;
@@ -74,12 +98,16 @@ public sealed class DroneWill
             // Passed out, its hero cannot be left: it keeps to the anchor, looking its own way.
             (goal, look) = senses.Out ? (anchor, _perchLook)
                 : danger is { } there ? (there, Toward(senses.At, there, _perchLook))
+                : senses.Visit is { } visit ? (visit, Toward(senses.At, visit, _perchLook))
                 : _signHeld is { } held ? (DroneFlight.Plus(anchor, held), _perchLook)
+                : Thoughts.Goal(anchor) is { } pressed ? (pressed, _perchLook)
                 : (DroneFlight.Plus(anchor, _perch), _perchLook);
             if (senses.Hunter is { } hunter) goal = DroneFlight.Plus(goal, DroneFlight.Scaled(Toward(anchor, hunter, default), T.Lean));
             if (senses.ModeLook is { } aim) look = aim;
+            // What shows over it outranks the mode's aim: warnings, then moods.
+            if (!senses.Out && Thoughts.Look(senses.At, anchor) is { } eye) look = eye;
         }
-        return new DroneIntent(goal, look, Tint(danger != null, senses.Low), danger != null && senses.Window == null && !senses.Out);
+        return new DroneIntent(goal, look, Math.Max(Tint(danger != null, senses.Low), Thoughts.Red), darting, Thoughts.Forming, Thoughts.Bearing(anchor));
     }
 
     /// <summary>The point it darts at: the meteor's cell, or the bolt's column at the anchor's height; none while no dart lasts.</summary>

@@ -340,7 +340,12 @@ public partial class BuildMenu : CanvasLayer
         // Esc puts the plan away through Shared.Escape, before it opens the game menu.
         if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
         bool planning = _hand.PlanOut.Get();
-        if (key.Is(Bind.Build)) _hand.Toggle();
+        // Plan mode is a drone window: before the pairing B takes nothing out (drone-windows).
+        if (key.Is(Bind.Build))
+        {
+            if (!planning && !DroneWindows.Opens(DroneWindowKind.Plan, _ui.Paired())) return;
+            _hand.Toggle();
+        }
         // With a hand free Drop (G) drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
         else if (key.Is(Bind.Drop) && planning && _hand.Builds) _hand.PickWanted = true;
         // Search (/) types in the search; while it is typed in, the field takes every key before it gets here, these too.

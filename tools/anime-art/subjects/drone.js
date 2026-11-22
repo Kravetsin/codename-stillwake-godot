@@ -1,13 +1,11 @@
 // The light drone (drone-swarm), the user's pick «Пепел в латах»: an iron core, its body a cloud of soot, four scrap plates riding
 // it as armour. The pick page's own pen and paint, its small level (makeAsh's build(0)), drawn straight (no finish), 4 hi-res pixels
 // a world pixel as there. drone_core: the core, clean, one picture (it is round), CoreBox world px, its middle at the box's.
-// drone_plates: a row per plate, its face at Turns angles then its rusty back (the pick's flipY by -1) at as many, PlateBox world px
-// each, its middle at the box's; the game squashes one across its long axis as it turns over. The soot, where it all flies, the
-// lens, the field's threads and the glow are the game's (DroneSwarm.cs, LightDrone.cs), since they move or light. items/lightDrone:
-// the drone idle, its lamp on.
+// The sparks, their threads and the glow are the game's (DroneSwarm.cs, LightDrone.cs), since they move or light; the plates are
+// gone from the game (drone-threads) and stay only on items/lightDrone, the drone idle, its lamp on, till the card is redrawn.
 (function () {
 'use strict';
-const Turns = 8, CoreBox = 4, PlateBox = 6, K = 4;
+const CoreBox = 4, K = 4;
 const INK = '#16171b', LAMP = [255, 212, 150], EMBER = [255, 138, 58];
 const STEEL = ['#8b9199', '#61666e', '#3b3f46'], DARK = ['#5b6067', '#42464c', '#2a2d32'], ORANGE = ['#a36c3b', '#7a512f', '#4c331f'];
 const OLIVE = ['#6b745f', '#4e5546', '#30352c'], BRONZE = ['#8d7a5a', '#685a43', '#41382a'], RUSTY = ['#6e5646', '#4f3e33', '#30261f'];
@@ -113,8 +111,8 @@ function piece(c, x, y, a, sh, col, lw = 1.1, rb = null) {
 // A plate seen turned about its long axis: k = 1 face on, -1 its back (the pick's flipY).
 function flipY(sh, k) { return { p: sh.p, segs: sh.segs.map(g => [g[0], g[1] * k, g[2], g[3] * k, g[4], g[5] * k, g[6]]), closed: true, cx: sh.cx, cy: sh.cy * k }; }
 
-// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces DroneSwarm.cs's
-// PlateSeeds, the soot its dustSet (seed 530), as DroneSwarm.cs draws it.
+// The pick's small ash drone, drawn from its seeds in its order: the core is its swarm's, the plates' phases and paces the card's,
+// the soot its dustSet (seed 530), as Meeting.cs draws it.
 const ash = (() => {
   const r = rng(501), pal = [STEEL, ORANGE, OLIVE, BRONZE], sh = [];
   for (let i = 0; i < 4; i++) {
@@ -164,28 +162,347 @@ function soot(c, D, t, front) {
   c.restore();
 }
 
+// ---------- the drone's thoughts and moods (drone-thoughts), the pick «Контур»: tools/pick-kit/pages/drone-moods.js, candidate outline ----------
+// Its pictures (PICT) as the pick drew them, a box -1..1 (y down), the alarms as drone-thoughts.js drew them too; its clock, its flows,
+// its heat and how each mood moves the body (MOTION), in the pick's px over the world and seconds. Written to DroneInk.cs.
+// The pictures of the pick «Контур» (drone-moods.js, candidate outline), each polylines in a box -1..1, y down; the alarms' icon is its meteor.
+function thoughtPictures() {
+  const TAU = Math.PI * 2;
+  const arcP = (cx, cy, rx, ry, a0, a1, n = 18) => { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return p; };
+  const circ = (cx, cy, r, n = 22) => arcP(cx, cy, r, r, 0, TAU, n);
+  const heart = (cx, cy, s, n = 36) => { const p = []; for (let i = 0; i <= n; i++) { const a = i / n * TAU; p.push([cx + s * 16 * Math.pow(Math.sin(a), 3) / 17, cy - s * (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)) / 17 - .15 * s]); } return p; };
+  const G = {};
+  G.cold = [];
+  for (let i = 0; i < 3; i++) { const a = Math.PI / 2 + i * Math.PI / 3; G.cold.push([[-Math.cos(a), -Math.sin(a)], [Math.cos(a), Math.sin(a)]]); }
+  for (let i = 0; i < 6; i++) { const a = Math.PI / 2 + i * Math.PI / 3, P = [Math.cos(a) * .56, Math.sin(a) * .56], b = q => [P[0] + Math.cos(q) * .32, P[1] + Math.sin(q) * .32]; G.cold.push([b(a - .9), P, b(a + .9)]); }
+  const C = [-.42, .42], rock = [];
+  [.36, .3, .38, .29, .35, .31, .37].forEach((r, i) => { const a = i / 7 * TAU + .3; rock.push([C[0] + Math.cos(a) * r, C[1] + Math.sin(a) * r]); });
+  rock.push(rock[0].slice());
+  const d = [.7071, -.7071], n = [.7071, .7071];
+  G.meteor = [rock, ...[[-.24, .75], [0, 1.05], [.24, .7]].map(([o, L]) => { const s = [C[0] + d[0] * .44 + n[0] * o, C[1] + d[1] * .44 + n[1] * o]; return [s, [s[0] + d[0] * L, s[1] + d[1] * L]]; })];
+  G.lightning = [[[.3, -1], [-.34, .08], [.14, .08], [-.28, 1]], [[-.28, 1], [-.27, .66]], [[-.28, 1], [-.02, .8]]];
+  G.heat = [-.55, 0, .55].map((x0, j) => { const p = []; for (let i = 0; i <= 16; i++) { const y = .72 - i / 16 * 1.66; p.push([x0 + .16 * Math.sin((.72 - y) * 5 + j * .6), y]); } return p; });
+  G.heat.push([[-.95, .95], [.95, .95]]);
+  G.curious = [arcP(0, -.44, .4, .4, Math.PI - .15, TAU + 1.05, 18).concat([[0, .1], [0, .4]]), circ(0, .8, .08, 8)];
+  G.bored = [-.6, 0, .6].map(x => circ(x, .2, .16, 10));
+  G.love = [heart(0, 0, 1)];
+  G.pride = [[[-.9, .6], [-.95, -.45], [-.45, .05], [0, -.72], [.45, .05], [.95, -.45], [.9, .6], [-.9, .6]], [[-.9, .32], [.9, .32]]];
+  // The magnetic flare, drawn after the pick in its outline: a horseshoe magnet, poles down and barred, a crackle off each pole and one between.
+  G.flare = [[[-.5, .3]].concat(arcP(0, -.3, .5, .5, Math.PI, TAU, 16)).concat([[.5, .3]]),
+    [[-.72, .3], [-.28, .3]], [[.28, .3], [.72, .3]],
+    [[-.58, .48], [-.76, .62], [-.6, .76], [-.82, .96]], [[.58, .48], [.76, .62], [.6, .76], [.82, .96]], [[0, .5], [-.1, .66], [.1, .8], [0, .98]]];
+  return G;
+}
+
+function thoughtGlyphs() {
+  const G = thoughtPictures();
+  const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
+  const lines = ls => `[\n${ls.map(l => `        [${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}],`).join('\n')}\n    ]`;
+  const NAMES = [['Meteor', 'meteor', 'The meteor coming: a rock and three streaks behind it.'], ['Bolt', 'lightning', 'The bolt: a zigzag and its arrowhead.'], ['Flare', 'flare', 'The magnetic flare: a horseshoe magnet, poles down, crackling.'],
+    ['Cold', 'cold', 'The cold: a snowflake of six arms.'], ['Heat', 'heat', 'The heat: three wavy rising lines over the ground.'],
+    ['Curious', 'curious', 'Curious: a question mark.'], ['Bored', 'bored', 'Bored: three dots.'], ['Love', 'love', 'Love: a heart.'], ['Pride', 'pride', 'Pride: a crown.']];
+  return `    /// <summary>
+    /// A thought or mood over the drone, the pick «Контур» (drone-moods.js, candidate outline): its picture, box -1..1 y down, stands ThoughtAbove pick px
+    /// over the core, ThoughtSize a unit; it forms over ThoughtIn, holds ThoughtHold, falls apart over ThoughtOut, s; its sparks flow along it at AlarmFlow
+    /// or MoodFlow, pick px a second. The pick's 0.4, 1.5 and 0.4 s were too quick to make the shape out in play: twice the hold.
+    /// </summary>
+    public const float ThoughtAbove = 50, ThoughtSize = 22, ThoughtIn = 0.5f, ThoughtHold = 3, ThoughtOut = 0.5f, AlarmFlow = 42, MoodFlow = 18;
+
+    /// <summary>A thought's sparks' heat: an alarm's middle, swing and pace; a mood's, its sparks a step apart; a mood's threads this much of an alarm's.</summary>
+    public const float AlarmSpark = 0.75f, AlarmSparkSwing = 0.25f, AlarmSparkPace = 13, MoodSpark = 0.42f, MoodSparkSwing = 0.18f, MoodSparkPace = 4, MoodSparkStep = 1.7f, MoodThread = 0.7f;
+
+    /// <summary>An alarm's red as its picture shows: Low of it and Swing more, Beats a second.</summary>
+    public const float AlarmLow = 0.6f, AlarmSwing = 0.4f, AlarmBeats = 2.4f;
+
+    /// <summary>How a mood moves the body (the pick's MOTION), pick px over the world, radians and s: it comes in and goes over MoodIn.</summary>
+    public const float MoodIn = 0.5f;
+
+    /// <summary>Curious leans this far toward what it looks at, rises, and tilts its orbits.</summary>
+    public const float CuriousLean = 5, CuriousRise = 2, CuriousTilt = 0.45f;
+
+    /// <summary>A find: it hops this high at this pace, rocks, swells, hurries its orbits and glows.</summary>
+    public const float FindHop = 7, FindHopPace = 7, FindRock = 0.1f, FindSwell = 0.08f, FindHurry = 1.4f, FindGlow = 0.3f;
+
+    /// <summary>Bored: it sways at a pace, sinks, rocks at a pace, looks about and down, slows its orbits and dims.</summary>
+    public const float BoredSway = 5, BoredSwayPace = 0.9f, BoredSink = 6, BoredRock = 0.18f, BoredRockPace = 0.7f, BoredLookPace = 0.6f, BoredLookDown = 1.2f, BoredSlow = 0.65f, BoredDim = 0.3f;
+
+    /// <summary>Love: it presses to the helmet (LoveBehind, LoveOver world px from its middle, HelmetUp over the neck), bobs, tilts back, slows and glows.</summary>
+    public const float LoveBehind = 4.5f, LoveOver = 6.25f, HelmetUp = 6.2f, LoveBob = 1.5f, LoveBobPace = 3, LoveTilt = 0.2f, LoveSlow = 0.3f, LoveGlow = 0.2f;
+
+    /// <summary>Pride: it rises, swells, looks up and a little back, hurries its orbits and glows.</summary>
+    public const float PrideRise = 9, PrideSwell = 0.14f, PrideLookX = -0.3f, PrideLookY = -1, PrideHurry = 0.3f, PrideGlow = 0.25f;
+
+    /// <summary>
+    /// Dimmed, its orbits fade by OrbitDim of it, its coal's halo by HaloDim, its cracks and eye by CoalDim, its eye shrinks by EyeDim, its sparks cool
+    /// by SparkDim; a glow adds GlowHalo to the coal's halo.
+    /// </summary>
+    public const float OrbitDim = 0.5f, HaloDim = 0.5f, CoalDim = 0.7f, EyeDim = 0.5f, SparkDim = 0.6f, GlowHalo = 0.25f;
+
+${NAMES.map(([name, id, says]) => `    /// <summary>${says}</summary>
+    public static readonly float[][] Glyph${name} = ${lines(G[id])};`).join('\n\n')}`;
+}
+
+// ---------- the threads body (drone-threads), the pick «Нити»: tools/pick-kit/pages/drone-embers.js, candidate threads ----------
+// Its shapes' polylines and its numbers, as the pick drew them, written to the game (DroneInk.cs): the game moves and lights them.
+// Pick px: about the drone the kit draws drone_core at DS·DSC = 0.63 px a unit, the game at 0.25 world px; over the world 4 a world
+// px (the kit's zoom); on a window's frame a screen px.
+function threadsInk() {
+  const TAU = Math.PI * 2;
+  const arcP = (cx, cy, rx, ry, a0, a1, n = 18) => { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return p; };
+  const para = (back, half, cv, n) => { const p = []; for (let i = 0; i <= n; i++) { const v = -half + 2 * half * i / n; p.push([-back + v * v / cv, v]); } return p; };
+  const lamp = [para(9, 12, 14, 14), para(7.2, 10, 15, 12)];
+  // The scan's reticle, the pick «Прицел» (tools/pick-kit/pages/scan-form.js, candidate reticle): closed (L 0) and opened (L 1).
+  const R = (r, a) => [Math.cos(a) * r, Math.sin(a) * r];
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const reticle = L => {
+    const r = lerp(7.6, 7.1, L), rin = lerp(5.4, 4.3, L);
+    return { ring: [arcP(0, 0, r, r, 0, TAU, 26)], ticks: [0, 1, 2, 3].map(q => { const a = q * Math.PI / 2; return [R(rin, a), R(lerp(12.5, 13.5, L), a)]; }) };
+  };
+  const marks = Array.from({ length: 26 }, (_, j) => { const a = (j + .5) / 26 * TAU, p = R(10.2, a), d = R(1, a + Math.PI / 2); return [[p[0] - d[0] * .22, p[1] - d[1] * .22], [p[0] + d[0] * .22, p[1] + d[1] * .22]]; });
+  const closed = reticle(0), open = reticle(1);
+  const fan = [];
+  for (let j = 0; j < 7; j++) { const a = (j / 3 - 1) * .8; fan.push([[Math.cos(a) * 6, Math.sin(a) * 6], [Math.cos(a) * 19, Math.sin(a) * 19]]); }
+  fan.push(arcP(0, 0, 19, 19, -.8, .8, 14));
+  const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
+  const lines = ls => `[\n${ls.map(l => `        [${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}],`).join('\n')}\n    ]`;
+  const glyphs = thoughtGlyphs();
+  const cs = `// Generated by tools/anime-art/subjects/drone.js: export again, never edit.
+namespace Stillwake.Game.Shared;
+
+/// <summary>
+/// The light drone's threads body as the pick «Нити» drew it (drone-threads; drone-embers.js, candidate threads, gauge dots): its
+/// shapes' polylines, each a run of x, y pairs, and its numbers, in the pick's px and seconds.
+/// </summary>
+public static class DroneInk
+{
+    /// <summary>World px a pick px about the drone: the kit drew the core 0.63 px a unit, the game 0.25 world px.</summary>
+    public const float Px = ${num(0.25 / (0.45 * 1.4))};
+
+    /// <summary>World px a pick px over the world, the kit's zoom of 4.</summary>
+    public const float WorldPx = 0.25f;
+
+    /// <summary>How many sparks the body has.</summary>
+    public const int Sparks = 120;
+
+    /// <summary>The idle orbits: the first's radius, each next's more, a spark's spread, all widened by Wide; how flat; the first's tilt and each next's more.</summary>
+    public const float Orbit = 6.3f, OrbitMore = 1.4f, OrbitSpread = 1, OrbitWide = 1.05f, OrbitFlat = 0.3f, OrbitTilt = -0.3f, OrbitTiltMore = 1.05f;
+
+    /// <summary>The orbits' pace, radians a second: the first's, each next's more, all hurried by Hurry; the middle one runs the other way.</summary>
+    public const float OrbitPace = 0.8f, OrbitPaceMore = 0.25f, OrbitHurry = 2.2f;
+
+    /// <summary>A shape's share of the sparks; a thought's (drone-moods.js's <c>share</c>).</summary>
+    public const float Share = 0.8f, ThoughtShare = 0.7f;
+
+    /// <summary>A mode's or a gesture's shape forms and falls apart in this long, s; a spark into it starts late by its share of Lag over Span, out of it by LagOut over SpanOut.</summary>
+    public const float Form = 0.6f, Lag = 0.45f, Span = 0.55f, LagOut = 0.4f, SpanOut = 0.6f;
+
+    /// <summary>How fast the sparks flow along a shape, px a second.</summary>
+    public const float Flow = 30;
+
+    /// <summary>A gesture's fan stands straight up, swaying this far at this pace.</summary>
+    public const float FanSway = 0.22f, FanSwayPace = 3.2f;
+
+    /// <summary>A spark's side; its tail's squares, how far apart, their paleness, the first's alpha and how much each next fades.</summary>
+    public const float Spark = 0.95f, TailStep = 1.3f, TailPale = 0.3f, TailAlpha = 0.95f, TailFade = 0.3f;
+    public const int Tail = 3;
+
+    /// <summary>A spark's heat: the idle share of bright ones, their middle, swing and pace; the dim ones'; on a shape its middle, swing and pace; in flight its bump; in the lamp its more.</summary>
+    public const float BrightShare = 0.5f, Bright = 0.55f, BrightSwing = 0.3f, BrightPace = 11, Dim = 0.2f;
+    public const float OnShape = 0.7f, OnShapeSwing = 0.25f, OnShapePace = 13, FlightBump = 0.3f, LampMore = 0.12f;
+
+    /// <summary>An alarm adds this heat at its height, and reddens the hot colour by this much of it.</summary>
+    public const float AlarmHeat = 0.55f, AlarmRed = 1.4f;
+
+    /// <summary>The lines' widths and alphas: the orbits; a shape's wide and fine lines; a spark's thread in flight, every Every-th.</summary>
+    public const float OrbitLine = 0.4f, OrbitAlpha = 0.12f, ShapeWide = 1.6f, ShapeWideAlpha = 0.06f, ShapeFine = 0.45f, ShapeFineAlpha = 0.3f;
+    public const float ThreadLine = 0.35f, ThreadAlpha = 0.07f;
+    public const int ThreadEvery = 4;
+
+    /// <summary>The coal: its halo's radius and alpha; its cracks from and to; their width and alpha; its flicker's low, swing and pace.</summary>
+    public const float CoalHalo = 8, CoalHaloAlpha = 0.35f, CrackFrom = 0.6f, CrackTo = 2.6f, CrackLine = 0.45f, CrackAlpha = 0.5f;
+    public const float Flicker = 0.75f, FlickerSwing = 0.25f, FlickerPace = 7.3f;
+
+    /// <summary>Each crack's turn off the eye at its two ends (the second halved).</summary>
+    public static readonly float[] Cracks = [-0.6f, 2.4f, 0.9f, 3.6f, 2.2f, 4.8f];
+
+    /// <summary>The eye: how far ahead of the core's middle, its radius, paleness and alpha; its halo's radius and alpha.</summary>
+    public const float EyeAhead = ${num(2.2 * 0.45 * 1.4)}, Eye = 1.2f, EyePale = 0.5f, EyeAlpha = 0.9f, EyeHalo = 4, EyeHaloAlpha = 0.5f;
+
+    /// <summary>The colours, rgb 0..255: the embers', an alarm's red, a spark's dark.</summary>
+    public static readonly (int R, int G, int B) Ember = (255, 138, 58), Red = (255, 58, 40), Dark = (38, 39, 43);
+
+    /// <summary>The lamp's mirror behind the core, open toward the aim (x along it).</summary>
+    public static readonly float[][] Lamp = ${lines(lamp)};
+
+    /// <summary>
+    /// The scan's reticle on the aim, the pick «Прицел» (scan-form.js, candidate reticle): the dial's Dots marks round the core, a spark
+    /// sitting on each, the gauge's dots; they stay as the ring and its four ticks open while the scanner reads, the ticks closing in.
+    /// </summary>
+    public static readonly float[][] ScanMarks = ${lines(marks)};
+
+    /// <summary>The reticle's ring, closed and opened.</summary>
+    public static readonly float[][] ScanRing = ${lines(closed.ring)};
+    public static readonly float[][] ScanRingOpen = ${lines(open.ring)};
+
+    /// <summary>The reticle's four ticks, closed and opened.</summary>
+    public static readonly float[][] ScanTicks = ${lines(closed.ticks)};
+    public static readonly float[][] ScanTicksOpen = ${lines(open.ticks)};
+
+    /// <summary>
+    /// The reticle takes every spark: Dots of them on the marks, RingShare of all on the ring, the rest on the ticks; the ring's and the ticks'
+    /// flow, px a second along their closed length; where along its mark a spark sits.
+    /// </summary>
+    public const float RingShare = 0.4f, RingFlow = 12, TickFlow = 8, MarkAt = 0.5f;
+
+    /// <summary>The reticle opens over OpenIn once the scanner reads, and closes over CloseIn, CloseAfter after it stops (its dots home), s.</summary>
+    public const float OpenIn = 0.3f, CloseAfter = 0.4f, CloseIn = 0.4f;
+
+    /// <summary>A gesture's fan: seven rays and an arc about its heading.</summary>
+    public static readonly float[][] Fan = ${lines(fan)};
+
+    /// <summary>
+    /// A drone window's frame, the pick «Уголки» (drone-windows.js, candidate corners), screen px and s: its corners this far out of the
+    /// window, each bracket's arms this long; a spark reaches corner k (clockwise from the top left) at Reach + k·ReachLag, the screen
+    /// coming in from ScreenFrom over ScreenIn; closing, the screen goes in ScreenOut, the corners home in Home.
+    /// </summary>
+    public const float CornerOut = 5, Arm = 22, Reach = 0.1f, ReachLag = 0.01f, ScreenFrom = 0.03f, ScreenIn = 0.1f, ScreenOut = 0.08f, Home = 0.12f;
+
+    /// <summary>A shot spark's side and its line back to the eye; a landed corner's halo, its radius and alpha, gone over Landing.</summary>
+    public const float Shot = 1.6f, ShotLine = 0.4f, ShotAlpha = 0.2f, LandHalo = 12, LandHaloAlpha = 0.6f, Landing = 0.15f;
+
+    /// <summary>A bracket's wide and fine lines; its corner's glowing square and heat; the sparks on each arm, their pace round it, each corner's later, their heat and how much it fades along.</summary>
+    public const float BracketWide = 2.2f, BracketWideAlpha = 0.07f, BracketFine = 0.6f, BracketFineAlpha = 0.45f, CornerSquare = 2.4f, CornerHeat = 0.9f;
+    public const int ArmSparks = 3;
+    public const float ArmPace = 1.3f, ArmLater = 0.17f, ArmHeat = 0.9f, ArmFade = 0.7f;
+
+    /// <summary>The faint thread from the eye to each landed corner (off unless asked): its width and alpha, a spark creeping along it at Creep, each corner's later, its heat.</summary>
+    public const float CornerThread = 0.35f, CornerThreadAlpha = 0.08f, Creep = 0.9f, CreepLater = 0.25f, CreepHeat = 0.55f;
+
+    /// <summary>The scan's gauge, pick px over the world: its dots, how far apart, their side, how far over the wreck's top.</summary>
+    public const int Dots = 26;
+    public const float DotStep = 7, Dot = 3.2f, DotsAbove = 20;
+
+    /// <summary>Every DotThreadEvery-th dot in flight draws its thread back to where it left.</summary>
+    public const int DotThreadEvery = 2;
+
+    /// <summary>The gauge coming and going, s, each dot late by its share of Lag over Span (the out's own); a dot's flicker; its heat lit and dark.</summary>
+    public const float DotsIn = 0.4f, DotsOut = 0.4f, DotLag = 0.4f, DotSpan = 0.6f, DotLagOut = 0.35f, DotSpanOut = 0.65f;
+    public const float DotFlicker = 0.82f, DotFlickerSwing = 0.18f, DotFlickerPace = 9, DotFlickerStep = 2.3f, DotLit = 0.3f, DotLitMore = 0.62f, DotDark = 0.04f;
+
+    /// <summary>A hit: how long it lasts, s; the heat it adds to the lit; the row's shudder, px, and its pace; how far a burst ember flies, least and more, px over the hit, how far it falls; its heat by what it lost, less the hit's share.</summary>
+    public const float Hit = 0.8f, HitHeat = 0.6f, Shudder = 1.4f, ShudderPace = 60, BurstSpeed = 14, BurstMore = 16, BurstFall = 34, BurstHeat = 1.2f;
+
+${glyphs}
+}
+`;
+  writeText('../../shared/logic/DroneInk.cs', cs);
+}
+
+// ---------- the thread icons, the pick «Одна нить»: tools/pick-kit/pages/thread-icons.js, candidate oneThread ----------
+// The F wheel's modes, the H wheel's gestures and the edge keys' motifs, each a run of polylines in a box -1..1 (y down), and the one
+// thread through them all (the pick's joinOne): its points and which a bridge reaches. Written to the game (IconInk.cs); drawn there.
+function iconsInk() {
+  const TAU = Math.PI * 2;
+  const bez = (a, b, d, s) => { const k = 1 - s; return [k * k * a[0] + 2 * k * s * b[0] + s * s * d[0], k * k * a[1] + 2 * k * s * b[1] + s * s * d[1]]; };
+  const arc = (cx, cy, r, n = 28, a0 = 0, a1 = TAU) => { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return p; };
+  function roundSq(rc) {
+    const p = [];
+    for (const [cx, cy, a0] of [[1 - rc, -1 + rc, -Math.PI / 2], [1 - rc, 1 - rc, 0], [-1 + rc, 1 - rc, Math.PI / 2], [-1 + rc, -1 + rc, Math.PI]])
+      for (let i = 0; i <= 4; i++) { const a = a0 + i / 4 * Math.PI / 2; p.push([cx + Math.cos(a) * rc, cy + Math.sin(a) * rc]); }
+    p.push(p[0].slice()); return p;
+  }
+  function svg(d, n = 8) {
+    const tk = d.match(/[MLCQZ]|-?\d*\.?\d+/g), out = []; let cur = null, p = [0, 0], st = [0, 0], i = 0, cmd = '';
+    const num = () => +tk[i++];
+    while (i < tk.length) {
+      if (/[MLCQZ]/.test(tk[i])) cmd = tk[i++];
+      if (cmd === 'M') { p = [num(), num()]; st = p; cur = [p]; out.push(cur); cmd = 'L'; }
+      else if (cmd === 'L') { p = [num(), num()]; cur.push(p); }
+      else if (cmd === 'Q') { const a = [num(), num()], b = [num(), num()]; for (let k = 1; k <= n; k++) cur.push(bez(p, a, b, k / n)); p = b; }
+      else if (cmd === 'C') {
+        const a = [num(), num()], b = [num(), num()], e = [num(), num()];
+        for (let k = 1; k <= n; k++) { const s = k / n, m = 1 - s; cur.push([m * m * m * p[0] + 3 * m * m * s * a[0] + 3 * m * s * s * b[0] + s * s * s * e[0], m * m * m * p[1] + 3 * m * m * s * a[1] + 3 * m * s * s * b[1] + s * s * s * e[1]]); }
+        p = e;
+      } else if (cmd === 'Z') { cur.push(st.slice()); p = st; }
+    }
+    return out.map(q => q.map(([x, y]) => [(x - 8) / 8, (y - 8) / 8]));
+  }
+  const rrD = (x, y, w, h, r) => `M ${x + r} ${y} L ${x + w - r} ${y} Q ${x + w} ${y} ${x + w} ${y + r} L ${x + w} ${y + h - r} Q ${x + w} ${y + h} ${x + w - r} ${y + h} L ${x + r} ${y + h} Q ${x} ${y + h} ${x} ${y + h - r} L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} Z`;
+  const motif = ds => ds.flatMap(d => svg(d));
+  // One thread through every part: each next part from the nearer of its ends, the step into it a bridge.
+  function joinOne(polys) {
+    const left = polys.slice(1).map(p => p.slice()), cur = polys[0].slice(), bridges = [];
+    while (left.length) {
+      const e = cur[cur.length - 1]; let best = 0, rev = false, bd = 1e9;
+      left.forEach((p, i) => { const d0 = Math.hypot(e[0] - p[0][0], e[1] - p[0][1]), d1 = Math.hypot(e[0] - p[p.length - 1][0], e[1] - p[p.length - 1][1]); if (d0 < bd) { bd = d0; best = i; rev = false; } if (d1 < bd) { bd = d1; best = i; rev = true; } });
+      let p = left.splice(best, 1)[0]; if (rev) p = p.slice().reverse();
+      bridges.push(cur.length);
+      for (const q of p) cur.push(q);
+    }
+    return { one: cur, bridges };
+  }
+  const THUMB = [[-.5, .85], [-.5, .05], [-.22, -.02], [-.2, -.55], [-.12, -.85], [.02, -.92], [.14, -.82], [.12, -.35], [.1, -.05], [.55, -.05], [.68, .08], [.62, .25], [.7, .38], [.63, .55], [.68, .7], [.55, .85], [-.5, .85]];
+  const FIST = [THUMB, [[.1, .25], [.6, .25]], [[.1, .45], [.62, .45]], [[.1, .65], [.6, .65]], [[-.85, 0], [-.62, 0], [-.62, .88], [-.85, .88], [-.85, 0]]];
+  const ICONS = [
+    ['Lamp', 'The lamp: a lens ringed by rays, its rays one zigzag.', [Array.from({ length: 17 }, (_, k) => { const a = k / 16 * TAU - Math.PI / 2, r = k % 2 ? .52 : .95; return [Math.cos(a) * r, Math.sin(a) * r]; }), arc(0, 0, .24, 16)]],
+    ['Scan', 'The scan: a ring a line sweeps round, a trail behind it.', [arc(0, 0, .88, 36), [[0, 0], [Math.cos(-Math.PI / 4) * .88, Math.sin(-Math.PI / 4) * .88]], arc(0, 0, .58, 10, -Math.PI / 4 - 1.1, -Math.PI / 4), arc(0, 0, .16, 12)]],
+    ['Yes', 'Yes: a fist, its thumb up.', FIST],
+    ['No', 'No: the fist, its thumb down.', FIST.map(p => p.map(([x, y]) => [x, -y]))],
+    ['Wave', 'A wave: an open hand, two arcs by it.', [[[-.42, .92], [-.48, .3], [-.86, -.08], [-.78, -.22], [-.4, .02], [-.38, -.68], [-.26, -.8], [-.14, -.68], [-.12, -.16], [-.08, -.86], [.04, -.96], [.17, -.86], [.15, -.16], [.22, -.74], [.34, -.82], [.45, -.7], [.38, -.08], [.48, -.46], [.58, -.52], [.68, -.42], [.56, .3], [.36, .92], [-.42, .92]],
+      arc(.1, -.3, .8, 6, -.9, -.1), arc(.1, -.3, .98, 6, -.85, -.15)]],
+    ['Air', 'The air key: three gusts.', motif(['M 0.5 5.9 C 4 5.3 8 6.1 11.4 5.5 C 14.3 5.0 14.5 1.4 12.0 1.3 C 10.5 1.25 9.9 2.7 10.9 3.4', 'M 1.6 8.7 C 5.5 8.1 10.5 9.1 15.5 8.3', 'M 0.5 11.5 C 3.8 10.9 7.2 11.7 9.6 11.6 C 12.5 11.5 12.8 15.1 10.4 15.25 C 8.9 15.35 8.3 13.9 9.3 13.2'])],
+    ['Build', 'The build key: a wall of bricks.', motif([rrD(0.4, 1.8, 7.1, 3.5, .55), 'M 8.4 1.8 L 14.6 1.8 Q 15.6 1.8 15.6 3.0 L 15.6 4.7 Q 15.6 5.3 15.0 5.3 L 8.95 5.3 Q 8.4 5.3 8.4 4.75 L 8.4 2.35 Q 8.4 1.8 8.95 1.8 Z',
+      rrD(0.4, 6.2, 3.1, 3.5, .5), rrD(4.4, 6.25, 7.2, 3.5, .55), rrD(12.5, 6.2, 3.1, 3.5, .5), rrD(0.4, 10.6, 7.1, 3.5, .55),
+      'M 8.4 10.75 L 15.05 10.75 Q 15.6 10.75 15.6 11.3 L 15.6 13.75 Q 15.6 14.25 15.05 14.25 L 8.95 14.25 Q 8.4 14.25 8.4 13.7 L 8.4 12.2 L 9.6 10.75 Z'])],
+    ['Research', 'The board\'s key: a bulb.', motif(['M 5.3 10.8 C 2.4 9.3 1.8 5.4 3.8 3.0 C 5.8 0.6 10.2 0.6 12.2 3.0 C 14.2 5.4 13.6 9.3 10.7 10.8 L 10.4 12.2 L 5.6 12.2 Z', rrD(5.5, 12.7, 5, 1.6, .3),
+      'M 6.7 14.8 L 9.3 14.8 L 8.7 15.8 L 7.3 15.8 Z', 'M 6.5 9.8 L 7 6.6 L 8 8.2 L 9 6.6 L 9.5 9.8'])],
+    ['Market', 'The market\'s key: a drop of oil, or a sack.', motif(['M 8 0.8 Q 8.5 2.6 9.7 3.7 Q 14.9 6.5 14.3 11.0 Q 13.5 15.2 8 15.4 Q 2.5 15.2 1.7 11.0 Q 1.1 6.5 6.3 3.7 Q 7.5 2.6 8 0.8 Z', 'M 8 4.6 Q 4.0 7.4 4.6 11.2 Q 5.2 14.0 8 14.4', 'M 8 4.6 Q 12.0 7.4 11.4 11.2 Q 10.8 14.0 8 14.4'])],
+    ['Journal', 'The Handbook\'s key: an open book.', motif(['M 7.75 4.6 Q 4.8 2.7 0.6 3.3 L 0.4 13.4 Q 4.6 12.7 7.75 14.7 Z', 'M 8.25 4.6 Q 11.2 2.7 15.4 3.3 L 15.6 13.4 Q 11.4 12.7 8.25 14.7 Z',
+      'M 2.6 6.4 Q 4.6 6.0 6.6 6.8', 'M 2.6 9.0 Q 4.6 8.6 6.6 9.4', 'M 9.4 6.8 Q 11.4 6.0 13.4 6.4', 'M 9.4 9.4 Q 11.4 8.6 13.4 9.0'])],
+    ['Circle', 'A wheel side\'s rim and the wheel\'s middle.', [arc(0, 0, 1, 48)]],
+    ['Square', 'An edge key\'s rim.', [roundSq(.24)]],
+    ['Cross', 'The cross over a mode not known yet.', [[[-.42, -.42], [.42, .42]], [[.42, -.42], [-.42, .42]]]],
+    ['Alarms', 'The alarms: the meteor coming, as the thought over the drone draws it.', thoughtPictures().meteor],
+  ];
+  const num = v => { const r = Math.round(v * 1e4) / 1e4; return (Object.is(r, -0) ? 0 : r) + 'f'; };
+  const run = l => `[${l.map(p => `${num(p[0])}, ${num(p[1])}`).join(', ')}]`;
+  const icons = ICONS.map(([name, says, polys]) => {
+    const { one, bridges } = joinOne(polys);
+    return `    /// <summary>${says}</summary>
+    public static readonly IconLines ${name} = new(
+        [
+${polys.map(p => `            ${run(p)},`).join('\n')}
+        ],
+        ${run(one)},
+        [${bridges.join(', ')}]);`;
+  });
+  const cs = `// Generated by tools/anime-art/subjects/drone.js: export again, never edit.
+namespace Stillwake.Game.Shared;
+
+/// <summary>
+/// The thread icons as the pick «Одна нить» drew them (thread-icons.js, candidate oneThread): each icon's parts as polylines in a box
+/// -1..1, y down, each a run of x, y pairs; the one thread through them all; and the points of it a bridge reaches.
+/// </summary>
+public static class IconInk
+{
+    /// <summary>A waiting key's pulse, a second.</summary>
+    public const float Pulse = 1.2f;
+
+${icons.join('\n\n')}
+}
+`;
+  writeText('../../shared/logic/IconInk.cs', cs);
+}
+
 Subjects.drone = function () {
+  threadsInk();
+  iconsInk();
   const cs = CoreBox * K, coreSheet = document.createElement('canvas');
   [coreSheet.width, coreSheet.height] = [cs, cs];
   const cc = coreSheet.getContext('2d');
   cc.grain = grainOf(cc);
   cc.translate(cs / 2, cs / 2); core(cc);
   out('drone_core', coreSheet);
-
-  const side = PlateBox * K, sheet = document.createElement('canvas');
-  [sheet.width, sheet.height] = [side * Turns * 2, side * ash.sh.length];
-  const c = sheet.getContext('2d');
-  c.grain = grainOf(c);
-  ash.sh.forEach((s, i) => {
-    const far = Math.max(...s.p.map(q => Math.hypot(q[0], q[1])));
-    if (far + 1.4 > side / 2) throw new Error(`Plate ${i} reaches ${far.toFixed(1)} px, past its box's ${side / 2}`);
-    for (let k = 0; k < Turns; k++) {
-      const a = k / Turns * Math.PI * 2;
-      plate(c, side * k + side / 2, side * i + side / 2, a, s, 1);
-      plate(c, side * (Turns + k) + side / 2, side * i + side / 2, a, s, -1);
-    }
-  });
-  out('drone_plates', sheet);
 
   // The card: the drone idle facing right, its lamp on, grown as far as its plates let it in the icon's 64 px.
   const t = 2, plates = ash.sh.map((s, i) => [s, idlePlate(i, t)]), D = ash.P.map((p, i) => idleMote(i, t));
@@ -248,6 +565,8 @@ Subjects.drone = function () {
     out(name, cv);
   }
 };
+// The threads' numbers and the icons alone, for a run with no browser (they need no canvas).
+Subjects.drone.ink = () => { threadsInk(); iconsInk(); };
 
 // ---------- the giant core (drone-vision.js), drawn at GiantR px a unit ----------
 const GiantR = 54, GiantBox = 672;

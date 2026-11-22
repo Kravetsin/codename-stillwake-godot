@@ -28,6 +28,11 @@ public static class Crew
     /// breath, cold, heat, hunger, blow or lava; the scene's 24.45 s from E, rounded up.
     /// </summary>
     public const int MeetingTicks = 490;
+    /// <summary>
+    /// The ticks a hero is spared from its <c>Envision</c> on, as the vision of a form its drone learned plays (form-vision): one window for every
+    /// form, the longest scene's (the scanner's 13.8 s) and 1 s for the round trip to the host, spared as by <see cref="MeetingTicks"/>.
+    /// </summary>
+    public const int VisionTicks = 296;
     public const int Colours = 6;
     public const int Exerted = 2;
     /// <summary>The pod's air a breath: twice a calm breath, so a hero's air fills by the pod even in vacuum, slowly; a bare one's holds.</summary>

@@ -1,124 +1,127 @@
 using System;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
+using I = Stillwake.Game.Shared.DroneInk;
 
 namespace Stillwake.Game.Features.Scanner;
 
 /// <summary>
-/// The scanner's readout over the wreck it reads (2026-11-07-the-scanner), phosphor: a dark glass, then its digits added with the
-/// edge keys' glow (holo.gdshader) and a slow rolling line, then scanlines of the box's own over it; the value flares white as it
-/// falls. On a layer that follows the camera, unlit by the world's lights, drawn in whole screen pixels (2026-11-07-steady-scanner).
+/// The scanner's gauge over the wreck it reads (drone-threads, the pick «Нити»): a row of ember dots, the lit ones its hit points
+/// left, each flown out from its mark on the drone's reticle and home to it, every other on a thread (<see cref="ScanDots"/>). On a layer that
+/// follows the camera, unlit by the world's lights, each dot whole screen pixels (2026-11-07-steady-scanner).
 /// </summary>
 public partial class ScannerView : CanvasLayer
 {
-    private static readonly Color Green = new("7cf096"), Flare = new("fffaeb"), Glass = new("030a05");
-    /// <summary>How long it takes to show and to fade, and how long a fall's flare lasts, in ms.</summary>
-    private const double InMs = 130, OutMs = 160, FlareMs = 220;
-    /// <summary>A rolling line's lap, in ms.</summary>
-    private const double RollMs = 1700;
-    /// <summary>How much a scanline dims what is under it.</summary>
-    private const float Scanline = 0.35f;
+    private static readonly Color Ember = Rgb(I.Ember), Red = Rgb(I.Red), Dark = Rgb(I.Dark);
 
-    private readonly Node2D _base = new(), _light = new(), _over = new();
-    private Readout? _shown;
-    private string _left = "", _max = "";
-    private double _shows, _timeMs, _hitAt = double.NegativeInfinity;
-    private int _scale = 1;
+    private readonly ScanDots _dots = new();
+    private readonly float[] _away = new float[ScanDots.Count];
+    private readonly Node2D _dark = new(), _light = new();
+    private readonly Triangles _darks = new(), _lights = new();
+    private float _zoom = 1, _tint;
 
     public ScannerView()
     {
         Layer = ScreenLayers.Hud;
         Visible = false;
         FollowViewportEnabled = true;
-        // Its own scanlines, fixed to the box: the shader's run along the screen's rows and shimmer as the box moves over them.
-        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shared/holo.gdshader") };
-        material.SetShaderParameter("scan", 0f);
-        _light.Material = material;
-        _base.Draw += DrawBase;
+        _light.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
+        _dark.Draw += DrawDark;
         _light.Draw += DrawLight;
-        _over.Draw += DrawOver;
-        AddChild(_base);
+        AddChild(_dark);
         AddChild(_light);
-        AddChild(_over);
     }
 
-    /// <summary>Shows <paramref name="now"/>, what the scanner reads this frame (null: nothing), <paramref name="elapsedMs"/> after the last.</summary>
-    public void Frame(Readout? now, double elapsedMs)
+    /// <summary>Whether it reads a thing this frame: the drone's reticle opens meanwhile.</summary>
+    public bool Reads => _dots.Reads;
+
+    /// <summary>How far each dot is out from its mark on the drone's reticle this frame, 0..1: the drone draws those at 0 as its own sparks.</summary>
+    public ReadOnlySpan<float> Away => _away;
+
+    /// <summary>
+    /// Shows <paramref name="now"/>, what the scanner reads this frame (null: nothing), <paramref name="elapsedMs"/> after the last;
+    /// the dots leave from the drone's reticle's marks and come home to them, red as its alarm (<paramref name="drone"/>; none: in place).
+    /// </summary>
+    public void Frame(Readout? now, ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? drone, double elapsedMs)
     {
-        _timeMs += elapsedMs;
-        if (now is { } read)
-        {
-            if (_shown is { } was && was.Id == read.Id && read.Left < was.Left) _hitAt = _timeMs;
-            else if (_shown?.Id != read.Id) _hitAt = double.NegativeInfinity;
-            if (_shown?.Left != read.Left) _left = read.Left.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (_shown?.Max != read.Max) _max = "/" + read.Max.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            _shown = read;
-        }
-        _shows = Math.Clamp(_shows + (now != null ? elapsedMs / InMs : -elapsedMs / OutMs), 0, 1);
-        Visible = _shows > 0.01 && _shown != null;
+        _dots.Step(now, drone?.Seats, elapsedMs / 1000);
+        _tint = drone?.Tint ?? 0;
+        Visible = _dots.Visible;
+        for (int j = 0; j < ScanDots.Count; j++) _away[j] = Visible ? _dots.Dot(j).Away : 0;
         if (!Visible) return;
-        // Drawn in screen pixels from the point it reads, each of its pixels a whole number of them.
-        float zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
-        _scale = Phosphor.Scale(zoom);
-        var r = _shown!.Value;
+        // Drawn in screen pixels from the point it reads, so each dot keeps whole ones as the camera eases.
+        _zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
+        var r = _dots.Shown!.Value;
         var at = new Vector2((float)(r.X * Camera.Cell), (float)(r.Y * Camera.Cell));
-        foreach (var layer in (Node2D[])[_base, _light, _over])
+        foreach (var layer in (ReadOnlySpan<Node2D>)[_dark, _light])
         {
             layer.Position = at;
-            layer.Scale = Vector2.One / zoom;
+            layer.Scale = Vector2.One / _zoom;
             layer.QueueRedraw();
         }
     }
 
-    private (int X, int Y, int W, int H) Box => Phosphor.Box(0, 0, _max);
-    private double Heat => Math.Exp(-(_timeMs - _hitAt) / FlareMs);
-    private static Color Of(Color c, double a) => new(c, (float)Math.Clamp(a, 0, 1));
+    /// <summary>A point of the world in the layers' screen pixels from the point read, whole.</summary>
+    private Vector2 Screen(float x, float y) => new(MathF.Round((x - _dark.Position.X) * _zoom), MathF.Round((y - _dark.Position.Y) * _zoom));
 
-    /// <summary>A rectangle in the readout's pixels, each <see cref="_scale"/> screen pixels.</summary>
-    private void Rect(Node2D on, int x, int y, int w, int h, Color colour) =>
-        on.DrawRect(new Rect2(x * _scale, y * _scale, w * _scale, h * _scale), colour);
+    /// <summary>A side of <paramref name="world"/> px in whole screen pixels, at least one.</summary>
+    private float Side(float world) => Math.Max(1, MathF.Round(world * _zoom));
 
-    private void DrawBase()
+    private Color Hot => Ember.Lerp(Red, Math.Min(1, _tint * I.AlarmRed));
+
+    private void DrawDark()
     {
-        if (_shown == null) return;
-        var (x, y, w, h) = Box;
-        Rect(_base, x, y, w, h, Of(Glass, 0.84 * Math.Min(1, _shows * 1.5)));
-        // The edge, a readout pixel thick, as four strips: an unfilled rectangle's line would straddle its edge.
-        var edge = Of(Green, 0.5 * _shows);
-        Rect(_base, x, y, w, 1, edge);
-        Rect(_base, x, y + h - 1, w, 1, edge);
-        Rect(_base, x, y + 1, 1, h - 2, edge);
-        Rect(_base, x + w - 1, y + 1, 1, h - 2, edge);
+        _darks.Clear();
+        for (int j = 0; j < ScanDots.Count; j++)
+        {
+            var dot = _dots.Dot(j);
+            if (dot.Alpha <= 0 || dot.Away <= 0) continue;
+            Square(_darks, Screen(dot.X, dot.Y), Side(dot.Side), new Color(Dark, dot.Alpha));
+            if (_dots.Ember(j) is { } ember) Square(_darks, Screen(ember.X, ember.Y), Side(I.Dot * I.WorldPx * ember.Side), Dark);
+        }
+        _darks.Flush(_dark.GetCanvasItem());
     }
 
+    /// <summary>Each dot's glow, a tail behind it as it flies; every few's thread; the embers a hit burst off.</summary>
     private void DrawLight()
     {
-        if (_shown == null) return;
-        var (x, y, w, h) = Box;
-        double heat = Heat, level = _shows * (1 + 0.4 * heat);
-        int room = Phosphor.LeftWidth(_max);
-        Text(_left, x + Phosphor.Inset + room - Phosphor.Width(_left), y + Phosphor.Inset, Of(Green.Lerp(Flare, (float)(0.6 * heat)), level));
-        Text(_max, x + Phosphor.Inset + room + 1, y + Phosphor.Inset, Of(Green, 0.55 * level));
-        double roll = _timeMs / RollMs % 1;
-        _light.DrawRect(new Rect2((x + 1) * _scale, (y + 1) * _scale + (int)(roll * (h - 2) * _scale), (w - 2) * _scale, _scale), Of(Green, 0.22 * level));
-        Rect(_light, 0, y + h, 1, 3, Of(Green, 0.5 * level));
+        _lights.Clear();
+        var hot = Hot;
+        float step = I.TailStep * I.Px * _zoom;
+        for (int j = 0; j < ScanDots.Count; j++)
+        {
+            var dot = _dots.Dot(j);
+            var at = Screen(dot.X, dot.Y);
+            if (dot.Away > 0)
+            {
+                if (dot.Flying && j % I.DotThreadEvery == 0)
+                    _lights.Quad(Screen(dot.FromX, dot.FromY), at, I.ThreadLine * I.Px * _zoom, new Color(hot, I.ThreadAlpha * dot.Alpha));
+                Glow(at, Side(dot.Side), new Vector2(dot.Dx, dot.Dy) * step, Math.Min(1, dot.Heat + _tint * I.AlarmHeat * dot.Alpha), hot);
+            }
+            if (_dots.Ember(j) is { } ember)
+                Glow(Screen(ember.X, ember.Y), Side(I.Dot * I.WorldPx * ember.Side), Vector2.Zero, Math.Min(1, ember.Heat + _tint * I.AlarmHeat), hot);
+        }
+        _lights.Flush(_light.GetCanvasItem());
     }
 
-    /// <summary>Every other screen row of the box dimmed, counted from its own top, so they move with it.</summary>
-    private void DrawOver()
+    /// <summary>A glow <paramref name="heat"/> hot at <paramref name="at"/>: its square and two behind it by <paramref name="back"/>, paler and fainter.</summary>
+    private void Glow(Vector2 at, float side, Vector2 back, float heat, Color hot)
     {
-        if (_shown == null || _scale < 2) return;
-        var (x, y, w, h) = Box;
-        var dim = Of(Glass, Scanline * _shows);
-        for (int row = 1; row < h * _scale; row += 2)
-            _over.DrawRect(new Rect2(x * _scale, y * _scale + row, w * _scale, 1), dim);
+        if (heat <= 0.02f) return;
+        for (int m = 0; m < I.Tail; m++)
+        {
+            var colour = hot.Lerp(Colors.White, I.TailPale * (1 - m / (float)I.Tail));
+            Square(_lights, new Vector2(MathF.Round(at.X - back.X * m), MathF.Round(at.Y - back.Y * m)), side, new Color(colour, (I.TailAlpha - m * I.TailFade) * heat));
+        }
     }
 
-    private void Text(string text, int x, int y, Color colour)
+    /// <summary>A square <paramref name="side"/> whole pixels round <paramref name="at"/>, on whole pixels.</summary>
+    private static void Square(Triangles into, Vector2 at, float side, Color colour)
     {
-        for (int i = 0; i < text.Length; i++)
-            for (int row = 0; row < 5; row++)
-                for (int col = 0; col < 3; col++)
-                    if (Phosphor.Lit(text[i], col, row)) Rect(_light, x + i * 4 + col, y + row, 1, 1, colour);
+        float half = MathF.Floor(side / 2);
+        into.Rect(at.X - half, at.Y - half, side, side, colour);
     }
+
+    private static Color Rgb((int R, int G, int B) c) => new(c.R / 255f, c.G / 255f, c.B / 255f);
 }

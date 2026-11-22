@@ -207,8 +207,9 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The open machine's hologram, a frame on: its window's controls shown as the pens trace it. A machine another feature
-    /// shows (a queued station's) makes it go at once; shut, it plays back where the window was.
+    /// The open machine's hologram, a frame on: its window's controls shown as the pens trace it. A station's own window, not the
+    /// drone's (drone-windows): no corners. A machine another feature shows (a queued station's) makes it go at once; shut, it
+    /// plays back where the window was.
     /// </summary>
     private void Hologram(double delta)
     {
@@ -217,29 +218,27 @@ public partial class InventoryPanel
             _frame.Reveal(_holo.Step(delta, new MachineHolo.Target(open, _frame.GetGlobalRect(), _holoBox, _frame.Tone)));
         else if (Crate != null) _holo.Snap();
         else _holo.Step(delta, null);
-        BagSoot(delta);
+        BagFrame(delta);
     }
 
     /// <summary>
-    /// The paired bag (drone-holo): it opens and closes at once, and while it is open the hero's drone draws the sheet in front of
-    /// its face for every player to see. Unpaired, the wrist's bag tells the drone nothing.
+    /// The paired bag in the drone's corners (drone-windows): its place handed to the frame while it shows, its glass and contents
+    /// coming in with the corners, out as they fly home. Unpaired, the wrist's bag is no drone window.
     /// </summary>
-    private void BagSoot(double delta)
+    private void BagFrame(double delta)
     {
         if (_inventory is not HoloWindow window)
         {
-            if (_ui.DroneWindow.Open) _ui.DroneWindow = (false, 0);
+            _bagClock.Step(delta, false);
             return;
         }
-        if (_shown.Visible != Shown) _shown.Visible = Shown;
-        window.Glass(Shown ? 1 : 0, Shown ? 1 : 0);
-        _ui.DroneWindow = (Shown, 0);
-    }
-
-    /// <summary>Another drone window took the soot from the bag: it closes, a crate open beside it too.</summary>
-    private void SootTaken(object window)
-    {
-        if (ReferenceEquals(window, this) && Shown) Close();
+        // Laid out before it opens: a window not yet sized has no place for the corners.
+        var at = window.GetGlobalRect();
+        bool laid = at.Size is { X: > 0, Y: > 0 };
+        _bagClock.Step(delta, Shown && BagOpens && laid);
+        if (_shown.Visible != BagShown) _shown.Visible = BagShown;
+        window.Glass(_bagClock.Screen, _bagClock.Screen);
+        if (laid) _ui.Windows.Hand(_bagClock, (at.Position.X, at.Position.Y, at.Size.X, at.Size.Y), _bagClock);
     }
 
     /// <summary>

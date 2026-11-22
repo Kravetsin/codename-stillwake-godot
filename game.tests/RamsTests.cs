@@ -18,7 +18,10 @@ public class RamsTests
     private const int Unit = Hero.Unit, Block = HeroTests.Block;
 
     /// <summary>A room of open cells, its floor row 13, with a tapir standing with its feet's middle at the point given, in <paramref name="mode"/>, running <paramref name="vx"/>.</summary>
-    private static Creature Tapir(int x, int y, Posture mode, int vx = 0)
+    private static Creature Tapir(int x, int y, Posture mode, int vx = 0) => TapirWorld(x, y, mode, vx).M.Creatures.Creatures[0];
+
+    /// <summary>The world of <see cref="Tapir"/>.</summary>
+    private static TestWorld TapirWorld(int x, int y, Posture mode, int vx = 0)
     {
         var w = new TestWorld(Layout.Parse([.. Enumerable.Repeat(new string('.', 24), 13), new string('#', 24)]));
         w.Edit(root =>
@@ -44,7 +47,28 @@ public class RamsTests
             creatures["creatures"]!.AsArray().Add(c);
             creatures["nextId"] = 2;
         });
-        return w.M.Creatures.Creatures[0];
+        return w;
+    }
+
+    /// <summary>
+    /// A held hero is thrown by nothing (drone-meeting, form-vision): while the sim spares it, a charge touching it and an arc crossing it
+    /// send no <c>HitBy</c> or <c>Bolted</c>, so its client neither knocks the body nor flinches it; an arc seen then is past after.
+    /// </summary>
+    [Fact]
+    public void WhileTheSimSparesTheHeroNoRamOrArcIsReported()
+    {
+        int y = Standing.Y - Spec.Hero.Height / 2;
+        var w = TapirWorld(Standing.X + 600, 13 * Unit, Posture.Charge, -1400).Step(new Stillwake.Sim.Crew.Enter(0));
+        w.Edit(root => root["slices"]!["creatures"]!["arcs"] = new System.Text.Json.Nodes.JsonArray(
+            JsonSerializer.SerializeToNode(new { id = 1, projectile = "bolt", x0 = 40_000, y0 = y, x1 = 1_000, y1 = y, left = 10 })));
+        Assert.NotNull(Rams.RamOf(w.M, 0, Standing));
+        Assert.True(Rams.Bolts(w.M, 0, w.M.Creatures.Arcs[0], Standing, new HashSet<int>()));
+        w.Edit(root => root["slices"]!["crew"]!["heroes"]![0]!["meets"] = 10);
+        Assert.True(w.M.Crew.Spared(0));
+        Assert.Null(Rams.RamOf(w.M, 0, Standing));
+        var judged = new HashSet<int>();
+        Assert.False(Rams.Bolts(w.M, 0, w.M.Creatures.Arcs[0], Standing, judged));
+        Assert.Contains(1, judged);
     }
 
     private static int DriveOf<D>() where D : Spec.Creatures.Drive => Spec.Creatures.Tapir.Brain.ToList().FindIndex(d => d is D);

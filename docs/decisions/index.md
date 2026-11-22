@@ -249,7 +249,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach, cracks-to-end, drill-contact, grinder-contact, blade-sparks, cutter-contact, spark-rule (in part) |
-| [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash (in part) |
+| [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted | edge-flash, thread-icons (in part) |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted | one-to-understand, board-islands, own-knowledge (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
@@ -291,7 +291,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
 | [right-lets-go](2026-11-07-right-lets-go.md) | The right button lets the card go | accepted |  |
 | [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted | leaks-a-minute, liquid-volumes (in part) |
-| [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
+| [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted | drone-threads (in part) |
 | [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
@@ -303,7 +303,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted | planet-variety (in part) |
 | [crusher-heard](2026-11-08-crusher-heard.md) | Crusher heard | accepted |  |
 | [deep-sulfur](2026-11-08-deep-sulfur.md) | Sulfur lies in the deep stone | accepted |  |
-| [edge-flash](2026-11-08-edge-flash.md) | A find flashes along the tablet's edge, once a batch; the bulb and the flight go | accepted |  |
+| [edge-flash](2026-11-08-edge-flash.md) | A find flashes along the tablet's edge, once a batch; the bulb and the flight go | superseded | find-scan |
 | [flowing-liquids](2026-11-08-flowing-liquids.md) | Flowing liquids: lakes in a planet's cells | accepted |  |
 | [hurts-are-shown](2026-11-08-hurts-are-shown.md) | Hurts are shown | accepted |  |
 | [leaks-a-minute](2026-11-08-leaks-a-minute.md) | Leaks a minute | accepted |  |
@@ -414,9 +414,21 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted |  |
 | [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted |  |
 | [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted |  |
+| [drone-companion](2026-11-21-drone-companion.md) | Each hero pairs once with a shard of the alien core; the bag comes with it | accepted | drone-windows (in part) |
+| [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted | drone-threads, drone-windows (in part) |
+| [drone-lessons](2026-11-21-drone-lessons.md) | The drone learns its forms from what its player does | accepted | drone-thoughts, form-vision (in part) |
+| [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted | drone-threads (in part) |
+| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted | drone-thoughts (in part) |
+| [drone-threads](2026-11-21-drone-threads.md) | The drone of threads: a coal core and sparks, no plates and no holograms | accepted | drone-windows, scan-form (in part) |
+| [drone-windows](2026-11-21-drone-windows.md) | The drone's windows open in four ember corners; before the pairing only the gear and the stations open | accepted |  |
+| [find-scan](2026-11-21-find-scan.md) | The drone scans each find over the hero's head | accepted | form-vision (in part) |
 | [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |
 | [gear-roles](2026-11-21-gear-roles.md) | Helmets and suits each add their degrees; the heated and heat helmets | accepted |  |
-| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted |  |
+| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted | drone-lessons, drone-threads, thread-icons (in part) |
 | [own-knowledge](2026-11-21-own-knowledge.md) | Each player learns for themself; purchases are the crew's | accepted |  |
+| [scan-form](2026-11-21-scan-form.md) | The drone's scan form is a reticle, its marks the gauge's dots | accepted |  |
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
+| [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted |  |
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
+| [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |
+| [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |

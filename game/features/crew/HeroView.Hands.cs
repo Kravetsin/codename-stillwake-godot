@@ -75,12 +75,12 @@ public partial class HeroView
         bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && !typing && !_locked;
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
-        _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
+        _wheelView.Show(_wheel, wheelScale, Gestures.IconOf, drone: false);
         // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
         if (!DroneOpen(_droneMode) && DroneModes.Next(_droneMode, _droneOpen) is { } otherMode) _droneMode = otherMode;
         bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
         if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
-        _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);
+        _droneWheelView.Show(_droneWheel, wheelScale, DroneModes.IconOf, drone: true);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
         if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
         _ping.Step(elapsedMs);
@@ -226,11 +226,11 @@ public partial class HeroView
         _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
         ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
-        // The computer opens its own window; every other machine its slots under the inventory.
+        // The computer opens its own window; every other machine its slots under the inventory, the station's own, paired or not.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
             if (Content.Machines.Is(machine.Kind, Content.MachineTrait.Computer)) _ui.OpenComputer.Set(open);
-            else _ui.OpenCrate.Set(open);
+            else if (DroneWindows.Opens(DroneWindowKind.Station, m.Players.HasDrone(client.Id))) _ui.OpenCrate.Set(open);
         }
         // A crate or a computer stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
