@@ -1,6 +1,6 @@
 # crew (client): the heroes
 
-This hero and others', client-authoritative (0002).
+Client-authoritative (0002).
 
 ## Files
 
@@ -99,7 +99,7 @@ This hero and others', client-authoritative (0002).
 | `HeroView.Others.cs` | |
 | `logic/CameraFollow.cs` | |
 | `JetPlume.cs` | |
-| `logic/PlumeWay.cs` | |
+| `logic/PlumeWay.cs` | drawn from nozzle |
 | `RodLight.cs` | |
 | `AimOutline.cs` | |
 | `ModeGlyph.cs` | mark |
