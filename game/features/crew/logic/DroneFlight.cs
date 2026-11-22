@@ -38,6 +38,9 @@ public sealed class DroneFlight
         /// <summary>It perches aside, px from its anchor: between <see cref="HomeNear"/> and <see cref="HomeX"/> across either way, up to <see cref="HomeY"/> up or down.</summary>
         public const double HomeNear = 12, HomeX = 18, HomeY = 3;
 
+        /// <summary>Under a ceiling or by a wall it slides into the open, no nearer the helmet's middle than this, px.</summary>
+        public const double Clear = 13;
+
         /// <summary>Shown at its anchor, it leaves for a perch aside this soon after, ms.</summary>
         public const double AsideMs = 400;
 

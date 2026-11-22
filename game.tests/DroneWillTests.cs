@@ -173,6 +173,28 @@ public class DroneWillTests
         Assert.Equal(Anchor, will.Pick(Still, 16).Goal);
     }
 
+    /// <summary>Seen in play sitting in a lintel: by walls and under any ceiling it perches in the open, still clear of the helmet.</summary>
+    [Theory]
+    [InlineData(48, 64)]
+    [InlineData(64, 64)]
+    [InlineData(48, 32)]
+    public void ItPerchesInTheOpenAirAndClearOfTheHelmet(int high, int wide)
+    {
+        var feet = new Vec(408, 400);
+        var neck = new Vec(feet.X, feet.Y - Rig.Neck);
+        bool Walls(double x, double y) => y >= feet.Y || y < feet.Y - high || x < feet.X - wide / 2 || x >= feet.X + wide / 2;
+        var anchor = DroneFlight.Anchor(neck, feet.X);
+        var senses = Still with { Anchor = anchor, At = anchor, Neck = neck, StopsLight = Walls };
+        var will = Will();
+        var helmet = new Vec(neck.X, neck.Y - DroneInk.HelmetUp);
+        for (int ms = 0; ms < 120000; ms += 64)
+        {
+            var goal = will.Pick(senses, 64).Goal;
+            Assert.False(Walls(goal.X, goal.Y), $"perched in the wall at {goal}");
+            Assert.True(DroneFlight.Length(DroneFlight.Minus(goal, helmet)) >= T.Clear - 0.01, $"perched in the helmet at {goal}");
+        }
+    }
+
     [Fact]
     public void InLampAndScanTheLensFollowsThePointerWhateverItDoes()
     {

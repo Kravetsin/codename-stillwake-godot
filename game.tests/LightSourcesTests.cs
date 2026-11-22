@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Xunit;
@@ -94,7 +95,7 @@ public class LightSourcesTests
 
     /// <summary>Three cells across: open, a wall, a closed door.</summary>
     private static bool Blocks(double x, double y) =>
-        Sources.Blocks(c => c switch { 0 => Structure.Empty, 1 => Structure.Wall, _ => Structure.DoorClosed }, 3, 1, Cell, x, y);
+        OpenAir.Blocks(c => c switch { 0 => Structure.Empty, 1 => Structure.Wall, _ => Structure.DoorClosed }, 3, 1, Cell, x, y);
 
     [Fact]
     public void TellsAPointInAWallFromOneInTheOpen()
@@ -106,19 +107,54 @@ public class LightSourcesTests
     }
 
     [Fact]
-    public void AHelmetLampShinesFromItsLensOrTheNearestOpenPointBackTowardTheNeck()
+    public void AHelmetLampShinesBeamAndGlowFromItsLensInTheOpen()
     {
-        // In the open: beam and glow both from the lens, not the helmet.
-        var (beam, glow) = Sources.HeadLamp((12, 6), (1, 0), (6, 10), Blocks);
-        Assert.Equal((12.0, 6.0), (beam.X, beam.Y));
-        Assert.Equal((12.0, 6.0), (glow.X, glow.Y));
+        var lens = new Vec(8, 6);
+        Assert.Equal(lens, OpenAir.Nearest(lens, new Vec(6, 10), Blocks));
+        var (beam, glow) = Sources.HeadLamp((lens.X, lens.Y), (1, 0));
+        Assert.Equal((8.0, 6.0), (beam.X, beam.Y));
+        Assert.Equal((8.0, 6.0), (glow.X, glow.Y));
         Assert.Equal((1.0, 0.0), beam.Toward);
         Assert.Null(glow.Toward);
-        // Standing against the wall, the neck in the open cell, the lens poking 2 px into the wall: just out of it, by the lens.
-        (beam, glow) = Sources.HeadLamp((18, 6), (1, 0), (12, 10), Blocks);
-        Assert.False(Blocks(beam.X, beam.Y));
-        Assert.Equal((glow.X, glow.Y), (beam.X, beam.Y));
-        Assert.InRange(beam.X, 15, 16);
+        // Against the wall, the lens poking 2 px into it: its bulb's width out of the face, level with the lens.
+        var out_ = OpenAir.Nearest(new Vec(18, 6), new Vec(12, 10), Blocks);
+        Assert.InRange(out_.X, 12, 13);
+        Assert.Equal(6, out_.Y, 6);
+    }
+
+    /// <summary>A wall of 8 px cells left of x 32 from the ceiling, which ends at y 16: the player's screenshot, the drone in the lintel.</summary>
+    private static bool Lintel(double x, double y) => y < 16 || x >= 24 && x < 32;
+
+    /// <summary>Seen in play: the drone in a wall, its light drawn from the head. It shines from beside the drone, on the hero's side.</summary>
+    [Theory]
+    [InlineData(27, 27)]
+    [InlineData(18, 27)]
+    public void ADroneInAWallOrPastItShinesFromBesideItNotFromTheHead(double x, double y)
+    {
+        var from = OpenAir.Nearest(new Vec(x, y), new Vec(40, 48), Lintel);
+        Assert.InRange(from.X, 32, 36);
+        Assert.InRange(from.Y, y - 1, y + 1);
+    }
+
+    [Fact]
+    public void ADroneInTheCeilingShinesFromUnderIt()
+    {
+        var from = OpenAir.Nearest(new Vec(56, 10), new Vec(40, 48), Lintel);
+        Assert.InRange(from.X, 55, 57);
+        Assert.InRange(from.Y, 16, 20);
+    }
+
+    /// <summary>The lens sliding along a wall, its light slides with it: no step from cell to cell.</summary>
+    [Fact]
+    public void AlongAWallTheLightSlidesWithTheDrone()
+    {
+        var was = OpenAir.Nearest(new Vec(27, 22), new Vec(40, 48), Lintel);
+        for (double y = 22.25; y < 60; y += 0.25)
+        {
+            var now = OpenAir.Nearest(new Vec(27, y), new Vec(40, 48), Lintel);
+            Assert.InRange(Math.Abs(now.Y - was.Y) + Math.Abs(now.X - was.X), 0, 0.5);
+            was = now;
+        }
     }
 
     /// <summary>Every glowing machine lights as its looks say (0113), and only they: a new lamp is a row there and in the machines.</summary>

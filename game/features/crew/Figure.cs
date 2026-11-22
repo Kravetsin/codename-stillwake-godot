@@ -888,8 +888,21 @@ public partial class Figure : Node2D
         for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
     }
 
-    /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
-    public Vector2 HeadLampAt => _drone.GlobalPosition;
+    /// <summary>Whether a point of its surface stops light; none where it stands on no grid.</summary>
+    public Func<double, double, bool>? StopsLight { get; set; }
+
+    /// <summary>Where its drone's light shines from, pixels of the world: its lens, or in a wall or past one the open point nearest it.</summary>
+    public Vector2 HeadLampAt
+    {
+        get
+        {
+            var lens = _drone.GlobalPosition;
+            if (StopsLight is not { } stops) return lens;
+            var neck = HeadAt;
+            var open = OpenAir.Nearest(new Vec(lens.X, lens.Y), new Vec(neck.X, neck.Y), stops);
+            return new Vector2((float)open.X, (float)open.Y);
+        }
+    }
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
     public Vector2 Visor => _crown.ToGlobal(VisorOn);
@@ -902,7 +915,7 @@ public partial class Figure : Node2D
 
     /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces, a bolted helmet's too.</summary>
     public Vector2 HeadLampToward =>
-        LampAim is { } aim && aim.DistanceTo(_drone.GlobalPosition) > 1 ? (aim - _drone.GlobalPosition).Normalized()
+        LampAim is { } aim && HeadLampAt is var lit && aim.DistanceTo(lit) > 1 ? (aim - lit).Normalized()
             : _helmet.GlobalTransform.BasisXform(Vector2.Right.Rotated((float)_gaze)).Normalized();
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
@@ -1874,6 +1887,8 @@ public partial class Figure : Node2D
                 Visit = !overDrone && DroneVisit is { } visit ? new Vec(visit.X, visit.Y) : null,
                 Icon = Senses.Icon || DroneStare != null || DroneVisit != null,
                 Reads = _droneReads,
+                Neck = new Vec(HeadAt.X, HeadAt.Y),
+                StopsLight = StopsLight,
             };
             var intent = _will.Pick(senses, elapsedMs);
             _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
