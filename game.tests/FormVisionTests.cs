@@ -274,6 +274,17 @@ public class FormVisionTests
         Assert.InRange(FormVision.HeroTall * zoom / height, 0.15, 0.32);
     }
 
+    /// <summary>A pod arriving or a hero waking mid-vision is held where the sim put it, not at the old place on another surface.</summary>
+    [Fact]
+    public void AVisionHoldsTheHeroWhereTheSimPutItMeanwhile()
+    {
+        var began = new Hero(10_000, 20_000, 0, 0, false, -1);
+        var drifted = began with { Y = 20_400, Vy = 90 };
+        var arrived = new Hero(900_000, 300_000, 40, 90, false, 1);
+        Assert.Equal(began, FormVision.HeldAt(began, drifted, put: false));
+        Assert.Equal(arrived with { Vx = 0, Vy = 0 }, FormVision.HeldAt(began, arrived, put: true));
+    }
+
     private static double Mid(Beat beat) => (beat.From + beat.To) / 2;
 
     private static double Apart(Vec a, Vec b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));

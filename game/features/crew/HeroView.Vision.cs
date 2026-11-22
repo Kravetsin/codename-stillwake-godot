@@ -19,8 +19,8 @@ public partial class HeroView
         public readonly string Form = form;
         public readonly VisionForm Kind = kind;
         public readonly FormVisionView View = view;
-        public readonly Hero Held = held;
-        public readonly Vector2 Home = home;
+        public Hero Held = held;
+        public Vector2 Home = home;
         public double U;
     }
 
@@ -63,6 +63,15 @@ public partial class HeroView
             if (m.Crew.EnvisionProblem(client.Id) == null) client.Send(new Sim.Crew.Envision());
         }
         _vision.U = shown.Seconds;
+    }
+
+    /// <summary>Holds the vision's hero where the sim <paramref name="put"/> it this frame, where its drone goes back to with it.</summary>
+    private void HoldVision(bool put)
+    {
+        if (_vision is not { } vision) return;
+        var held = FormVision.HeldAt(vision.Held, _current, put);
+        vision.Home += FeetOf(held) - FeetOf(vision.Held);
+        vision.Held = held;
     }
 
     private void EndVision()

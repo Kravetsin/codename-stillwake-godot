@@ -528,6 +528,7 @@ public partial class HeroView : Node2D
             _snap = true;
         }
         bool woke = _wasOut && !passedOut;
+        HoldVision(moved || woke || (passedOut && !_wasOut));
         _wasOut = passedOut;
         // The body (body-temperature), from the degrees the sim says it feels where it stands; at either death the sim is told once.
         // Out, it stays as it was, so one frozen to death lies frosted over; it is well again on waking.

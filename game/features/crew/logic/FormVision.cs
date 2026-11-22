@@ -137,6 +137,12 @@ public static class FormVision
     /// <summary>Where the drone hangs in the void before the hero.</summary>
     public static readonly Vec Void = new(672, 292);
 
+    /// <summary>
+    /// Where a vision holds its hero: where it was <paramref name="held"/>, or, the sim having <paramref name="put"/> it elsewhere meanwhile (a pod
+    /// arrived, it woke from passing out), where it stands <paramref name="now"/>; its speed gone.
+    /// </summary>
+    public static Hero HeldAt(Hero held, Hero now, bool put) => put ? now with { Vx = 0, Vy = 0 } : held;
+
     /// <summary>The beam's half-angle (the scan-form's cone), radians.</summary>
     public const double Half = 0.26;
 
