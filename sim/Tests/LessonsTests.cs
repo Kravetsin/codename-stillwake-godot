@@ -161,6 +161,35 @@ public class LessonsTests
         Assert.Null(w.M.Lessons.Teacher(Row2(10), "nothing"));
     }
 
+    /// <summary>The drone is curious about a teacher within <see cref="Spec.Lessons.Wonder"/> (drone-thoughts), yet learns only within reach.</summary>
+    [Fact]
+    public void ATeacherAskedFurtherIsFoundThereButTeachesOnlyWithinReach()
+    {
+        var w = Strip2().Do(new Enter(Row2(31)) { From = 1 }).Run(5);
+        var lamp = w.M.Grid.MachinesOf("lamp")[0];
+        Assert.Null(w.M.Lessons.Teacher(Row2(31), "lamp"));
+        Assert.Equal(lamp, w.M.Lessons.Teacher(Row2(31), "lamp", Spec.Lessons.Wonder));
+        Assert.Null(w.M.Lessons.Teacher(Row2(43), "lamp", Spec.Lessons.Wonder));
+        Assert.False(w.M.Knowledge.Knows(1, Lamp));
+    }
+
+    /// <summary>
+    /// The wreck's upper emergency lamp is beyond reach of the alien core yet within wonder (drone-thoughts): a hero just paired does not
+    /// learn the alarms there, and its drone is curious about the lamp, pointing the way.
+    /// </summary>
+    [Fact]
+    public void TheWrecksUpperEmergencyLampIsBeyondReachOfTheCoreButWithinWonder()
+    {
+        var w = new Scenario(Registry.Wreck with { Meteors = false });
+        int width = w.M.Grid.Width, core = w.M.Grid.MachinesOf(Spec.LightDrone.CoreMachine)[0].Cell;
+        var upper = w.M.Grid.MachinesOf("emergencyLamp").MinBy(l => l.Cell / width)!;
+        var spec = Spec.Machines.Get(upper.Kind);
+        long dx = Math.Max(0, core % width - (upper.Cell % width + spec.Width - 1)), dy = Math.Max(0, core / width - (upper.Cell / width + spec.Height - 1));
+        Assert.InRange(dx * dx + dy * dy, (long)Reach * Reach + 1, (long)Spec.Lessons.Wonder * Spec.Lessons.Wonder);
+        Assert.NotNull(w.M.Lessons.Teacher(core, "emergencyLamp", Spec.Lessons.Wonder));
+        Assert.Null(w.M.Lessons.Teacher(core, "emergencyLamp"));
+    }
+
     [Theory]
     [InlineData("scanner")]
     [InlineData("droneLamp")]

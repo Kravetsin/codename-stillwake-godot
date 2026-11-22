@@ -116,6 +116,7 @@ public partial class Main
             DebrisPage = debrisPage,
             Layout = _layout,
             Hero = () => _hero?.Current,
+            HeroView = () => _hero,
             World = () => _session is Session s ? (s.Client, _m) : null,
             M = () => _m,
             Add = node => AddChild(node),

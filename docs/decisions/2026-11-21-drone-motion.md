@@ -1,7 +1,7 @@
 # The drone's motion and alarms: its own will, trailing its hero
 
 - Status: accepted; continues [light-drone](2026-11-21-light-drone.md) (its alarms, designed and cut there) and
-  [drone-companion](2026-11-21-drone-companion.md)
+  [drone-companion](2026-11-21-drone-companion.md); superseded in part by [drone-thoughts](2026-11-22-drone-thoughts.md)
 - Date: 2026-11-21
 
 ## Context

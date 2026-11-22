@@ -289,7 +289,7 @@ public partial class Main : Node2D, ITogether
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = DevScript();
-            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins) });
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look, Skins = () => _owned.Sendable(_skins), FormHeld = form => _tablet?.Scan.Holds(form) == true });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
             // The equipment's screen turns to the skins (hero-skins): picked, they are kept and sent.
@@ -460,7 +460,7 @@ public partial class Main : Node2D, ITogether
         AddChild(new FindScanView(tech.Scan, inWorld, () => edge.Art, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null,
             () => _hero?.Shown?.Head, () => _hero?.DroneScan, () => _hands.Ui.Slot, at => { if (_hero != null) _hero.DroneStare = at; },
             form => _session is Session s ? FindScanView.TeacherOf(_m, s.Client.Id, form, _debris.LastBroken) : null, at => { if (_hero != null) _hero.DroneVisit = at; },
-            show => { if (_hero != null) _hero.DroneBecoming = show; }));
+            show => { if (_hero != null) _hero.DroneVision = show; }, form => _hero?.VisionSeconds(form) ?? 0));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {

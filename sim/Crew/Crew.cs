@@ -66,6 +66,12 @@ public sealed record Purge : Command;
 public sealed record PairDrone(int Core) : Command;
 
 /// <summary>
+/// The sender's drone learned a form and shows the hero what it does (form-vision): the hero held and spared as in the drone's meeting, for
+/// <c>Crew.VisionTicks</c> or what is left of a longer spare. Sent by its client as the vision begins.
+/// </summary>
+public sealed record Envision : Command;
+
+/// <summary>
 /// The sender's hero passes out of its body's cold or heat (body-temperature): its client keeps the body, from the degrees the sim
 /// says it feels, and sends this as it reaches <c>Temperature.ColdDeath</c> or <c>HeatDeath</c>.
 /// </summary>
@@ -149,7 +155,7 @@ public interface ICrewQueries
     Rates RatesOf(int peer);
     /// <summary>Whether hero <paramref name="peer"/> is hungry: awake, every meal gone, not creative; its running costs <c>Diet.HungrySprint</c>.</summary>
     bool Hungry(int peer);
-    /// <summary>Whether hero <paramref name="peer"/> is spared all harm and drain now, its drone's meeting playing (drone-meeting).</summary>
+    /// <summary>Whether hero <paramref name="peer"/> is spared all harm and drain now, its drone's meeting (drone-meeting) or a form's vision (form-vision) playing.</summary>
     bool Spared(int peer);
     /// <summary>
     /// Whether hero <paramref name="peer"/>'s suit's mode works: switched on, in a body with <c>Switch</c>; false with no hero
@@ -288,6 +294,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             _playersOps.Pair(c.From);
             HeroOf(c.From)!.Meets = Content.Crew.MeetingTicks;
         });
+        // The same spare as the meeting's (form-vision), never cut short.
+        Handles<Envision>(c => EnvisionProblem(c.From), c => HeroOf(c.From)!.Meets = Math.Max(HeroOf(c.From)!.Meets, Content.Crew.VisionTicks));
         Handles<Purge>(c => PurgeProblem(c.From), c =>
         {
             var hero = HeroOf(c.From)!;
@@ -540,6 +548,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (_players.HasDrone(peer)) return "crew.hasDrone";
         return _grid.MachineById(core) is { } m && Content.Machines.Is(m.Kind, Content.MachineTrait.Wakes) && !CoreLost() ? null : "crew.noCore";
     }
+
+    /// <summary>Why hero <paramref name="peer"/>'s vision could not spare it now (<see cref="Envision"/>): none or passed out (<c>crew.noHero</c>). Null when it could.</summary>
+    public string? EnvisionProblem(int peer) => HeroOf(peer) is { Out: 0 } ? null : "crew.noHero";
 
     /// <summary>
     /// Whether the map's alien core broke loose (drone-companion): a cell of the floor under it was broken, however. Then the core is

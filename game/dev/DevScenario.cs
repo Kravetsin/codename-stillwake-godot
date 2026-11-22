@@ -89,6 +89,8 @@ public sealed class DevContext
     public required Layout Layout { get; init; }
     /// <summary>This player's hero where it stands now; none without one.</summary>
     public required Func<Hero?> Hero { get; init; }
+    /// <summary>This player's hero's view, for a run that plays on it; none before the session makes it.</summary>
+    public required Func<HeroView?> HeroView { get; init; }
     /// <summary>The world played now, once a session runs.</summary>
     public required Func<(Client Client, Registry M)?> World { get; init; }
     /// <summary>The registry played now.</summary>

@@ -49,6 +49,10 @@ public partial class LightDrone : Node2D
     private double _timeMs;
     /// <summary>How red it is now, 0..1 (<see cref="DroneIntent.Tint"/>).</summary>
     private float _tint;
+    /// <summary>The thought whose picture it forms (drone-thoughts), how its mood moves its body, and its orbits' own clock, s, hurried or slowed by it.</summary>
+    private DroneThought? _thought;
+    private DroneBearing _bearing;
+    private double _orbitLead;
 
     public LightDrone()
     {
@@ -87,7 +91,9 @@ public partial class LightDrone : Node2D
             if (line.Length() < 1) line = Vector2.FromAngle(_angle);
             pointed = DroneSign.Turned(shown, (line.X, line.Y));
         }
-        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle), _angle, t, pointed);
+        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle, thinks: _thought != null), _angle, t, pointed, _thought, ShapeOver);
+        _swarm.Bear((float)_orbitLead, (float)_bearing.Tilt, (float)_bearing.Dim, 1 + (float)_bearing.Swell);
+        foreach (var node in (ReadOnlySpan<Node2D>)[_body, _glow]) node.Scale = Vector2.One * I.Px * (1 + (float)_bearing.Swell);
         for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, _angle, t);
         float turn = _swarm.TurnOf(SwarmShape.Scan, _angle, t);
         for (int j = 0; j < _seats.Length; j++)
@@ -116,6 +122,15 @@ public partial class LightDrone : Node2D
     /// <summary>Whether a drone window of its is out (its own or a friend's): it forms no shape meanwhile.</summary>
     public bool Projecting { get; set; }
 
+
+    /// <summary>
+    /// Whether a script flies it (form-vision): put on its goal as given, not flown after it, and a mark whose dot is out never drawn as a spark,
+    /// as the reticle falls apart too.
+    /// </summary>
+    public bool Scripted { get; set; }
+
+    /// <summary>How long the shape it changes to takes, s; none: the shape's own time.</summary>
+    public float? ShapeOver { get; set; }
 
     /// <summary>The box round its eye as drawn, in pixels of the world: where what it sends out flies from.</summary>
     public Rect2 LensBox
@@ -150,8 +165,11 @@ public partial class LightDrone : Node2D
     /// </summary>
     public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs)
     {
-        var at = _flight.Step(anchor, hero, intent.Goal, window, intent.Darting, elapsedMs);
-        GlobalPosition = new Vector2((float)at.X, (float)(at.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)));
+        var at = Scripted ? intent.Goal : _flight.Step(anchor, hero, intent.Goal, window, intent.Darting, elapsedMs);
+        // A mood moves the body off where it flies (drone-thoughts): a hop, a sink, a lean.
+        (_thought, _bearing) = (intent.Thought, intent.Bearing);
+        _orbitLead += elapsedMs / 1000 * _bearing.Hurry;
+        GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)));
         // It turns after its look, eased, never snapping across.
         float off = Mathf.Wrap(Mathf.Atan2((float)intent.Look.Y, (float)intent.Look.X) - _angle, -Mathf.Pi, Mathf.Pi);
         _angle = Mathf.Wrap(_angle + off * (float)(1 - Math.Exp(-elapsedMs / TurnMs)), -Mathf.Pi, Mathf.Pi);
@@ -169,7 +187,7 @@ public partial class LightDrone : Node2D
     }
 
     /// <summary>Whether spark <paramref name="i"/> is out as its gauge dot, which the scanner draws: a seed of the reticle formed, its dot away.</summary>
-    private bool Out(int i) => _swarm.Shape == SwarmShape.Scan && DroneSwarm.SeedOf(i) is int j and >= 0 && _away[j] > 0;
+    private bool Out(int i) => (Scripted || _swarm.Shape == SwarmShape.Scan) && DroneSwarm.SeedOf(i) is int j and >= 0 && _away[j] > 0;
 
     /// <summary>The hot colour now: the embers', reddened by an alarm.</summary>
     private Color Hot => Ember.Lerp(Red, Math.Min(1, _tint * I.AlarmRed));
@@ -210,10 +228,11 @@ public partial class LightDrone : Node2D
         double t = _timeMs / 1000;
         var hot = Hot;
         _light.Clear();
-        for (int o = 0; o < 3; o++) Orbit(_light, o, hot);
-        Shape(_swarm.Shape, _swarm.Form(t), _swarm.TurnOf(_swarm.Shape, _angle, t), hot, t);
+        float dim = (float)_bearing.Dim;
+        for (int o = 0; o < 3; o++) Orbit(_light, o, hot, tilt: (float)_bearing.Tilt, dim: dim);
+        Shape(_swarm.Shape, _swarm.Form(t), _swarm.TurnOf(_swarm.Shape, _angle, t), hot, t, leaving: false);
         var (leaving, form, turn) = _swarm.Leaving(t);
-        Shape(leaving, form, turn, hot, t);
+        Shape(leaving, form, turn, hot, t, leaving: true);
         for (int i = 0; i < _sparks.Length; i++)
         {
             var spark = _sparks[i];
@@ -224,7 +243,7 @@ public partial class LightDrone : Node2D
         }
         if (_flurry.Shown > 0)
             foreach (var spark in _flurrySparks) Tail(_light, spark, spark.Heat, hot);
-        Coal(_light, Vector2.Zero, _angle, hot, (float)t);
+        Coal(_light, Vector2.Zero, _angle, hot, (float)t, dim: dim, glow: (float)_bearing.Glow);
         _light.Flush(_glow.GetCanvasItem());
     }
 
@@ -243,13 +262,15 @@ public partial class LightDrone : Node2D
 
     /// <summary>
     /// Orbit thread <paramref name="o"/>: a faint tilted ellipse about the core; only <paramref name="share"/> of it, from its long end
-    /// the way its sparks run, as it kindles in the meeting (<see cref="Meeting.Passed"/>).
+    /// the way its sparks run, as it kindles in the meeting (<see cref="Meeting.Passed"/>); tilted <paramref name="tilt"/> more and faded by
+    /// <paramref name="dim"/> by a mood (drone-thoughts).
     /// </summary>
-    internal static void Orbit(Triangles into, int o, Color hot, float share = 1)
+    internal static void Orbit(Triangles into, int o, Color hot, float share = 1, float tilt = 0, float dim = 0)
     {
-        float rx = (I.Orbit + o * I.OrbitMore) * I.OrbitWide, ry = rx * I.OrbitFlat, tilt = I.OrbitTilt + o * I.OrbitTiltMore;
+        float rx = (I.Orbit + o * I.OrbitMore) * I.OrbitWide, ry = rx * I.OrbitFlat;
+        tilt += I.OrbitTilt + o * I.OrbitTiltMore;
         float way = o % 2 == 1 ? -1 : 1;
-        var colour = new Color(hot, I.OrbitAlpha);
+        var colour = new Color(hot, I.OrbitAlpha * (1 - I.OrbitDim * dim));
         var last = new Vector2(rx, 0).Rotated(tilt);
         for (int k = 1; k <= OrbitPieces && share > (k - 1f) / OrbitPieces; k++)
         {
@@ -262,38 +283,42 @@ public partial class LightDrone : Node2D
 
     /// <summary>
     /// <paramref name="shape"/>'s threads turned <paramref name="turn"/>, <paramref name="form"/> of the way formed, at <paramref name="t"/> s: a wide faint
-    /// line and a fine one; a reticle's mark fades as its dot goes out, gone while it is over a wreck.
+    /// line and a fine one; a reticle's mark fades as its dot goes out, gone while it is over a wreck. A thought's picture (the one it left if
+    /// <paramref name="leaving"/>) keeps its size whatever the body's swell, a mood's fainter than an alarm's.
     /// </summary>
-    private void Shape(SwarmShape shape, float form, float turn, Color hot, double t)
+    private void Shape(SwarmShape shape, float form, float turn, Color hot, double t, bool leaving)
     {
         if (form <= 0.003f) return;
-        var lines = _swarm.LinesOf(shape, t);
+        var lines = _swarm.LinesOf(shape, t, leaving);
         int marks = DroneSwarm.Marks(shape);
+        bool thought = shape == SwarmShape.Thought;
+        float scale = thought ? _swarm.Unswell : 1, faint = thought && !_swarm.Alarming(leaving) ? I.MoodThread : 1;
         foreach (var (width, alpha) in (ReadOnlySpan<(float, float)>)[(I.ShapeWide, I.ShapeWideAlpha), (I.ShapeFine, I.ShapeFineAlpha)])
             for (int l = 0; l < lines.Length; l++)
             {
-                float shown = form * (l < marks ? 1 - _away[l] : 1);
+                float shown = form * faint * (l < marks ? 1 - _away[l] : 1);
                 if (shown <= 0.003f) continue;
                 var line = lines[l];
                 for (int k = 2; k + 1 < line.Length; k += 2)
-                    _light.Quad(new Vector2(line[k - 2], line[k - 1]).Rotated(turn), new Vector2(line[k], line[k + 1]).Rotated(turn), width, new Color(hot, alpha * shown));
+                    _light.Quad(new Vector2(line[k - 2], line[k - 1]).Rotated(turn) * scale, new Vector2(line[k], line[k + 1]).Rotated(turn) * scale, width * scale, new Color(hot, alpha * shown));
             }
     }
 
     /// <summary>
     /// The coal's light at <paramref name="at"/>, pick px, looking <paramref name="angle"/>, <paramref name="hot"/> at <paramref name="t"/>
-    /// s, <paramref name="alpha"/> of it, <paramref name="scale"/> world px a pick px: its halo, three cracks glowing through its crust, an ember eye where it looks (the pick's <c>coal</c>).
+    /// s, <paramref name="alpha"/> of it, <paramref name="scale"/> world px a pick px: its halo, three cracks glowing through its crust, an ember eye where it looks (the pick's <c>coal</c>);
+    /// a mood's <paramref name="dim"/> and <paramref name="glow"/> (drone-thoughts).
     /// </summary>
-    internal static void Coal(Triangles into, Vector2 at, float angle, Color hot, float t, float alpha = 1, float scale = 1)
+    internal static void Coal(Triangles into, Vector2 at, float angle, Color hot, float t, float alpha = 1, float scale = 1, float dim = 0, float glow = 0)
     {
-        float flicker = (I.Flicker + I.FlickerSwing * MathF.Sin(t * I.FlickerPace)) * alpha;
-        Halo(into, at, I.CoalHalo * scale, hot, I.CoalHaloAlpha * alpha);
+        float flicker = (I.Flicker + I.FlickerSwing * MathF.Sin(t * I.FlickerPace)) * alpha * (1 - I.CoalDim * dim);
+        Halo(into, at, I.CoalHalo * scale, hot, (I.CoalHaloAlpha * (1 - I.HaloDim * dim) + I.GlowHalo * glow) * alpha);
         var crack = new Color(hot, I.CrackAlpha * flicker);
         for (int k = 0; k + 1 < I.Cracks.Length; k += 2)
             into.Quad(at + Vector2.FromAngle(angle + I.Cracks[k]) * I.CrackFrom * scale, at + Vector2.FromAngle(angle + I.Cracks[k + 1] * 0.5f) * I.CrackTo * scale, I.CrackLine * scale, crack);
         var eye = at + Vector2.FromAngle(angle) * I.EyeAhead * scale;
         var pale = new Color(hot.Lerp(Colors.White, I.EyePale), I.EyeAlpha * flicker);
-        into.Fan(eye, I.Eye * scale, pale, pale, DiscSides);
+        into.Fan(eye, I.Eye * scale * (1 - I.EyeDim * dim), pale, pale, DiscSides);
         Halo(into, eye, I.EyeHalo * scale, hot, I.EyeHaloAlpha * flicker);
     }
 

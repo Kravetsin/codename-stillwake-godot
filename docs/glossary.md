@@ -134,6 +134,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - встреча, видение / the meeting, vision → `Hero.Meets`, `Crew.MeetingTicks`, `Spared`; f/crew `Meeting`, `MeetingView`, `HeroView.Meeting`, `CutsceneView` (drone-meeting) → Crew
 - проекция дрона, голограмма / drone projection, hologram window → `HoloWindow`, `HoloPen`, `HoloSway` (game/shared), `DroneFrame` (its ember corners: `DroneWindows`, `CornerClock`, drone-windows), `DroneFlurry`, `SheetHoloLook`, `PlanPoint` (f/crew), sent as `Seen.Projects` (drone-frame) → Crew, Items
 - формы дрона, урок, научился / the drone's forms, lesson, learned → c/`Lessons.cs` (`Lesson`, `Deed`, `Near`), sim/Lessons (`Teacher`), `Knowledge.Did` (drone-lessons); фонарь `droneLamp`, скан `scanner` (прицел, scan-form), тревоги `droneAlarms` → Lessons, Knowledge
+- мысли, настроения спутника / the drone's thoughts, moods → f/crew `DroneThoughts`, `DroneThought`, c/`Lessons.Wonder` (drone-thoughts) → Crew, Lessons
+- видение формы / form vision → sends `Envision` (`Crew.VisionTicks`, `Hero.Meets`); f/crew `FormVision`, `FormVisionView`, `HeroView.Vision`, `FormsOpen`; f/research `LessonStage.Vision` (form-vision) → Crew, Research
 - скан находки, изучения / find scan, the research key → f/research `FindScan`, `FindScanView` (find-scan), `TabletKey` → Research
 - значки нитями / thread icons → game/shared `ThreadIcon`, `IconInk` (thread-icons) → UI
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items

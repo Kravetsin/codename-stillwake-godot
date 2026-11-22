@@ -13,10 +13,11 @@ public sealed class LessonsState;
 public interface ILessonsQueries
 {
     /// <summary>
-    /// The machine of <paramref name="kind"/> nearest <paramref name="cell"/> within <see cref="Content.Lessons.Reach"/> of its footprint;
-    /// null for none: what a near lesson is learned from, and where the drone flies to look.
+    /// The machine of <paramref name="kind"/> nearest <paramref name="cell"/> within <paramref name="reach"/> cells of its footprint;
+    /// null for none: what a near lesson is learned from and where the drone flies to look, within <see cref="Content.Lessons.Reach"/>;
+    /// what it is curious about, within <see cref="Content.Lessons.Wonder"/> (drone-thoughts).
     /// </summary>
-    Machine? Teacher(int cell, string kind);
+    Machine? Teacher(int cell, string kind, int reach = Content.Lessons.Reach);
 }
 
 /// <summary>
@@ -57,12 +58,12 @@ public sealed class LessonsModule : Module<LessonsState>, ILessonsQueries
         }
     }
 
-    public Machine? Teacher(int cell, string kind)
+    public Machine? Teacher(int cell, string kind, int reach = Content.Lessons.Reach)
     {
         if (!Machines.TryGet(kind, out var spec)) return null;
         int w = _grid.Width, x = cell % w, y = cell / w;
         Machine? best = null;
-        long bestD = (long)Content.Lessons.Reach * Content.Lessons.Reach + 1;
+        long bestD = (long)reach * reach + 1;
         foreach (var m in _grid.MachinesOf(kind))
         {
             int left = m.Cell % w, top = m.Cell / w;

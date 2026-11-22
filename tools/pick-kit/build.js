@@ -1,5 +1,5 @@
 // node tools/pick-kit/build.js <page.js> <out-dir> [--break <name>] [--fonts <dir>]
-// Writes <out-dir>/index.html, one self-contained page: the kit, the bag's item pictures and the page file. Then runs
+// Writes <out-dir>/index.html, one self-contained page: the kit, the bag's item pictures, the page's own and the page file. Then runs
 // the page's stub check; --break applies one of the page's breaks first, to see its check fail (README.md).
 const fs = require('fs'), path = require('path');
 const opt = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
@@ -16,6 +16,11 @@ const itemLine = kit.split('\n').find(l => l.startsWith('const BAG_ITEMS'));
 const icons = {};
 if (page.window !== false)   // the bag's pictures, only for a page that has the bag
   for (const [, id] of itemLine.matchAll(/'(\w+)'/g)) icons[id] = 'data:image/png;base64,' + fs.readFileSync(path.join(items, id + '.png')).toString('base64');
+// the page's own pictures (`pictures: { key: path from the repo's root }`), embedded beside them as IMG[key]
+for (const [k, f] of Object.entries(page.pictures || {})) {
+  if (icons[k]) { console.log(`picture '${k}' is already a bag item's`); process.exit(1); }
+  icons[k] = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '..', '..', f)).toString('base64');
+}
 
 // the page's fonts (`fonts: { family: file }`), inlined as @font-face data: files from --fonts, else fonts/ beside the out dir
 const fontDir = opt('--fonts') || path.join(path.resolve(outArg), '..', 'fonts');

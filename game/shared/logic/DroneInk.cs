@@ -22,8 +22,8 @@ public static class DroneInk
     /// <summary>The orbits' pace, radians a second: the first's, each next's more, all hurried by Hurry; the middle one runs the other way.</summary>
     public const float OrbitPace = 0.8f, OrbitPaceMore = 0.25f, OrbitHurry = 2.2f;
 
-    /// <summary>A shape's share of the sparks; a thought's.</summary>
-    public const float Share = 0.8f, ThoughtShare = 0.72f;
+    /// <summary>A shape's share of the sparks; a thought's (drone-moods.js's <c>share</c>).</summary>
+    public const float Share = 0.8f, ThoughtShare = 0.7f;
 
     /// <summary>A mode's or a gesture's shape forms and falls apart in this long, s; a spark into it starts late by its share of Lag over Span, out of it by LagOut over SpanOut.</summary>
     public const float Form = 0.6f, Lag = 0.45f, Span = 0.55f, LagOut = 0.4f, SpanOut = 0.6f;
@@ -176,4 +176,111 @@ public static class DroneInk
 
     /// <summary>A hit: how long it lasts, s; the heat it adds to the lit; the row's shudder, px, and its pace; how far a burst ember flies, least and more, px over the hit, how far it falls; its heat by what it lost, less the hit's share.</summary>
     public const float Hit = 0.8f, HitHeat = 0.6f, Shudder = 1.4f, ShudderPace = 60, BurstSpeed = 14, BurstMore = 16, BurstFall = 34, BurstHeat = 1.2f;
+
+    /// <summary>
+    /// A thought or mood over the drone, the pick «Контур» (drone-moods.js, candidate outline): its picture, box -1..1 y down, stands ThoughtAbove pick px
+    /// over the core, ThoughtSize a unit; it forms over ThoughtIn, holds ThoughtHold, falls apart over ThoughtOut, s; its sparks flow along it at AlarmFlow
+    /// or MoodFlow, pick px a second. The pick's 0.4, 1.5 and 0.4 s were too quick to make the shape out in play: twice the hold.
+    /// </summary>
+    public const float ThoughtAbove = 50, ThoughtSize = 22, ThoughtIn = 0.5f, ThoughtHold = 3, ThoughtOut = 0.5f, AlarmFlow = 42, MoodFlow = 18;
+
+    /// <summary>A thought's sparks' heat: an alarm's middle, swing and pace; a mood's, its sparks a step apart; a mood's threads this much of an alarm's.</summary>
+    public const float AlarmSpark = 0.75f, AlarmSparkSwing = 0.25f, AlarmSparkPace = 13, MoodSpark = 0.42f, MoodSparkSwing = 0.18f, MoodSparkPace = 4, MoodSparkStep = 1.7f, MoodThread = 0.7f;
+
+    /// <summary>An alarm's red as its picture shows: Low of it and Swing more, Beats a second.</summary>
+    public const float AlarmLow = 0.6f, AlarmSwing = 0.4f, AlarmBeats = 2.4f;
+
+    /// <summary>How a mood moves the body (the pick's MOTION), pick px over the world, radians and s: it comes in and goes over MoodIn.</summary>
+    public const float MoodIn = 0.5f;
+
+    /// <summary>Curious leans this far toward what it looks at, rises, and tilts its orbits.</summary>
+    public const float CuriousLean = 5, CuriousRise = 2, CuriousTilt = 0.45f;
+
+    /// <summary>A find: it hops this high at this pace, rocks, swells, hurries its orbits and glows.</summary>
+    public const float FindHop = 7, FindHopPace = 7, FindRock = 0.1f, FindSwell = 0.08f, FindHurry = 1.4f, FindGlow = 0.3f;
+
+    /// <summary>Bored: it sways at a pace, sinks, rocks at a pace, looks about and down, slows its orbits and dims.</summary>
+    public const float BoredSway = 5, BoredSwayPace = 0.9f, BoredSink = 6, BoredRock = 0.18f, BoredRockPace = 0.7f, BoredLookPace = 0.6f, BoredLookDown = 1.2f, BoredSlow = 0.65f, BoredDim = 0.3f;
+
+    /// <summary>Love: it presses to the helmet (LoveBehind, LoveOver world px from its middle, HelmetUp over the neck), bobs, tilts back, slows and glows.</summary>
+    public const float LoveBehind = 4.5f, LoveOver = 6.25f, HelmetUp = 6.2f, LoveBob = 1.5f, LoveBobPace = 3, LoveTilt = 0.2f, LoveSlow = 0.3f, LoveGlow = 0.2f;
+
+    /// <summary>Pride: it rises, swells, looks up and a little back, hurries its orbits and glows.</summary>
+    public const float PrideRise = 9, PrideSwell = 0.14f, PrideLookX = -0.3f, PrideLookY = -1, PrideHurry = 0.3f, PrideGlow = 0.25f;
+
+    /// <summary>
+    /// Dimmed, its orbits fade by OrbitDim of it, its coal's halo by HaloDim, its cracks and eye by CoalDim, its eye shrinks by EyeDim, its sparks cool
+    /// by SparkDim; a glow adds GlowHalo to the coal's halo.
+    /// </summary>
+    public const float OrbitDim = 0.5f, HaloDim = 0.5f, CoalDim = 0.7f, EyeDim = 0.5f, SparkDim = 0.6f, GlowHalo = 0.25f;
+
+    /// <summary>The meteor coming: a rock and three streaks behind it.</summary>
+    public static readonly float[][] GlyphMeteor = [
+        [-0.0761f, 0.5264f, -0.3106f, 0.6993f, -0.6103f, 0.7489f, -0.7068f, 0.463f, -0.6764f, 0.1817f, -0.3966f, 0.1109f, -0.1141f, 0.2118f, -0.0761f, 0.5264f],
+        [-0.2786f, -0.0608f, 0.2517f, -0.5912f],
+        [-0.1089f, 0.1089f, 0.6336f, -0.6336f],
+        [0.0608f, 0.2786f, 0.5558f, -0.2164f],
+    ];
+
+    /// <summary>The bolt: a zigzag and its arrowhead.</summary>
+    public static readonly float[][] GlyphBolt = [
+        [0.3f, -1f, -0.34f, 0.08f, 0.14f, 0.08f, -0.28f, 1f],
+        [-0.28f, 1f, -0.27f, 0.66f],
+        [-0.28f, 1f, -0.02f, 0.8f],
+    ];
+
+    /// <summary>The magnetic flare: a horseshoe magnet, poles down, crackling.</summary>
+    public static readonly float[][] GlyphFlare = [
+        [-0.5f, 0.3f, -0.5f, -0.3f, -0.4904f, -0.3975f, -0.4619f, -0.4913f, -0.4157f, -0.5778f, -0.3536f, -0.6536f, -0.2778f, -0.7157f, -0.1913f, -0.7619f, -0.0975f, -0.7904f, 0f, -0.8f, 0.0975f, -0.7904f, 0.1913f, -0.7619f, 0.2778f, -0.7157f, 0.3536f, -0.6536f, 0.4157f, -0.5778f, 0.4619f, -0.4913f, 0.4904f, -0.3975f, 0.5f, -0.3f, 0.5f, 0.3f],
+        [-0.72f, 0.3f, -0.28f, 0.3f],
+        [0.28f, 0.3f, 0.72f, 0.3f],
+        [-0.58f, 0.48f, -0.76f, 0.62f, -0.6f, 0.76f, -0.82f, 0.96f],
+        [0.58f, 0.48f, 0.76f, 0.62f, 0.6f, 0.76f, 0.82f, 0.96f],
+        [0f, 0.5f, -0.1f, 0.66f, 0.1f, 0.8f, 0f, 0.98f],
+    ];
+
+    /// <summary>The cold: a snowflake of six arms.</summary>
+    public static readonly float[][] GlyphCold = [
+        [0f, -1f, 0f, 1f],
+        [0.866f, -0.5f, -0.866f, 0.5f],
+        [0.866f, 0.5f, -0.866f, -0.5f],
+        [0.2507f, 0.7589f, 0f, 0.56f, -0.2507f, 0.7589f],
+        [-0.5319f, 0.5965f, -0.485f, 0.28f, -0.7826f, 0.1624f],
+        [-0.7826f, -0.1624f, -0.485f, -0.28f, -0.5319f, -0.5965f],
+        [-0.2507f, -0.7589f, 0f, -0.56f, 0.2507f, -0.7589f],
+        [0.5319f, -0.5965f, 0.485f, -0.28f, 0.7826f, -0.1624f],
+        [0.7826f, 0.1624f, 0.485f, 0.28f, 0.5319f, 0.5965f],
+    ];
+
+    /// <summary>The heat: three wavy rising lines over the ground.</summary>
+    public static readonly float[][] GlyphHeat = [
+        [-0.55f, 0.72f, -0.4707f, 0.6163f, -0.4122f, 0.5125f, -0.39f, 0.4088f, -0.4099f, 0.305f, -0.4667f, 0.2013f, -0.5453f, 0.0975f, -0.6253f, -0.0062f, -0.6854f, -0.11f, -0.7098f, -0.2137f, -0.6923f, -0.3175f, -0.6373f, -0.4212f, -0.5593f, -0.525f, -0.4789f, -0.6287f, -0.4172f, -0.7325f, -0.3904f, -0.8362f, -0.4057f, -0.94f],
+        [0.0903f, 0.72f, 0.1439f, 0.6163f, 0.1596f, 0.5125f, 0.1334f, 0.4088f, 0.072f, 0.305f, -0.0083f, 0.2013f, -0.0865f, 0.0975f, -0.1418f, -0.0062f, -0.1599f, -0.11f, -0.1359f, -0.2137f, -0.0761f, -0.3175f, 0.0037f, -0.4212f, 0.0825f, -0.525f, 0.1396f, -0.6287f, 0.16f, -0.7325f, 0.1383f, -0.8362f, 0.0802f, -0.94f],
+        [0.6991f, 0.72f, 0.7083f, 0.6163f, 0.6757f, 0.5125f, 0.6101f, 0.4088f, 0.5287f, 0.305f, 0.4529f, 0.2013f, 0.4026f, 0.0975f, 0.3911f, -0.0062f, 0.4214f, -0.11f, 0.4856f, -0.2137f, 0.5667f, -0.3175f, 0.6434f, -0.4212f, 0.6955f, -0.525f, 0.7094f, -0.6287f, 0.6813f, -0.7325f, 0.6187f, -0.8362f, 0.538f, -0.94f],
+        [-0.95f, 0.95f, 0.95f, 0.95f],
+    ];
+
+    /// <summary>Curious: a question mark.</summary>
+    public static readonly float[][] GlyphCurious = [
+        [-0.3955f, -0.3802f, -0.3983f, -0.4764f, -0.3781f, -0.5705f, -0.336f, -0.6571f, -0.2744f, -0.731f, -0.1969f, -0.7882f, -0.1081f, -0.8251f, -0.013f, -0.8398f, 0.0829f, -0.8313f, 0.174f, -0.8002f, 0.255f, -0.7482f, 0.3212f, -0.6784f, 0.3689f, -0.5947f, 0.3951f, -0.5021f, 0.3985f, -0.406f, 0.3789f, -0.3117f, 0.3373f, -0.225f, 0.2761f, -0.1506f, 0.199f, -0.093f, 0f, 0.1f, 0f, 0.4f],
+        [0.08f, 0.8f, 0.0566f, 0.8566f, 0f, 0.88f, -0.0566f, 0.8566f, -0.08f, 0.8f, -0.0566f, 0.7434f, 0f, 0.72f, 0.0566f, 0.7434f, 0.08f, 0.8f],
+    ];
+
+    /// <summary>Bored: three dots.</summary>
+    public static readonly float[][] GlyphBored = [
+        [-0.44f, 0.2f, -0.4706f, 0.294f, -0.5506f, 0.3522f, -0.6494f, 0.3522f, -0.7294f, 0.294f, -0.76f, 0.2f, -0.7294f, 0.106f, -0.6494f, 0.0478f, -0.5506f, 0.0478f, -0.4706f, 0.106f, -0.44f, 0.2f],
+        [0.16f, 0.2f, 0.1294f, 0.294f, 0.0494f, 0.3522f, -0.0494f, 0.3522f, -0.1294f, 0.294f, -0.16f, 0.2f, -0.1294f, 0.106f, -0.0494f, 0.0478f, 0.0494f, 0.0478f, 0.1294f, 0.106f, 0.16f, 0.2f],
+        [0.76f, 0.2f, 0.7294f, 0.294f, 0.6494f, 0.3522f, 0.5506f, 0.3522f, 0.4706f, 0.294f, 0.44f, 0.2f, 0.4706f, 0.106f, 0.5506f, 0.0478f, 0.6494f, 0.0478f, 0.7294f, 0.106f, 0.76f, 0.2f],
+    ];
+
+    /// <summary>Love: a heart.</summary>
+    public static readonly float[][] GlyphLove = [
+        [0f, -0.4441f, 0.0049f, -0.4798f, 0.0377f, -0.5742f, 0.1176f, -0.6946f, 0.25f, -0.7988f, 0.4231f, -0.8498f, 0.6113f, -0.8265f, 0.781f, -0.7285f, 0.8989f, -0.5729f, 0.9412f, -0.3853f, 0.8989f, -0.1897f, 0.781f, -0.0017f, 0.6113f, 0.1735f, 0.4231f, 0.3371f, 0.25f, 0.4904f, 0.1176f, 0.6299f, 0.0377f, 0.7453f, 0.0049f, 0.8226f, 0f, 0.85f, -0.0049f, 0.8226f, -0.0377f, 0.7453f, -0.1176f, 0.6299f, -0.25f, 0.4904f, -0.4231f, 0.3371f, -0.6113f, 0.1735f, -0.781f, -0.0017f, -0.8989f, -0.1897f, -0.9412f, -0.3853f, -0.8989f, -0.5729f, -0.781f, -0.7285f, -0.6113f, -0.8265f, -0.4231f, -0.8498f, -0.25f, -0.7988f, -0.1176f, -0.6946f, -0.0377f, -0.5742f, -0.0049f, -0.4798f, 0f, -0.4441f],
+    ];
+
+    /// <summary>Pride: a crown.</summary>
+    public static readonly float[][] GlyphPride = [
+        [-0.9f, 0.6f, -0.95f, -0.45f, -0.45f, 0.05f, 0f, -0.72f, 0.45f, 0.05f, 0.95f, -0.45f, 0.9f, 0.6f, -0.9f, 0.6f],
+        [-0.9f, 0.32f, 0.9f, 0.32f],
+    ];
 }

@@ -9,20 +9,20 @@ public readonly record struct FindRecord(string? Item, double Fold, double? Fly)
 /// <summary>What is over the hero's head: the item, how far its icon has come in, 0..1, and how far the scan has swept it, top to bottom, 0..1; null before the sweep.</summary>
 public readonly record struct FindOver(string Item, double In, double? Sweep);
 
-/// <summary>Where a lesson is (drone-lessons): the drone going to the thing it learns from, scanning it, then showing the form it learned by the head.</summary>
-public enum LessonStage { Go, Study, Become }
+/// <summary>Where a lesson is (drone-lessons): the drone going to the thing it learns from, scanning it, then showing the hero the form in a vision (form-vision).</summary>
+public enum LessonStage { Go, Study, Vision }
 
-/// <summary>A form being learned (drone-lessons): the form, its stage and how far that stage has gone, 0..1.</summary>
-public readonly record struct FindLesson(string Form, LessonStage Stage, double Progress);
+/// <summary>A form being learned (drone-lessons): the form, its stage, how far that stage has gone, 0..1, and how many seconds into it.</summary>
+public readonly record struct FindLesson(string Form, LessonStage Stage, double Progress, double Seconds);
 
 /// <summary>
 /// The drone scanning a find (find-scan, the pick «Голограмма» made plain), seen by this player only: an item first had shows its icon over the hero's head,
 /// the drone's scan sweeps it, it folds into one ember and the ember flies to the research key, which flares as it lands and its number takes the batch.
 /// Items had together come one after another, each record leaving after its own scan. A batch with no item (a machine built, a blueprint) is an ember from
 /// the eye. A form the drone learned (drone-lessons) is a lesson, a longer beat before the batch's items: the drone goes to the thing it learned from,
-/// scans it, shows the new form by the head, and only then does the form's icon come in over the head as a find's; its landing flares the key longer.
-/// Nothing cuts a lesson short: finds wait behind it, and opening the tablet puts out the finds but not the lessons. With no drone a find lands at once.
-/// Times are seconds.
+/// scans it, shows the hero what the form does in a vision (form-vision), and only then does the form's icon come in over the head as a find's; its
+/// landing flares the key longer. A hero that cannot have the vision as it would begin (passed out) skips it. Nothing cuts a lesson short: finds wait
+/// behind it, and opening the tablet puts out the finds but not the lessons. With no drone a find lands at once. Times are seconds.
 /// </summary>
 public sealed class FindScan
 {
@@ -32,11 +32,11 @@ public sealed class FindScan
     /// </summary>
     public const double Lead = 0.05, Rise = 0.3, Sweep = 0.45, Fold = 0.15, Fly = 0.4, Flare = 0.45;
 
-    /// <summary>A lesson's stages before its icon comes in: the drone going to the thing, scanning it, showing the form by the head; the key's longer flare.</summary>
-    public const double Go = 0.6, Study = 3.0, Become = 1.5, LessonFlare = 1.2;
-
-    /// <summary>A lesson's stages together.</summary>
-    public const double Lesson = Go + Study + Become;
+    /// <summary>
+    /// A lesson's stages before its icon comes in, but the vision, which lasts as long as its form's: the drone going to the thing, scanning it;
+    /// the key's longer flare.
+    /// </summary>
+    public const double Go = 0.6, Study = 3.0, LessonFlare = 1.2;
 
     private sealed class Find(string? item, bool counts, bool lesson = false)
     {
@@ -48,6 +48,8 @@ public sealed class FindScan
         /// <summary>When its lesson began, else when it began coming in over the head; once it folds, when its fold began.</summary>
         public double Start;
         public double LessonS, RiseS;
+        /// <summary>A lesson's: how long its vision plays, decided as its study ends, 0 for none; null before.</summary>
+        public double? VisionS;
     }
 
     private readonly List<Find> _waiting = [];
@@ -103,12 +105,16 @@ public sealed class FindScan
         return 0;
     }
 
-    /// <summary>Moves it <paramref name="seconds"/> on; <paramref name="drone"/>, whether a drone floats by the hero to scan.</summary>
-    public void Step(double seconds, bool drone)
+    /// <summary>
+    /// Moves it <paramref name="seconds"/> on; <paramref name="drone"/>, whether a drone floats by the hero to scan; <paramref name="vision"/>,
+    /// how long the vision of a form is that its hero can have now, s, 0 for none, which a lesson asks as its study ends: none, it skips it.
+    /// </summary>
+    public void Step(double seconds, bool drone, Func<string, double>? vision = null)
     {
         // What was read came before this step: it starts from then.
         double read = _clock;
         _clock += seconds;
+        Studied(vision);
         // An ember from the eye waits while the drone is away on a lesson.
         if (!drone || Learning == null)
         {
@@ -123,7 +129,11 @@ public sealed class FindScan
             }
             _eyes.Clear();
         }
-        if (_over == null) Next(read + Lead, Rise, drone);
+        if (_over == null)
+        {
+            Next(read + Lead, Rise, drone);
+            Studied(vision);
+        }
         // The one over the head folds as its sweep ends, its record leaving, and the next comes in as it folds.
         while (_over is { } over && _clock >= over.Start + over.LessonS + over.RiseS + Sweep)
         {
@@ -131,6 +141,7 @@ public sealed class FindScan
             _records.Add(over);
             _over = null;
             Next(over.Start, Fold, drone);
+            Studied(vision);
         }
         for (int i = _records.Count - 1; i >= 0; i--)
         {
@@ -138,6 +149,14 @@ public sealed class FindScan
             Land(_records[i]);
             _records.RemoveAt(i);
         }
+    }
+
+    /// <summary>As the study of the lesson over the head ends, its vision's length is decided: until then its icon waits, however long that is.</summary>
+    private void Studied(Func<string, double>? vision)
+    {
+        if (_over is not { IsLesson: true, VisionS: null, Item: { } form } over || _clock < over.Start + Go + Study) return;
+        over.VisionS = vision?.Invoke(form) ?? 0;
+        over.LessonS = Go + Study + over.VisionS.Value;
     }
 
     /// <summary>The next waiting comes in from <paramref name="at"/> over <paramref name="rise"/> s; with no drone, each lands at once.</summary>
@@ -153,7 +172,7 @@ public sealed class FindScan
                 continue;
             }
             // A lesson's icon comes in from the drone back by the head: the whole way.
-            (next.Start, next.LessonS, next.RiseS, _over) = (at, next.IsLesson ? Lesson : 0, next.IsLesson ? Rise : rise, next);
+            (next.Start, next.LessonS, next.RiseS, _over) = (at, next.IsLesson ? double.PositiveInfinity : 0, next.IsLesson ? Rise : rise, next);
             return;
         }
     }
@@ -215,11 +234,18 @@ public sealed class FindScan
         {
             if (_over is not { IsLesson: true, Item: { } form } over) return null;
             double t = Math.Max(0, _clock - over.Start);
-            return t >= Lesson ? null
-                : t < Go ? new FindLesson(form, LessonStage.Go, t / Go)
-                : t < Go + Study ? new FindLesson(form, LessonStage.Study, (t - Go) / Study)
-                : new FindLesson(form, LessonStage.Become, (t - Go - Study) / Become);
+            return t >= over.LessonS ? null
+                : t < Go ? new FindLesson(form, LessonStage.Go, t / Go, t)
+                : t < Go + Study ? new FindLesson(form, LessonStage.Study, (t - Go) / Study, t - Go)
+                : new FindLesson(form, LessonStage.Vision, (t - Go - Study) / (over.LessonS - Go - Study), t - Go - Study);
         }
+    }
+
+    /// <summary>Whether a lesson of <paramref name="form"/> is still to play or playing, its icon not yet landed on the key: the form not open yet.</summary>
+    public bool Holds(string form)
+    {
+        bool Of(Find find) => find.IsLesson && find.Item == form;
+        return _over is { } over && Of(over) || _waiting.Exists(Of) || _records.Exists(Of);
     }
 
     /// <summary>How many records are on their way.</summary>

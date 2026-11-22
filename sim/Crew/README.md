@@ -4,13 +4,13 @@
 
 | File | Purpose |
 | --- | --- |
-| `Crew.cs` | The module, commands, queries. |
+| `Crew.cs` | The module. |
 | `Fuzz.cs` | Commands drawn. |
 | `Harm.cs` | `Harm`, what hurt. |
 | `Signal.cs` | `Signal`, a tracker's. |
 | `State.cs` | `Hero`, `CrewState`. |
 
-Heroes: where each is (as its client says), how it breathes, passing out.
+Heroes: where (as each client says), breathing, passing out.
 
 - **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`, `BackAt`, `Solid`, the core, op `Clear`); `Items` (`Equipped`, `WornIn`,
   `ShortOf`, `Creative`; ops `Take`, `Drain`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `HasDrone`, ops); `Sky` (`Now`).
@@ -41,15 +41,15 @@ Heroes: where each is (as its client says), how it breathes, passing out.
   breath, after the thin-air clamp, up to `Suit.RegenMost`, `Suit.RegenCost` power-ticks a unit (`Drain`, after any tool).
 - **A canister** (food-and-the-body): `Refill` takes one (none in creative), adds `RefillOf(peer)` up to capacity,
   sets `CanisterIn` to `Crew.CanisterCooldown` (not in creative), counted down.
-- **The drone** (drone-companion): `PairDrone(Core)` `Pair`s for good; `Meets` spares the hero `Crew.MeetingTicks`: no
-  breath, meals, thrust, harm, `Succumb` (drone-meeting). `CoreLost` (a floor cell under the core gone) clears it for good, pairs all.
+- **The drone** (drone-companion): `PairDrone(Core)` `Pair`s for good; `Meets` spares it `Crew.MeetingTicks`: no
+  breath, meals, thrust, harm, `Succumb` (drone-meeting); `Envision` sets `Crew.VisionTicks`, if more (form-vision). `CoreLost` (a floor cell under the core gone) clears it for good, pairs all.
 - **Meals** (food-and-the-body): `Hero.Meals`, up to `Diet.Meals`, ticks `Left` counted down. `Eat(Item)` adds one or,
   in its last `Diet.RefreshWithin`, refreshes it; a print holds none, hungry (hungry-respawn). A fruit eaten rolls its `Byproducts`,
   given or dropped. `RatesOf` sums meals to `Diet.Caps`: calm cuts a breath, deep units to a canister. `Purge` empties them, counting `Purges`. Thousandths
   go to `Owed`, whole units paid; hungry, a sprint costs `Diet.HungrySprint`. `Works` (Building's `Work`) adds
   `Diet.Work` and food's, hungry `Diet.HungryWork`, to `Worked`, returning whole ticks.
 - **The last breath** (the-last-breath): air run dry starts `Hero.Gasp` at `Crew.LastBreath`, counted down; air back (regen too) ends it, a covered breath only with no grit or lava. Lava, shocks and blows past the air cut `Crew.LastBreathPerUnit` a unit; running, thrust nothing.
-- **Passing out is death**: a spent last breath passes the hero out for `Crew.PassOut` ticks (tool stopped), then is made at the spawn, full, dressed, hungry; `LeaveBody` leaves all but gear at its cell. It clears the air, `CanisterIn`, meals, `Owed`, `Worked`.
+- **Passing out is death**: a spent last breath puts it out `Crew.PassOut` ticks (tool stopped), then it is made at the spawn, full, dressed, hungry; `LeaveBody` leaves all but gear at its cell. It clears the air, `CanisterIn`, meals, `Owed`, `Worked`.
 - **Degrees** (temperature-gradients, body-temperature): `TemperatureAt`: `Temperature.Deep` off the grid, `Room` aired; afloat
   `Hull` in the zone, `Temperatures[0]` at the field's line, `Deep` at the grid's edge; on a planet `Terrain.TemperatureOf`, open
   sky (band 0, no `BackAt`) `Chill` colder. `Felt` under `LowOf`, `Heat` over `HighOf` (`Bare*` + helmet's + suit's, gear-roles; `Cape.Warmth`
@@ -71,11 +71,11 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `CapacityOf`, `PartsOf(peer)`; `RefillOf`, `RatesOf`, `Hungry(peer)`; `TemperatureAt`, `PaceAt`, `LowOf`, `Felt` (frost), `HighOf`, `Heat`, `OpenSky`;
   `SuitOn`, `SuitModeProblem`, `SuccumbProblem`; `SignalOf(peer)`, `Hunted(peer)`, `Spared(peer)`;
-  `HeroOf(id)` or null; `Heroes`, live, in id order. On the module: `Burns`, `GritAt`, `RefillProblem`, `EatProblem`, `PurgeProblem`, `PairProblem`, `CoreLost`: the client sends none they refuse.
+  `HeroOf(id)` or null; `Heroes`, live, in id order. On the module: `Burns`, `GritAt`, `RefillProblem`, `EatProblem`, `PurgeProblem`, `PairProblem`, `EnvisionProblem`, `CoreLost`: the client sends none they refuse.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, `ChooseSkins(Ids)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero` (or out), `crew.suitFull`, `crew.canisterCooling`, `items.notEnough`; `Eat(Item)` — `crew.noHero` (or out), `crew.notFood`,
-  `items.notEnough`, `crew.sameFood`, `crew.mealsFull`; `Purge` — `crew.noHero` (or out), `crew.noMeals`; `PairDrone(Core)` — `crew.noHero` (or out), `crew.hasDrone`, `crew.noCore`; `Succumb` — `crew.noHero` (or out, creative, `Meets`); `SuitMode(On)` —
+  `items.notEnough`, `crew.sameFood`, `crew.mealsFull`; `Purge` — `crew.noHero` (or out), `crew.noMeals`; `PairDrone(Core)` — `crew.noHero` (or out), `crew.hasDrone`, `crew.noCore`; `Envision` — `crew.noHero` (or out); `Succumb` — `crew.noHero` (or out, creative, `Meets`); `SuitMode(On)` —
   `crew.noHero`, on `crew.noSuitMode`; `Track` — `crew.noHero`. **Ops** (`ICrewOps`) add `Loot(peer, yield)`, `CallOff(peer)`, `Works(peer)`.
 - **Fuzz:** every command, refusal; `Enter` off the grid.
 
@@ -91,4 +91,3 @@ Heroes: where each is (as its client says), how it breathes, passing out.
 - The sim trusts the client's cell (grit, lava a second late) and its body: no check of a `Succumb` or slowness.
 - Peer ids are saved: after a load a hero is whoever joins in its slot; heroes of peers gone stay.
 - A podless spawn in vacuum passes a hero out over and over.
-- The pod's air is endless: for heroes by it alone, never the room's.

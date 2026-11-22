@@ -27,6 +27,12 @@ public static class Lessons
     /// </summary>
     public const int Reach = 24;
 
+    /// <summary>
+    /// How near, cells, a teaching machine of a form not known yet makes the drone curious, as <see cref="Reach"/> is measured: the client's
+    /// alone (drone-thoughts), past the wreck's upper emergency lamp seen from the core, so curiosity points the way to the alarms.
+    /// </summary>
+    public const int Wonder = 40;
+
     /// <summary>Every lesson: the scan from ten pieces broken, the lamp from a lamp a player built, the alarms from the wreck's emergency lamps.</summary>
     public static readonly IReadOnlyList<Lesson> All =
     [

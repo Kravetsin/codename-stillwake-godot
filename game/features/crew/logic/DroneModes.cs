@@ -50,17 +50,4 @@ public static class DroneModes
         bool on = worn && Opened(now, knows);
         return (on && now == DroneMode.Lamp, on && now == DroneMode.Scan);
     }
-
-    /// <summary>
-    /// The figure's lamp and scanner while the drone shows off <paramref name="form"/>, just learned (drone-lessons): the lamp lit for the lamp's,
-    /// the scan out for the scan's, neither for the alarms', which pulse red instead (<see cref="AlarmPulse"/>).
-    /// </summary>
-    public static (bool Lamp, bool Scanner) Becoming(string form) =>
-        (form == Stillwake.Content.LightDrone.LampMode, form == Stillwake.Content.LightDrone.ScannerMode);
-
-    /// <summary>A pulse of the alarms' red a drone shows off learning them, 0..1, <paramref name="seconds"/> into the show: three beats in its 1.5 s.</summary>
-    public static double AlarmPulse(double seconds) => 0.5 - 0.5 * Math.Cos(seconds * 2 * Math.PI / AlarmBeat);
-
-    /// <summary>One beat of <see cref="AlarmPulse"/>, seconds.</summary>
-    public const double AlarmBeat = 0.5;
 }

@@ -14,11 +14,13 @@ page file of its candidates, toggles and checks; `build.js` turns it into one se
 | `pages/title-tether.js` | a whole-scene page (`scene`): the title screen's scene, a limp hero on a tether |
 | `pages/drone-vision.js` | a page without the bag (`window: false`): the drone's meeting as a vision before the giant core |
 | `pages/title-logo.js` | a page with its own font (`fonts`): the name CASTOFF on the title, turning to dust and gathering again in a loop |
+| `pages/form-vision.js` | a page with the game's own pictures (`pictures`): the vision a new drone form plays, the eye led three ways |
 
 ## Rules
 
 - **One file.** The page is one HTML file with one inline script and no external URL: the artifact's frame blocks other hosts.
-  The bag's item pictures are embedded from `game/art/hd/items/<id>.png` (the ids in `BAG_ITEMS`), so they are the game's own.
+  The bag's item pictures are embedded from `game/art/hd/items/<id>.png` (the ids in `BAG_ITEMS`), so they are the game's own;
+  a page's `pictures` are embedded the same way.
 - **The pick** is a db doc (`pick.doc`), `{ pick, <every saved toggle's key>, at }`, read back on load within 10 s; without a db
   the page says so and «Скопировать выбор» gives the text. Page text is Russian.
 - **The game's scale.** A cell is 8 world px, drawn ×4 (`Z`); the hero is `Rig.cs`'s, with `Reach`, `PlanHand`, `SheetTurn` and
@@ -41,6 +43,7 @@ the kit's names (`rr`, `css`, `halo`, `SIGN`, `drawDrone`, `plateIdle`, `newHero
 | `pick` | `{ doc, subject, what: [accusative, instrumental] }`: the db doc, the copy text's subject, the candidate's word in the hints |
 | `tile` | `[w, h]`: the tile's logical size, `[1000, 540]` when left out; «Крупно 1:1» shows it `w` wide |
 | `fonts` | `{ family: file }`: OFL TTFs inlined as `@font-face` data, the names in `PAGE.fonts` to wait for; files from `--fonts <dir>`, by default `fonts/` beside the out dir, each with its `OFL.txt`; never committed |
+| `pictures` | `{ key: path }`: the game's own PNGs, paths from the repo's root, embedded as `IMG[key]` (`ready(IMG[key])` once loaded) |
 | `kitBars` | the kit's own toggles shown (`openMode`, `heroMode`, `speedMode`, `playMode`); all when left out |
 | `page()` | returns `{ cands, expose?, …hooks }` |
 | `breaks` | `{ name: [[from, to], …] }`: text swaps that break one rule, to see the check fail (`--break name`) |

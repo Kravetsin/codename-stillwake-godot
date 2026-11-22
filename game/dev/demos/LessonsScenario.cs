@@ -32,8 +32,8 @@ public sealed class LessonsScenario : DevScenario
     /// <summary>The wreck to break: a hull section, six cells by four, held still past where the hero stops, in thousandths of a cell.</summary>
     private const int PieceX = 59_000, PieceY = 4_000, Peer = 0;
 
-    /// <summary>A lesson's beat and the key's long flare (<see cref="Features.Research.FindScan"/>), 7.7 s, in ticks and a little over.</summary>
-    private const int LessonTicks = 170;
+    /// <summary>The alarms' lesson, its vision with it, and the key's long flare (<see cref="Features.Research.FindScan"/>), 19.7 s, in ticks and a little over.</summary>
+    private const int LessonTicks = 420;
 
     private HeroAutopilot? _script;
     private bool _creative, _broken;

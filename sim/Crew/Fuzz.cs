@@ -12,7 +12,7 @@ public sealed partial class CrewModule
     /// mostly with no jetpack worn, so <c>crew.noJetpack</c> is drawn; breathes a canister, refused with a
     /// full suit or none carried; switches its suit's mode, refused (<c>crew.noSuitMode</c>) unless the items fuzz spawned and
     /// put on a regen suit; eats a food or a canister, so every refusal of <c>Eat</c> is drawn; purges, refused with nothing eaten; pairs
-    /// with a drone (<c>PairDrone</c>); brings a hunt near
+    /// with a drone (<c>PairDrone</c>); has a form's vision (<c>Envision</c>); brings a hunt near
     /// (<c>Track</c>); and rarely one leaves.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
@@ -22,11 +22,12 @@ public sealed partial class CrewModule
         if (rng.Below(8) == 0) return new Thrust(rng.Below(2) == 0) { From = from };
         if (rng.Below(12) == 0) return new Refill { From = from };
         // One draw past the foods purges instead: refused with nothing eaten; two past, pairs with a drone at the map's alien core,
-        // refused paired already or on a map with none (machine 0).
+        // refused paired already or on a map with none (machine 0); three past, a form's vision spares the hero, refused passed out.
         if (rng.Below(12) == 0)
-            return rng.Below((ulong)Edible.Length + 2) is var e && e < Edible.Length ? new Eat(Edible[e]) { From = from }
+            return rng.Below((ulong)Edible.Length + 3) is var e && e < Edible.Length ? new Eat(Edible[e]) { From = from }
                 : e == (ulong)Edible.Length ? new Purge { From = from }
-                : new PairDrone(_grid.MachinesWith(Content.MachineTrait.Wakes) is [var core, ..] ? core.Id : 0) { From = from };
+                : e == (ulong)Edible.Length + 1 ? new PairDrone(_grid.MachinesWith(Content.MachineTrait.Wakes) is [var core, ..] ? core.Id : 0) { From = from }
+                : new Envision { From = from };
         if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
         if (rng.Below(60) == 0) return new Succumb { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };

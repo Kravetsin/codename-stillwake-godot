@@ -20,6 +20,9 @@ public enum SwarmShape
 
     /// <summary>A gesture's fan: turned where a point points, else standing up and swaying.</summary>
     Sign,
+
+    /// <summary>A thought's or mood's picture over the core (drone-thoughts), never turned.</summary>
+    Thought,
 }
 
 /// <summary>
@@ -41,6 +44,12 @@ public sealed class DroneSwarm
     /// <summary>Each spark's place in order along a shape of <see cref="DroneInk.Share"/>, -1 if it keeps orbiting; how many take part.</summary>
     private static readonly int[] Ranks = RanksOf(I.Share, out ShareCount);
     private static readonly int ShareCount;
+    /// <summary>The same along a thought's picture, of <see cref="DroneInk.ThoughtShare"/>.</summary>
+    private static readonly int[] ThoughtRanks = RanksOf(I.ThoughtShare, out ThoughtCount);
+    private static readonly int ThoughtCount;
+    /// <summary>Each thought's picture where it stands over the core, pick px, and its path; none for a find.</summary>
+    private static readonly float[][]?[] ThoughtLines = [.. Enum.GetValues<DroneThought>().Select(Stood)];
+    private static readonly ThreadPath?[] ThoughtPaths = [.. ThoughtLines.Select(lines => lines == null ? null : new ThreadPath(lines))];
 
     /// <summary>Each spark's part of the reticle (<see cref="Mark"/>, <see cref="Ring"/>, <see cref="Ticks"/>) and its rank there: it takes them all.</summary>
     private static readonly (int Part, int Rank)[] ScanParts = ScanPartsOf(out ScanCounts);
@@ -73,28 +82,40 @@ public sealed class DroneSwarm
     private double _changedS = double.NegativeInfinity;
     private float _wasForm, _wasTurn;
     private float? _pointed;
+    /// <summary>How long the change under way takes, s, as asked of it (form-vision); none: the shape's own time.</summary>
+    private float? _over;
+
+    /// <summary>The thought whose picture it forms, and the one it left.</summary>
+    private DroneThought? _thought, _wasThought;
+    /// <summary>A mood's bearing (<see cref="Bear"/>): the orbits' own clock, s, their tilt, how dim it is and how swollen.</summary>
+    private float _orbitLead, _tilt, _dim, _swell = 1;
 
     /// <summary>The shape it is in or forming.</summary>
     public SwarmShape Shape { get; private set; } = SwarmShape.Idle;
+
+    /// <summary>The thought whose picture it is in or forming; none out of <see cref="SwarmShape.Thought"/>.</summary>
+    public DroneThought? Thought => Shape == SwarmShape.Thought ? _thought : null;
 
     /// <summary>How many sparks a shape takes.</summary>
     public static int Shared => ShareCount;
 
     /// <summary>
     /// The shape for a drone that <paramref name="projecting"/> (a drone window out), <paramref name="signs"/> (shows a gesture),
-    /// <paramref name="scanning"/> or shining, or <paramref name="idle"/> with no mode: a window over a gesture over a mode.
+    /// <paramref name="scanning"/> or shining, or <paramref name="idle"/> with no mode, and <paramref name="thinks"/> (a thought's picture,
+    /// drone-thoughts): a window over a gesture over a thought over a mode.
     /// </summary>
-    public static SwarmShape ShapeOf(bool projecting, bool signs, bool scanning, bool idle) =>
-        projecting ? SwarmShape.Idle : signs ? SwarmShape.Sign : idle ? SwarmShape.Idle : scanning ? SwarmShape.Scan : SwarmShape.Lamp;
+    public static SwarmShape ShapeOf(bool projecting, bool signs, bool scanning, bool idle, bool thinks = false) =>
+        projecting ? SwarmShape.Idle : signs ? SwarmShape.Sign : thinks ? SwarmShape.Thought : idle ? SwarmShape.Idle : scanning ? SwarmShape.Scan : SwarmShape.Lamp;
 
     /// <summary>
     /// Sends it into <paramref name="shape"/> at <paramref name="timeS"/>, the lens aimed <paramref name="aim"/>, a sign turned to
-    /// <paramref name="pointed"/> (none: up); the same shape only turns it. Each spark leaves from where it is now: one still on the
-    /// orbits or a shape keeps running there till it leaves, one mid-flight from where it is.
+    /// <paramref name="pointed"/> (none: up), a thought's picture <paramref name="thought"/>'s; the same shape only turns it. Each spark leaves
+    /// from where it is now: one still on the orbits or a shape keeps running there till it leaves, one mid-flight or on a thought's picture
+    /// from where it is. The change takes <paramref name="over"/> s; none: the shape's own time.
     /// </summary>
-    public void Become(SwarmShape shape, float aim, double timeS, float? pointed = null)
+    public void Become(SwarmShape shape, float aim, double timeS, float? pointed = null, DroneThought? thought = null, float? over = null)
     {
-        if (shape == Shape)
+        if (shape == Shape && (shape != SwarmShape.Thought || thought == _thought))
         {
             _pointed = pointed;
             return;
@@ -103,7 +124,7 @@ public sealed class DroneSwarm
         {
             bool wasIn = In(i);
             float k = Progress(i, timeS, wasIn), f = _fromIn[i] + ((wasIn ? 1 : 0) - _fromIn[i]) * k;
-            if (!_flies[i] || k >= 1) (_fromShape[i], _fromPointed[i]) = (wasIn ? Shape : SwarmShape.Idle, _pointed);
+            if ((!_flies[i] || k >= 1) && !(wasIn && Shape == SwarmShape.Thought)) (_fromShape[i], _fromPointed[i]) = (wasIn ? Shape : SwarmShape.Idle, _pointed);
             else if (k > 0)
             {
                 var now = SparkAt(i, aim, timeS);
@@ -112,15 +133,22 @@ public sealed class DroneSwarm
             _fromIn[i] = f;
             _flies[i] = f > 0 || _fromShape[i] == null || Takes(shape, i);
         }
-        (_wasForm, _wasTurn) = (Form(timeS), TurnOf(Shape, aim, timeS));
-        (_was, Shape, _changedS, _pointed) = (Shape, shape, timeS, pointed);
+        (_wasForm, _wasTurn, _wasThought) = (Form(timeS), TurnOf(Shape, aim, timeS), _thought);
+        (_was, Shape, _changedS, _pointed, _thought, _over) = (Shape, shape, timeS, pointed, shape == SwarmShape.Thought ? thought : null, over);
     }
+
+    /// <summary>
+    /// A mood's bearing this frame (drone-thoughts): its orbits <paramref name="orbitLead"/> seconds ahead of the swarm's time (hurried or slowed),
+    /// tilted <paramref name="tilt"/>, its idle sparks <paramref name="dim"/>, its body <paramref name="swell"/> times its size, which its
+    /// thought's picture keeps out of.
+    /// </summary>
+    public void Bear(float orbitLead, float tilt, float dim, float swell) => (_orbitLead, _tilt, _dim, _swell) = (orbitLead, tilt, dim, swell);
 
     /// <summary>Back on the idle orbits at once, nothing in flight: shown again after it was hidden, or on a load.</summary>
     public void Reset()
     {
-        (Shape, _was, _changedS, _pointed, _wasForm) = (SwarmShape.Idle, SwarmShape.Idle, double.NegativeInfinity, null, 0);
-        (_reading, _readS, _openFrom) = (false, double.NegativeInfinity, 0);
+        (Shape, _was, _changedS, _pointed, _wasForm, _thought, _wasThought) = (SwarmShape.Idle, SwarmShape.Idle, double.NegativeInfinity, null, 0, null, null);
+        (_reading, _readS, _openFrom, _over) = (false, double.NegativeInfinity, 0, null);
         Array.Clear(_flies);
         Array.Clear(_fromIn);
     }
@@ -151,14 +179,22 @@ public sealed class DroneSwarm
 
     /// <summary>
     /// The polylines of <paramref name="shape"/> at <paramref name="timeS"/>, pick px about the core unturned; none for idle. The reticle's are its
-    /// <see cref="Marks"/> marks first, mark j the seat of the gauge's dot j, then its ring and ticks as opened.
+    /// <see cref="Marks"/> marks first, mark j the seat of the gauge's dot j, then its ring and ticks as opened. A thought's is its picture
+    /// standing over the core, the one it left if <paramref name="leaving"/>, unswollen: drawn at <see cref="Unswell"/> of the body's scale.
     /// </summary>
-    public float[][] LinesOf(SwarmShape shape, double timeS)
+    public float[][] LinesOf(SwarmShape shape, double timeS, bool leaving = false)
     {
+        if (shape == SwarmShape.Thought) return ((leaving ? _wasThought : _thought) is { } thought ? ThoughtLines[(int)thought] : null) ?? [];
         if (shape != SwarmShape.Scan) return shape switch { SwarmShape.Lamp => I.Lamp, SwarmShape.Sign => I.Fan, _ => [] };
         Opened(Open(timeS));
         return _scanLines;
     }
+
+    /// <summary>What a thought's picture is drawn at against the body's swell, so a mood's swelling leaves it its size and place.</summary>
+    public float Unswell => 1 / _swell;
+
+    /// <summary>Whether the thought it forms, or the one it left if <paramref name="leaving"/>, is an alarm: drawn the hotter.</summary>
+    public bool Alarming(bool leaving = false) => (leaving ? _wasThought : _thought) is { } thought && DroneThoughts.Alarm(thought);
 
     /// <summary>How many of <paramref name="shape"/>'s first lines are its marks, each a seat of the gauge's dots.</summary>
     public static int Marks(SwarmShape shape) => shape == SwarmShape.Scan ? I.Dots : 0;
@@ -182,7 +218,7 @@ public sealed class DroneSwarm
     public Spark SparkAt(int i, float aim, double timeS)
     {
         float t = (float)timeS;
-        var orbit = Orbit(i, t);
+        var orbit = Orbit(i, (float)timeS + _orbitLead, _tilt);
         bool toIn = In(i);
         var (tx, ty, tdx, tdy) = toIn ? Place(Shape, i, TurnOf(Shape, aim, timeS), timeS) : (orbit.X, orbit.Y, orbit.Dx, orbit.Dy);
         float k = Progress(i, timeS, toIn);
@@ -215,14 +251,14 @@ public sealed class DroneSwarm
 
     /// <summary>
     /// Spark <paramref name="i"/> on its orbit at <paramref name="t"/>: its place, heading and side (before the core from 0): the
-    /// pick's <c>orbit</c>, hurried and widened as «Нити» runs it.
+    /// pick's <c>orbit</c>, hurried and widened as «Нити» runs it; the orbits tilted <paramref name="tilted"/> more by a mood.
     /// </summary>
-    public static (float X, float Y, float Dx, float Dy, float Z) Orbit(int i, float t)
+    public static (float X, float Y, float Dx, float Dy, float Z) Orbit(int i, float t, float tilted = 0)
     {
         var (phase, r1) = Seeds[i];
         int o = i % 3;
         float way = o % 2 == 1 ? -1 : 1, th = phase + t * (I.OrbitPace + I.OrbitPaceMore * o) * way * I.OrbitHurry;
-        float rx = (I.Orbit + o * I.OrbitMore + (r1 - 0.5f) * I.OrbitSpread) * I.OrbitWide, tilt = I.OrbitTilt + o * I.OrbitTiltMore;
+        float rx = (I.Orbit + o * I.OrbitMore + (r1 - 0.5f) * I.OrbitSpread) * I.OrbitWide, tilt = I.OrbitTilt + o * I.OrbitTiltMore + tilted;
         var (x, y) = Rotate(MathF.Cos(th) * rx, MathF.Sin(th) * rx * I.OrbitFlat, tilt);
         var (vx, vy) = Rotate(-MathF.Sin(th) * way, MathF.Cos(th) * I.OrbitFlat * way, tilt);
         float v = MathF.Sqrt(vx * vx + vy * vy);
@@ -234,7 +270,8 @@ public sealed class DroneSwarm
     private bool In(int i) => Takes(Shape, i);
 
     /// <summary>Whether spark <paramref name="i"/> belongs on <paramref name="shape"/>: the reticle takes every one, the others their share.</summary>
-    private static bool Takes(SwarmShape shape, int i) => shape switch { SwarmShape.Idle => false, SwarmShape.Scan => true, _ => Ranks[i] >= 0 };
+    private static bool Takes(SwarmShape shape, int i) =>
+        shape switch { SwarmShape.Idle => false, SwarmShape.Scan => true, SwarmShape.Thought => ThoughtRanks[i] >= 0, _ => Ranks[i] >= 0 };
 
     /// <summary>How far along its flight spark <paramref name="i"/> is at <paramref name="timeS"/>, eased: 0 not left, 1 there (or not flying).</summary>
     private float Progress(int i, double timeS, bool toIn)
@@ -244,19 +281,31 @@ public sealed class DroneSwarm
         return toIn ? Smooth((e - lag * I.Lag) / I.Span) : Smooth((e - lag * I.LagOut) / I.SpanOut);
     }
 
-    private static Spark Orbiting(int i, (float X, float Y, float Dx, float Dy, float Z) orbit, float t) =>
+    private Spark Orbiting(int i, (float X, float Y, float Dx, float Dy, float Z) orbit, float t) =>
         new(orbit.X, orbit.Y, orbit.Dx, orbit.Dy, orbit.Z >= 0, IdleHeat(i, t), false, 0, 0);
 
-    private static float Turn(SwarmShape shape, float aim, double timeS, float? pointed) => shape == SwarmShape.Sign
-        ? pointed ?? -MathF.PI / 2 + I.FanSway * MathF.Sin((float)timeS * I.FanSwayPace)
-        : aim;
-    /// <summary>A spark <paramref name="f"/> of the way into a shape: hot and flickering on it, else its idle heat; the lamp's a little hotter.</summary>
-    private float HeatOf(int i, float f, float t) =>
-        (f > 0 ? I.OnShape + I.OnShapeSwing * MathF.Sin(t * I.OnShapePace + i) : IdleHeat(i, t)) + (Shape == SwarmShape.Lamp ? I.LampMore * f : 0);
+    private static float Turn(SwarmShape shape, float aim, double timeS, float? pointed) => shape switch
+    {
+        SwarmShape.Sign => pointed ?? -MathF.PI / 2 + I.FanSway * MathF.Sin((float)timeS * I.FanSwayPace),
+        SwarmShape.Thought => 0,
+        _ => aim,
+    };
 
-    /// <summary>Half the orbiting sparks bright and flickering, the rest dim.</summary>
-    private static float IdleHeat(int i, float t) =>
-        Hash(i + 3) < I.BrightShare ? I.Bright + I.BrightSwing * MathF.Sin(t * I.BrightPace + i * 7) : I.Dim;
+    /// <summary>
+    /// A spark <paramref name="f"/> of the way into a shape: hot and flickering on it, an alarm's picture hot and fast, a mood's soft and slow; else its
+    /// idle heat; the lamp's a little hotter.
+    /// </summary>
+    private float HeatOf(int i, float f, float t)
+    {
+        if (f <= 0) return IdleHeat(i, t);
+        if (Shape == SwarmShape.Thought)
+            return Alarming() ? I.AlarmSpark + I.AlarmSparkSwing * MathF.Sin(t * I.AlarmSparkPace + i) : I.MoodSpark + I.MoodSparkSwing * MathF.Sin(t * I.MoodSparkPace + i * I.MoodSparkStep);
+        return I.OnShape + I.OnShapeSwing * MathF.Sin(t * I.OnShapePace + i) + (Shape == SwarmShape.Lamp ? I.LampMore * f : 0);
+    }
+
+    /// <summary>Half the orbiting sparks bright and flickering, the rest dim; a mood's dimming cools them.</summary>
+    private float IdleHeat(int i, float t) =>
+        (Hash(i + 3) < I.BrightShare ? I.Bright + I.BrightSwing * MathF.Sin(t * I.BrightPace + i * 7) : I.Dim) * (1 - I.SparkDim * _dim);
 
     /// <summary>
     /// Spark <paramref name="i"/>'s place on <paramref name="shape"/> turned <paramref name="turn"/> at <paramref name="timeS"/>, flowing along it: on the
@@ -275,6 +324,13 @@ public sealed class DroneSwarm
                 Opened(Open(timeS));
                 at = (part == Ring ? _ringPath : _tickPath).At((rank + 0.5f) / ScanCounts[part] + t * ScanFlows[part] / ScanLengths[part]);
             }
+        }
+        else if (shape == SwarmShape.Thought)
+        {
+            // The picture's sparks flow at the alarm's pace or the mood's, where the picture stands whatever the body's swell.
+            var path = (_thought is { } thought ? ThoughtPaths[(int)thought] : null) ?? FanPath;
+            at = path.At((ThoughtRanks[i] + 0.5f) / ThoughtCount + t * (Alarming() ? I.AlarmFlow : I.MoodFlow) / path.Length);
+            at = (at.X * Unswell, at.Y * Unswell, at.Dx, at.Dy);
         }
         else
         {
@@ -302,7 +358,15 @@ public sealed class DroneSwarm
     private static float[][] Lerp(float[][] closed, float[][] opened, float k) =>
         [.. closed.Select((line, l) => line.Select((v, n) => v + (opened[l][n] - v) * k).ToArray())];
 
-    private float Elapsed(double timeS) => (float)Math.Min(1e6, (timeS - _changedS) / I.Form);
+    /// <summary>How far into a change, in forming times: a thought's picture forms and falls apart in its own (<see cref="DroneInk.ThoughtIn"/>).</summary>
+    private float Elapsed(double timeS) =>
+        (float)Math.Min(1e6, (timeS - _changedS) / (_over ?? (Shape == SwarmShape.Thought ? I.ThoughtIn : _was == SwarmShape.Thought ? I.ThoughtOut : I.Form)));
+
+    /// <summary>A thought's picture standing over the core: <see cref="DroneInk.ThoughtSize"/> pick px a unit, <see cref="DroneInk.ThoughtAbove"/> up.</summary>
+    private static float[][]? Stood(DroneThought thought) =>
+        DroneThoughts.GlyphOf(thought) is { } glyph
+            ? [.. glyph.Select(line => line.Select((v, n) => n % 2 == 0 ? v * I.ThoughtSize : v * I.ThoughtSize - I.ThoughtAbove).ToArray())]
+            : null;
 
     private static float Smooth(float u)
     {

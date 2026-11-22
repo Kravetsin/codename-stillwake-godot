@@ -849,16 +849,19 @@ public partial class Figure : Node2D
     public ((float X, float Y)[] Seats, Vector2 Eye, float Tint)? DroneScan => _drone.Visible ? (_drone.Seats, _drone.LensBox.GetCenter(), _drone.Tint) : null;
 
     /// <summary>What the scanner's gauge does now: whether it reads a thing, and how far each dot is out from its mark (<see cref="LightDrone.Gauge"/>).</summary>
-    public void DroneGauge(bool reads, ReadOnlySpan<float> away) => _drone.Gauge(reads, away);
+    public void DroneGauge(bool reads, ReadOnlySpan<float> away)
+    {
+        _droneReads = reads;
+        _drone.Gauge(reads, away);
+    }
+
+    private bool _droneReads;
 
     /// <summary>A point of the world its drone's eye stays on, in pixels, over its lamp's aim: a find it scans over the head; null for none.</summary>
     public Vector2? DroneStare { get; set; }
 
     /// <summary>A point of the world its drone flies to, in pixels: over the thing it learns a form from (drone-lessons); null for none.</summary>
     public Vector2? DroneVisit { get; set; }
-
-    /// <summary>How red its drone burns at least, 0..1, showing off the alarms just learned (drone-lessons); null for no show.</summary>
-    public double? DroneAlarm { get; set; }
 
     /// <summary>How a still helmet's glass is tinted over the head inside it (light-drone, a try).</summary>
     private static readonly Color GlassTint = new(0.72f, 0.76f, 0.82f);
@@ -1865,9 +1868,10 @@ public partial class Figure : Node2D
                 Out = !awake,
                 Signing = signing,
                 Visit = !overDrone && DroneVisit is { } visit ? new Vec(visit.X, visit.Y) : null,
+                Icon = Senses.Icon || DroneStare != null || DroneVisit != null,
+                Reads = _droneReads,
             };
             var intent = _will.Pick(senses, elapsedMs);
-            if (DroneAlarm is { } red) intent = intent with { Tint = Math.Max(intent.Tint, red) };
             _drone.Follow(senses.Anchor, DroneFlight.VelocityOf(hero.Vx, hero.Vy), intent, overDrone, elapsedMs, _timeMs);
             _droneLost = false;
             _drone.Projecting = overDrone;
