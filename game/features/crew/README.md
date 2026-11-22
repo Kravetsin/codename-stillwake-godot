@@ -11,7 +11,7 @@ This hero and others', client-authoritative (0002).
 | `logic/Pose.cs` | poses |
 | `logic/Motion.cs` | lean |
 | `logic/Splashes.cs` | water |
-| `logic/LookTint.cs` | tints |
+| `logic/LookTint.cs` | |
 | `logic/Aim.cs` | aim |
 | `logic/AxeSwing.cs` | clock |
 | `logic/Strokes.cs` | |
@@ -19,7 +19,7 @@ This hero and others', client-authoritative (0002).
 | `ReachAir.cs` | grinder |
 | `logic/AirCuts.cs` | dust |
 | `logic/BladeTrail.cs` | blade |
-| `SpearLight.cs` | spear's |
+| `SpearLight.cs` | |
 | `logic/SpearFx.cs` | when |
 | `logic/SwingArc.cs` | angle |
 | `logic/SwingArm.cs` | arm |
@@ -112,9 +112,9 @@ This hero and others', client-authoritative (0002).
 | `logic/SuitFx.cs` | sums |
 | `logic/ScreenEase.cs` | eased |
 | `logic/Danger.cs` | gauge |
-| `logic/AirCues.cs` | cues |
+| `logic/AirCues.cs` | |
 | `logic/CanistersSeen.cs` | tanks |
-| `AirSwirl.cs` | swirls |
+| `AirSwirl.cs` | |
 | `SuitGauge.cs` | air |
 | `MealSlots.cs` | meals |
 | `logic/Retching.cs` | |
@@ -123,9 +123,10 @@ This hero and others', client-authoritative (0002).
 | `logic/MealTips.cs` | cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | |
+| `logic/CrustFill.cs` | frost |
 | `logic/Tunnel.cs` | |
 | `TunnelView.cs` | drawn |
-| `logic/VisorFog.cs` | fog |
+| `logic/VisorFog.cs` | |
 | `VisorFogView.cs` | drawn |
 | `logic/HurtSeen.cs` | hurt |
 | `HurtView.cs` | shown |
