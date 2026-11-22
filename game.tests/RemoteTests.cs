@@ -113,6 +113,15 @@ public class RemoteTests
     }
 
     [Fact]
+    public void AFriendsHaulIsSweptOnIntoTheHandThatCaughtIt()
+    {
+        var (heroes, hero) = (new RemoteHeroes(), HeroAt(0));
+        var hand = Aiming.HandOf(hero);
+        heroes.Add(2, new SentHero(new Seen(hero, Wields: "spear", Busy: new Busy(Handwork.Haul, new Point(hand.X + 6_000, hand.Y), 4)), 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(hero, Wields: "spear"), 1050), 1050);
+        Assert.Equal(new Busy(Handwork.Haul, new Point(hand.X + 3_000, hand.Y), 4), heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+    [Fact]
     public void KeepTheSwingThatLetAThrowGo()
     {
         var chop = new Busy(Handwork.Chop, new Point(5_000, 2_000), 3);

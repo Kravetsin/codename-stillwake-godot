@@ -564,7 +564,11 @@ public partial class HeroView : Node2D
             _letsGo |= HarpoonShot.LetsGoBy(taken);
             // Pulled by the grapple or hanging from it, the line moves the hero, not the keys; pulled, it faces the hook.
             var pull = passedOut ? null : _harpoon.PullTo;
-            int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face ?? taken.Face;
+            // With a weapon out, the stroke over, it faces that, the arm held out to catch it.
+            bool awaits = !swinging && _throw.Flying;
+            int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace
+                : awaits ? Poses.FaceOf((_throw.At.X / Hero.Unit, _throw.At.Y / Hero.Unit), _current) ?? _current.Facing
+                : face ?? taken.Face;
             // Shift in space with a jetpack thrusts where the keys point, or with none toward the pointer.
             bool afloat = ship.Space(_current.BodyCell(ship.Width));
             var thrust = canThrust && afloat && taken.Sprint && pull == null
@@ -576,7 +580,7 @@ public partial class HeroView : Node2D
                 : taken with
                 {
                     Face = faces,
-                    Swings = swinging || _armUp,
+                    Swings = swinging || awaits || _armUp,
                     Pull = pull,
                     PullBy = _harpoon.PullBy,
                     Jetpack = jetpack,

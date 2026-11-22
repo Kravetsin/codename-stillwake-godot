@@ -97,6 +97,8 @@ a fight.
 - No cooldown: the next leaves once this one is home, and no sooner than its weapon's pace after the last's stroke began,
   two paces after one that struck both ways; no swing of that weapon meanwhile. So a throw never out-hits swings, a cold
   body's slower ones too.
+- Its stroke followed through, the arm is held out open, the hero facing the weapon; on its last stretch home the grip
+  turns into that fist, a friend's too. Hits and the catch stay at the shoulder: only the drawing lands in the hand.
 - While it is out the hand is drawn empty and swings nothing. It ends at once, hits and drawing, when the axe is no
   longer wielded (a switch, a drop, death), the building plan comes out, the hero passes out, is held by a scene, sits,
   flies or changes surface. A wheel or a window opened stops only new throws.
