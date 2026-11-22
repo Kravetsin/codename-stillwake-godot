@@ -1,145 +1,185 @@
-# Design: companion fights
+# Companion fights: design and the plan of the first try
 
-Paths are from the repo root. Every number is a placeholder for `sim/Content`. "Not checked" marks what was not read or run.
+Written by `design-author`, cut by `design-reviewer` on 2026-11-22. Paths are from the repo root. Every number is a
+placeholder for `sim/Content`, to be tuned in play. **Confirmed** marks the user's word; the rest is proposed.
 
 ## Problem
 
-There is nothing to mow down: sentries are rare single duels (`sim/Content/Creatures.cs`), and the drone, the stronger of the pair, takes no part in a fight.
+There is nothing to mow down: sentries are rare single duels, and the drone, the stronger of the pair, takes no part in
+a fight.
 
-## Player experience
+## What is confirmed
 
-1. Out by jetpack, the player sees a wreck with red eyes folded on it and something gnawing.
-2. They come close or chop it. The eyes open for half a second, then six small breakers spill out and ring the hero.
-3. A swing catches two or three. Each flies off along the blow, comes back, and bursts into its parts at the second hit.
-4. Right click: the axe leaves the hand and goes through the line of them, and the drone hauls it home on a thread.
-5. The first sentry arc hurts as today, and the drone forms a question mark. At a later arc it catches the discharge, draws it into its core and sends it back through the sentry and its wreck.
-6. The palm shot is learned: threads wind round the arm and the charge leaves the hand. Fighting refills it.
+- **Confirmed:** simple dummies in groups that are fun to mow down, not enemies worked out like the catcher.
+- **Confirmed:** they are breakers («разборщики»), the dead fleet's service machines still on their last order: take
+  apart whatever drifts, the hero included.
+- **Confirmed:** the left button is the weapon, the right the companion's ability with what is in hand. The first is
+  the axe thrown and brought back by the drone, the same damage.
+- **Confirmed, later:** a palm shot (threads round the arm, the core a charge generator) that is fun, not a bare wait;
+  later still the drone strengthens weapons and is one.
+- **Confirmed, later:** the shot is learned from a sentry. Its first arc hits and the drone shows a question mark; at a
+  later arc the drone catches it, draws it into the core and sends it back, killing the sentry with its wreck.
+- **Proposed, tried here:** where breakers live, and every number.
 
-Going wrong: with little air the player stays in a pack, each blow takes a unit and the suit reddens. A jetpack outruns them and a room ends the chase.
+## Player experience of the first try
 
-## Lore
+1. Out by jetpack past the stream, the player sees a wreck with small machines folded on it.
+2. They come near or chop it. Four to eight breakers spill out and ring the hero.
+3. A swing catches two or three. Each flies off along the blow, comes back, and bursts at the second hit.
+4. A right click: the axe leaves the hand through the line of them, and the drone hauls it home on a thread.
+5. With little air they leave: a jetpack outruns a pack, and nobody is attacked in a room.
 
-Confirmed: breakers («разборщики») are the dead fleet's service machines, still on their last order, which is to take apart whatever drifts, the hero included. Sentries guard that fleet's derelicts. They drop scrap. The spire wardens are the arc makers' and unrelated.
-
-## Where and how often
-
-Proposal: nests on the far field's small wrecks (`hullSection`, `cargoContainer`, `machineBlock`, `shieldSlab`). Derelicts keep their sentries.
-
-| Cells from the hull (`Debris.Far` tiers) | Wrecks with a nest | Pack | Nests spawned a minute of flight (not measured) |
-|---|---|---|---|
-| the stream, a tether's reach | none | none | none |
-| far, under 256 | 20‰ | 4 | about 1 |
-| 256–511 | 30‰ | 6 | 1–3 |
-| 512 and on | 40‰ | 8 | 2–4 |
-
-- A piece draws once as it spawns out of view, as sentries do (`GuardNewPieces`, `sim/Creatures/Spawn.cs`), so a nest is seen before it is hit.
-- It wakes whole when its wreck is struck (`Piece.Struck`) or an awake hero afloat is within 16 cells. With no room under the limits it stays asleep.
-- It does not wake on breaking: a piece gone does not say broken or drifted off. A wreck broken in one blow takes its nest with it.
-- Aboard generated vessels is a later user of the same release. Their developer decides where.
-
-## The modules shared
+## The mechanics
 
 | Mechanic, owner | Users now | Users next |
 |---|---|---|
-| Pack: nests, release, drive `Swarm` on the flyer body (`sim/Creatures`) | breakers on wrecks | vessels, raids from wrecks (`docs/concept.md`, Open) |
-| Two-axis knock for a body afloat (the one hit path, `Hurt`) | breakers, by any weapon or shot | every flying dummy |
-| Companion abilities, one table by the item in hand (`sim/Content`) | axe: throw | spear and sledgehammer throws, the palm shot, strengthened weapons |
+| Pack: nests, release, the `Swarm` drive on the flyer body (`sim/Creatures`) | breakers on far wrecks | vessels, raids |
+| Knock along the blow for a flyer afloat (`Hurt`, the one hit path) | breakers, by any weapon or shot | every flying dummy |
+| Companion abilities, one table by the item in hand (`sim/Content`) | the axe's throw | spear and sledgehammer throws, the palm shot, strengthened weapons |
 | One lookup along a segment (`ToolRays`, lifted out of `Fan`) | the swing, both legs of a throw | every later throw |
-| A lesson by a caught projectile (`Content.Lessons`, a new source) | the sentry's bolt teaches the palm shot | none named, so one row |
 
-No new module: Creatures owns what moves and hurts, Crew a hero's charge, Knowledge what a player learned.
+### Nests
 
-## State, commands, what is client
+- Only on the ship's surface, on the far field's `hullSection`, `cargoContainer`, `machineBlock` and `shieldSlab`
+  (`Debris.Far`). A piece of the stream, of a delivery or of a stretch never has one.
+- Each such new piece draws once, as a guarded piece does (`GuardNewPieces`, the same watermark): 100‰ have a nest,
+  and a second draw gives its size, 4 to 8. The size is saved in `Nests`, by piece id.
+- A nest is no creature until it wakes: when its piece is struck after the nest came (`Piece.Struck`), or an awake hero
+  afloat is within 32 cells. It wakes whole or not at all. It waits while the surface would pass `Max` (40) or that
+  hero's keep box would hold more than 8 breakers.
+- Breakers appear round the piece, in id order, at the free places of a fixed ring; one with no free place is not
+  spawned. A piece gone takes its sleeping nest with it, with nothing given.
 
-**Breakers.** A species record with the existing `Flyer`, a `Swarm` drive and the existing `Pounce`, which gains "a blow cuts it". There is no path search: a breaker steers at the nearest awake hero afloat, to a place on a ring of 4 cells picked by its id, and slides along solids. With none within 48 cells for 10 s it flies off and goes once unseen, so packs do not wait at airlocks holding the limit. Saved: `Nests` (piece, size).
+### A breaker
 
-**The throw.** No sim state and no new command. The axe never leaves the inventory.
-- The client flies it from today's overhand release along the aim, to its full range or the first thing that stops a ray, then home to the hero, faster than any hero moves.
-- What it crosses gets today's `Strike`, `HewPieces` and `HewCells`, each target once a throw over both legs, at the axe's damage and knock. Out, it passes creatures, wrecks and stations as a swing's rays do. Home, it strikes nothing behind a wall from the hero.
-- A wreck loses 2, as from a swing. The cell that stops it takes the axe's 40, a tenth on one's own ship, by `TargetAt` (one-damage-rule). Wrecks are hit only by a hero outside (`debris.notOutside`).
-- `Strike` already trusts reach and pace (`sim/Creatures/Creatures.cs`), and `HewPieces` trusts reach (`sim/Debris/README.md`).
-- No cooldown, with one floor: the next release is no sooner than the axe's pace, or an adjacent wall would make throwing the faster attack.
-- The hands are empty meanwhile: no swing, while moving and E work. A hotbar switch, drop, trash, death, seating or surface change ends the hits at once. The drone comes back, and the axe is drawn home only if still owned and on this surface.
-- The lamp flies with the drone. The scanner, tow and moods wait. Unpaired, the right button does nothing.
+- The existing `Flyer`, 2×2 cells, no path search. `Swarm` steers at the nearest awake hero afloat, to a place on a
+  ring of 4 cells picked by its id, easing to its speed; solids stop it as they stop the catcher. With no hero afloat
+  it eases to rest. It goes as every wild creature does (keep box, linger, hard box).
+- Its blow is the existing `Pounce` with a new `Cuttable` flag, default false, so the sentry and the warden stay as
+  they are: a blow cuts the breaker's tell and its dash. Contact is today's `HitBy` (`Rams`).
+- At one hero one breaker begins a blow each 1.5 s: before beginning, it reads when the living breakers last began one
+  at that hero (kept in their `Mem`). Killing the one that began frees the next sooner: accepted.
+- A flyer afloat with a knock is knocked along the line from the striker's hero to its middle, both axes, on the longer
+  axis the species' knock, and sheds it as `Slow` does. `Hit` keeps its one `Away` for every walker.
+- It dies by the existing `Kill`, spraying its yield.
 
-**The question and the catch.** The first `Bolted` by a sentry's bolt on a hero with a drone counts a deed in Knowledge (saved, the player's, kept through death). The blow is today's.
-- The question mark exists (`game/shared/logic/DroneInk.cs:284`), but `DroneThoughts` shows it only for teaching machines, once each, two minutes apart. A sentry becomes a second thing it is curious at: at once after that hit, then once per sentry within 40 cells, until the form is known.
-- On the tick a sentry takes its aim (`Shoot.cs`), the sim looks at whom it aimed at. If that hero has the question, it grants the form, spares the hero by Crew's `Meets` for `VisionTicks`, and marks the arc caught: it hurts nobody. No client's word, crossing or dodge is asked.
-- 2.4 s later the sim kills the sentry and breaks its wreck by `Debris.Hit`, both credited to that player, with the usual loot, worth and deed. This is a scripted act, not the palm shot's damage.
-- The client holds the hero and plays it in the world: threads out, the arc caught, the core drawing it in, the beam back. The lesson's 3.6 s runs under it, then the form vision shows the threads on the arm and the palm, and `Envision` renews the spare.
+### The throw
 
-**The sentry's bands.** Unprovoked it shoots at 21–40 cells, pounces nearer and calms farther (`Guard.cs`). A hero staying in the band gets an arc every 3.65 s, which confirms the lead's figure. A hero coming closer would never get the second, so one rule changes: a perched sentry that would pounce at a hero with the question shoots instead, the drone's core drawing the discharge. Coming to study it, hovering and hitting it from afar (already answered by an arc) all lead to the scene. Fleeing loses nothing, as any sentry later will do.
-
-**Palm shot.** Crew holds the charge. Creatures adds the damage the hero really took off creatures, and it creeps up by itself. It fires through `Fire` as a gun row with no item or ammo, adding refusals `creatures.notLearned` and `creatures.notCharged`. It starts full after the scene.
+- Content: `Abilities`, a row by item, the axe's `Throw(Range, Out, Home)`. A row exists only with a user.
+- No sim state and no new command: the axe never leaves the inventory. Right click, only with a drone paired, the
+  plan away, the hand free and the item having a row. Food, the canister, the driver, guns and the plan keep theirs.
+- The client flies it along the aim to its range or the first cell that stops a ray, then home to the hero as it is
+  that frame. Both legs send today's `Strike`, `HewPieces` and `HewCells` through the one lookup, each target once a
+  throw. The way home strikes nothing past a solid cell and no cells.
+- No cooldown: the next leaves once this one is home, and no sooner than the axe's pace.
+- While it is out the hands swing nothing. Anything that takes the axe from the hand (a switch, a drop, death, a seat,
+  another surface) ends the hits at once and the drawing with them.
+- The drone flies with the axe on the tow's thread and the lamp with it; its tow, scan and moods wait.
+- Friends: one new `Handwork.Throw` in `Busy`, the end point and the throw's number. They draw both legs; only the
+  thrower sends hits.
 
 ## Co-op and determinism
 
-- Packs, wakes, the knock and the catch are sim: id order, integers, divisions toward zero. Ties go to the first hero in id order, as `Nearest` does.
-- The spare begins on the lock tick on every peer. The 0.2 s of `Lock` need not cover a round trip: a guest sees the same beat later. A blow it sent in between costs nothing (`Crew.Blow` returns on `Meets`), though it may have flinched.
-- Two heroes with questions: only the one aimed at learns. A friend's sentry serves as well. Watchers see the catch from that hero's drone, read from the sim. A friend on the line is not hurt.
-- Today's replicated state cannot show a throw. `Busy` (`game/features/crew/logic/Remote.cs`) already carries a point and a count, so one new `Handwork` value suffices: the end fixed at release and the throw's number. Friends play out both legs to the hero as drawn, 150 ms behind, and may see a flinch before the axe arrives.
-- A joiner gets nests, packs, the deed, charge and a catch under way in the snapshot, and no throw in flight. Added fields start at "none", so no format bump.
-- A save and load during the catch finishes it and keeps the spare and the form. The vision is lost, as form-vision already accepts.
-- Client-authoritative: the throw's path and a breaker's contact (`HitBy`), as swings and rams are among friends (0002).
+- Nests, wakes, the swarm, the gate and the knock are sim: id order, integers, divisions toward zero, the world's Rng
+  for the two draws alone. Ties go to the first hero in id order, as `Nearest` does.
+- The throw's path and a breaker's contact are the client's word, as swings and rams are (0002).
+- `Nests` starts empty and the species is appended to `All`, so no format bump. The added draws move what later draws
+  of a seed give: pinned worlds change once.
 
 ## Numbers
 
 | Placeholder | Value |
 |---|---|
-| Breaker | 2×2 cells, 4 HP: axe 2 hits, spear 2, sledgehammer 1, nail 1, drill 4 |
-| Its flight | 14 cells/s, between a swim's 3.6 and a jetpack's 30 |
-| Its blow | 1 unit, 0.6 s tell, 0.3 s dash, cut by a hit; at one hero one begins each 1.5 s, all breakers counted |
-| Knock | about 5 cells along the blow, home again in under a second |
-| Yield | scrap chunk, 1 in 2 |
-| Limits | 24 breakers a surface, leaving 16 of `Max` 40 to sentries and catchers; 8 in a keep box for each hero in it |
-| Despawn afloat | today's rule: keep box 160×96, 30 s linger, hard box 220×128, no drop |
-| Throw | 18 cells, 45 cells/s out, 60 home, about 0.7 s: 2.9 damage/s on one target against a swing's 4 |
-| Palm shot | 30 through every body; full at 48 charge, 1 a damage point and 1 a second: two packs, or 48 s alone |
+| Nest | 100‰ of the four kinds; 4–8; wakes within 32 cells |
+| Breaker | 4 HP: axe 2 hits, spear 2, sledgehammer 1, nail 1 |
+| Flight | 700 a tick (14 cells/s), gaining 150 a tick |
+| Blow | tell 12 ticks, dash 6 ticks at 1500, 1 unit; one begun a hero each 30 ticks |
+| Knock | 1200 a tick, shed a quarter a tick: about 5 cells |
+| Yield | scrap chunk, one in two |
+| Limits | `Max` 40 a surface; 8 breakers in a hero's keep box |
+| Throw | 18 cells; 45 cells/s out, 60 home: about 0.7 s |
 
-**A pack of six:** 24 HP, 6 s of single-target swings, 3 s at two a swing, about 7 s as played.
+A pack of six is 24 HP: about 7 s as played, costing a typical 6 air beyond breathing (2 blows, 4 thrust), of the basic
+45. In creative blows cost nothing, so air is judged in survival.
 
-| Air in those 7 s | Breath | Thrust | Blows | Total |
-|---|---|---|---|---|
-| typical | 7 | 4 | 2 | 13 |
-| worst (thrusting throughout, every blow lands) | 7 | 14 | 5 | 26 |
-
-Breath is paid anyway, so a typical fight adds 6: a seventh of the basic 45, under a third of a canister's 20. Bare lungs (20) live through one typical pack and should run from a second. Nothing has to give back at these numbers. `PerKeep` 6 governs planet herds only and stays.
-
-**Scale and budget:** at most 40 creatures, four heroes, about 10 sleeping nests that cost one lookup each a tick. Forty lopers take 0.12 ms (`sim/Tests/BudgetTests.cs`). Within budgets, to be proven with 24 breakers among 640 pieces. Commands: up to 2 strike batches a second a hero, and reports every tick near a pack, as near sentries today.
-
-## Slices
-
-1. **Is it fun to hit?** Nests at a flat rate with packs of six on far wrecks, the drive, the two-axis knock, today's left-button axe, a death into parts. Played in the plain game: a jetpack and a minute upward. Creative shows the feel, survival the air, as blows cost nothing in creative.
-2. **The throw,** with the table, the segment lookup and the friends' view. Also playable on wrecks alone.
-3. **The place:** tiers and sizes, the picked looks and sounds. Ship.
-4. **The scene and the palm shot** together, since one teaches the other.
-5. Named, not designed here: other throws, the drone strengthening weapons, the drone as a weapon.
-
-**Before picks:** the sentry's pictures at two thirds (scaling not checked), three folded as a nest, flung apart at death; its one-shot hit and death sounds; the axe's picture, the tow's picked thread, today's whoosh and one arm pose delta. The stop on contact stays 50 ms. No dev scene.
-**Pick pages:** the breaker with nest, tell and death; its sounds; the throw and catch, with sounds; the catch scene, arm threads and shot, with sounds.
-
-**Tests:** wake by nearing, by a blow, refused at a limit; give up and leave; knock on both axes; blow gate with two packs; throw hits once over two legs and stops on every cancel; question, close-range arc, catch on lock, two heroes, load mid-catch, both refusals. FsCheck: limits hold, bodies out of solid, no hero pays twice inside the gate, a form is caught once.
-**Cost:** changed Creatures, Content, Debris (a tier query), and for slice 4 Crew, Knowledge, Lessons' content. Client: creatures, crew, research. About 700, 550, 250 and 900 lines by slice, art aside.
+Budget: at most 40 creatures and some 60 sleeping nests among 640 pieces. A tick stays under 2 ms with 40 breakers and
+four heroes.
 
 ## Deliberate omissions
 
-- A sentry killed before it ever fires teaches nothing. The user says it does not happen.
-- A pounce earns no question. The lesson is the arc.
-- The scene cannot pause the world or promise the first sentry ever met: co-op runs on, and old saves have met many. The next two arcs serve.
-- A first arc that kills still earns the question, shown again at the next sentry.
-- A friend killing the sentry or wreck in the catch's 2.4 s: the form stands and whatever is left is not blown up.
-- Each player gets one derelict's loot free, four in a full crew: the price of the scene, once.
-- In creative the question and catch read Knowledge, so they play. The shot is open at once, as every form is, and the vision may not play (not checked).
-- Breakers do not really damage wrecks or take loot: gnawing is drawn. Competition would need an economy rule.
-- They ignore bursts (a burst hurts no creature today), each other and wrecks as obstacles.
-- A hit afloat without a jetpack masks the keys 0.4 s and shoves nobody (`Hero.Step`). Left until a play pass calls it a stun.
-- No throw on a joiner's screen mid-flight, no axe lost or stuck, no aim assist, no drone health, no prediction.
-- No shake, rings or blade particles. Cards state damage and range only.
-- Not checked: the lamp's light following the drone away from the head, vessel interiors as a home for a flyer, the feel of any number.
+- No tiers by distance, no cap of breakers apart from `Max`, no give-up drive, no path search, no gnawing that harms a
+  wreck or takes loot. Breakers ignore each other, wrecks as obstacles, and bursts.
+- A pack may wait outside an airlock up to the linger. Revisit if play calls it a nuisance.
+- A wreck broken in the blow that would have woken its nest takes the nest with it.
+- A hit afloat without a jetpack masks the keys and shoves nobody (`Hero.Step`), as today.
+- No throw shown to one joining mid-flight, no axe lost or stuck, no aim assist, no prediction, no drone health.
+- No shake, rings or blade particles; the 50 ms arm stop stays.
 
-## Open questions for the user
+## Plan: the try
 
-1. **Where are they met?** Recommended: nests on far wrecks, none in a tether's reach, so the first hour stays calm. Or a rare nest of three in the stream too. Or derelicts only, which is rarer and nearer today's "one sentry in all space".
-2. **How does the palm shot share the right button with the throw?** Recommended: tap for the item's ability, hold to wind the threads and release to fire, wherever the right button is free. The tap then fires on release once the shot is learned. Or the shot with an empty hand only. Or a charged shot takes the next right click.
-3. **May a sentry shoot at close range at a player with the question?** Recommended: yes, it answers the doubt, as curiosity then leads to the scene. Or keep the bands and let the scene wait for a player who happens to hover.
-4. **If packs still feel like a tax after slice 1?** Recommended: change nothing before playing in survival. Then either fewer blows, or a canister now and then from a nest. Air for kills is not proposed: it turns packs into an air farm.
+Branch `feat/companion-fights`, on `fix/no-see-through`. A commit a step, filtered tests, no push. Steps 1–5 are one
+try, played in one window.
+
+### 1. The breaker (sim)
+
+- `sim/Content/Creatures.cs`: `Breaker` (look `breaker`, `Flyer(2, 2)`, `Life`, faction `Machines`, wild, brain
+  `[Swarm]`, moves `[Pounce]`), appended to `All`; the `Swarm` record; `Pounce.Cuttable`, default false.
+- `sim/Creatures/Swarm.cs` (new): the drive and its rule as above. `Pounce.cs`: `Interruptible` reads the flag.
+  `Creatures.cs` `Hurt`: the knock along the blow for a flyer where things float with `Knock > 0`; the catcher's
+  knock is checked unchanged.
+- Tests `sim/Tests/BreakerTests.cs`: steers and rings; stops at a wall; cut by a blow while a sentry's is not; knocked
+  up, down and across; the gate with two heroes and six breakers; dies to two axe hits and gives its yield; idles with
+  every hero in a room or passed out.
+
+### 2. Nests (sim)
+
+- `sim/Content/Creatures.cs`: `Nest` (species, kinds, per mille, least, most, wake, per keep);
+  `Surfaces.Ship` names it as it names `Guards`.
+- `sim/Creatures/State.cs`: `Nests`, saved only when there are any. `Spawn.cs`: the draws with the guards' watermark,
+  telling a far-field piece by its zone. `sim/Creatures/Nests.cs` (new): wake, release, drop with the piece, the query
+  `Nests` for the client. `Live.cs`: the early return lets a surface with nests run.
+- Tests `sim/Tests/NestTests.cs`: only the four kinds and only the far field; wakes by nearing and by a blow, not for
+  one in a room or passed out; waits at both limits; save and load before and after waking; two worlds alike. FsCheck:
+  never past `Max`, never in solid, ids only grow. A budget test with 40 breakers.
+
+### 3. The breaker seen (client)
+
+- `game/Content/logic/CreatureLooks.cs`: breakers join `Ticks` at a size of their own, 0.45 (the sentry is 0.65), with
+  a tint of their own; `TickBodies` takes the size by species. `HitLooks` and `Sound.Ticks`: the sentry's rows, one
+  shots only. A sleeping nest: three folded ones on its piece, drawn from the `Nests` query in view only.
+- Names in `Creatures.En.cs` and `Creatures.Ru.cs`. These looks and sounds are stand-ins till the pick pages.
+
+### 4. The throw (sim content, client)
+
+- `sim/Content/Abilities.cs` (new), the table. `game/features/crew/logic/ToolRays.cs`: the segment lookup lifted out of
+  `Fan`, the fan unchanged by its tests. `game/features/crew/logic/AxeThrow.cs` (new, Godot-free): legs, once a
+  target, the cancels.
+- `HeroView.Hands.cs`: the right click and the hits sent; `LightDrone.cs`: the drone with the axe, the thread and the
+  axe drawn; the arm by today's overhand.
+- Tests `game.tests/AxeThrowTests.cs`: range and stop at a wall; once over two legs; nothing past a wall coming home;
+  every cancel; no throw unpaired, with the plan out or mid-flight; never sooner than the pace.
+
+### 5. Friends, then the user plays
+
+- `Remote.cs`: `Handwork.Throw`; `HeroView.Others.cs` draws it; a test of the packing.
+- `dotnet build game`, headless import, the log checked, then the plain game launched from this worktree.
+
+### What the play answers
+
+1. Is it fun to hit: the knock, the two-hit kill, the pack's rhythm?
+2. Is the throw a move one wants, or a worse swing?
+3. Is a pack met within a couple of minutes, and is it too many?
+4. In survival: is a pack a fight or a tax?
+
+## After the try, not planned yet
+
+- **Ship of the try:** pick pages (breaker with nest, tell and death; its sounds; the throw and catch), then the ADR,
+  READMEs, map, glossary and the full suite.
+- **The scene and the palm shot,** one slice, as one teaches the other. The question is a deed counted at `Bolted`.
+  Once earned, the next arc aimed at that player is caught on the tick the aim is taken, in the sim: the form granted
+  by a deed, the hero spared, the arc never struck, and at the act's end the sentry and its wreck destroyed. A perched
+  sentry that would pounce at a hero with the question shoots instead, or a curious player who flies closer would
+  never get the second arc.
+- **Open then:** how the shot shares the right button with the throw (recommended: tap for the item's ability, hold
+  to charge the palm); its charge (recommended: by hits, and slowly by itself so one shot always comes).
+- **Later, named only:** breakers aboard vessels, other throws, strengthened weapons.
