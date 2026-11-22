@@ -40,7 +40,7 @@ public sealed class ThrownDrawing
     private int? _count;
     private double _angle, _turns, _side = 1;
     private double _farMost, _landed, _turnLeft, _sideFrom;
-    private bool _near;
+    private bool _near, _cramped;
     private HeldPlace _left;
     private double _settleMs = SettleMs;
 
@@ -100,7 +100,7 @@ public sealed class ThrownDrawing
         {
             var held = _last ?? inFist;
             (_angle, _side, _count, _turns) = (held.Angle, held.Side < 0 ? -1 : 1, now.Count, spins);
-            (CastMs, OutMs, _farMost, _landed, _near, _settleMs) = (0, 0, 0, 0, false, SettleMs);
+            (CastMs, OutMs, _farMost, _landed, _near, _cramped, _settleMs) = (0, 0, 0, 0, false, false, SettleMs);
             (_from, _offHand) = (now.At, DroneFlight.Minus(DroneFlight.Plus(held.Grip, Turned(weight, _angle, _side)), now.At));
         }
         else if (ms > 0)
@@ -124,7 +124,9 @@ public sealed class ThrownDrawing
                 _angle = (_angle + _side * _turns * Math.Tau * ms / 1000) % Math.Tau;
             }
             _from = now.At;
-            _offHand = DroneFlight.Scaled(_offHand, Math.Exp(-ms / OffHandMs));
+            // Turned nearer than it is long, by a wall point blank, it has no room to slide onto its line: it would go into the body.
+            _cramped |= now.Hauled && _farMost == 0 && far < DroneFlight.Length(weight);
+            if (!_cramped) _offHand = DroneFlight.Scaled(_offHand, Math.Exp(-ms / OffHandMs));
         }
         var fist = DroneFlight.Minus(inFist.Grip, shoulder);
         if (now.Hauled)

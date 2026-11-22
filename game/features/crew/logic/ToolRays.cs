@@ -32,7 +32,7 @@ public static class ToolRays
         var hand = Aiming.HandOf(hero);
         (double X, double Y) from = (hand.X, hand.Y);
         var wrecks = WrecksNear(m, outside, progress, (from.X - weapon.Range, from.Y - weapon.Range, from.X + weapon.Range, from.Y + weapon.Range));
-        var met = new Crossed();
+        var met = new Crossed(everyGround: false);
         (double X, double Y)? end = null;
         var walked = new List<(int Cell, double Enter)>();
         int n = weapon.Rays;
@@ -45,8 +45,8 @@ public static class ToolRays
             Rays.Cast(width, height, hand.X, hand.Y, Rays.HeadingOf(weapon, heading, i), weapon.Range, cell =>
             {
                 walked.Add((cell, EnterOf(cell % width, cell / width, from.X, from.Y, ux, uy)));
-                bool stops = grid.WallAt(cell) != null || grid.Blocks(cell);
-                if (stops) stopped = cell;
+                bool stops = Stops(grid, cell);
+                if (stops) stopped ??= cell;
                 return stops;
             });
             double length = Math.Sqrt(ux * ux + uy * uy) * weapon.Range;
@@ -58,8 +58,8 @@ public static class ToolRays
 
     /// <summary>
     /// What a thrown thing touches from <paramref name="from"/> to <paramref name="to"/> on <paramref name="m"/> (companion-fights),
-    /// as a fan's ray does: the cells it walks, the wrecks and creatures it crosses before the first cell that stops a ray; and
-    /// whether one stopped it, the hit's end where it did.
+    /// as a fan's ray does: the cells the sim's walk crosses (<see cref="Rays.Walk"/>), the wrecks and creatures before the first
+    /// that stops a ray; each ground cell a touch, the thrower knowing which it struck already; and whether one stopped it, the end there.
     /// </summary>
     public static (EdgeHit Hit, bool Stopped) Segment(Registry m, (double X, double Y) from, (double X, double Y) to, bool outside, double progress,
         Func<Piece, double, double, bool> solid)
@@ -67,16 +67,30 @@ public static class ToolRays
         double dx = to.X - from.X, dy = to.Y - from.Y, length = Math.Sqrt(dx * dx + dy * dy);
         var (ux, uy) = length > 0 ? (dx / length, dy / length) : (1.0, 0.0);
         var walked = new List<(int Cell, double Enter)>();
-        int? stopped = Walk(m, from, (ux, uy), length, walked);
+        var grid = m.Grid;
+        int width = grid.Width, x = (int)Math.Floor(from.X), y = (int)Math.Floor(from.Y);
+        int? stopped = null;
+        // Both ends rounded down, as a cell is: none starts in a cell the last step had not entered.
+        Rays.Walk(width, grid.Height, x, y, (long)Math.Floor(to.X) - x, (long)Math.Floor(to.Y) - y, cell =>
+        {
+            walked.Add((cell, Math.Clamp(EnterOf(cell % width, cell / width, from.X, from.Y, ux, uy), 0, length)));
+            bool stops = Stops(grid, cell);
+            if (stops) stopped ??= cell;
+            return stops;
+        });
         var wrecks = WrecksNear(m, outside, progress, (Math.Min(from.X, to.X), Math.Min(from.Y, to.Y), Math.Max(from.X, to.X), Math.Max(from.Y, to.Y)));
-        var met = new Crossed();
+        var met = new Crossed(everyGround: true);
         var (_, reached) = Cross(m, from, (ux, uy), length, walked, stopped, wrecks, solid, met);
         return (new EdgeHit(met.Cells, met.Struck, met.Touched, met.Touches, reached), stopped != null);
     }
 
-    /// <summary>What the rays of one hit met so far, each once, and whether one touched the ground.</summary>
-    private sealed class Crossed
+    /// <summary>What stops a tool's ray.</summary>
+    private static bool Stops(Sim.Grid.IGridQueries grid, int cell) => grid.WallAt(cell) != null || grid.Blocks(cell);
+
+    /// <summary>What the rays of one hit met so far, each once; the ground's first touch, or with <paramref name="everyGround"/> every one.</summary>
+    private sealed class Crossed(bool everyGround)
     {
+        public bool TakesGround => everyGround || !Grounded;
         public readonly List<int> Cells = [];
         public readonly List<Piece> Struck = [];
         public readonly List<Creature> Touched = [];
@@ -111,7 +125,7 @@ public static class ToolRays
         foreach (var (cell, enter) in walked)
         {
             if (!met.Cells.Contains(cell)) met.Cells.Add(cell);
-            if (!met.Grounded && (cell == stopped || m.Building.PlantAt(cell) != null || m.Building.TargetAt(cell) is { Kind: TargetKind.Machine }))
+            if (met.TakesGround && (cell == stopped || m.Building.PlantAt(cell) != null || m.Building.TargetAt(cell) is { Kind: TargetKind.Machine }))
             {
                 double at = Math.Max(enter, 0);
                 met.Touches.Add(new((from.X + ux * at, from.Y + uy * at), cell, null));
@@ -142,38 +156,6 @@ public static class ToolRays
             if (x >= box.Left - near && x <= box.Right + near && y >= box.Top - near && y <= box.Bottom + near) wrecks.Add((piece, x, y, reach2));
         }
         return wrecks;
-    }
-
-    /// <summary>The cells a line crosses, each once in order with how far along it enters it, up to the first that stops a ray: that cell, or none.</summary>
-    private static int? Walk(Registry m, (double X, double Y) from, (double X, double Y) unit, double length, List<(int Cell, double Enter)> walked)
-    {
-        const double Size = Rays.Cell;
-        var grid = m.Grid;
-        var (ux, uy) = unit;
-        int x = (int)Math.Floor(from.X / Size), y = (int)Math.Floor(from.Y / Size);
-        double nextX = ux > 0 ? ((x + 1) * Size - from.X) / ux : ux < 0 ? (x * Size - from.X) / ux : double.PositiveInfinity;
-        double nextY = uy > 0 ? ((y + 1) * Size - from.Y) / uy : uy < 0 ? (y * Size - from.Y) / uy : double.PositiveInfinity;
-        double everyX = ux != 0 ? Size / Math.Abs(ux) : double.PositiveInfinity, everyY = uy != 0 ? Size / Math.Abs(uy) : double.PositiveInfinity;
-        double enter = 0;
-        while (enter <= length && x >= 0 && y >= 0 && x < grid.Width && y < grid.Height)
-        {
-            int cell = y * grid.Width + x;
-            walked.Add((cell, enter));
-            if (grid.WallAt(cell) != null || grid.Blocks(cell)) return cell;
-            if (nextX < nextY)
-            {
-                enter = nextX;
-                x += Math.Sign(ux);
-                nextX += everyX;
-            }
-            else
-            {
-                enter = nextY;
-                y += Math.Sign(uy);
-                nextY += everyY;
-            }
-        }
-        return null;
     }
 
     /// <summary>

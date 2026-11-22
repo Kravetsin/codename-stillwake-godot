@@ -111,7 +111,7 @@ public class WeaponThrowTests
         var hero = At(30);
         var thrown = Thrown(hero, 60);
         double hauled = 0;
-        while (thrown.Leg == ThrowLeg.Out)
+        for (int i = 0; i < 300 && thrown.Leg == ThrowLeg.Out; i++)
         {
             if (thrown.Hauled) hauled += Frame;
             thrown.Step(Frame, w.M, hero, true, 0, Opaque);
@@ -140,7 +140,7 @@ public class WeaponThrowTests
         var stopped = thrower with { Vy = 0 };
         var rising = thrower with { Vy = -250 };
         var thrown = Thrown(rising, 60);
-        while (thrown.Leg == ThrowLeg.Out) thrown.Step(Frame, w.M, rising, true, 0, Opaque);
+        for (int i = 0; i < 300 && thrown.Leg == ThrowLeg.Out; i++) thrown.Step(Frame, w.M, rising, true, 0, Opaque);
         // Its hero stopped dead: the speed it left with still carries it up a little before the thread turns it.
         double top = thrown.At.Y;
         for (int i = 0; i < 3; i++) thrown.Step(Frame, w.M, stopped, true, 0, Opaque);
@@ -196,17 +196,150 @@ public class WeaponThrowTests
         Assert.Equal([ThrowLeg.Out, ThrowLeg.Home], hits.Where(h => h.Hit.Wrecks.Count > 0).Select(h => h.Leg));
     }
 
+    /// <summary>Open space to the wall, a breaker still with its middle on row 12 of column <paramref name="x"/>.</summary>
+    private static TestWorld SpaceWithBreaker(int x) => Space().Edit(root =>
+    {
+        var one = new System.Text.Json.Nodes.JsonObject
+        {
+            ["id"] = 1,
+            ["species"] = Spec.Creatures.Breaker.Id,
+            ["x"] = x * Unit + 500,
+            ["y"] = 13 * Unit + 500,
+        };
+        root["slices"]!["creatures"]!["creatures"] = new System.Text.Json.Nodes.JsonArray(one);
+    });
+
+    [Theory]
+    [MemberData(nameof(AllThrown))]
+    public void ItStrikesACreatureInItsPathEachWayItStrikes(string item)
+    {
+        var spec = Spec.Abilities.ThrowOf(item)!;
+        var w = SpaceWithBreaker(38);
+        var hero = At(30);
+        ThrowLeg[] legs = spec.Twice ? [ThrowLeg.Out, ThrowLeg.Home] : [ThrowLeg.Out];
+        Assert.Equal(legs, Flown(w, Thrown(hero, 60, spec), hero).Where(h => h.Hit.Creatures.Count > 0).Select(h => h.Leg));
+    }
+
+    [Fact]
+    public void ItStrikesNoCreaturePastAWall()
+    {
+        var w = SpaceWithBreaker(26);
+        var hero = At(6);
+        Assert.Empty(Flown(w, Thrown(hero, 60), hero).SelectMany(h => h.Hit.Creatures));
+    }
+
     [Fact]
     public void WhatItTurnsInIsYankedThroughNotHitTwiceAtOnce()
     {
         var w = Space(48);
         var hero = At(30);
         var thrown = Thrown(hero, 60);
-        var struckAt = new List<double>();
+        var struck = new List<(double Ms, ThrowLeg Leg, double X)>();
+        double turned = 0;
         for (double ms = 0; ms < 2000 && thrown.Flying; ms += Frame)
-            if (thrown.Step(Frame, w.M, hero, true, 0, Opaque) is { Wrecks.Count: > 0 }) struckAt.Add(ms);
-        Assert.Equal(2, struckAt.Count);
-        Assert.True(struckAt[1] - struckAt[0] > WeaponThrow.CastMs / 2);
+        {
+            var leg = thrown.Leg;
+            var hit = thrown.Step(Frame, w.M, hero, true, 0, Opaque);
+            if (leg == ThrowLeg.Out && thrown.Leg == ThrowLeg.Home) turned = thrown.At.X;
+            if (hit is { Wrecks.Count: > 0 }) struck.Add((ms, leg, thrown.At.X));
+        }
+        Assert.Equal([ThrowLeg.Out, ThrowLeg.Home], struck.Select(s => s.Leg));
+        Assert.True(struck[1].Ms - struck[0].Ms > WeaponThrow.CastMs / 2);
+        // Not where it turned, but half a cell along the yank.
+        Assert.True(turned - struck[1].X >= 500, $"again {turned - struck[1].X} from the turn");
+    }
+
+    [Fact]
+    public void AHeroMovedAcrossTheWorldLeavesNoThrowBehindIt()
+    {
+        var w = Space();
+        var hero = At(30);
+        var thrown = Thrown(hero, 60);
+        thrown.Step(Frame, w.M, hero, true, 0, Opaque);
+        // A seam of the fog, crossed, moves its hero by the planet's period.
+        var moved = hero with { X = hero.X + 3000 * Unit };
+        Assert.Null(thrown.Step(Frame, w.M, moved, true, 0, Opaque));
+        Assert.False(thrown.Flying);
+    }
+
+    public static TheoryData<string, int, int> PointBlank()
+    {
+        var data = new TheoryData<string, int, int>();
+        foreach (var spec in Spec.Abilities.Throws)
+            foreach (int cells in new[] { 1, 2, 3, 6 })
+                foreach (int fps in new[] { 30, 60, 144 }) data.Add(spec.Item, cells, fps);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(PointBlank))]
+    public void AWallPointBlankKnocksItNoFurtherThanTheHand(string item, int cells, int fps)
+    {
+        var w = Space();
+        var hero = At(Wall - cells);
+        var thrown = Thrown(hero, 60, Spec.Abilities.ThrowOf(item));
+        double least = double.PositiveInfinity;
+        for (int i = 0; i < 1000 && thrown.Flying; i++)
+        {
+            thrown.Step(1000.0 / fps, w.M, hero, true, 0, Opaque);
+            least = Math.Min(least, thrown.At.X);
+        }
+        Assert.False(thrown.Flying);
+        Assert.InRange(least, Aiming.HandOf(hero).X - 1, Wall * Unit);
+    }
+
+    /// <summary>A map a character a cell, as drawn.</summary>
+    private static TestWorld Drawn(int width, int height, Func<int, int, char> at) =>
+        new(Layout.Parse([.. Enumerable.Range(0, height).Select(y => new string([.. Enumerable.Range(0, width).Select(x => at(x, y))]))]), 1);
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(-1, 1)]
+    [InlineData(1, -1)]
+    [InlineData(-1, -1)]
+    public void AThrowSlipsByNoCornerASwingStopsAt(int sx, int sy)
+    {
+        var w = Drawn(16, 16, (x, y) => (x, y) == (8 + 2 * sx, 8 + sy) ? '#' : ' ');
+        var from = (8 * Unit + 500.0, 8 * Unit + 500.0);
+        var (_, stopped) = ToolRays.Segment(w.M, from, (from.Item1 + sx * 4 * Unit, from.Item2 + sy * 4 * Unit), false, 0, Opaque);
+        Assert.True(stopped);
+    }
+
+    [Fact]
+    public void AThrowWalksTheGridAsEveryRayDoes()
+    {
+        const int size = 16;
+        var w = Drawn(size, size, (x, y) => (x * 7 + y * 3) % 11 == 0 ? '#' : ' ');
+        var grid = w.M.Grid;
+        foreach (var (fx, fy) in new[] { (8500, 8500), (2500, 13500), (5000, 5000), (12250, 4750) })
+            for (int ty = 500; ty < size * Unit; ty += 500)
+                for (int tx = 500; tx < size * Unit; tx += 500)
+                {
+                    var walked = new List<int>();
+                    bool stops = false;
+                    Rays.Walk(size, size, fx, fy, tx - fx, ty - fy, cell =>
+                    {
+                        walked.Add(cell);
+                        bool wall = grid.WallAt(cell) != null || grid.Blocks(cell);
+                        stops |= wall;
+                        return wall;
+                    });
+                    var (hit, stopped) = ToolRays.Segment(w.M, (fx, fy), (tx, ty), false, 0, Opaque);
+                    Assert.Equal(walked.Distinct(), hit.Cells);
+                    Assert.Equal(stops, stopped);
+                }
+    }
+
+    [Fact]
+    public void TheWallBehindWhatItStruckIsHeard()
+    {
+        // A tank four cells square and a wall right behind it.
+        var w = Drawn(40, 24, (x, y) => x == Wall ? '#' : x is >= Wall - 4 and < Wall && y is >= 10 and < 14 ? 'T' : ' ');
+        var hero = At(6);
+        var hits = Flown(w, Thrown(hero, 60), hero);
+        int wall = 12 * w.M.Grid.Width + Wall;
+        var bit = hits.Single(h => h.Hit.Cells.Contains(wall)).Hit;
+        Assert.Equal(wall, bit.Ground?.Cell);
     }
 
     [Fact]
@@ -248,6 +381,24 @@ public class WeaponThrowTests
         Assert.False(thrown.Begin(Hands, PaceMs * slow));
         thrown.Wait(1);
         Assert.True(thrown.Begin(Hands, PaceMs * slow));
+    }
+
+    [Fact]
+    public void NoSwingWhileItIsOutOrRestsButTheRaisedOnes()
+    {
+        var w = Space();
+        var hero = At(30);
+        var thrown = new WeaponThrow();
+        Assert.True(thrown.LetsSwing(Axe.Item));
+        Assert.True(thrown.Begin(Hands, PaceMs));
+        Assert.True(thrown.LetsSwing(Axe.Item));
+        Assert.True(thrown.Leave(hero, new Point(60 * Unit, 12 * Unit + 500)));
+        Assert.False(thrown.LetsSwing(Spec.Weapons.Spear.Item));
+        Flown(w, thrown, hero);
+        Assert.False(thrown.LetsSwing(Axe.Item));
+        Assert.True(thrown.LetsSwing(Spec.Weapons.Spear.Item));
+        thrown.Wait(2 * PaceMs);
+        Assert.True(thrown.LetsSwing(Axe.Item));
     }
 
     [Fact]

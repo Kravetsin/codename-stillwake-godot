@@ -39,13 +39,19 @@ public sealed class WeaponThrow
     /// <summary>How far the thread yanks it from where it turned before it strikes again: what it stopped in takes two hits, not a double one.</summary>
     private const double StrikesAgainAfter = 500;
 
+    /// <summary>How far a hero's hand goes in no frame: farther, the hero was moved (a fog's seam), and the throw is over.</summary>
+    private const double Jumped = 48 * Hero.Unit;
+
+    /// <summary>How many of its fastest ticks home a haul last heard of may still be short of the hand that caught it.</summary>
+    private const int LandsWithinTicks = 3;
+
     private readonly HashSet<(Sim.Building.TargetKind, int)> _targets = [];
     private readonly HashSet<int> _pieces = [], _creatures = [];
     private Spec.Abilities.Throw? _spec;
     private (double X, double Y) _way, _carried, _velocity;
     private double _speed, _castMs, _paceMs, _clock;
     private readonly Dictionary<string, double> _readyAt = [];
-    private (double X, double Y) _turnedAt;
+    private (double X, double Y) _turnedAt, _hand;
     private bool _walled, _strikesAgain;
     private int _surface;
 
@@ -53,6 +59,17 @@ public sealed class WeaponThrow
 
     /// <summary>Whether the item is out of the hand.</summary>
     public bool Flying => Leg is ThrowLeg.Out or ThrowLeg.Home;
+
+    /// <summary>Whether the last to leave came home into the hand, not let go or cancelled.</summary>
+    public bool Caught { get; private set; }
+
+    /// <summary>Whether a haul of <paramref name="item"/> heard of at <paramref name="at"/> is near enough <paramref name="hero"/>'s hand to end caught in it.</summary>
+    public static bool Lands(string? item, Point at, Hero hero)
+    {
+        if (Spec.Abilities.ThrowOf(item) is not { } spec) return false;
+        var hand = Aiming.HandOf(hero);
+        return Distance((at.X, at.Y), (hand.X, hand.Y)) <= LandsWithinTicks * spec.Home;
+    }
 
     /// <summary>Whether the thread is cast to it: reaching for it, then hauling.</summary>
     public bool Hauled { get; private set; }
@@ -71,6 +88,9 @@ public sealed class WeaponThrow
 
     /// <summary>Whether <paramref name="item"/> still rests from its throw: each weapon its own, and no swing of it meanwhile.</summary>
     public bool Rests(string? item) => item != null && _readyAt.TryGetValue(item, out double at) && _clock < at;
+
+    /// <summary>Whether a stroke of <paramref name="item"/> may begin: the raised one's, or any while none is out and it rests from none.</summary>
+    public bool LetsSwing(string? item) => !Flying && (Leg == ThrowLeg.Raised || !Rests(item));
 
     /// <summary>The raised one's stroke begun: its rest counts from it, as a swing's pace does.</summary>
     public void Swung()
@@ -106,6 +126,7 @@ public sealed class WeaponThrow
         (_carried, _speed) = (SpeedOf(hero), (double)_spec!.Out * World.TicksPerSecond);
         _velocity = (_carried.X + _way.X * _speed, _carried.Y + _way.Y * _speed);
         (At, _castMs, _walled, _strikesAgain, Hauled, Leg) = ((hand.X, hand.Y), 0, false, false, false, ThrowLeg.Out);
+        (_hand, Caught) = ((hand.X, hand.Y), false);
         _targets.Clear();
         _pieces.Clear();
         _creatures.Clear();
@@ -122,6 +143,13 @@ public sealed class WeaponThrow
     public EdgeHit? Step(double elapsedMs, Registry m, Hero hero, bool outside, double progress, Func<Piece, double, double, bool> solid)
     {
         if (!Flying) return null;
+        var hand = Aiming.HandOf(hero);
+        if (Distance((hand.X, hand.Y), _hand) > Jumped)
+        {
+            Cancel();
+            return null;
+        }
+        _hand = (hand.X, hand.Y);
         double ms = Math.Min(elapsedMs, AxeSwing.MostPerFrameMs);
         if (Hauled) _castMs += ms;
         return Leg == ThrowLeg.Out ? Outward(ms / 1000, m, outside, progress, solid) : Homeward(ms / 1000, m, hero, outside, progress, solid);
@@ -138,8 +166,10 @@ public sealed class WeaponThrow
         if (stopped)
         {
             double length = Math.Max(Distance(from, to), 1e-6), ux = (to.X - from.X) / length, uy = (to.Y - from.Y) / length;
-            double back = Math.Min(ShortOfWall, Distance(from, hit.End)), knocked = Bounce * Distance(_velocity, (0, 0));
+            double back = Math.Min(ShortOfWall, Distance(from, hit.End));
             At = (hit.End.X - ux * back, hit.End.Y - uy * back);
+            // No further back than the hand by the time the thread holds it: point blank it never goes behind the shoulder.
+            double knocked = Math.Min(Bounce * Distance(_velocity, (0, 0)), Distance(At, _hand) * 1000 / CastMs);
             _velocity = (-ux * knocked, -uy * knocked);
             (Hauled, Leg) = (true, ThrowLeg.Home);
         }
@@ -190,7 +220,11 @@ public sealed class WeaponThrow
             _pieces.Clear();
             _creatures.Clear();
         }
-        if (caught) Cancel();
+        if (caught)
+        {
+            Cancel();
+            Caught = true;
+        }
         if (_walled) return null;
         var (hit, stopped) = ToolRays.Segment(m, from, to, outside, progress, solid);
         _walled = stopped;

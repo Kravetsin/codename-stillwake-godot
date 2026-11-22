@@ -62,7 +62,7 @@ public sealed class Buttons
         return clicked;
     }
 
-    /// <summary>Whether the right button was pressed on the world since the last call: a canister in hand is breathed (0047).</summary>
+    /// <summary>Whether the right button was pressed on the world since the last call: what is in hand is used or thrown (companion-fights).</summary>
     public bool TakeRightClick()
     {
         bool clicked = _rightClicked;

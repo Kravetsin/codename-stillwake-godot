@@ -21,11 +21,17 @@ public class ThrownDrawingTests
         return data;
     }
 
-    /// <summary>A whole throw along <paramref name="aim"/> by a still hero: every frame's grip from the shoulder, ahead positive, and the fist's.</summary>
-    private static (List<(Vec Grip, double Turn, ThrowLeg Leg)> Drawn, Vec Fist, double Turn, List<(Vec Grip, double Turn)> After) Thrown(string item, int facing, double aim, int fps)
+    /// <summary>
+    /// A whole throw along <paramref name="aim"/>: every frame's grip from the shoulder, ahead positive, and the fist's; a wall
+    /// <paramref name="wall"/> cells ahead of it, or none, its hero going at <paramref name="moving"/> a step.
+    /// </summary>
+    private static (List<(Vec Grip, double Turn, ThrowLeg Leg)> Drawn, Vec Fist, double Turn, List<(Vec Grip, double Turn)> After) Thrown(string item, int facing, double aim, int fps,
+        int? wall = null, (int X, int Y) moving = default)
     {
         double Frame = 1000.0 / fps;
-        var w = new TestWorld(Layout.Parse([.. Enumerable.Repeat(new string(' ', 48), 12)]).Doubled(), 1);
+        int walled = 48 + facing * (wall ?? 0) - (facing < 0 ? 1 : 0);
+        string row = new([.. Enumerable.Range(0, 96).Select(x => wall != null && x == walled ? '#' : ' ')]);
+        var w = new TestWorld(Layout.Parse([.. Enumerable.Repeat(row, 24)]), 1);
         var spec = Spec.Abilities.ThrowOf(item)!;
         var look = Strokes.Of(item)!.Look;
         var hero = new Hero(0, 0, 0, 0, false, facing, null);
@@ -36,10 +42,12 @@ public class ThrownDrawingTests
         var arm = AxeSwing.ArmAt(ThrownDrawing.ArmToward(Math.Cos(aim), Math.Sin(aim)), ThrownDrawing.OutElbow);
         var fist = Rig.FistOf(arm);
         double turn = Rig.HeldTurn(arm, look);
-        var held = new HeldPlace(new Vec(shoulder.X + fist.X * facing, shoulder.Y + fist.Y), facing > 0 ? turn : Math.PI - turn, facing);
+        HeldPlace Held() => new(new Vec(shoulder.X + fist.X * facing, shoulder.Y + fist.Y), facing > 0 ? turn : Math.PI - turn, facing);
+        hero = hero with { Vx = moving.X, Vy = moving.Y };
+        var own = DroneFlight.VelocityOf(hero.Vx, hero.Vy);
         var thrown = new WeaponThrow();
         var drawing = new ThrownDrawing();
-        drawing.Step(Frame, look, spec, null, held, shoulder, default);
+        drawing.Step(Frame, look, spec, null, Held(), shoulder, own);
         Assert.True(thrown.Begin(new ThrowHands(item, true, false, 0), 500));
         Assert.True(thrown.Leave(hero, new Point(hand.X + (int)(facing * 40 * Hero.Unit * Math.Cos(aim)), hand.Y + (int)(40 * Hero.Unit * Math.Sin(aim)))));
         (Vec, double) Local(HeldPlace? at) => at is { } p
@@ -48,12 +56,18 @@ public class ThrownDrawingTests
         while (thrown.Flying && drawn.Count < 300)
         {
             var flight = new Flight(new Vec(thrown.At.X * Px, thrown.At.Y * Px), thrown.Count, thrown.Hauled);
-            var (grip, angle) = Local(drawing.Step(Frame, look, spec, flight, held, shoulder, default));
+            var place = drawing.Step(Frame, look, spec, flight, Held(), shoulder, own);
+            Assert.NotNull(place);
+            var (grip, angle) = Local(place);
             drawn.Add((grip, angle, thrown.Leg));
+            double steps = Frame / Hero.StepMs;
+            hero = hero with { X = hero.X + (int)(moving.X * steps), Y = hero.Y + (int)(moving.Y * steps) };
+            var now = Aiming.HandOf(hero);
+            shoulder = new Vec(now.X * Px, now.Y * Px);
             thrown.Step(Frame, w.M, hero, false, 0, (_, _, _) => false);
         }
         var after = new List<(Vec, double)>();
-        for (int i = 0; i < 30; i++) after.Add(Local(drawing.Step(Frame, look, spec, null, held, shoulder, default)));
+        for (int i = 0; i < 30; i++) after.Add(Local(drawing.Step(Frame, look, spec, null, Held(), shoulder, own)));
         return (drawn, fist, turn, after);
     }
 
@@ -87,6 +101,56 @@ public class ThrownDrawingTests
         var turns = drawn.Select(d => d.Turn).TakeLast(10).Concat(after.Select(a => a.Turn)).ToList();
         for (int i = 1; i < turns.Count; i++) Assert.InRange(Math.Abs(Poses.Apart(turns[i - 1], turns[i])), 0, MostTurn * Math.Max(1, 60.0 / fps));
         Assert.InRange(Math.Abs(Poses.Apart(drawn[^1].Turn, turn)), 0, 1.2);
+    }
+
+    [Theory]
+    [MemberData(nameof(Throws))]
+    public void InFlightItIsDrawnOutWhereItFlies(string item, int facing, double aim, int fps)
+    {
+        var (drawn, fist, _, _) = Thrown(item, facing, aim, fps);
+        double farthest = drawn.Max(d => DroneFlight.Length(DroneFlight.Minus(d.Grip, fist)));
+        Assert.InRange(farthest, Spec.Abilities.ThrowOf(item)!.Range * Px / 2, double.PositiveInfinity);
+    }
+
+    public static TheoryData<string, int, int, int> Walls()
+    {
+        var data = new TheoryData<string, int, int, int>();
+        foreach (var spec in Spec.Abilities.Throws)
+            foreach (int facing in new[] { 1, -1 })
+                foreach (int cells in new[] { 1, 2, 3, 6 })
+                    foreach (int fps in new[] { 30, 60, 144 }) data.Add(spec.Item, facing, cells, fps);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Walls))]
+    public void FromAWallPointBlankItsGripNeverPassesBehindTheShoulder(string item, int facing, int cells, int fps)
+    {
+        var (drawn, fist, _, after) = Thrown(item, facing, 0, fps, wall: cells);
+        Assert.All(drawn.Where(d => d.Leg == ThrowLeg.Home), d => Assert.InRange(d.Grip.X, -1, double.PositiveInfinity));
+        Assert.InRange(DroneFlight.Length(DroneFlight.Minus(after[^1].Grip, fist)), 0, 0.5);
+    }
+
+    public static TheoryData<string, int, int, int> Moving()
+    {
+        var data = new TheoryData<string, int, int, int>();
+        int top = Spec.Jetpack.Top;
+        foreach (var spec in Spec.Abilities.Throws)
+            foreach (var (x, y) in new[] { (top, 0), (-top, 0), (0, top), (0, -top) })
+                foreach (int fps in new[] { 30, 60, 144 }) data.Add(spec.Item, x, y, fps);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Moving))]
+    public void AHeroFlyingOnCatchesItInTheFistToo(string item, int vx, int vy, int fps)
+    {
+        var (drawn, fist, _, after) = Thrown(item, 1, 0, fps, moving: (vx, vy));
+        double frames = Math.Max(1, 60.0 / fps);
+        Assert.True(drawn.Count < 300, "never caught");
+        Assert.InRange(DroneFlight.Length(DroneFlight.Minus(drawn[^1].Grip, fist)), 0, MostLeft * frames);
+        Assert.InRange(DroneFlight.Length(DroneFlight.Minus(after[0].Grip, drawn[^1].Grip)), 0, MostCatchStep * frames * frames);
+        Assert.InRange(DroneFlight.Length(DroneFlight.Minus(after[^1].Grip, fist)), 0, 0.5);
     }
 
     public static TheoryData<string, int> Packets()

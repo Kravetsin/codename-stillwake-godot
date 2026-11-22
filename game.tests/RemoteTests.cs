@@ -122,6 +122,28 @@ public class RemoteTests
         Assert.Equal(new Busy(Handwork.Haul, new Point(hand.X + 3_000, hand.Y), 4), heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
     }
     [Fact]
+    public void AFriendsHaulDroppedFarFromTheHandIsNotSweptIntoIt()
+    {
+        var (heroes, hero) = (new RemoteHeroes(), HeroAt(0));
+        var hand = Aiming.HandOf(hero);
+        var far = new Busy(Handwork.Haul, new Point(hand.X + 3 * Stillwake.Content.Abilities.Axe.Home + 2_000, hand.Y), 4);
+        heroes.Add(2, new SentHero(new Seen(hero, Wields: "fireAxe", Busy: far), 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(hero, Wields: "fireAxe"), 1050), 1050);
+        Assert.Equal(far, heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+
+    [Fact]
+    public void AFriendsHaulEndedWithOtherHandsIsNotSweptIntoThem()
+    {
+        var (heroes, hero) = (new RemoteHeroes(), HeroAt(0));
+        var hand = Aiming.HandOf(hero);
+        var near = new Busy(Handwork.Haul, new Point(hand.X + 3_000, hand.Y), 4);
+        heroes.Add(2, new SentHero(new Seen(hero, Wields: "spear", Busy: near), 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(hero, Wields: "fireAxe"), 1050), 1050);
+        Assert.Equal(near, heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+
+    [Fact]
     public void KeepTheSwingThatLetAThrowGo()
     {
         var chop = new Busy(Handwork.Chop, new Point(5_000, 2_000), 3);

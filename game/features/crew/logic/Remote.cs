@@ -204,7 +204,8 @@ public sealed class RemoteHeroes
         var hero = ha with { X = (int)Math.Round(ha.X + (hb.X - ha.X) * t), Y = (int)Math.Round(ha.Y + (hb.Y - ha.Y) * t) };
         var to = b.Seen.Busy;
         // Hauled till a packet says it is in the hand: swept on into that hand, never left hanging short of it.
-        if (a.Seen.Busy is { Work: Handwork.Haul } hauled && to is not { Flung: true } && a.Seen.Wields == b.Seen.Wields)
+        if (a.Seen.Busy is { Work: Handwork.Haul } hauled && to is not { Flung: true } && a.Seen.Wields == b.Seen.Wields
+            && WeaponThrow.Lands(a.Seen.Wields, hauled.At, ha))
             to = hauled with { At = Aiming.HandOf(hb) };
         return a.Seen with { Hero = hero, Look = look, Busy = Sweep(a.Seen.Busy, to, t) };
     }

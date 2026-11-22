@@ -33,6 +33,7 @@ public partial class HeroView
             if (!others.Any(o => o.Id == id))
             {
                 shown.Figure.Visible = false;
+                shown.Figure.Thrown = null;
                 EndMeeting(id);
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
@@ -85,7 +86,10 @@ public partial class HeroView
             shown.Ping.Step(elapsedMs);
             // What its peer threw, where that peer says it flies (companion-fights): its hits are that peer's alone.
             Busy? flung = seen.Busy is { Flung: true } flight ? flight : null;
-            if (flung == null && shown.Figure.Thrown is { Hauled: true } && !out_) _othersThump.PlayAt(shown.Figure.GlobalPosition);
+            // Thumped where it was caught: not where it was dropped far off, let go for a seat or for another thing.
+            if (flung == null && shown.Figure.Thrown is { Hauled: true } last && !out_ && shown.Figure.Visible
+                && WeaponThrow.Lands(seen.Wields, Aiming.PointOf(Thousandths(last.At)), hero))
+                _othersThump.PlayAt(shown.Figure.GlobalPosition);
             shown.Figure.Thrown = flung is { } thing ? (Pixels(thing.At), thing.Swings, thing.Work == Handwork.Haul) : null;
             ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing, shown.Gesture);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else

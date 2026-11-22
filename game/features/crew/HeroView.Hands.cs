@@ -129,8 +129,8 @@ public partial class HeroView
         ThrowFlies(client, m, elapsedMs);
         if (!swings) _swing.Stop();
         bool raised = _throw.Leg == ThrowLeg.Raised;
-        bool wanted = swings && pointer != null && !_throw.Flying
-            && (raised || !_throw.Rests(_ui.Wielded.Get()) && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked));
+        bool wanted = swings && pointer != null && _throw.LetsSwing(_ui.Wielded.Get())
+            && (raised || !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked));
         // Aimed from the hero as an offset it carries along, its motion picked at the press by the angle the figure, faced to
         // strike, sees: asked only while a stroke is wanted.
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
@@ -266,7 +266,7 @@ public partial class HeroView
         var going = _throw.Velocity;
         var hit = _throw.Step(elapsedMs, m, _current, Outside(m, _current), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
         // Home in the fist: the glove's thump, as on what it grabs.
-        if (!_throw.Flying) _act.Play(Floats);
+        if (_throw.Caught) _act.Play(Floats);
         if (hit == null) return;
         var sent = ToolEdges.CommandsOf(m, client.Id, tool, hit);
         if (sent.Cells is { } cells) client.Send(cells);
