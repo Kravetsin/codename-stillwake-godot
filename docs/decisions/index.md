@@ -47,7 +47,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge, swing-motions (in part) |
 | [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
-| [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
+| [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059, ship-music (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
 | [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
@@ -427,3 +427,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
 | [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
+| [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
