@@ -62,9 +62,14 @@ public partial class LightDrone : Node2D
     private Vec _hold;
     private float _threadLength;
     private bool _threaded;
-    /// <summary>What it fetches, on the tow's thread (companion-fights): how far over it it flies, and how its thread hangs, px.</summary>
-    private const float FetchUp = 7, FetchSag = 2;
-    private Vec? _fetches;
+    /// <summary>The thread it hauls a thrown thing by (companion-fights): how it hangs as it is cast and buzzes taut, px.</summary>
+    private const float HaulSag = 6, HaulBuzz = 0.7f;
+
+    /// <summary>How far a haul drags it toward what it hauls, px, how much tighter it draws, and how long both ease, ms.</summary>
+    private const float HaulLeanPx = 3, HaulTighter = 0.12f, HaulEaseMs = 50;
+
+    private (Vec At, double Cast)? _haul;
+    private Vector2 _strain;
 
     /// <summary>Where its body is turned, and where its eye is: the eye alone glances back on a tow.</summary>
     private float _angle, _eye;
@@ -113,8 +118,7 @@ public partial class LightDrone : Node2D
             if (line.Length() < 1) line = Vector2.FromAngle(_angle);
             pointed = DroneSign.Turned(shown, (line.X, line.Y));
         }
-        bool fetching = _fetches != null;
-        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning && !fetching, Idle || fetching, thinks: _thought != null), _angle, t, pointed, _thought, ShapeOver);
+        _swarm.Become(DroneSwarm.ShapeOf(Projecting, kind != null, Scanning, Idle, thinks: _thought != null), _angle, t, pointed, _thought, ShapeOver);
         _swarm.Bear((float)_orbitLead, (float)_bearing.Tilt, (float)_bearing.Dim, 1 + (float)_bearing.Swell, (float)(_tow?.Flat ?? 1));
         foreach (var node in (ReadOnlySpan<Node2D>)[_body, _glow]) node.Scale = Vector2.One * I.Px * (1 + (float)_bearing.Swell);
         for (int i = 0; i < _sparks.Length; i++) _sparks[i] = _swarm.SparkAt(i, _angle, t);
@@ -188,15 +192,14 @@ public partial class LightDrone : Node2D
     /// <summary>
     /// Flies it by its hero's <paramref name="anchor"/>, moving at <paramref name="hero"/> px/ms, as its will wants
     /// (<paramref name="intent"/>), with no reach in a <paramref name="window"/>: its eye eased toward the look, red as the tint. Towing
-    /// (<paramref name="tow"/>), it flies ahead instead, its thread to <paramref name="hold"/>, the shoulder as drawn. Fetching
-    /// (<paramref name="fetches"/>, companion-fights), it flies to that instead, the thread on it, forming no shape.
+    /// (<paramref name="tow"/>), it flies ahead instead, its thread to <paramref name="hold"/>, the shoulder as drawn. A thing thrown
+    /// (<paramref name="haul"/>, companion-fights, how far the thread is cast to it, 0..1) it watches and hauls from where it is.
     /// </summary>
     public void Follow(Vec anchor, Vec hero, DroneIntent intent, bool window, double elapsedMs, double timeMs, DroneTow? tow = null, Vec hold = default,
-        Vec? fetches = null)
+        (Vec At, double Cast)? haul = null)
     {
-        _fetches = Scripted ? null : fetches;
+        _haul = Scripted ? null : haul;
         var at = Scripted ? intent.Goal
-            : _fetches is { } thing ? _flight.Fetch(anchor, hero, new Vec(thing.X, thing.Y - FetchUp), elapsedMs)
             : tow is { Riding: true } ? _flight.Ride(anchor, hero, tow.Ahead, tow.Grip, elapsedMs)
             : _flight.Step(anchor, hero, tow?.Back(anchor, intent.Goal) ?? intent.Goal, window, intent.Darting, elapsedMs);
         (_tow, _hold) = (tow, hold);
@@ -205,11 +208,16 @@ public partial class LightDrone : Node2D
         _thought = intent.Thought;
         _bearing = tow == null ? mood : mood with { Tilt = mood.Tilt + tow.Tilt, Swell = mood.Swell - Tighter * tow.Effort, Hurry = mood.Hurry + Hurried * tow.Effort };
         _orbitLead += elapsedMs / 1000 * _bearing.Hurry;
-        GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)));
+        var pulled = _haul is { Cast: >= 1, At: var thing } ? new Vector2((float)(thing.X - at.X), (float)(thing.Y - at.Y)).Normalized() : Vector2.Zero;
+        _strain = _strain.Lerp(pulled, (float)(1 - Math.Exp(-elapsedMs / HaulEaseMs)));
+        _bearing = _bearing with { Swell = _bearing.Swell - HaulTighter * _strain.Length() };
+        GlobalPosition = new Vector2((float)(at.X + _bearing.Off.X), (float)(at.Y + _bearing.Off.Y + BobPx * Math.Sin(Math.Tau * timeMs / BobMs)))
+            + _strain * HaulLeanPx;
         // It turns after its look, eased, never snapping across.
         float ease = (float)(1 - Math.Exp(-elapsedMs / TurnMs));
         _angle = TurnedToward(_angle, intent.Look, ease);
-        _eye = TurnedToward(_eye, Scripted ? intent.Look : tow?.Eye(at, hold) ?? intent.Look, ease);
+        var watched = _haul is { At: var watch } ? DroneFlight.Minus(watch, at) : (Vec?)null;
+        _eye = TurnedToward(_eye, Scripted ? intent.Look : watched ?? tow?.Eye(at, hold) ?? intent.Look, ease);
         _tint = (float)intent.Tint;
         _timeMs = timeMs;
         _elapsedMs = elapsedMs;
@@ -221,17 +229,19 @@ public partial class LightDrone : Node2D
     /// <summary>The tow's thread this frame, in the drone's own px, from its coal to the shoulder.</summary>
     private void Threads(double t)
     {
-        _threaded = !Scripted && (_fetches != null || _tow is { Threaded: true });
+        _threaded = !Scripted && (_haul is { Cast: > 0 } || _tow is { Threaded: true });
         if (!_threaded) return;
-        if (_fetches is { } thing)
+        if (_haul is { Cast: > 0 } haul)
         {
-            var end = new Vector2((float)thing.X, (float)thing.Y) - GlobalPosition;
+            float cast = (float)haul.Cast, loose = 1 - cast * cast;
+            var end = (new Vector2((float)haul.At.X, (float)haul.At.Y) - GlobalPosition) * cast;
             var across = new Vector2(-end.Y, end.X).Normalized();
             float last = _thread.Length - 1;
             for (int j = 0; j < _thread.Length; j++)
             {
                 float u = j / last;
-                _thread[j] = (end * u + across * FetchSag * MathF.Sin(MathF.PI * u) * MathF.Sin(u * 8 - (float)t * 11)) / _glow.Scale.X;
+                float bend = HaulSag * loose * MathF.Sin(u * 8 - (float)t * 11) + HaulBuzz * (1 - loose) * MathF.Sin(u * 21 - (float)t * 70);
+                _thread[j] = (end * u + across * bend * MathF.Sin(MathF.PI * u)) / _glow.Scale.X;
             }
             _threadLength = end.Length();
             return;
@@ -277,13 +287,13 @@ public partial class LightDrone : Node2D
         }
         var (end, side) = (_thread[^1], Knot * px);
         _light.Rect(end.X - side / 2, end.Y - side / 2, side, side, EmberArt.Of(salts.Spark(1, 0.35f), Math.Min(1, _threadLength / 4)));
-        if (_fetches != null || _tow is { Caught: false }) Halo(_light, end, KnotHalo * px, EmberArt.Of(salts.Line()), 0.3f * Math.Min(1, _threadLength / 6));
+        if (_haul is { Cast: > 0 } || _tow is { Caught: false }) Halo(_light, end, KnotHalo * px, EmberArt.Of(salts.Line()), 0.3f * Math.Min(1, _threadLength / 6));
     }
 
     /// <summary>It puffs sparks back along the way as it heaves.</summary>
     private void Puffed(Salts salts, double t)
     {
-        if (_tow is not { Threaded: true } tow || Scripted || _fetches != null) return;
+        if (_tow is not { Threaded: true } tow || Scripted || _haul is { Cast: > 0 }) return;
         float scale = _glow.Scale.X;
         var back = new Vector2(-(float)tow.Way.X, -(float)tow.Way.Y);
         var across = new Vector2(-back.Y, back.X);

@@ -591,34 +591,53 @@ public partial class Figure : Node2D
     public string? Wields { get; set; }
 
     /// <summary>
-    /// What it wields out of the hand, thrown (companion-fights): where, in pixels of the world, and the way it spins; null in hand.
-    /// The hand is drawn empty, the item spinning there, the drone with it on its thread.
+    /// What it wields out of the hand, thrown (companion-fights): where, in pixels of the world, the throw's number and whether the
+    /// drone's thread is cast to it; null in hand. The held item itself flies there, so whatever its blade shows in a swing it shows flying.
     /// </summary>
-    public (Vector2 At, int Side)? Thrown { get; set; }
+    public (Vector2 At, int Count, bool Hauled)? Thrown { get; set; }
 
-    /// <summary>A thrown item's turns a second.</summary>
-    private const double ThrownTurns = 3.5;
+    /// <summary>A thrown item's turns a second standing and at <see cref="SpinsWholeAt"/> px/ms by its hero, and how long its spin takes to change, ms.</summary>
+    private const double SpinLeast = 0.5, SpinMost = 3.2, SpinsWholeAt = 0.5, SpinEaseMs = 70;
 
-    private Sprite2D? _thrown;
+    /// <summary>How long it takes from where the hand let it go onto the throw's line, ms; how far up from the grip to the edge its weight is.</summary>
+    private const double OffHandMs = 50, WeightUp = 0.7;
 
-    private void ShowThrown(HeldLook? item)
+    private Transform2D? _flies;
+    private Vector2 _flewFrom, _offHand;
+    private int? _thrownCount;
+    private double _flyAngle, _flyTurns, _castMs;
+    private int _flySide = 1;
+
+    /// <summary>A frame of the thrown item's flight as drawn: let go as the hand last held it, turning as fast as it goes.</summary>
+    private void FlyThrown(HeldLook? item, Vec heroVelocity, double elapsedMs)
     {
-        if (Thrown is not var (at, side) || item == null)
+        if (Thrown is not var (at, count, hauled) || item == null)
         {
-            if (_thrown != null) _thrown.Visible = false;
+            (_flies, _thrownCount) = (null, null);
             return;
         }
-        if (_thrown == null)
+        var (ex, ey) = item.EdgePoint(0.5);
+        var weight = new Vector2((float)(ex - item.Grip.X), (float)(ey - item.Grip.Y)) * (float)WeightUp;
+        if (_thrownCount != count)
         {
-            _thrown = new Sprite2D { TopLevel = true, ZAsRelative = false, ZIndex = Layers.HeldFront };
-            Lit.Set(_thrown);
-            AddChild(_thrown);
+            var held = _held.GlobalTransform;
+            (_flyAngle, _flySide) = (held.X.Angle(), held.X.Cross(held.Y) < 0 ? -1 : 1);
+            (_offHand, _flewFrom) = (held * weight - at, at);
+            (_thrownCount, _flyTurns, _castMs) = (count, SpinMost, 0);
         }
-        _thrown.Visible = true;
-        _thrown.Texture = HeldArt.Of(item.Picture, PartsOf(item).Layers);
-        _thrown.GlobalPosition = at;
-        _thrown.GlobalRotation = (float)(side * _timeMs / 1000 * Math.Tau * ThrownTurns % Math.Tau);
-        _thrown.GlobalScale = new Vector2(side, 1) * (float)item.Size;
+        else if (elapsedMs > 0)
+        {
+            var by = (at - _flewFrom) / (float)elapsedMs - new Vector2((float)heroVelocity.X, (float)heroVelocity.Y);
+            double wanted = SpinLeast + (SpinMost - SpinLeast) * Math.Min(1, by.Length() / SpinsWholeAt);
+            _flyTurns += (wanted - _flyTurns) * (1 - Math.Exp(-elapsedMs / SpinEaseMs));
+            _flyAngle = (_flyAngle + _flySide * _flyTurns * Math.Tau * elapsedMs / 1000) % Math.Tau;
+            _flewFrom = at;
+            _offHand *= (float)Math.Exp(-elapsedMs / OffHandMs);
+        }
+        if (hauled) _castMs += elapsedMs;
+        var x = Vector2.FromAngle((float)_flyAngle) * (float)item.Size;
+        var y = new Vector2(-x.Y, x.X) * _flySide;
+        _flies = new Transform2D(x, y, at + _offHand - (x * weight.X + y * weight.Y));
     }
 
     /// <summary>The modules fitted into what it wields, as the sim says of the stack its hero works with (0098): laid over its picture; none for most.</summary>
@@ -1666,6 +1685,7 @@ public partial class Figure : Node2D
         // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
         var stroke = Strokes.Of(Wields);
         bool chopping = _chop != null && stroke != null && item != null && inHand;
+        FlyThrown(item, DroneFlight.VelocityOf(hero.Vx, hero.Vy), elapsedMs);
         bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
@@ -1925,18 +1945,16 @@ public partial class Figure : Node2D
                 StopsLight = StopsLight,
             };
             var intent = _will.Pick(senses, elapsedMs);
-            Vec? fetches = Thrown is var (thrownAt, _) ? new Vec(thrownAt.X, thrownAt.Y) : null;
-            if (fetches is { } fetched)
-            {
-                var toThing = new Vector2((float)(fetched.X - senses.At.X), (float)(fetched.Y - senses.At.Y));
-                intent = intent with { Free = false, Thought = null, Bearing = default, Look = toThing.Length() > 1 ? new Vec(toThing.X, toThing.Y) : intent.Look };
-            }
+            // The thread takes the thrown item by the end of its haft, the drone keeping its place and its mode (companion-fights).
+            (Vec At, double Cast)? haul = _flies is { } flown ? (new Vec(flown.Origin.X, flown.Origin.Y), Math.Min(1, _castMs / AxeThrow.CastMs)) : null;
+            if (haul != null) intent = intent with { Thought = null, Bearing = default };
             var velocity = DroneFlight.VelocityOf(hero.Vx, hero.Vy);
-            bool mayTow = pose == Pose.Float && intent.Free && !_drone.Scripted;
+            // Riding a tow it stays ahead through a throw: let go, it would shuttle back and forth as it hauls.
+            bool mayTow = pose == Pose.Float && (intent.Free || haul != null && _tow.Riding) && !_drone.Scripted;
             _tow.Step(senses.Anchor, velocity, hero.Facing, senses.At, mayTow, StopsLight, elapsedMs);
             // On the body as drawn, so a twist never leaves the thread's end beside it.
             var held = _waist.ToGlobal(new Vector2((float)(_tow.Hold.X * hero.Facing), (float)(_tow.Hold.Y - Rig.H / 2)));
-            _drone.Follow(senses.Anchor, velocity, intent, overDrone, elapsedMs, _timeMs, _tow, new Vec(held.X, held.Y), fetches);
+            _drone.Follow(senses.Anchor, velocity, intent, overDrone, elapsedMs, _timeMs, _tow, new Vec(held.X, held.Y), haul);
             _droneLost = false;
             _drone.Projecting = overDrone;
             _drone.Sign(signing ? Gesture : null);
@@ -1971,10 +1989,10 @@ public partial class Figure : Node2D
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
         ShowOffHand(backArm);
-        _held.Visible = inHand && Thrown == null;
-        ShowThrown(item);
+        bool flying = _flies != null, drawnItem = inHand || flying;
+        _held.Visible = drawnItem;
         Muzzle = EdgeStart = null;
-        if (inHand && item != null)
+        if (drawnItem && item != null)
         {
             var fist = Rig.FistOf(frontArm);
             // Through the picture and its spin frames in turn; still, it stops on the picture.
@@ -2001,9 +2019,11 @@ public partial class Figure : Node2D
                 _charged.Modulate = new Color(1, 1, 1, (float)Charge);
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
+            _held.Skew = 0;
             _held.Scale = Vector2.One * (float)item.Size;
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
             _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry - item.Rest * _rest.Share * (1 - carry));
+            if (_flies is { } flight) _held.GlobalTransform = flight;
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -2020,7 +2040,7 @@ public partial class Figure : Node2D
         }
         // A struck tool's edge as it is held this frame, in the world, along its shape, and as it was the frame before: where it
         // bites (blade-sparks). A swung one's is what its trail is drawn from; an aimed one, the spear, leaves none. Its reach is not shown (tool-size).
-        bool struckHeld = inHand && Thrown == null && item != null && stroke != null && !Spinning, bladeHeld = struckHeld && !item!.Aimed;
+        bool struckHeld = drawnItem && item != null && stroke != null && !Spinning, bladeHeld = struckHeld && !item!.Aimed;
         (_edgeWas, _edge) = (_edge, _edgeWas);
         _edge.Clear();
         if (struckHeld)
@@ -2034,7 +2054,7 @@ public partial class Figure : Node2D
         if (_edgeWas.Count == _edge.Count)
             for (int i = 0; i < _edge.Count; i++)
                 swept = Math.Max(swept, Math.Sqrt((_edge[i].X - _edgeWas[i].X) * (_edge[i].X - _edgeWas[i].X) + (_edge[i].Y - _edgeWas[i].Y) * (_edge[i].Y - _edgeWas[i].Y)));
-        _edgeSweeps = chopping && elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
+        _edgeSweeps = (chopping || flying) && elapsedMs > 0 && swept * 1000 / elapsedMs >= BladeTrail.Slow;
         Blade = bladeHeld ? (HeldAt(item!.EdgeFrom), HeldAt(item.EdgeTo)) : null;
         var zone = Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null;
         WheelRadius = zone is { Disc: true } disc ? disc.Size : null;

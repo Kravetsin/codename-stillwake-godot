@@ -17,14 +17,15 @@ public partial class HeroView
 
     /// <summary>
     /// A stroke of <paramref name="tool"/> landing as <paramref name="hit"/>: the air it drives on, from where it first touches, else
-    /// from the end of its reach, away from the shoulder.
+    /// from the end of its reach, away from the shoulder, or <paramref name="along"/> a thrown one's flight.
     /// </summary>
-    private void StrokeGust(Registry m, string tool, EdgeHit hit)
+    private void StrokeGust(Registry m, string tool, EdgeHit hit, (double X, double Y)? along = null)
     {
         if (GustStrengths.StrokeOf(tool) is not var (strength, radius)) return;
         var at = hit.Contact?.At ?? hit.End;
         var hand = Aiming.HandOf(_current);
         double tx = at.X / Hero.Unit, ty = at.Y / Hero.Unit, dx = tx - (double)hand.X / Hero.Unit, dy = ty - (double)hand.Y / Hero.Unit;
+        if (along is { } flight) (dx, dy) = flight;
         double d = Math.Sqrt(dx * dx + dy * dy);
         Blow(m, new Gust(tx, ty, d > 0 ? dx / d : 0, d > 0 ? dy / d : 0, strength, radius));
     }

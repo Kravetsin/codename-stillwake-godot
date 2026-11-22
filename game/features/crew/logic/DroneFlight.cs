@@ -32,9 +32,6 @@ public sealed class DroneFlight
         /// <summary>An anchor jumping further than this in a frame puts it at its goal, px.</summary>
         public const double Lost = 64;
 
-        /// <summary>How long it takes to reach a thing it fetches, ms, and how much quicker than its hero it may still be as it is back, px/ms.</summary>
-        public const double FetchMs = 45, Fetched = 0.12;
-
         /// <summary>The longest frame it flies by and the steps it flies one in, ms: a stall never flings it.</summary>
         public const double MaxFrameMs = 50, StepMs = 4;
 
@@ -127,20 +124,6 @@ public sealed class DroneFlight
             Velocity = Plus(Velocity, Scaled(pull, dt));
             At = Plus(At, Scaled(Velocity, dt));
         }
-        Off = Length(Minus(goal, At));
-        return At;
-    }
-
-    /// <summary>
-    /// Flies it <paramref name="elapsedMs"/> after what it fetches (companion-fights), at <paramref name="goal"/>, however far from
-    /// the anchor that is; <see cref="Step"/> goes on from there, slowed to its hero's pace.
-    /// </summary>
-    public Vec Fetch(Vec anchor, Vec hero, Vec goal, double elapsedMs)
-    {
-        if (!_placed) (_placed, At) = (true, anchor);
-        At = Plus(At, Scaled(Minus(goal, At), 1 - Math.Exp(-Math.Min(elapsedMs, Tune.MaxFrameMs) / Tune.FetchMs)));
-        (_anchor, _pace, _rate, _riding) = (anchor, hero, 1 / Tune.DartMs, false);
-        Velocity = Plus(hero, Capped(Minus(Scaled(Minus(goal, At), 1 / Tune.FetchMs), hero), Tune.Fetched));
         Off = Length(Minus(goal, At));
         return At;
     }

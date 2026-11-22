@@ -27,9 +27,9 @@ public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = nu
 /// <summary>
 /// What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the
 /// drill running aimed at a point (0054); a sign made in place of words (<see cref="Gestures"/>, gestures-for-words); or what
-/// they wield out of them, thrown (<see cref="AxeThrow"/>, companion-fights).
+/// they wield out of them, thrown, and the drone's thread cast to it, hauled (<see cref="AxeThrow"/>, companion-fights).
 /// </summary>
-public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Throw }
+public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Throw, Haul }
 
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
@@ -39,6 +39,9 @@ public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Throw }
 /// </summary>
 public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
 {
+    /// <summary>Whether what they wield is out of them, thrown or hauled.</summary>
+    public bool Flung => Work is Handwork.Throw or Handwork.Haul;
+
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
 
@@ -207,7 +210,7 @@ public sealed class RemoteHeroes
     /// of its own, each change news (a swing, a plan's square, a beam, the next throw), kept as sent.
     /// </summary>
     private static Busy? Sweep(Busy? a, Busy? b, double t) =>
-        a is { } was && b is { } now && now.Work == was.Work && (was.Work == Handwork.Drill || was.Work == Handwork.Throw && now.Swings == was.Swings)
+        a is { } was && b is { } now && (was.Work == Handwork.Drill && now.Work == Handwork.Drill || was.Flung && now.Flung && now.Swings == was.Swings)
             ? was with { At = new Point((int)Math.Round(was.At.X + (now.At.X - was.At.X) * t), (int)Math.Round(was.At.Y + (now.At.Y - was.At.Y) * t)) }
             : a;
 

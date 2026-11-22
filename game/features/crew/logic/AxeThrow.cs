@@ -17,20 +17,30 @@ public readonly record struct ThrowHands(string? Wielded, bool Free, bool Held, 
 public enum ThrowLeg { None, Raised, Out, Home }
 
 /// <summary>
-/// An item thrown and brought back by the drone (companion-fights), the thrower's client's word as a swing is: out along the aim
-/// to its range or the first cell that stops a ray, then home to the hero as it is. Cells are struck out only, and nothing past a
-/// solid cell home; each target once a throw. In thousandths of a cell and milliseconds.
+/// An item thrown and hauled back on the drone's thread (companion-fights), the thrower's client's word as a swing is. It has weight:
+/// it leaves with its hero's own speed, slows to a stop at its range or is knocked back by the first cell that stops a ray, and the
+/// thread, caught, has to turn it and bring it up to speed. Cells are struck out only, and nothing past a solid cell home; each
+/// target once a throw. In thousandths of a cell, seconds and frames of milliseconds.
 /// </summary>
 public sealed class AxeThrow
 {
-    /// <summary>How far short of the cell that stopped it the item turns home, so it never starts inside that cell.</summary>
-    private const double ShortOfWall = 100;
+    /// <summary>How long the thread takes from its cast to holding the item, ms: cast so it holds as the item stops.</summary>
+    public const double CastMs = 120;
+
+    /// <summary>How long the thread takes to turn what speed the item has across it, s: how wide its arc home is.</summary>
+    private const double TurnS = 0.12;
+
+    /// <summary>The share of its speed a cell that stops it knocks it back with.</summary>
+    private const double Bounce = 0.15;
+
+    /// <summary>How near the hand it is caught, and how far short of the cell that stopped it it turns, so it never starts inside that cell.</summary>
+    private const double CatchWithin = 800, ShortOfWall = 100;
 
     private readonly HashSet<(Sim.Building.TargetKind, int)> _targets = [];
     private readonly HashSet<int> _pieces = [], _creatures = [];
     private Spec.Abilities.Throw? _spec;
-    private (double X, double Y) _way;
-    private double _gone, _waitMs;
+    private (double X, double Y) _way, _carried, _velocity;
+    private double _speed, _castMs, _waitMs;
     private bool _walled;
     private int _surface;
 
@@ -39,14 +49,17 @@ public sealed class AxeThrow
     /// <summary>Whether the item is out of the hand.</summary>
     public bool Flying => Leg is ThrowLeg.Out or ThrowLeg.Home;
 
+    /// <summary>Whether the thread is cast to it: reaching for it, then hauling.</summary>
+    public bool Hauled { get; private set; }
+
     /// <summary>Where the item is, while it flies.</summary>
     public (double X, double Y) At { get; private set; }
 
+    /// <summary>How fast it flies, a second.</summary>
+    public (double X, double Y) Velocity => _velocity;
+
     /// <summary>How many have left the hand: a new one is news to the others.</summary>
     public int Count { get; private set; }
-
-    /// <summary>The way it was thrown across: 1 right, -1 left.</summary>
-    public int Side => _way.X < 0 ? -1 : 1;
 
     /// <summary>A frame of <paramref name="elapsedMs"/> toward the next throw's pace, whether one is out or none.</summary>
     public void Wait(double elapsedMs) => _waitMs = Math.Max(0, _waitMs - elapsedMs);
@@ -68,13 +81,16 @@ public sealed class AxeThrow
         if (Leg != ThrowLeg.None && (hands.Held || !hands.Free || hands.Surface != _surface || hands.Wielded != _spec!.Item)) Cancel();
     }
 
-    /// <summary>The raised item leaves <paramref name="hand"/> toward <paramref name="toward"/>; none raised, nothing leaves.</summary>
-    public bool Leave(Point hand, Point toward)
+    /// <summary>The raised item leaves <paramref name="hero"/>'s hand toward <paramref name="toward"/>, the hero's own speed in it; none raised, nothing leaves.</summary>
+    public bool Leave(Hero hero, Point toward)
     {
         if (Leg != ThrowLeg.Raised) return false;
+        var hand = Aiming.HandOf(hero);
         double dx = toward.X - hand.X, dy = toward.Y - hand.Y, length = Math.Sqrt(dx * dx + dy * dy);
-        _way = length > 0 ? (dx / length, dy / length) : (1, 0);
-        (At, _gone, _walled, Leg) = ((hand.X, hand.Y), 0, false, ThrowLeg.Out);
+        _way = length > 0 ? (dx / length, dy / length) : (hero.Facing, 0);
+        (_carried, _speed) = (SpeedOf(hero), (double)_spec!.Out * World.TicksPerSecond);
+        _velocity = (_carried.X + _way.X * _speed, _carried.Y + _way.Y * _speed);
+        (At, _castMs, _walled, Hauled, Leg) = ((hand.X, hand.Y), 0, false, false, ThrowLeg.Out);
         _targets.Clear();
         _pieces.Clear();
         _creatures.Clear();
@@ -82,7 +98,7 @@ public sealed class AxeThrow
         return true;
     }
 
-    public void Cancel() => Leg = ThrowLeg.None;
+    public void Cancel() => (Leg, Hauled) = (ThrowLeg.None, false);
 
     /// <summary>
     /// A frame of <paramref name="elapsedMs"/> of its flight by <paramref name="hero"/>: what it struck on it for the first time
@@ -91,32 +107,61 @@ public sealed class AxeThrow
     public EdgeHit? Step(double elapsedMs, Registry m, Hero hero, bool outside, double progress, Func<Piece, double, double, bool> solid)
     {
         if (!Flying) return null;
-        var spec = _spec!;
         double ms = Math.Min(elapsedMs, AxeSwing.MostPerFrameMs);
-        return Leg == ThrowLeg.Out ? Outward(spec, ms, m, outside, progress, solid) : Homeward(spec, ms, m, hero, outside, progress, solid);
+        if (Hauled) _castMs += ms;
+        return Leg == ThrowLeg.Out ? Outward(ms / 1000, m, outside, progress, solid) : Homeward(ms / 1000, m, hero, outside, progress, solid);
     }
 
-    private EdgeHit Outward(Spec.Abilities.Throw spec, double ms, Registry m, bool outside, double progress, Func<Piece, double, double, bool> solid)
+    private EdgeHit Outward(double s, Registry m, bool outside, double progress, Func<Piece, double, double, bool> solid)
     {
-        double step = Math.Min(spec.Range - _gone, spec.Out * ms * World.TicksPerSecond / 1000);
+        var spec = _spec!;
+        double launch = (double)spec.Out * World.TicksPerSecond, slows = launch * launch / (2.0 * spec.Range);
+        double going = Math.Min(s, _speed / slows), step = _speed * going - slows * going * going / 2;
         var from = At;
-        var to = (X: from.X + _way.X * step, Y: from.Y + _way.Y * step);
+        var to = (X: from.X + _carried.X * s + _way.X * step, Y: from.Y + _carried.Y * s + _way.Y * step);
         var (hit, stopped) = ToolRays.Segment(m, from, to, outside, progress, solid);
-        _gone += step;
-        double back = stopped ? Math.Min(ShortOfWall, Distance(from, hit.End)) : 0;
-        At = stopped ? (hit.End.X - _way.X * back, hit.End.Y - _way.Y * back) : to;
-        if (stopped || _gone >= spec.Range) Leg = ThrowLeg.Home;
+        if (stopped)
+        {
+            double length = Math.Max(Distance(from, to), 1e-6), ux = (to.X - from.X) / length, uy = (to.Y - from.Y) / length;
+            double back = Math.Min(ShortOfWall, Distance(from, hit.End)), knocked = Bounce * Distance(_velocity, (0, 0));
+            At = (hit.End.X - ux * back, hit.End.Y - uy * back);
+            _velocity = (-ux * knocked, -uy * knocked);
+            (Hauled, Leg) = (true, ThrowLeg.Home);
+        }
+        else
+        {
+            bool stops = going < s || _speed - slows * going <= 0;
+            _speed = stops ? 0 : _speed - slows * going;
+            (At, _velocity) = (to, (_carried.X + _way.X * _speed, _carried.Y + _way.Y * _speed));
+            Hauled |= _speed / slows <= CastMs / 1000;
+            if (stops) Leg = ThrowLeg.Home;
+        }
         return Fresh(m, hit, cuts: true);
     }
 
-    private EdgeHit? Homeward(Spec.Abilities.Throw spec, double ms, Registry m, Hero hero, bool outside, double progress, Func<Piece, double, double, bool> solid)
+    private EdgeHit? Homeward(double s, Registry m, Hero hero, bool outside, double progress, Func<Piece, double, double, bool> solid)
     {
+        var spec = _spec!;
         var hand = Aiming.HandOf(hero);
         var from = At;
-        double far = Distance(from, (hand.X, hand.Y)), step = Math.Min(far, spec.Home * ms * World.TicksPerSecond / 1000);
-        var to = far > 0 ? (X: from.X + (hand.X - from.X) / far * step, Y: from.Y + (hand.Y - from.Y) / far * step) : from;
+        (double X, double Y) to;
+        bool caught = false;
+        if (_castMs < CastMs) to = (from.X + _velocity.X * s, from.Y + _velocity.Y * s);
+        else
+        {
+            // Hauled as seen from the hero: what speed it has along the thread grows, what it has across dies away.
+            var own = SpeedOf(hero);
+            double dx = hand.X - from.X, dy = hand.Y - from.Y, far = Math.Sqrt(dx * dx + dy * dy);
+            var (ux, uy) = far > 0 ? (dx / far, dy / far) : (0.0, 0.0);
+            double rx = _velocity.X - own.X, ry = _velocity.Y - own.Y, along = rx * ux + ry * uy;
+            double across = Math.Exp(-s / TurnS), sideX = (rx - ux * along) * across, sideY = (ry - uy * along) * across;
+            along = Math.Min((double)spec.Home * World.TicksPerSecond, along + (double)spec.Pull * World.TicksPerSecond * World.TicksPerSecond * s);
+            _velocity = (own.X + ux * along + sideX, own.Y + uy * along + sideY);
+            caught = far <= CatchWithin || along * s >= far;
+            to = caught ? (hand.X, hand.Y) : (from.X + _velocity.X * s, from.Y + _velocity.Y * s);
+        }
         At = to;
-        if (step >= far) Leg = ThrowLeg.None;
+        if (caught) Cancel();
         if (_walled) return null;
         var (hit, stopped) = ToolRays.Segment(m, from, to, outside, progress, solid);
         _walled = stopped;
@@ -135,6 +180,9 @@ public sealed class AxeThrow
         var touches = hit.Touches.Where(t => t.Cell is int cell ? cells.Contains(cell) : t.Wreck is { } wreck && wrecks.Contains(wreck)).ToList();
         return new EdgeHit(cells, wrecks, creatures, touches, hit.End);
     }
+
+    /// <summary>A hero's own speed, a second.</summary>
+    private static (double X, double Y) SpeedOf(Hero hero) => (hero.Vx * 1000 / Hero.StepMs, hero.Vy * 1000 / Hero.StepMs);
 
     private static double Distance((double X, double Y) a, (double X, double Y) b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 }

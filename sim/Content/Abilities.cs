@@ -4,13 +4,14 @@ namespace Stillwake.Content;
 public static class Abilities
 {
     /// <summary>
-    /// <paramref name="Item"/> thrown and brought back by the drone: <paramref name="Range"/> thousandths of a cell out at
-    /// <paramref name="Out"/> a tick, home to the hero at <paramref name="Home"/>; a hit either way is the weapon's own.
+    /// <paramref name="Item"/> thrown and hauled back by the drone: leaving at <paramref name="Out"/> a tick it slows to a stop
+    /// <paramref name="Range"/> thousandths of a cell out; home it gains <paramref name="Pull"/> a tick each tick, up to
+    /// <paramref name="Home"/>; a hit either way is the weapon's own.
     /// </summary>
-    public sealed record Throw(string Item, int Range, int Out, int Home);
+    public sealed record Throw(string Item, int Range, int Out, int Home, int Pull);
 
-    /// <summary>The fire axe's: 18 cells at 45 a second out and 60 home, some 0.7 s. Placeholder numbers, for a play pass.</summary>
-    public static readonly Throw Axe = new(Weapons.Axe.Item, Range: 18000, Out: 2250, Home: 3000);
+    /// <summary>The fire axe's: leaving at 72 cells a second to stop at 18, hauled up to 90, some 0.9 s. Placeholder numbers, for a play pass.</summary>
+    public static readonly Throw Axe = new(Weapons.Axe.Item, Range: 18000, Out: 3600, Home: 4500, Pull: 600);
 
     public static readonly IReadOnlyList<Throw> Throws = [Axe];
 

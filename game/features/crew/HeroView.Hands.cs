@@ -145,7 +145,7 @@ public partial class HeroView
         }
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
         if (swung.Hits && _swingThrows)
-            _throw.Leave(Aiming.HandOf(_current), _swing.Toward(_current));
+            ThrowLeaves(m, struck!, _swing.Toward(_current));
         else if (swung.Hits)
         {
             // What the stroke's fan of rays from the shoulder meets as it lands (tool-reach): the cells, wrecks and
@@ -229,7 +229,7 @@ public partial class HeroView
             : _armUp && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
-        var work = _throw.Flying ? new Busy(Handwork.Throw, new Point((int)System.Math.Round(_throw.At.X), (int)System.Math.Round(_throw.At.Y)), _throw.Count)
+        var work = _throw.Flying ? new Busy(_throw.Hauled ? Handwork.Haul : Handwork.Throw, new Point((int)System.Math.Round(_throw.At.X), (int)System.Math.Round(_throw.At.Y)), _throw.Count)
             : working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
@@ -241,7 +241,7 @@ public partial class HeroView
         _gesture.Step(elapsedMs);
         _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
-        _figure.Thrown = _throw.Flying ? (Pixels(_throw.At), _throw.Side) : null;
+        _figure.Thrown = _throw.Flying ? (Pixels(_throw.At), _throw.Count, _throw.Hauled) : null;
         ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
         // The computer opens its own window; every other machine its slots under the inventory, the station's own, paired or not.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
@@ -262,13 +262,28 @@ public partial class HeroView
     private void ThrowFlies(Client client, Registry m, double elapsedMs)
     {
         if (!_throw.Flying || _ui.Wielded.Get() is not { } tool) return;
+        var going = _throw.Velocity;
         var hit = _throw.Step(elapsedMs, m, _current, Outside(m, _current), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        // Home in the fist: the glove's thump, as on what it grabs.
+        if (!_throw.Flying) _act.Play(Floats);
         if (hit == null) return;
         var sent = ToolEdges.CommandsOf(m, client.Id, tool, hit);
         if (sent.Cells is { } cells) client.Send(cells);
         if (sent.Pieces is { } pieces) client.Send(pieces);
         foreach (var strike in sent.Strikes) client.Send(strike);
         if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, tool, _current, client.Id);
+        // What it drives on as it bites is stirred the way it was going, as a stroke's along the stroke (air-gusts).
+        if (hit.Contact != null || sent.Strikes.Count > 0) StrokeGust(m, tool, hit, going);
+    }
+
+    /// <summary>The raised item let go toward <paramref name="toward"/>, the air stirred as by a stroke's end.</summary>
+    private void ThrowLeaves(Registry m, string tool, Point toward)
+    {
+        if (!_throw.Leave(_current, toward)) return;
+        var hand = Aiming.HandOf(_current);
+        var (vx, vy) = _throw.Velocity;
+        double speed = System.Math.Max(1, System.Math.Sqrt(vx * vx + vy * vy)), ahead = Content.Weapons.Of(tool)?.Range ?? 0;
+        StrokeGust(m, tool, new EdgeHit([], [], [], [], (hand.X + vx / speed * ahead, hand.Y + vy / speed * ahead)), (vx, vy));
     }
 
     /// <summary>

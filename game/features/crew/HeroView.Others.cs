@@ -84,8 +84,9 @@ public partial class HeroView
             shown.Ping.Hear(seen.Ping);
             shown.Ping.Step(elapsedMs);
             // What its peer threw, where that peer says it flies (companion-fights): its hits are that peer's alone.
-            Point? flung = seen.Busy is { Work: Handwork.Throw, At: var flies } ? flies : null;
-            shown.Figure.Thrown = flung is { } thing ? (Pixels(thing), thing.X < hero.X ? -1 : 1) : null;
+            Busy? flung = seen.Busy is { Flung: true } flight ? flight : null;
+            if (flung == null && shown.Figure.Thrown is { Hauled: true } && !out_) _othersThump.PlayAt(shown.Figure.GlobalPosition);
+            shown.Figure.Thrown = flung is { } thing ? (Pixels(thing.At), thing.Swings, thing.Work == Handwork.Haul) : null;
             ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing, shown.Gesture);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
@@ -105,7 +106,7 @@ public partial class HeroView
             // Its forms are its peer's own (drone-lessons): its beam shows once that peer learned the lamp.
             (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, form => m.Research.Knows(id, form));
             shown.Figure.DroneWindow = (seen.Projects, 0);
-            shown.Figure.Senses = DroneSensesOf(m, id, here) with { Quiet = flung != null };
+            shown.Figure.Senses = DroneSensesOf(m, id, here);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);

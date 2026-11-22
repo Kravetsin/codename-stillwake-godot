@@ -104,6 +104,15 @@ public class RemoteTests
     }
 
     [Fact]
+    public void SweepAThrowOnAsTheThreadTakesIt()
+    {
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, new SentHero(new Seen(HeroAt(0), Busy: new Busy(Handwork.Throw, new Point(1_000, 2_000), 4)), 1000), 1000);
+        heroes.Add(2, new SentHero(new Seen(HeroAt(1000), Busy: new Busy(Handwork.Haul, new Point(3_000, 2_000), 4)), 1050), 1050);
+        Assert.Equal(new Busy(Handwork.Throw, new Point(2_000, 2_000), 4), heroes.At(1000 + BehindMs + 25)[0].Seen.Busy);
+    }
+
+    [Fact]
     public void KeepTheSwingThatLetAThrowGo()
     {
         var chop = new Busy(Handwork.Chop, new Point(5_000, 2_000), 3);
@@ -312,6 +321,7 @@ public class RemoteTests
     [InlineData(Handwork.Work, null)]
     [InlineData(Handwork.Beam, null)]
     [InlineData(Handwork.Throw, "fireAxe")]
+    [InlineData(Handwork.Haul, "fireAxe")]
     public void GoThroughTheWireWithWhatTheyWieldAndWorkAt(Handwork work, string? wields)
     {
         var sent = new SentHero(new Seen(HeroAt(1200, 3400), 0.2, work == Handwork.Beam, wields, new Busy(work, Wreck)), 1250);

@@ -263,7 +263,7 @@ public partial class HeroView : Node2D
     /// Whether this hero's drone scans as last drawn: worn, in the scanner mode (light-drone); the scanner's readout shows. Not in a form's
     /// vision (form-vision), whose gauge is the vision's own.
     /// </summary>
-    public bool Scanning => _figure.Scanner && !_figure.Projects && _vision == null && !_throw.Flying;
+    public bool Scanning => _figure.Scanner && !_figure.Projects && _vision == null;
 
     /// <summary>
     /// This hero's drone's reticle marks, where the gauge's dots leave and come home, its eye and how red it burns (light-drone); none while it is
@@ -703,7 +703,7 @@ public partial class HeroView : Node2D
             Finding = _droneFinds && !_droneVisits,
             Proud = DroneProud(),
             Woke = woke,
-            Quiet = _locked || seat != null || _throw.Flying,
+            Quiet = _locked || seat != null,
         };
         _ui.DroneAt = _figure.DroneLens is { } droneLens ? (droneLens.GetCenter().X, droneLens.GetCenter().Y) : null;
         _figure.LampAim = pointer is { } aim ? new Vector2((float)(aim.X * Rig.Cell), (float)(aim.Y * Rig.Cell)) : null;

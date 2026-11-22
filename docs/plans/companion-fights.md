@@ -81,7 +81,10 @@ a fight.
 
 ### The throw
 
-- Content: `Abilities`, a row by item, the axe's `Throw(Range, Out, Home)`. A row exists only with a user.
+- Content: `Abilities`, a row by item, the axe's `Throw(Range, Out, Home, Pull)`. A row exists only with a user.
+- **Confirmed after the first play:** it has weight, the drone hauls it without leaving its place or its mode, and it shows
+  flying what the blade shows in a swing. It leaves with the hero's speed, slows to a stop at its range (or is knocked back
+  by the cell that stops it), and is hauled up to speed on an arc.
 - No sim state and no new command: the axe never leaves the inventory. A right click starts one with a drone paired and
   not scripted, the axe wielded, the building plan away, the hands able to act and no throw out. Otherwise the click
   does nothing, silently. Food, the canister, the driver, guns and the plan keep theirs.
@@ -93,9 +96,9 @@ a fight.
 - While it is out the hand is drawn empty and swings nothing. It ends at once, hits and drawing, when the axe is no
   longer wielded (a switch, a drop, death), the building plan comes out, the hero passes out, is held by a scene, sits,
   flies or changes surface. A wheel or a window opened stops only new throws.
-- The drone flies to the axe from where it is and stays with it on the tow's thread, the lamp too; the axe never
-  waits. Its tow, scan and moods wait.
-- Friends: `Handwork.Throw`, appended last, outranks other work and gestures while out: the point and the throw's
+- The drone stays where it is, lamp or scanner as it was. It casts the tow's thread as the axe nears its stop and hauls,
+  leaning a few pixels into it. Its moods wait; a tow it rides goes on. A drone flying out to fetch was tried and rejected.
+- Friends: `Handwork.Throw`, then `Haul` once the thread is cast, appended last, outrank other work and gestures while out: the point and the throw's
   number. They stop drawing when it is absent. Only the thrower sends hits.
 
 ## Co-op and determinism
@@ -120,7 +123,7 @@ a fight.
 | Knock | 1200, shed a quarter a tick down to 175: about 4 cells |
 | Yield | one scrap chunk with chance 1/2, a breaker |
 | Limits | `Max` 40 a surface; 8 breakers in a hero's keep box |
-| Throw | 18 cells; 45 cells/s out, 60 home: about 0.7 s |
+| Throw | 18 cells; leaves at 72 cells/s, hauled at 240 cells/s² up to 90: about 0.9 s |
 
 Budget: at most 40 creatures and some 60 sleeping nests among 640 pieces. A tick stays under 2 ms with 40 breakers and
 four heroes.

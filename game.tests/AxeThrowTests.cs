@@ -53,7 +53,7 @@ public class AxeThrowTests
     {
         var thrown = new AxeThrow();
         Assert.True(thrown.Begin(Hands, PaceMs));
-        Assert.True(thrown.Leave(Aiming.HandOf(from), new Point(toX * Unit, 12 * Unit + 500)));
+        Assert.True(thrown.Leave(from, new Point(toX * Unit, 12 * Unit + 500)));
         return thrown;
     }
 
@@ -83,6 +83,71 @@ public class AxeThrowTests
         }
         Assert.Equal(Aiming.HandOf(hero).X + Axe.Range, farthest, 1.0);
         Assert.Equal(Aiming.HandOf(hero).X, thrown.At.X, 1.0);
+    }
+
+    [Fact]
+    public void ItSlowsOutAndGathersSpeedHome()
+    {
+        var w = Space();
+        var hero = At(30);
+        var thrown = Thrown(hero, 60);
+        var moved = new List<(ThrowLeg Leg, double Way)>();
+        while (thrown.Flying && moved.Count < 300)
+        {
+            var (leg, was) = (thrown.Leg, thrown.At.X);
+            thrown.Step(Frame, w.M, hero, true, 0, Opaque);
+            moved.Add((leg, Math.Abs(thrown.At.X - was)));
+        }
+        var away = moved.Where(s => s.Leg == ThrowLeg.Out).Select(s => s.Way).ToList();
+        var home = moved.Where(s => s.Leg == ThrowLeg.Home).Select(s => s.Way).ToList();
+        Assert.True(away[0] > 4 * away[^2]);
+        Assert.True(home[^2] > 4 * home[1]);
+    }
+
+    [Fact]
+    public void TheThreadHoldsItByTheTimeItStops()
+    {
+        var w = Space();
+        var hero = At(30);
+        var thrown = Thrown(hero, 60);
+        double hauled = 0;
+        while (thrown.Leg == ThrowLeg.Out)
+        {
+            if (thrown.Hauled) hauled += Frame;
+            thrown.Step(Frame, w.M, hero, true, 0, Opaque);
+        }
+        Assert.InRange(hauled, AxeThrow.CastMs - 2 * Frame, AxeThrow.CastMs + Frame);
+    }
+
+    [Fact]
+    public void ItCarriesTheSpeedOfItsHero()
+    {
+        var w = Space();
+        Hero still = At(30), flying = still with { Vx = 300, Vy = -100 };
+        var (standing, carried) = (Thrown(still, 60), Thrown(flying, 60));
+        standing.Step(Frame, w.M, still, true, 0, Opaque);
+        carried.Step(Frame, w.M, flying, true, 0, Opaque);
+        double steps = Frame / Hero.StepMs;
+        Assert.Equal(300 * steps, carried.At.X - standing.At.X, 1.0);
+        Assert.Equal(-100 * steps, carried.At.Y - standing.At.Y, 1.0);
+    }
+
+    [Fact]
+    public void ItCurvesHomeAndIsStillCaught()
+    {
+        var w = Space();
+        var thrower = At(30);
+        var stopped = thrower with { Vy = 0 };
+        var rising = thrower with { Vy = -250 };
+        var thrown = Thrown(rising, 60);
+        while (thrown.Leg == ThrowLeg.Out) thrown.Step(Frame, w.M, rising, true, 0, Opaque);
+        // Its hero stopped dead: the speed it left with still carries it up a little before the thread turns it.
+        double top = thrown.At.Y;
+        for (int i = 0; i < 3; i++) thrown.Step(Frame, w.M, stopped, true, 0, Opaque);
+        Assert.True(thrown.At.Y < top);
+        for (int i = 0; i < 300 && thrown.Flying; i++) thrown.Step(Frame, w.M, stopped, true, 0, Opaque);
+        Assert.False(thrown.Flying);
+        Assert.Equal(Aiming.HandOf(stopped).Y, thrown.At.Y, 1.0);
     }
 
     [Fact]
