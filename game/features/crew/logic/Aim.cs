@@ -103,7 +103,7 @@ public static class Aiming
 
     /// <summary>
     /// The piece the harpoon's rod meets first on its way from <paramref name="from"/> to <paramref name="to"/>,
-    /// in thousandths of a cell, that peer <paramref name="peer"/> could reel (0044), each piece where it is drawn
+    /// in thousandths of a cell, that peer <paramref name="peer"/> could hook (0044), each piece where it is drawn
     /// <paramref name="progress"/> of the way to its next tick; where the rod sticks, where it enters the
     /// piece's box kept <see cref="Bite"/> inside its picture; and how far along the way, from 0 to 1. None while
     /// it meets nothing; of two met, the nearer, the first in spawn order at a tie. A wreck is met where <paramref name="solid"/>
@@ -120,7 +120,7 @@ public static class Aiming
             var box = Shared.PieceDrawn.Shape(p, progress, halfW, halfH);
             if (Entered((from.X, from.Y, to.X, to.Y), box) is not double t) continue;
             if (first is var (_, _, nearest) && nearest <= t) continue;
-            if (m.Debris.ReelProblem(peer, p.Id) != null) continue;
+            if (m.Debris.HookProblem(peer, p.Id) != null) continue;
             if (solid != null && HalfOf(p.Item) != null)
             {
                 if (Drawn(p, from, to, t, solid) is not var (hit, at)) continue;

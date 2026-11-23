@@ -29,7 +29,7 @@ public class SentryTests
     {
         var w = new Scenario(Space, cells: true).Do(new Crew.Enter(40 * 160 + 4)).Run();
         var debris = (DebrisState)w.M.Debris.Slice;
-        var piece = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 80_000, Y = 40_000, Speed = speed, Start = 80_000, SeenAt = debris.Clock };
+        var piece = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 80_000, Y = 40_000, Speed = speed, Vx = -speed, Start = 80_000, SeenAt = debris.Clock };
         debris.Pieces.Add(piece);
         Guarded(w);
         w.Do(new Release(Sentry.Id, 38 * 160 + 80)).Run();
@@ -163,25 +163,23 @@ public class SentryTests
     }
 
     [Fact]
-    public void AHarpoonOnItsWreckIsCutItsCutTicksAfterItBitesTheWreckReeledTillThen()
+    public void AHarpoonOnItsWreckIsCutItsCutTicksAfterItBitesTheWreckHeldTillThen()
     {
         var (w, piece, c) = OnAWreck();
         HeroAt(w, 60, 40).Run();
-        int x = piece.X;
-        w.Do(new Reel(piece.Id, 62_000, 40_000)).Run();
+        w.Do(new Hook(piece.Id, 0, 0)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal((Cut.Ticks, Cut.Ticks), w.M.Creatures.CutLeft(c));
         w.Run(Cut.Ticks - 1);
-        Assert.NotNull(piece.Reel);
+        Assert.NotNull(w.M.Debris.LineOn(piece.Id));
         Assert.Equal((1, Cut.Ticks), w.M.Creatures.CutLeft(c));
         Assert.Equal(0, CreaturesModule.LastCut(c));
         w.Run();
-        Assert.Null(piece.Reel);
+        Assert.Null(w.M.Debris.LineOn(piece.Id));
         Assert.True(CreaturesModule.LastCut(c) > 0);
         Assert.Equal((0, 0), w.M.Creatures.CutLeft(c));
-        Assert.True(piece.X < x, "the reel moved it till the sentry cut it");
         w.Run(10);
-        Assert.Null(piece.Reel);
+        Assert.Null(w.M.Debris.LineOn(piece.Id));
     }
 
     [Fact]
@@ -189,14 +187,14 @@ public class SentryTests
     {
         var (w, piece, c) = OnAWreck();
         HeroAt(w, 60, 40).Run();
-        w.Do(new Reel(piece.Id, 62_000, 40_000)).Run(Cut.Ticks / 2);
+        w.Do(new Hook(piece.Id, 0, 0)).Run(Cut.Ticks / 2);
         ((IDebrisOps)w.M.Debris).Unreel(piece.Id);
         w.Run();
         Assert.Equal((0, 0), w.M.Creatures.CutLeft(c));
-        w.Do(new Reel(piece.Id, 20_000, 40_000)).Run(Cut.Ticks);
-        Assert.NotNull(piece.Reel);
+        w.Do(new Hook(piece.Id, 0, 0)).Run(Cut.Ticks);
+        Assert.NotNull(w.M.Debris.LineOn(piece.Id));
         w.Run();
-        Assert.Null(piece.Reel);
+        Assert.Null(w.M.Debris.LineOn(piece.Id));
     }
 
     [Fact]
@@ -516,11 +514,11 @@ public class SentryTests
         HeroAt(w, 60, 40).Run();
         w.Do(new Strike(c.Id, Axe)).Run(3);
         Assert.NotNull(c.Act);
-        w.Do(new Reel(piece.Id, 62_000, 40_000)).Run();
+        w.Do(new Hook(piece.Id, 0, 0)).Run();
         Assert.Empty(w.Refusals);
-        Assert.NotNull(piece.Reel);
+        Assert.NotNull(w.M.Debris.LineOn(piece.Id));
         w.Run(Cut.Ticks);
-        Assert.Null(piece.Reel);
+        Assert.Null(w.M.Debris.LineOn(piece.Id));
         Assert.True(CreaturesModule.LastCut(c) > 0);
     }
 
@@ -590,7 +588,8 @@ public class SentryInvariantTests
             for (int i = 0; i < 3; i++)
             {
                 int x = 6_000 + (int)rng.Below((Width - 12) * 1000), y = 6_000 + (int)rng.Below((Height - 12) * 1000);
-                debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = kinds[rng.Below(4)], X = x, Y = y, Speed = (int)rng.Below(150), Start = x });
+                int speed = (int)rng.Below(150);
+                debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = kinds[rng.Below(4)], X = x, Y = y, Speed = speed, Vx = -speed, Start = x });
             }
             SentryTests.Guarded(w);
             foreach (var p in debris.Pieces.ToList()) w.Do(new Release(Sentry.Id, Debris.DebrisModule.CellOf(p.X, p.Y, Width)));
@@ -606,7 +605,7 @@ public class SentryInvariantTests
                 if (debris.Pieces.Count > 0 && rng.Below(40) == 0)
                 {
                     var p = debris.Pieces[(int)rng.Below((uint)debris.Pieces.Count)];
-                    w.Do(new Reel(p.Id, p.X - 5000, p.Y) { From = (int)rng.Below(2) });
+                    w.Do(new Hook(p.Id, 0, 0) { From = (int)rng.Below(2) });
                 }
                 var sent = new List<HitBy>();
                 foreach (var c in all)

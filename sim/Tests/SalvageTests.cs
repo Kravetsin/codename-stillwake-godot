@@ -79,7 +79,7 @@ public class SalvageTests
     internal static Piece Drift(Scenario w, string item, int x, int y, int speed = 0)
     {
         var s = (DebrisState)w.M.Debris.Slice;
-        var piece = new Piece { Id = s.NextId++, Zone = DebrisSpec.Ship.Id, Item = item, X = x * 1000 + 500, Y = y * 1000 + 500, Speed = speed, Start = x * 1000 + 500, End = 0 };
+        var piece = new Piece { Id = s.NextId++, Zone = DebrisSpec.Ship.Id, Item = item, X = x * 1000 + 500, Y = y * 1000 + 500, Speed = speed, Vx = -speed, Start = x * 1000 + 500, End = 0 };
         s.Pieces.Add(piece);
         return piece;
     }
@@ -293,12 +293,12 @@ public class SalvageTests
     }
 
     [Fact]
-    public void WreckageAsteroidsClodsAndReeledPiecesAreNeverTargets()
+    public void WreckageAsteroidsClodsAndHeldPiecesAreNeverTargets()
     {
         var w = Out();
         foreach (var (item, x) in new[] { ("hullSection", 30), ("asteroid", 32), ("soilClod", 34) }) Drift(w, item, x, 12);
-        var reeled = Drift(w, "scrapChunk", 36, 6);
-        reeled.Reel = new Reeling { By = 0, ToX = 36500, ToY = 6500, Left = 1_000_000 };
+        var held = Drift(w, "scrapChunk", 36, 6);
+        w.Do(new Enter(Cell(44, 3)) { From = 1 }).Do(new Hook(held.Id, 0, 0) { From = 1 });
         Assert.NotNull(Content.Wreckage.HpOf("hullSection"));
         Assert.All(["hullSection", "asteroid", "soilClod"], item => Assert.DoesNotContain(item, DebrisSpec.NetCatches));
         for (int i = 0; i < 200; i++) Assert.Empty(w.Run().M.Logistics.Drones);
@@ -752,12 +752,12 @@ public class SalvageTests
     }
 
     [Fact]
-    public void AReelOnTheTargetLetsTheDroneGo()
+    public void ALineOnTheTargetLetsTheDroneGo()
     {
         var w = Out();
         var piece = Drift(w, "scrapChunk", 36, 6);
         Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Cell % Width >= 28), 400));
-        piece.Reel = new Reeling { By = 1, ToX = 36500, ToY = 6500, Left = 1_000_000 };
+        w.Do(new Enter(Cell(44, 3)) { From = 1 }).Do(new Hook(piece.Id, 0, 0) { From = 1 });
         Assert.True(RunUntil(w, () => Home(w), 600));
         Assert.Single(w.M.Debris.Pieces);
         Assert.Equal(0, Held(w, Near(w), "scrapChunk"));
@@ -784,7 +784,7 @@ public class SalvageTests
         var d = Salvaging(w).Single();
         Assert.Equal(under.Id, d.Piece);
         // Into the floor before the drone gets there, then under the hull: dropped at the next centre for the other piece.
-        under.Speed = 110;
+        (under.Speed, under.Vx) = (110, -110);
         Assert.True(RunUntil(w, () =>
         {
             Assert.Contains(under, w.M.Debris.Pieces);

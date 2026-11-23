@@ -498,7 +498,7 @@ public class AimTests
             for (int i = 0; i < items.Length; i++)
             {
                 var piece = model.DeepClone();
-                (piece["id"], piece["item"], piece["x"], piece["y"], piece["speed"]) = (i + 1, items[i].Item, items[i].X, items[i].Y, 0);
+                (piece["id"], piece["item"], piece["x"], piece["y"], piece["speed"], piece["vx"], piece["vy"]) = (i + 1, items[i].Item, items[i].X, items[i].Y, 0, 0, 0);
                 (piece["angle"], piece["spin"]) = (0, 0);
                 pieces.Add(piece);
             }
@@ -770,28 +770,29 @@ public class AimTests
     }
 
     [Fact]
-    public void PassesOverAPieceTheSimWouldNotLetTheHeroReel()
+    public void PassesOverAPieceTheSimWouldNotLetTheHeroHook()
     {
         // The first lies over the hull's one block: not in space. The second is.
         var (w, _) = Field(("scrapChunk", 1_000, 1_000), ("scrapChunk", 6_000, 1_000));
         Assert.Equal(2, Aiming.Hooks(w.M, 0, (12_000, 1_000), (0, 1_000), 0)?.Piece);
-        Assert.Equal("debris.notOutside", w.M.Debris.ReelProblem(0, 1));
-        // A peer with no hero out reels nothing.
+        Assert.Equal("debris.notOutside", w.M.Debris.HookProblem(0, 1));
+        // A peer with no hero out hooks nothing.
         Assert.Null(Aiming.Hooks(w.M, 5, (12_000, 1_000), (0, 1_000), 0));
     }
 
     [Fact]
-    public void MeetsAPieceWhereItIsDrawnBetweenTicksReeledOrDrifting()
+    public void MeetsAPieceWhereItIsDrawnBetweenTicksByItsMotion()
     {
         var (w, _) = Field(("scrapChunk", 20_000, 15_000));
-        // Reeled 8000 to the left: 10 ticks at 800, one of them run with the reel.
-        const int Reels = Stillwake.Content.Harpoon.ReelSpeed;
-        w.Step(new Reel(1, 12_000, 15_000));
+        // Fed a motion of 800 left a tick by the host player's body.
+        const int Moves = 800;
+        var fed = w.M.Debris.Pieces.Single();
+        w.Step(new Moved(w.M.Debris.Clock, [new Sim.Debris.Body(1, fed.X, fed.Y, -Moves, 0, 0, 0)], []));
         var piece = w.M.Debris.Pieces.Single();
-        Assert.Equal((20_000 - Reels, 8_000 / Reels - 1), (piece.X, piece.Reel!.Left));
-        Assert.Equal((20_000 - Reels * 1.5, 15_000.0), PieceDrawn.At(piece, 0.5));
-        // Its box drawn halfway reaches half a tick's reel further left than at the tick: a rod passing there meets it then only.
-        const int Edge = 20_000 - Reels * 3 / 2 - SmallBox + 100;
+        Assert.Equal((20_000 - Moves, -Moves), (piece.X, piece.Vx));
+        Assert.Equal((20_000 - Moves * 1.5, 15_000.0), PieceDrawn.At(piece, 0.5));
+        // Its box drawn halfway reaches half a tick's motion further left than at the tick: a rod passing there meets it then only.
+        const int Edge = 20_000 - Moves * 3 / 2 - SmallBox + 100;
         Assert.Equal(1, Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 20_000), 0.5)?.Piece);
         Assert.Null(Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 20_000), 0));
     }

@@ -12,5 +12,7 @@ public static partial class En
         ["debris.netEmpty"] = "The net is empty",
         ["debris.bagFull"] = "No room in the bag",
         ["debris.netHolds"] = "{held}/{of}",
+        ["debris.noLine"] = "No line out",
+        ["debris.notHost"] = "Only the host moves debris",
     };
 }

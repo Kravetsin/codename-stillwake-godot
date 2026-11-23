@@ -5,9 +5,9 @@ namespace Stillwake.Sim.Debris;
 
 /// <summary>
 /// One piece drifting by, its middle at <see cref="X"/>, <see cref="Y"/> in thousandths of a cell,
-/// always on the grid. It drifts left by <see cref="Speed"/> a tick from <see cref="Start"/>, but while
-/// <see cref="Reel"/> pulls it, and is gone once <see cref="X"/> is below <see cref="End"/>. Read by
-/// others, changed by debris alone.
+/// always on the grid. It moves by <see cref="Vx"/>, <see cref="Vy"/> a tick from <see cref="Start"/>, at first its own
+/// drift left by <see cref="Speed"/>, as the host player's bodies feed it (<see cref="Moved"/>), and is gone once
+/// <see cref="X"/> is below <see cref="End"/> or it leaves the grid. Read by others, changed by debris alone.
 /// </summary>
 public sealed class Piece
 {
@@ -19,8 +19,12 @@ public sealed class Piece
     [JsonInclude] public string Item { get; internal set; } = "";
     [JsonInclude] public int X { get; internal set; }
     [JsonInclude] public int Y { get; internal set; }
-    /// <summary>How far it drifts left a tick, in thousandths of a cell.</summary>
+    /// <summary>Its own drift left a tick, in thousandths of a cell: what it starts moving at, and what the host player's body eases back to.</summary>
     [JsonInclude] public int Speed { get; internal set; }
+    /// <summary>How far it moves across a tick, in thousandths of a cell, right positive: <c>−Speed</c> as it spawns, then the feed's (debris-physics).</summary>
+    [JsonInclude] public int Vx { get; internal set; }
+    /// <summary>How far it moves down a tick, in thousandths of a cell: none as it spawns, then the feed's (debris-physics).</summary>
+    [JsonInclude] public int Vy { get; internal set; }
     /// <summary>How it is turned about its middle, in 65536ths of a turn, clockwise as the screen shows it; 0 upright.</summary>
     [JsonInclude] public int Angle { get; internal set; }
     /// <summary>How far it turns a tick, in 65536ths of a turn, clockwise positive: its own from its id as it spawns (<c>DebrisModule.TumbleOf</c>).</summary>
@@ -38,8 +42,6 @@ public sealed class Piece
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Cut { get; internal set; }
     /// <summary>The mafia's delivery it carries (2026-11-08-mafia-deliveries), by its id in <c>Knowledge</c>; 0, and unwritten, for any other piece.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Delivery { get; internal set; }
-    /// <summary>A harpoon's line pulling it to a point instead of its drift, or null (0044).</summary>
-    [JsonInclude] public Reeling? Reel { get; internal set; }
     /// <summary>The last blow a weapon landed on it (a wreck), or null: what a creature guarding it answers (the sentry).</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public Blow? Struck { get; internal set; }
     /// <summary>The clock it was last in some hero's keep box, for a zone round the heroes; 0 for the stream's, never despawned by distance.</summary>
@@ -47,17 +49,22 @@ public sealed class Piece
 }
 
 /// <summary>
-/// A piece reeled in by a harpoon (0044): it comes to (<see cref="ToX"/>, <see cref="ToY"/>), a point on
-/// the grid in thousandths of a cell, in <see cref="Left"/> more ticks, then drifts on from there.
+/// A harpoon's line (debris-physics): hero <see cref="By"/>'s, hooked in piece <see cref="Piece"/> at (<see cref="HookX"/>,
+/// <see cref="HookY"/>) in thousandths of a cell from its middle in its own frame, <see cref="Length"/> long. The host player's
+/// rope pulls the piece by it and feeds its length; the sim only keeps it. At most one a hero and one a piece.
 /// </summary>
-public sealed class Reeling
+public sealed class Line
 {
-    /// <summary>The peer whose harpoon reels it: the last to send <c>Reel</c> for it.</summary>
+    /// <summary>The peer whose hero holds it.</summary>
     [JsonInclude] public int By { get; internal set; }
-    [JsonInclude] public int ToX { get; internal set; }
-    [JsonInclude] public int ToY { get; internal set; }
-    /// <summary>The ticks till it is there, above zero: the reel clears on the tick it lands.</summary>
-    [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The piece it is hooked in, by id: always one out.</summary>
+    [JsonInclude] public int Piece { get; internal set; }
+    [JsonInclude] public int HookX { get; internal set; }
+    [JsonInclude] public int HookY { get; internal set; }
+    /// <summary>How long it is, in thousandths of a cell: the span it was hooked at, then wound in and paid out by the host player's rope.</summary>
+    [JsonInclude] public int Length { get; internal set; }
+    /// <summary>Whether its holder winds it in: the left button held (<c>Wind</c>).</summary>
+    [JsonInclude] public bool Winds { get; internal set; }
 }
 
 /// <summary>A blow on a piece: peer <see cref="By"/>'s weapon, at the debris clock <see cref="At"/>; the last in host order of a tick wins.</summary>
@@ -140,6 +147,8 @@ public sealed class DebrisState
     [JsonInclude] internal List<Beat> Beats { get; set; } = [];
     /// <summary>Pieces put out at once on the first tick, the map's <c>Layout.DebrisAtStart</c>.</summary>
     [JsonInclude] internal int AtStart { get; set; }
+    /// <summary>The harpoons' lines (debris-physics), in the order hooked: at most one a hero and one a piece, each on a piece out.</summary>
+    [JsonInclude] internal List<Line> Lines { get; set; } = [];
     /// <summary>Every kind found (0066), in the order first found: appended, never sorted nor taken away.</summary>
     [JsonInclude] internal List<FoundKind> Found { get; set; } = [];
     /// <summary>What every debris net holds, in catch order; an entry goes once collected whole or dropped with its net.</summary>

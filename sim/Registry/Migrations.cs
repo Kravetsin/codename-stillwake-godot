@@ -465,6 +465,17 @@ public static class Migrations
                 }
             return root;
         },
+        // 73 → 74 (debris-physics): every piece moves at its own drift, and every reel is dropped: lines take their place, none yet.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var piece in slices["debris"]?["pieces"]?.AsArray() ?? [])
+                {
+                    (piece!["vx"], piece["vy"]) = (-(piece["speed"]?.GetValue<int>() ?? 0), 0);
+                    piece.AsObject().Remove("reel");
+                }
+            return root;
+        },
     ];
 
     /// <summary>Format 69's mount slot: the seventh equipment slot after 38 own ones, the cape and the trash after it.</summary>

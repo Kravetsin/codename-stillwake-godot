@@ -7,7 +7,8 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// The harpoon's line as drawn (0044): a rope in the tether's space style (<see cref="Tether.Space"/>) from
 /// the gun to the rod's eye, in thousandths of a cell. Paid out a little longer than the way it spans, so
-/// it hangs slack in flight and hooked; reeling or winding back, wound in to the span, taut.
+/// it hangs slack in flight and hooked in the structure; pulling or winding back, wound in to the span, taut. On a piece, as
+/// long as the sim's line (debris-physics): sagging while the way is shorter, straight once it reaches that length.
 /// </summary>
 public sealed class HarpoonLine
 {
@@ -52,10 +53,20 @@ public sealed class HarpoonLine
     /// <summary>Adds the line's points as drawn this frame, in thousandths of a cell, to <paramref name="into"/>.</summary>
     public void DrawnInto(List<(double X, double Y)> into) => _rope.DrawnInto(into);
 
-    /// <summary>Moves the line on by <paramref name="elapsedMs"/>, from <paramref name="gun"/> to <paramref name="eye"/>, slack or <paramref name="taut"/>.</summary>
-    public void Update((double X, double Y) gun, (double X, double Y) eye, bool taut, double elapsedMs) =>
+    /// <summary>
+    /// Moves the line on by <paramref name="elapsedMs"/>, from <paramref name="gun"/> to <paramref name="eye"/>, slack or <paramref name="taut"/>;
+    /// on a piece, as slack as its line is, <paramref name="slack"/> thousandths of a cell past the way it spans, straight at 0 or less.
+    /// </summary>
+    public void Update((double X, double Y) gun, (double X, double Y) eye, bool taut, double elapsedMs, double? slack = null) =>
         _rope.Update(gun, eye, elapsedMs, span =>
         {
+            // On a piece, the slack of its line, not its length: drawn from the gun to the eye, a shorter way than the rope pulls along,
+            // the whole length would curl into a loop.
+            if (slack is double loose)
+            {
+                _length = span + Math.Max(0, loose);
+                return loose <= 0 ? span * Stretch : _length;
+            }
             _length = taut ? Math.Max(span, _length - WindIn) : Math.Max(span, _length + (span * Slack - _length) * PayOut);
             return taut && _length <= span ? span * Stretch : _length;
         });

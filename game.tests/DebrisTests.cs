@@ -73,14 +73,28 @@ public class DebrisTests
     // Where a piece is drawn past its last tick (Session.Drift).
 
     [Fact]
-    public void APieceDriftsOnPastItsNextTickButAReeledOneStopsAtItsReelsPoint()
+    public void APieceIsDrawnOnPastItsTickByItsMotionWhateverItsSpeed()
     {
-        var drifting = JsonSerializer.Deserialize<Piece>("""{"X":10000,"Y":500,"Speed":100}""")!;
+        var drifting = JsonSerializer.Deserialize<Piece>("""{"X":10000,"Y":500,"Speed":100,"Vx":-100}""")!;
         Assert.Equal((9650.0, 500.0), PieceDrawn.At(drifting, 3.5));
-        // Two ticks left to its point: halfway at one, there at two, and there still at five.
-        var reeled = JsonSerializer.Deserialize<Piece>("""{"X":10000,"Y":500,"Reel":{"ToX":8000,"ToY":1500,"Left":2}}""")!;
-        Assert.Equal((9000.0, 1000.0), PieceDrawn.At(reeled, 1));
-        Assert.Equal((8000.0, 1500.0), PieceDrawn.At(reeled, 2));
-        Assert.Equal((8000.0, 1500.0), PieceDrawn.At(reeled, 5));
+        // Fed a motion of its own by the host player's body: that one, up or down too.
+        var pulled = JsonSerializer.Deserialize<Piece>("""{"X":10000,"Y":500,"Speed":100,"Vx":200,"Vy":-40}""")!;
+        Assert.Equal((10_400.0, 420.0), PieceDrawn.At(pulled, 2));
+    }
+
+    [Fact]
+    public void APosesPointsGoToTheWorldAndBackTurnedAsTheBoxIs()
+    {
+        var pose = new PiecePose(1_000, 2_000, 16_384);
+        // A quarter turn: the piece's own right is down on screen.
+        var (x, y) = pose.At(500, 0);
+        Assert.Equal(1_000, x, 6);
+        Assert.Equal(2_500, y, 6);
+        var (lx, ly) = pose.Local(x, y);
+        Assert.Equal(500, lx, 6);
+        Assert.Equal(0, ly, 6);
+        var (ux, uy) = pose.Unturned(pose.Turned(0.6, 0.8).X, pose.Turned(0.6, 0.8).Y);
+        Assert.Equal(0.6, ux, 6);
+        Assert.Equal(0.8, uy, 6);
     }
 }

@@ -2,7 +2,7 @@
 
 - Status: accepted; its recipe superseded by [0046](0046-recipes-show-what-a-thing-is-made-of.md); what others see
   of a shot, by [0065](0065-friends-see-the-harpoon.md); its range and reel speed, by [0068](0068-the-harpoon-before-the-jetpack.md); a click while hanging and ladders keeping their place,
-  by [grapple-climbs](2026-11-07-grapple-climbs.md)
+  by [grapple-climbs](2026-11-07-grapple-climbs.md); the reel to a point, by [debris-host-physics](2026-11-23-debris-host-physics.md)
 - Date: 2026-10-17
 
 ## Context

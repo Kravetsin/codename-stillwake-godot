@@ -102,7 +102,6 @@ public partial class AsteroidDemo : CanvasLayer
                 ["start"] = x,
                 ["end"] = 0,
                 ["damage"] = 0,
-                ["reel"] = null,
                 ["seenAt"] = 0,
             });
         }

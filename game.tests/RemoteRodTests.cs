@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
 using Xunit;
 using Spec = Stillwake.Content.Harpoon;
 
@@ -20,7 +21,7 @@ public class RemoteRodTests
     /// <summary>Pieces as drawn here, by id; one not in it is gone.</summary>
     private readonly Dictionary<int, (double X, double Y)> _pieces = new();
 
-    private (double X, double Y)? PieceAt(int id) => _pieces.TryGetValue(id, out var at) ? at : null;
+    private PiecePose? PieceAt(int id) => _pieces.TryGetValue(id, out var at) ? new PiecePose(at.X, at.Y, 0) : null;
 
     private RodCues Step(RemoteRod rod, double ms, RodSeen? sent, (double X, double Y)? gun = null) =>
         rod.Step(ms, sent, gun ?? Gun, PieceAt);
@@ -59,11 +60,11 @@ public class RemoteRodTests
         Assert.Equal(new RodCues(Bit: true), Step(rod, 10, hooked));
         Assert.Equal((Rod.Hooked, (5_500.0, 2_000.0), 4), (rod.Rod, rod.Tip, rod.Piece));
         Assert.Equal(default, Step(rod, 10, hooked));
-        // The sim reels it in here: the rod comes with it, the line taut, the drum turning.
+        // Its holder winds it in: the rod comes with the piece, the drum turning; how taut the line is, its length says.
         _pieces[4] = (4_000, 2_100);
         Assert.Equal(default, Step(rod, 10, hooked with { Rod = Rod.Reeling }));
         Assert.Equal((Rod.Reeling, (3_500.0, 2_000.0)), (rod.Rod, rod.Tip));
-        Assert.True(rod.Taut && rod.Drums);
+        Assert.True(rod.Drums);
     }
 
     [Fact]

@@ -21,7 +21,7 @@ public class TurnedAimTests
 
     /// <summary>A piece of <paramref name="item"/> at (<paramref name="x"/>, <paramref name="y"/>), in thousandths of a cell, turned and tumbling as given.</summary>
     private static Piece Of(string item, int x, int y, int angle = 0, int spin = 0, int speed = 0) =>
-        JsonSerializer.Deserialize<Piece>($$"""{"id":1,"item":"{{item}}","x":{{x}},"y":{{y}},"speed":{{speed}},"angle":{{angle}},"spin":{{spin}},"end":-100000}""", Loose)!;
+        JsonSerializer.Deserialize<Piece>($$"""{"id":1,"item":"{{item}}","x":{{x}},"y":{{y}},"speed":{{speed}},"vx":{{-speed}},"angle":{{angle}},"spin":{{spin}},"end":-100000}""", Loose)!;
 
     [Fact]
     public void APieceIsDrawnTurnedByItsSpinBetweenTicksItsBoxWrappedRoundTheTurn()
@@ -63,6 +63,7 @@ public class TurnedAimTests
             var piece = pieces[0]!.DeepClone();
             pieces.Clear();
             (piece["id"], piece["item"], piece["x"], piece["y"], piece["speed"], piece["angle"], piece["spin"]) = (1, item, x, y, 0, angle, 0);
+            (piece["vx"], piece["vy"]) = (0, 0);
             pieces.Add(piece);
             debris["nextId"] = 2;
         });

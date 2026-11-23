@@ -31,7 +31,7 @@ public class ToolEdgeTests
             var pieces = root["slices"]!["debris"]!["pieces"]!.AsArray();
             var near = pieces[0]!;
             near["item"] = "hullSection";
-            near["speed"] = 0;
+            (near["speed"], near["vx"], near["vy"]) = (0, 0, 0);
             near["x"] = 10 * Unit;
             near["y"] = 8 * Unit;
             var far = near.DeepClone();

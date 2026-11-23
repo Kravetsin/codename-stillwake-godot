@@ -148,7 +148,7 @@ public partial class HeroView
             }
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
             Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, elapsedMs);
-            ShowRod(id, shown, seen.Rod, seen.Wields, afloat, elapsedMs);
+            ShowRod(id, shown, seen.Rod, seen.Wields, afloat, elapsedMs, hero);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
         _canisters.Sweep();
@@ -216,13 +216,14 @@ public partial class HeroView
     /// Another hero's harpoon as it sends it (<see cref="RemoteRod"/>, 0065), from its gun's muzzle as just drawn:
     /// its rod and line drawn as this hero's; heard where it is, on World, as its steps are: the shot and its puff
     /// as the rod leaves, the bite where it sticks (the chop, or the glove's thump on a crate or pod), the drum
-    /// at the gun while it reels or is pulled.
+    /// at the gun while it winds or is pulled. A line held on a piece with the gun put away runs from its <paramref name="hero"/>'s chest.
     /// </summary>
-    private void ShowRod(int peer, Other shown, RodSeen? sent, string? wields, bool afloat, double elapsedMs)
+    private void ShowRod(int peer, Other shown, RodSeen? sent, string? wields, bool afloat, double elapsedMs, Hero? hero = null)
     {
         var figure = shown.Figure;
         var rod = shown.Rod;
-        var cues = rod.Step(elapsedMs, sent, figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, PieceDrawnAt);
+        var from = HolderOf(figure.Muzzle, sent?.Piece != null ? hero : null);
+        var cues = rod.Step(elapsedMs, sent, from is { } leaves ? Thousandths(leaves) : null, PieceDrawnAt);
         if (cues.Fired && figure.Muzzle is { } gun)
         {
             _othersShot.PlayAt(gun);
@@ -242,7 +243,26 @@ public partial class HeroView
             if (drums) shown.Drum.Play();
             else shown.Drum.Stop();
         }
-        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs);
+        DrawRod(rod.Rod, rod.Tip, rod.Heading, from, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs, HeldSlack(peer, rod.Piece));
+    }
+
+    /// <summary>Where a hero's line leaves it: the gun's muzzle as drawn, else, holding a piece with the gun put away (<paramref name="holding"/>), its chest.</summary>
+    private static Vector2? HolderOf(Vector2? muzzle, Hero? holding) =>
+        muzzle ?? (holding is { } hero ? new Vector2(Chest(hero).X, Chest(hero).Y) : null);
+
+    /// <summary>
+    /// How slack peer <paramref name="peer"/>'s line on <paramref name="piece"/> is, in thousandths of a cell: its length (the host player's
+    /// drum now, else the sim's) less the way from the holder's body middle to the hook point, the span the rope pulls along; below 0
+    /// stretched. None for a rod on no piece, a line not there yet or a holder unheard. The line is drawn from the gun to the rod's eye, a
+    /// shorter way, so given its whole length it would curl up the difference.
+    /// </summary>
+    private double? HeldSlack(int peer, int? piece)
+    {
+        if (piece is not int on || _m?.Debris.LineOf(peer) is not { } line || line.Piece != on || PieceDrawnAt(on) is not { } pose
+            || AnchorOf(peer) is not { } anchor) return null;
+        var (hx, hy) = pose.At(line.HookX, line.HookY);
+        double length = LiveDebris.LineLength(peer, on) ?? line.Length;
+        return length - Math.Sqrt((hx - anchor.X) * (hx - anchor.X) + (hy - anchor.Y) * (hy - anchor.Y));
     }
 
     /// <summary>Every ping shown, this player's and its friends' here, drawn in their colours and listed for the markers (gesture-pings).</summary>
@@ -326,18 +346,23 @@ public partial class HeroView
         return was != null && _droneShowed == null && Content.Lessons.All.Any(l => l.Form == was && l.Source is Content.Deed);
     }
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
-    private void ShowHarpoon(double elapsedMs) =>
-        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod,
-            RodLook.Of(_grappling ? Content.Grapple.Item : Content.Harpoon.Item), _rodLight, 0, elapsedMs);
+    private void ShowHarpoon(double elapsedMs)
+    {
+        // The harpoon's line stays out on its piece while the grappling gun is in hand, or nothing is.
+        var shot = _harpoon.Piece == null && _harpoonGun.Piece != null ? _harpoonGun : _harpoon;
+        var from = shot == _harpoon ? HolderOf(_figure.Muzzle, shot.Piece != null ? _current : null) : HolderOf(null, _current);
+        DrawRod(shot.Rod, shot.Tip, shot.Heading, from, ref _line, _rod,
+            RodLook.Of(shot == _grappleGun ? Content.Grapple.Item : Content.Harpoon.Item), _rodLight, 0, elapsedMs, HeldSlack(_client!.Id, shot.Piece));
+    }
 
     /// <summary>
     /// A rod and its line where <paramref name="rod"/> says, its point at <paramref name="tip"/>, from a gun's
-    /// <paramref name="muzzle"/> as just drawn: the rod pointing the way it flew, <paramref name="heading"/>, or, reeled
-    /// or winding back, away from the gun along the line; the line slack in flight and hooked, taut reeling, pulling,
-    /// hanging and winding back. Nothing while the rod is in the gun. This hero's and the others' alike.
+    /// <paramref name="muzzle"/> as just drawn: the rod pointing the way it flew, <paramref name="heading"/> (turned with its piece),
+    /// or, winding back, away from the gun along the line; the line slack in flight and hooked, taut pulling, hanging and winding back,
+    /// and on a piece as long as its line, <paramref name="held"/>. Nothing while the rod is in the gun. This hero's and the others' alike.
     /// </summary>
     private static void DrawRod(Rod rod, (double X, double Y) tip, (double X, double Y) heading, Vector2? muzzle,
-        ref HarpoonLine? line, Sprite2D picture, RodLook look, RodLight light, int seed, double elapsedMs)
+        ref HarpoonLine? line, Sprite2D picture, RodLook look, RodLight light, int seed, double elapsedMs, double? held = null)
     {
         if (rod == Rod.Seated || muzzle is not { } at)
         {
@@ -351,14 +376,14 @@ public partial class HeroView
         var gun = Thousandths(at);
         var pointing = heading;
         double far = Math.Sqrt((tip.X - gun.X) * (tip.X - gun.X) + (tip.Y - gun.Y) * (tip.Y - gun.Y));
-        // Stuck in the structure it keeps the way it flew in; riding a piece or winding back, it points along the line.
-        if (rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
+        // Stuck, it keeps the way it flew in, turned with its piece; winding back, it points along the line.
+        if (rod is Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
         // The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.
         double length = (look.Tip.X - look.Eye.X) * look.Size / Rig.Cell * Hero.Unit;
         var eye = (tip.X - pointing.X * length, tip.Y - pointing.Y * length);
         var end = HarpoonLine.EndOf(gun, tip, pointing, length);
         line ??= new HarpoonLine(gun, end, seed);
-        line.Update(gun, end, HarpoonShot.Taut(rod), elapsedMs);
+        line.Update(gun, end, HarpoonShot.Taut(rod), elapsedMs, held);
         // Flying or winding back, none of it shows over the gun while its eye is in there; stuck, a hero hanging may be that close.
         picture.Visible = end != gun || rod is not (Rod.Flying or Rod.Returning);
         picture.Position = Pixels(eye);

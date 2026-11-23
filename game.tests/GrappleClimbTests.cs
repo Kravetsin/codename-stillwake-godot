@@ -35,7 +35,7 @@ public class GrappleClimbTests
 
     private static HarpoonWorld WorldOf(Ship ship) => new(
         (from, to) => Aiming.Grapples(ship, from, to) is var (at, _) ? new RodHit(null, at) : null,
-        _ => null, _ => false, _ => false, at => Aiming.Grips(ship, at));
+        _ => null, _ => null, _ => false, at => Aiming.Grips(ship, at));
 
     /// <summary>
     /// Climbs the shaft with <paramref name="shot"/>, a click whenever it is ready, hooked or hanging, at the left wall

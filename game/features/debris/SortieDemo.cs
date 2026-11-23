@@ -91,7 +91,6 @@ public partial class SortieDemo : CanvasLayer
                 ["start"] = x,
                 ["end"] = 0,
                 ["damage"] = 0,
-                ["reel"] = null,
                 ["seenAt"] = clock,
             });
         }

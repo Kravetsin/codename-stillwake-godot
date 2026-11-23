@@ -32,7 +32,7 @@ public class WeaponThrowTests
                 var piece = made.DeepClone();
                 piece["id"] = i + 1;
                 piece["item"] = "hullSection";
-                piece["speed"] = 0;
+                (piece["speed"], piece["vx"], piece["vy"]) = (0, 0, 0);
                 piece["x"] = wrecksAt[i] * Unit;
                 piece["y"] = 12 * Unit;
                 pieces.Add(piece);

@@ -69,18 +69,20 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         for (int i = 0; i < pieces; i++)
         {
             int x = (sx - 80 + random.Next(321)) * 1000 + 500, y = Math.Max(0, sy - 80 + random.Next(161)) * 1000 + 500;
+            string item = kinds[random.Next(kinds.Count)].Item;
+            int speed = Spec.Debris.Far.DriftMin + random.Next(Spec.Debris.Far.DriftMax - Spec.Debris.Far.DriftMin + 1);
             list.Add(new JsonObject
             {
                 ["id"] = next++,
                 ["zone"] = Spec.Debris.Far.Id,
-                ["item"] = kinds[random.Next(kinds.Count)].Item,
+                ["item"] = item,
                 ["x"] = x,
                 ["y"] = y,
-                ["speed"] = Spec.Debris.Far.DriftMin + random.Next(Spec.Debris.Far.DriftMax - Spec.Debris.Far.DriftMin + 1),
+                ["speed"] = speed,
+                ["vx"] = -speed,
                 ["start"] = x,
                 ["end"] = 0,
                 ["damage"] = 0,
-                ["reel"] = null,
                 ["seenAt"] = clock,
             });
         }

@@ -83,11 +83,14 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void AReelFollowsAHeroThatMovesFartherThanThePieceIsHeldBeforeTheGunNoMoreOftenThanItTakesToArrive()
+    public void ALinePaysOutLessThanItsRangeAndTheFeedForgivesLessThanACell()
     {
         AllPositive(typeof(Harpoon));
-        Assert.True(Harpoon.FollowBeyond < Harpoon.Stop);
-        Assert.True(Harpoon.FollowTicks < Harpoon.CooldownTicks);
+        Assert.True(Harpoon.PayOut < Harpoon.Range);
+        Assert.True(Harpoon.Stop < Harpoon.PayOut);
+        Assert.True(DebrisSpec.FeedSlack < Stillwake.Sim.Rays.Cell);
+        Assert.True(DebrisSpec.Drag < 1000);
+        Assert.True(DebrisSpec.ShapeShare <= 1000);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Spec = Stillwake.Content.Harpoon;
 
@@ -11,7 +12,7 @@ public readonly record struct RodCues(bool Fired = false, bool Bit = false);
 /// Another hero's harpoon as this peer plays it (0065), from the rod it sends (<see cref="RodSeen"/>), taken
 /// as drawn, 150 ms behind with its hero: fired, the rod flies from the gun drawn here toward the end of the
 /// range sent, at <c>Harpoon.RodSpeed</c>; stuck, it sits where it was sent to stick, riding its piece as this
-/// peer draws it, so the line ends on the piece the sim reels; come free, or its piece gone here, it snaps back
+/// peer draws it, turned with it, so the line ends on the piece its hero holds; come free, or its piece gone here, it snaps back
 /// to the gun at <c>Harpoon.ReturnSpeed</c>, the shooter's own rules; sent back in the gun, it is there at
 /// once. The gun is drawn loaded only <c>Harpoon.CooldownTicks</c> after the shot this peer saw.
 /// </summary>
@@ -20,7 +21,7 @@ public sealed class RemoteRod
     private static readonly double PerMs = World.TicksPerSecond / 1000.0;
 
     private RodSeen? _heard;
-    private (double X, double Y) _from;
+    private (double X, double Y) _from, _stuckHeading;
     private double _sinceFiredMs = double.PositiveInfinity;
 
     /// <summary>Where the rod is drawn: in the gun, flying, stuck (hooked, reeling, pulling, hanging) or on its way back.</summary>
@@ -51,7 +52,7 @@ public sealed class RemoteRod
     /// Where the gun is aimed this frame, in thousandths of a cell, given <paramref name="sent"/>, before the figure
     /// is drawn: flying, the end of its range; stuck, the rod; on its way back, where it is; none in the gun.
     /// </summary>
-    public (double X, double Y)? AimAt(RodSeen? sent, Func<int, (double X, double Y)?> pieceAt)
+    public (double X, double Y)? AimAt(RodSeen? sent, Func<int, PiecePose?> pieceAt)
     {
         if (sent is not { } now) return null;
         if (now is { Rod: Rod.Flying, At: { } toward }) return (toward.X, toward.Y);
@@ -64,7 +65,7 @@ public sealed class RemoteRod
     /// <paramref name="muzzle"/> as just drawn (none: no gun drawn, the rod in it), its piece where
     /// <paramref name="pieceAt"/> draws it, none once gone.
     /// </summary>
-    public RodCues Step(double elapsedMs, RodSeen? sent, (double X, double Y)? muzzle, Func<int, (double X, double Y)?> pieceAt)
+    public RodCues Step(double elapsedMs, RodSeen? sent, (double X, double Y)? muzzle, Func<int, PiecePose?> pieceAt)
     {
         double ms = Math.Min(Math.Max(0, elapsedMs), HarpoonShot.MostPerFrameMs);
         _sinceFiredMs += ms;
@@ -98,6 +99,12 @@ public sealed class RemoteRod
                 bit = was is null or { Rod: Rod.Flying };
                 // Its flight unseen here, it points the way from the gun.
                 if (Rod is Rod.Seated or Rod.Returning) Heading = Toward(gun, at) ?? Heading;
+                // On a piece it turns with it, the way it came in kept in the piece's own frame.
+                if (now.Piece is int on && pieceAt(on) is { } pose)
+                {
+                    if (Piece != on || Rod is Rod.Seated or Rod.Flying or Rod.Returning) _stuckHeading = pose.Unturned(Heading.X, Heading.Y);
+                    Heading = pose.Turned(_stuckHeading.X, _stuckHeading.Y);
+                }
                 (Rod, Tip, Piece) = (now.Rod, at, now.Piece);
                 break;
         }
@@ -127,11 +134,11 @@ public sealed class RemoteRod
     private void Seat() => (Rod, Piece) = (Rod.Seated, null);
 
     /// <summary>Where a stuck rod sent as <paramref name="sent"/> is drawn here; none without a point or once its piece is gone.</summary>
-    private static (double X, double Y)? StuckAt(RodSeen sent, Func<int, (double X, double Y)?> pieceAt)
+    private static (double X, double Y)? StuckAt(RodSeen sent, Func<int, PiecePose?> pieceAt)
     {
         if (sent.At is not { } at) return null;
         if (sent.Piece is not int piece) return (at.X, at.Y);
-        return pieceAt(piece) is { } middle ? (middle.X + at.X, middle.Y + at.Y) : null;
+        return pieceAt(piece) is { } pose ? pose.At(at.X, at.Y) : null;
     }
 
     private static (double X, double Y)? Toward((double X, double Y) from, (double X, double Y) to)
