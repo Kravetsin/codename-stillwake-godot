@@ -26,8 +26,8 @@ public partial class EscortBodies : Node2D
     private const float Cell = ShipCamera.Cell;
     private const int Unit = CreaturesModule.Unit;
 
-    /// <summary>The height over its feet it turns about, in pixels: its middle.</summary>
-    private static readonly float Middle = Spec.Creatures.Escort.Body.Height * Cell / 2;
+    /// <summary>The height over its feet it turns about, in pixels: its middle, from the body of the species drawn as an escort.</summary>
+    private static readonly float Middle = Spec.Creatures.All.First(s => CreatureLooks.Escorts.Contains(s.Look)).Body.Height * Cell / 2;
 
     /// <summary>How long a gauss's trace shows, and its first flash, in seconds; how far a shot kicks it back, fading over seconds.</summary>
     private const double TraceS = 0.45, FlashS = 0.08, RecoilS = 0.3;
