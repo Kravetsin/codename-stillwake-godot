@@ -7,6 +7,10 @@
 | `logic/Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
 | `logic/OwnHits.cs` | Which pieces this peer's own hits were just sent at and ran on, and with which weapon. |
 | `DebrisView.cs` | The layer: pieces and the outline of the one aimed at. |
+| `DebrisBodies.cs` | The host player's bodies, their ropes and the feed (`Moved`). |
+| `logic/PieceShape.cs` | A body's box, mass, inertia and drag. |
+| `logic/PieceRope.cs` | A line's rope as the physics pulls it. |
+| `logic/BodyFeed.cs` | Which strayed bodies are fed. |
 | `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
 | `DebrisDemo.cs` | The world and the script of `--debris`. |
 | `WreckDemo.cs` | The world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple`. |
@@ -33,16 +37,15 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 
 - **Only what the camera sees** (0052): a piece gets a picture only while its middle is within `ShipCamera.View` and
   8 cells round it. Pictures come from two pools, wrecks' and small pieces', that grow to the most ever on screen and
-  never free, warmed in `_Ready` (`WarmSmall`, `WarmWrecks`) with every debris texture, so a cloud drifting in makes
+  never free, warmed in `_Ready` with every debris texture, so a cloud drifting in makes
   none. Only wrecks take the cracking material; a small piece is `Lit` plain. A piece leaving the view goes back to its pool.
-- **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece wears one of
+- **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull. Each piece wears one of
   its kind's pictures (`Content/DebrisLooks`, `art/debris`), the one its id picks (`Content.Looks.Of(kind, id)`), so
   every peer sees it alike (0066); a wreck's is drawn of what it breaks into and is the box it is aimed at and struck
   by (`DebrisLooks.Wrecks`). A kind with none is its item's icon at 0.8 of a cell. Lit by the stars and lamps; drawn
-  at `X − Speed × Drift`, on past a late tick (guest-draws-through), or reeled its share of the way to its point
-  (`Shared.PieceDrawn`, 0044).
-- **Motion** (no ADR): a small piece tumbles a turn every 4 s, each its own way; a wreck only rocks (`Rock`, `RockMs`),
-  so its picture stays where the aim tests it. Full strength from the first frame: it spawns out of sight (0052).
+  where `Shared.PieceDrawn` says: the host player's body (`LiveDebris`), else the sim's pose run on.
+- **Bodies** (debris-host-physics): on the host player's client a rigid body a piece, meeting only pieces, eased to its
+  drift and tumble; lines pull by `PieceRope`; strays past `FeedSlack` go to the sim as `Moved`.
 - **Damage** (cracks-to-end): a dent per blow seen, one within 3 px deepening it, and one network out of the first
   (`game/shared`'s `WreckCracks`, `WreckInk` on the picture, lit, clipped) run on with the share lost to cover it by 0.92; one first
   seen damaged is struck in its middle. Kept out of view; blows there go unseen.
@@ -72,22 +75,21 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 
 ## The Handbook's Debris section (0066, 0083)
 
-- `HandbookPage` on `features/handbook`'s tablet: every kind in rows by where to look (`Content/Handbook.DebrisRows`),
-  in slots 16 px larger than an item slot, laid out again when the slot size changes. A found kind shows its first
-  look found; one not found its first look black.
+- `HandbookPage` on `features/handbook`'s tablet: every kind in rows by where to look (`Content/Handbook.DebrisRows`). A found kind
+  shows its first look found; one not found its first look black.
 - **Tally** at the tab strip's right: looks found of all there are, with a bar; its tooltip gives kinds and looks.
 - **Entry** of the chosen kind (the first found until one is clicked): the look big, a strip of every look (not found
   black, a click shows a found one big, "2/5"; none for a one-look kind); name, hit points (`Wreckage.HpOf`) or
   "Caught by hand"; loot slot by slot (`Loot.Of`): a seen item with its range, an unseen one a black silhouette, a pie
   for a roll's chance (`OneIn`). With nothing found, the entry says what to do.
 - Words only in the one tooltip (`Finds`); "???" for what is not found or seen.
-- Reads `DebrisModule.Found` every 250 ms while shown and rebuilds only on a change.
+- Reads `Found` every 250 ms while shown, rebuilt on a change.
 
 ## Recordings
 
 `--debris` (a crate caught at the airlock), `--fly` and `--far=N`/`--edge=N`
 (the far field, 0052), `--harpoon` and `--grapple --lit` (0044), `--asteroid` and `--sortie` (0054, 0056; `--manual`
-leaves the script off), `--wreck`/`--wrecks`, `--net=N`/`--net-press=N`, `--handbook` (`dev/HandbookDemo`).
+leaves the script off), `--wreck`/`--wrecks`, `--net=N`/`--net-press=N`, `--handbook`.
 
 ## Tests
 
@@ -98,6 +100,6 @@ in exactly one row).
 
 - Other peers' grabs in flight: a piece another player is catching stays until the host's tick says so.
 - Own hits before their tick (0014): a chop jolts and is heard a round trip after the swing; its pace hides it.
-- Which hero struck: the jolt faces the nearest, wrong only for two heroes chopping one wreck from both sides.
+- Which hero struck: the jolt faces the nearest.
 - Off the view: a hit on a piece not drawn jolts nothing; a wreck broken there bursts unseen. Pooled pictures draw
   over or under one another in no set order.
