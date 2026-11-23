@@ -15,7 +15,7 @@ public class ScanTests
 
     /// <summary>A piece of <paramref name="item"/> at (<paramref name="x"/>, <paramref name="y"/>) cells, <paramref name="damage"/> taken.</summary>
     private static Piece Of(int id, string item, int x, int y, int damage = 0, int speed = 0) =>
-        JsonSerializer.Deserialize<Piece>($$"""{"id":{{id}},"item":"{{item}}","x":{{x * 1000}},"y":{{y * 1000}},"damage":{{damage}},"speed":{{speed}},"end":-100000}""", Loose)!;
+        JsonSerializer.Deserialize<Piece>($$"""{"id":{{id}},"item":"{{item}}","x":{{x * 1000}},"y":{{y * 1000}},"damage":{{damage}},"speed":{{speed}},"vx":{{-speed}},"end":-100000}""", Loose)!;
 
     [Fact]
     public void ReadsTheWreckUnderThePointerAtItsTopEdge()

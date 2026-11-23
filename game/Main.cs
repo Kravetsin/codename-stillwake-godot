@@ -113,6 +113,8 @@ public partial class Main : Node2D, ITogether
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
     private DebrisView _debris = null!;
+    /// <summary>The pieces as rigid bodies on the host player's client, fed to the sim (debris-physics).</summary>
+    private DebrisBodies _pieceBodies = null!;
     private Features.Creatures.CreaturesView _creatures = null!;
     private readonly Features.Scanner.ScannerView _scanner = new();
     private Hands _hands = null!;
@@ -280,6 +282,7 @@ public partial class Main : Node2D, ITogether
         AddChild(_stars = new Stars());
         AddChild(new Features.Backdrop.FocusView(() => _stars.OnPlanet && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look) ? look.Far : 0));
         AddChild(_debris);
+        AddChild(_pieceBodies = new DebrisBodies { AnchorOf = peer => _hero?.AnchorOf(peer) });
         AddChild(_scanner);
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
@@ -736,6 +739,7 @@ public partial class Main : Node2D, ITogether
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
+        _pieceBodies.Frame(client, _m.Debris, session.Drift);
         _frameLog?.Mark("debris");
         _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null,

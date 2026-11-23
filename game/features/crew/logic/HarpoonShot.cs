@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Debris;
 using Spec = Stillwake.Content.Harpoon;
@@ -14,9 +15,9 @@ public enum Rod
     Seated,
     /// <summary>Flying out from the muzzle, paying out the line; fired from a hang, the hero held where it hung meanwhile.</summary>
     Flying,
-    /// <summary>Stuck in a piece or the ship's structure, the line slack, waiting for the press that reels or pulls.</summary>
+    /// <summary>Stuck in a piece, its line held, or in the ship's structure waiting for the press that pulls.</summary>
     Hooked,
-    /// <summary>Stuck in a piece the sim reels in, the line taut.</summary>
+    /// <summary>Stuck in a piece, its line wound in while the left button is held (debris-physics).</summary>
     Reeling,
     /// <summary>Stuck in the structure, the hero pulled toward it on the taut line (the grapple).</summary>
     Pulling,
@@ -31,17 +32,17 @@ public readonly record struct RodHit(int? Piece, (double X, double Y) At);
 
 /// <summary>
 /// What the world says to the harpoon each frame, in thousandths of a cell: <see cref="Touches"/>, the first
-/// thing along the rod's way from one point to another, a piece this hero could reel or a wall, floor or
-/// closed door, and where it sticks; <see cref="PieceAt"/>, where a piece is drawn, none once it is gone;
-/// <see cref="Reelable"/>, whether the sim would take this hero's reel of it; <see cref="Reeled"/>, whether
-/// this hero's reel of it is still on, in flight or in the sim; <see cref="Grips"/>, whether the structure at
-/// a point still holds a rod (a door opened or a wall taken down lets it go).
+/// thing along the rod's way from one point to another, a piece this hero could hook or a wall, floor or
+/// closed door, and where it sticks; <see cref="PieceAt"/>, where a piece is drawn and how it is turned, none once
+/// it is gone; <see cref="HookOn"/>, where the sim's line of this hero holds a piece, in its own frame, none if
+/// its line is not on it; <see cref="HookSent"/>, whether this hero's <see cref="Hook"/> of it is still in flight;
+/// <see cref="Grips"/>, whether the structure at a point still holds a rod (a door opened or a wall taken down lets it go).
 /// </summary>
 public sealed record HarpoonWorld(
     Func<(double X, double Y), (double X, double Y), RodHit?> Touches,
-    Func<int, (double X, double Y)?> PieceAt,
-    Func<int, bool> Reelable,
-    Func<int, bool> Reeled,
+    Func<int, PiecePose?> PieceAt,
+    Func<int, (int X, int Y)?> HookOn,
+    Func<int, bool> HookSent,
     Func<(double X, double Y), bool> Grips);
 
 /// <summary>
@@ -49,35 +50,33 @@ public sealed record HarpoonWorld(
 /// awake, not climbing), its <see cref="Muzzle"/> and the way its <see cref="Barrel"/> points, a unit vector,
 /// as the figure last drew it (no muzzle before it has), the hero's body <see cref="Middle"/>, and whether the
 /// player <see cref="LetsGo"/>: jumped in the steps since the last frame (<see cref="HarpoonShot.LetsGoBy"/>), or <see cref="Drops"/>
-/// off the line: right-clicked, which lets go even while the line still pulls.
+/// off the line: right-clicked, which lets go even while the line still pulls; and whether it <see cref="Holds"/> the left button down.
 /// </summary>
 public readonly record struct GunHold(
     bool Wields, (double X, double Y)? Muzzle, (double X, double Y) Barrel, (double X, double Y) Middle = default, bool LetsGo = false,
-    bool Drops = false);
+    bool Drops = false, bool Holds = false);
 
 /// <summary>
 /// What one frame of the harpoon did: the shot <see cref="Fired"/>, the piece the rod <see cref="Hooked"/>,
-/// whether it <see cref="Gripped"/> the structure, the <see cref="Reel"/> to send, and whether the gun came
-/// <see cref="Ready"/> again in the hand.
+/// whether it <see cref="Gripped"/> the structure, the command to <see cref="Send"/> (<see cref="Hook"/>, <see cref="Wind"/>
+/// or <see cref="LetGo"/>), and whether the gun came <see cref="Ready"/> again in the hand.
 /// </summary>
-public readonly record struct ShotStep(bool Fired = false, int? Hooked = null, Reel? Reel = null, bool Ready = false, bool Gripped = false);
+public readonly record struct ShotStep(bool Fired = false, int? Hooked = null, Command? Send = null, bool Ready = false, bool Gripped = false);
 
 /// <summary>
 /// The hand harpoon (0044), this hero's, client only: one press fires the rod from the muzzle along the
 /// barrel at <c>Harpoon.RodSpeed</c> out to <c>Harpoon.Range</c>, aboard or out in space; it sticks in the
-/// first thing on its way, a piece the sim would let this hero reel or a wall, floor or closed door, else
-/// snaps back at <c>Harpoon.ReturnSpeed</c>. In a piece, the next press sends <see cref="Reel"/> to the point
-/// <c>Harpoon.Stop</c> before the muzzle toward the piece, and the rod rides the piece in till the sim's reel
-/// is over, then snaps back; a press while reeling sends it again from where the hero is now, and so does the
-/// hero moving the point before the muzzle more than <c>Harpoon.FollowBeyond</c> from the last sent, at most
-/// every <c>Harpoon.FollowTicks</c>. In the structure (the grapple), the next press pulls the hero's middle
+/// first thing on its way, a piece the sim would let this hero hook or a wall, floor or closed door, else
+/// snaps back at <c>Harpoon.ReturnSpeed</c>. In a piece, it sends <see cref="Hook"/> with the point it stuck in, in the
+/// piece's own frame, and rides it there, turned with it, while the line holds (debris-physics): the left button held down
+/// after the hook winds it (<see cref="Wind"/>, sent as the hold begins and ends), a right click lets it go (<see cref="LetGo"/>),
+/// and the line dropped by the sim snaps it back. Put away, a held line stays out, unwound. In the structure (the grapple), the next press pulls the hero's middle
 /// toward <see cref="PullTo"/>, <c>Harpoon.PullStop</c> short of the hook, and it hangs where the pull stops
 /// till the player jumps. A press while hanging with the cooldown over fires again, the hero held where it hangs
 /// while the rod flies (grapple-climbs): a grip pulls it on with no press, a miss or a piece lets it go, and so does
 /// a jump meanwhile. The grappling gun is the same machine made with <see cref="PullsAtOnce"/>: every grip pulls at
-/// once, and its world offers it no pieces. The line comes free when the piece is gone
-/// or the sim would refuse its reel, the structure lets go, or it is past the range unpulled and unreeled; put
-/// away or passed out, the rod is back in the gun at once. The cooldown, <paramref name="cooldownTicks"/> as real
+/// once, and its world offers it no pieces. A grip comes free when the structure lets go or it is past the range unpulled;
+/// put away or passed out with no line held, the rod is back in the gun at once. The cooldown, <paramref name="cooldownTicks"/> as real
 /// time from the shot, hit or miss, is the hero's: one machine per kind of gun it holds. Presses in flight,
 /// while pulled, on the way back or in the cooldown do nothing.
 /// </summary>
@@ -116,26 +115,23 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
     private static readonly double PerMs = World.TicksPerSecond / 1000.0;
 
     private double _cooldownMs;
-    private (double X, double Y) _from, _stuck;
+    /// <summary>Where it flew from; on a piece, where it sticks and the way it flew in, both in the piece's own frame, so it turns with it.</summary>
+    private (double X, double Y) _from, _stuck, _stuckHeading;
     private bool _wasReady = true;
-    /// <summary>Reeling: the point the last <see cref="Reel"/> went to, and the ms since it went.</summary>
-    private (int X, int Y) _sentTo;
-    private double _sinceSentMs;
+    /// <summary>On a piece: whether the last <see cref="Wind"/> sent winds, and whether the button has been let up since the hook, so the hold that fired does not wind.</summary>
+    private bool _winds, _armed;
     /// <summary>Pulled: where the hero's middle was last frame; none on the frame the pull began.</summary>
     private (double X, double Y)? _pulledFrom;
-
-    /// <summary>The ms a reel waits at least before it is sent again to follow the hero: <c>Harpoon.FollowTicks</c>.</summary>
-    public static readonly double FollowMs = Spec.FollowTicks * 1000.0 / World.TicksPerSecond;
 
     public Rod Rod { get; private set; }
 
     /// <summary>Where the rod's point is, in thousandths of a cell, while it is out of the gun.</summary>
     public (double X, double Y) Tip { get; private set; }
 
-    /// <summary>The way the rod flew, a unit vector: it keeps it while it is stuck and unreeled.</summary>
+    /// <summary>The way the rod flew, a unit vector: it keeps it while it is stuck.</summary>
     public (double X, double Y) Heading { get; private set; }
 
-    /// <summary>The piece the rod is stuck in, hooked or reeling; none in the structure.</summary>
+    /// <summary>The piece the rod is stuck in, its line held or wound; none in the structure.</summary>
     public int? Piece { get; private set; }
 
     /// <summary>
@@ -151,10 +147,10 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
     /// <summary>Whether the gun fires at the next press: the rod seated and the cooldown over. Drawn loaded.</summary>
     public bool Ready => Rod == Rod.Seated && _cooldownMs <= 0;
 
-    /// <summary>Whether a rod where <paramref name="rod"/> says draws its line wound taut: reeling, pulled, hanging or on the way back.</summary>
-    public static bool Taut(Rod rod) => rod is Rod.Reeling or Rod.Pulling or Rod.Hanging or Rod.Returning;
+    /// <summary>Whether a rod where <paramref name="rod"/> says draws its line wound taut: pulled, hanging or on the way back; a piece's line is taut by its length.</summary>
+    public static bool Taut(Rod rod) => rod is Rod.Pulling or Rod.Hanging or Rod.Returning;
 
-    /// <summary>Whether the drum turns with a rod where <paramref name="rod"/> says: reeling a piece in or pulling the hero.</summary>
+    /// <summary>Whether the drum turns with a rod where <paramref name="rod"/> says: winding a piece's line or pulling the hero.</summary>
     public static bool Drums(Rod rod) => rod is Rod.Reeling or Rod.Pulling;
 
     /// <summary>The rod as others see it (0065): none in the gun; else its state and the one point that holds through it.</summary>
@@ -178,14 +174,13 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
         double ms = Math.Min(Math.Max(0, elapsedMs), MostPerFrameMs);
         _cooldownMs = Math.Max(0, _cooldownMs - ms);
         var step = new ShotStep();
-        if (!hold.Wields) Seat();
+        if (!hold.Wields) step = Away(world);
         else if (hold.Muzzle is { } muzzle) step = Rod switch
         {
             Rod.Seated => pressed && _cooldownMs <= 0 ? Fire(muzzle, hold.Barrel) : step,
             Rod.Flying => Fly(ms, hold, world),
             Rod.Hooked when Piece == null => Gripping(pressed, muzzle, hold.Middle, world),
-            Rod.Hooked => Hooked(pressed, muzzle, world),
-            Rod.Reeling => Reeling(ms, pressed, muzzle, world),
+            Rod.Hooked or Rod.Reeling => OnPiece(hold, world),
             Rod.Pulling or Rod.Hanging => Pulled(pressed, hold, world),
             _ => Return(ms, muzzle, step),
         };
@@ -217,21 +212,58 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
                 (Rod, Piece, Tip) = (Rod.Hooked, null, wall);
                 if (PullTo != null || pullsAtOnce) (Rod, PullTo, _pulledFrom) = (Rod.Pulling, PullOf(hold.Middle, wall), null);
                 return new ShotStep(Gripped: true);
-            case { Piece: int piece, At: var at } when world.PieceAt(piece) is { } middle:
-                (Rod, Piece, Tip, _stuck, PullTo) = (Rod.Hooked, piece, at, (at.X - middle.X, at.Y - middle.Y), null);
-                return new ShotStep(Hooked: piece);
+            case { Piece: int piece, At: var at } when world.PieceAt(piece) is { } pose:
+                (Rod, Piece, Tip, _stuck, _stuckHeading, PullTo, _winds, _armed) = (Rod.Hooked, piece, at, pose.Local(at.X, at.Y), pose.Unturned(Heading.X, Heading.Y), null, false, false);
+                return new ShotStep(Hooked: piece, Send: new Hook(piece, (int)Math.Round(_stuck.X), (int)Math.Round(_stuck.Y)));
         }
         Tip = next;
         return spent ? Free(default) : default;
     }
 
-    private ShotStep Hooked(bool pressed, (double X, double Y) muzzle, HarpoonWorld world)
+    /// <summary>
+    /// On a piece: the rod rides its hook point, turned with it, while the line holds, its hook in flight or the sim's; a right click
+    /// lets it go, and the left button held down after the hook winds it, a <see cref="Wind"/> sent as the hold begins and ends.
+    /// </summary>
+    private ShotStep OnPiece(GunHold hold, HarpoonWorld world)
     {
-        if (Piece is not int piece || world.PieceAt(piece) is not { } middle || !world.Reelable(piece)) return Free(default);
-        Tip = (middle.X + _stuck.X, middle.Y + _stuck.Y);
-        if (!pressed) return Distance(muzzle, Tip) > Spec.Range ? Free(default) : default;
-        Rod = Rod.Reeling;
-        return Send(ReelOf(piece, muzzle, middle));
+        if (!HoldsOn(world, out var pose)) return Free(default);
+        if (hold.Drops)
+        {
+            _winds = false;
+            return Free(new ShotStep(Send: new LetGo()));
+        }
+        _armed |= !hold.Holds;
+        bool winds = _armed && hold.Holds;
+        Rod = winds ? Rod.Reeling : Rod.Hooked;
+        if (winds == _winds) return default;
+        _winds = winds;
+        return new ShotStep(Send: new Wind(winds));
+    }
+
+    /// <summary>The gun out of the hand: a held line stays out, unwound, the rod riding its piece; anything else is back in the gun.</summary>
+    private ShotStep Away(HarpoonWorld world)
+    {
+        bool wound = _winds;
+        (_winds, _armed) = (false, false);
+        if (Rod is Rod.Hooked or Rod.Reeling && HoldsOn(world, out _))
+        {
+            Rod = Rod.Hooked;
+            return wound ? new ShotStep(Send: new Wind(false)) : default;
+        }
+        Seat();
+        return default;
+    }
+
+    /// <summary>Whether the rod's piece is still drawn and its line held, the rod's point moved with it to where the sim's line holds it.</summary>
+    private bool HoldsOn(HarpoonWorld world, out PiecePose pose)
+    {
+        pose = default;
+        if (Piece is not int piece || world.PieceAt(piece) is not { } drawn) return false;
+        if (world.HookOn(piece) is { } hook) _stuck = hook;
+        else if (!world.HookSent(piece)) return false;
+        pose = drawn;
+        (Tip, Heading) = (pose.At(_stuck.X, _stuck.Y), pose.Turned(_stuckHeading.X, _stuckHeading.Y));
+        return true;
     }
 
     /// <summary>Hooked in the structure: the next press pulls the hero toward it.</summary>
@@ -273,26 +305,6 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
         return new Point((int)Math.Round(to.X), (int)Math.Round(to.Y));
     }
 
-    private ShotStep Reeling(double ms, bool pressed, (double X, double Y) muzzle, HarpoonWorld world)
-    {
-        if (Piece is not int piece || world.PieceAt(piece) is not { } middle) return Free(default);
-        Tip = (middle.X + _stuck.X, middle.Y + _stuck.Y);
-        _sinceSentMs += ms;
-        var reel = ReelOf(piece, muzzle, middle);
-        // Pressed again, the reel goes again from where the hero is now; the last reel wins (0044).
-        if (pressed) return Send(reel);
-        if (!world.Reeled(piece)) return Free(default);
-        // The hero swum on: the reel follows it, the point before the gun sent again once it is two cells off.
-        double dx = reel.ToX - _sentTo.X, dy = reel.ToY - _sentTo.Y;
-        bool moved = dx * dx + dy * dy > (double)Spec.FollowBeyond * Spec.FollowBeyond;
-        return moved && _sinceSentMs >= FollowMs ? Send(reel) : default;
-    }
-
-    private ShotStep Send(Reel reel)
-    {
-        (_sentTo, _sinceSentMs) = ((reel.ToX, reel.ToY), 0);
-        return new ShotStep(Reel: reel);
-    }
 
     private ShotStep Return(double ms, (double X, double Y) muzzle, ShotStep step)
     {
@@ -304,22 +316,11 @@ public sealed class HarpoonShot(int cooldownTicks = Spec.CooldownTicks, bool pul
 
     private ShotStep Free(ShotStep step)
     {
-        (Rod, Piece, PullTo) = (Rod.Returning, null, null);
+        (Rod, Piece, PullTo, _winds) = (Rod.Returning, null, null, false);
         return step;
     }
 
-    private void Seat() => (Rod, Piece, PullTo) = (Rod.Seated, null, null);
-
-    /// <summary>
-    /// The reel of <paramref name="piece"/>, drawn at <paramref name="middle"/>, to the point
-    /// <c>Harpoon.Stop</c> before <paramref name="muzzle"/> on the way to it, in whole thousandths of a cell.
-    /// </summary>
-    public static Reel ReelOf(int piece, (double X, double Y) muzzle, (double X, double Y) middle)
-    {
-        double dx = middle.X - muzzle.X, dy = middle.Y - muzzle.Y, far = Math.Sqrt(dx * dx + dy * dy);
-        (double X, double Y) to = far == 0 ? muzzle : (muzzle.X + dx / far * Spec.Stop, muzzle.Y + dy / far * Spec.Stop);
-        return new Reel(piece, (int)Math.Round(to.X), (int)Math.Round(to.Y));
-    }
+    private void Seat() => (Rod, Piece, PullTo, _winds) = (Rod.Seated, null, null, false);
 
     /// <summary>
     /// The cold gas a shot blows from the muzzle (0044, 0075), as bursts of luminous particles: a jet of fine streaks

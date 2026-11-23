@@ -58,6 +58,7 @@ public partial class DebrisDemo : CanvasLayer
                 ["x"] = (int)(x * 2000),
                 ["y"] = row * 2000 + 1000,
                 ["speed"] = speed * 2,
+                ["vx"] = -speed * 2,
                 ["start"] = start,
                 ["end"] = end,
             });

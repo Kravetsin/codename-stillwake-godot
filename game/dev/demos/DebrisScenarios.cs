@@ -77,7 +77,7 @@ public sealed class SentryScenario : DevScenario
     private bool _breaking;
 
     /// <summary>The fight's ticks: the hero reels the sentry's wreck (it cuts the line), strikes it once, then hews its wreck apart under it.</summary>
-    private const int ReelAt = 50, StrikeAt = 92, BreakFrom = 100;
+    private const int HookAt = 50, StrikeAt = 92, BreakFrom = 100;
 
     public override Layout? Map => Registry.Wreck;
 
@@ -108,10 +108,8 @@ public sealed class SentryScenario : DevScenario
             && m.Creatures.ClingsTo(sentry) is int piece && m.Debris.PieceById(piece) is { } wreck)
         {
             int tick = client.World.Tick;
-            // Reeled toward the hero, the reel sent again as the harpoon follows its hero, till the sentry has sawn the line through.
-            if (tick >= ReelAt && tick < ReelAt + 30 && (tick - ReelAt) % 4 == 0 && Sim.Creatures.CreaturesModule.LastCut(sentry) == 0
-                && m.Crew.HeroOf(client.Id) is { } hero)
-                client.Send(new Sim.Debris.Reel(piece, hero.Cell % m.Grid.Width * 1000 + 500, hero.Cell / m.Grid.Width * 1000 + 500));
+            // Hooked by the hero's line at its middle, held till the sentry has sawn the line through.
+            if (tick == HookAt && m.Crew.HeroOf(client.Id) != null) client.Send(new Sim.Debris.Hook(piece, 0, 0));
             if (tick == StrikeAt) client.Send(new Sim.Creatures.Strike(sentry.Id, Content.Weapons.Axe.Item));
             // Its wreck hewn apart under it, once it is clamped on again: it goes with its wreck.
             _breaking |= tick >= BreakFrom && Sim.Creatures.CreaturesModule.Clamped(sentry);

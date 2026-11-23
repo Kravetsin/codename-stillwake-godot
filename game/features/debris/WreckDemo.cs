@@ -136,6 +136,7 @@ public partial class WreckDemo : CanvasLayer
                 ["x"] = (int)((sx + 2 * right) * 1000),
                 ["y"] = (sy + 2 * below) * 1000,
                 ["speed"] = Speed,
+                ["vx"] = -Speed,
                 ["start"] = start,
                 ["end"] = end,
                 ["damage"] = damage,
@@ -175,7 +176,7 @@ public partial class WreckDemo : CanvasLayer
     private readonly bool _harpoon, _grapple;
     private int _shotAt = 1, _stage;
     private double _stageAt, _firedAt = -100;
-    private bool _clicking, _reeled;
+    private bool _clicking;
 
     public WreckDemo(DebrisView view, Ui ui, bool all = false, bool harpoon = false, bool grapple = false)
     {
@@ -317,13 +318,16 @@ public partial class WreckDemo : CanvasLayer
                 _firedAt = _t;
                 Next($"fired at piece {_shotAt}");
                 break;
+            // Held down, the line winds the piece in (debris-physics); let up after a while, or once it is gone.
             case 2 when _t >= _stageAt + 0.8:
-                Click();
-                Next($"reeling piece {_shotAt}");
+                Mouse(true);
+                _holding = true;
+                Next($"winding piece {_shotAt}");
                 break;
             case 3:
-                _reeled |= piece?.Reel != null;
-                if (piece != null && (!_reeled || piece.Reel != null) && _t < _stageAt + 6) break;
+                if (piece != null && _t < _stageAt + 4) break;
+                Mouse(false);
+                _holding = false;
                 Next($"piece {_shotAt} in");
                 break;
             case 4 when _t >= _stageAt + 0.6:
@@ -335,7 +339,7 @@ public partial class WreckDemo : CanvasLayer
                 Next(piece is { Item: "cargoCrate" } ? "crate caught" : "done with it");
                 break;
             case 5 when _shotAt == 1 && _t >= _stageAt + 0.5:
-                (_shotAt, _stage, _reeled) = (2, 1, false);
+                (_shotAt, _stage) = (2, 1);
                 GD.Print($"[demo] to the section at {_t:0.00} s");
                 break;
             case 5 when _shotAt == 2 && _t >= _stageAt + 1.5:

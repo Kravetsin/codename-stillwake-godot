@@ -238,14 +238,13 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>
-    /// Where the harpoon line on <paramref name="piece"/> runs off to, in pixels: the hero reeling it as drawn, the one nearest the
-    /// point the sim reels the piece to (by that hero's muzzle); that point itself with none drawn near. None with no line on it.
+    /// Where the harpoon line on <paramref name="piece"/> runs off to, in pixels: the hero drawn nearest the piece, its holder as a
+    /// line is short (debris-physics). None with no line on it or no hero drawn.
     /// </summary>
     private Vector2? LineEnd(IDebrisQueries debris, int piece)
     {
-        if (debris.PieceById(piece)?.Reel is not { } reel) return null;
-        var to = new Vector2(reel.ToX, reel.ToY) / Unit * Cell;
-        return Nearest(to) is { } hero && hero.DistanceTo(to) < 6 * Cell ? hero : to;
+        if (debris.LineOn(piece) == null || debris.PieceById(piece) is not { } held) return null;
+        return Nearest(new Vector2(held.X, held.Y) / Unit * Cell);
     }
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame; none with no hero.</summary>

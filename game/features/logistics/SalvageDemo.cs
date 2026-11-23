@@ -88,6 +88,7 @@ public static class SalvageDemo
                 ["x"] = x * 1000 + 500,
                 ["y"] = y * 1000 + 500,
                 ["speed"] = speed,
+                ["vx"] = -speed,
                 ["start"] = x * 1000 + 500,
                 ["end"] = 0,
             });
