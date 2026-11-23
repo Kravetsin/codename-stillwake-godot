@@ -70,6 +70,14 @@ public static class Debris
     public const int Drag = 25;
 
     /// <summary>
+    /// How hard a burst pushes a body (debris-bursts): mass times thousandths of a cell a second for each point of its power, falling
+    /// off to none at its reach. 100: a charge (500) 2 cells off a small piece, a 1.6-cell box weighing 2.56, gives it
+    /// 500 × 100 × 6/8 / 2.56, 14.6 cells a second, some 29 cells before <see cref="Drag"/> settles it; a cargo container (6.4 × 3.2,
+    /// 20.5) 1.8 cells a second.
+    /// </summary>
+    public const int BurstPush = 100;
+
+    /// <summary>
     /// The host player feeds a body's pose to the sim once a corner of its box strays this far from the sim's, in thousandths of a
     /// cell: a sixteenth of a cell, half a pixel, one threshold for place and turn; a guest eases each correction away. Only bodies
     /// knocked or towed off their drift stray at all, so the wire stays near empty.

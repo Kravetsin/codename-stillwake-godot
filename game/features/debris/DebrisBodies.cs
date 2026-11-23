@@ -5,6 +5,7 @@ using Godot;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Spec = Stillwake.Content.Debris;
 
@@ -40,6 +41,8 @@ public sealed partial class DebrisBodies : Node
     private readonly Dictionary<int, Body> _bodies = [];
     private readonly Dictionary<Line, PieceRope> _ropes = new(ReferenceEqualityComparer.Instance);
     private int _tick = -1;
+    /// <summary>The serial of the last burst pushed with: 0 before any.</summary>
+    private int _burstSeen;
     private readonly HashSet<int> _seen = [], _inFlight = [];
     private readonly HashSet<(int, int)> _linesInFlight = [];
     private readonly List<int> _gone = [];
@@ -51,9 +54,10 @@ public sealed partial class DebrisBodies : Node
 
     /// <summary>
     /// After the session's frame: on the host player's client, the bodies of <paramref name="debris"/>'s pieces, the ship's surface's,
-    /// kept in step with them, and once a tick the feed; the sim's pieces drawn <paramref name="drift"/> ticks on.
+    /// kept in step with them, pushed by the new bursts of <paramref name="building"/> (the same surface's, its grid
+    /// <paramref name="width"/> cells across), and once a tick the feed; the sim's pieces drawn <paramref name="drift"/> ticks on.
     /// </summary>
-    public void Frame(Client client, DebrisModule debris, double drift)
+    public void Frame(Client client, DebrisModule debris, BuildingModule building, int width, double drift)
     {
         if (client.Id != DebrisModule.HostPlayer)
         {
@@ -68,7 +72,31 @@ public sealed partial class DebrisBodies : Node
         if (client.World.Tick == _tick) return;
         _tick = client.World.Tick;
         Keep(debris, drift);
+        Push(building, width);
         Feed(client, debris, drift);
+    }
+
+    /// <summary>
+    /// Each body within reach of a burst <paramref name="building"/> logged since the last read given its push (<see cref="BurstPush"/>),
+    /// from the middle of the burst's cell; the log read again from its start once its serials go back, a world loaded.
+    /// </summary>
+    private void Push(BuildingModule building, int width)
+    {
+        var bursts = building.Bursts;
+        if (bursts.Count == 0 || bursts[^1].Serial < _burstSeen) _burstSeen = 0;
+        for (int i = 0; i < bursts.Count; i++)
+        {
+            var burst = bursts[i];
+            if (burst.Serial <= _burstSeen) continue;
+            _burstSeen = burst.Serial;
+            double cx = burst.Cell % width * DebrisModule.Unit + DebrisModule.Unit / 2, cy = burst.Cell / width * DebrisModule.Unit + DebrisModule.Unit / 2;
+            foreach (var body in _bodies.Values)
+            {
+                var (x, y, angle) = PoseOf(body);
+                if (BurstPush.Of(cx, cy, burst.Power, burst.Reach, x, y, angle, body.Shape) is { } push)
+                    PhysicsServer2D.BodyApplyImpulse(body.Rid, Pixels(push.X, push.Y), Pixels(push.AtX, push.AtY));
+            }
+        }
     }
 
     public override void _EnterTree()
@@ -281,6 +309,6 @@ public sealed partial class DebrisBodies : Node
         foreach (var body in _bodies.Values) Free(body);
         _bodies.Clear();
         _ropes.Clear();
-        (_debris, _tick) = (null, -1);
+        (_debris, _tick, _burstSeen) = (null, -1, 0);
     }
 }
