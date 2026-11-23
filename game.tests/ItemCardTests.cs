@@ -104,8 +104,8 @@ public class ItemCardTests
     public void TileAThrownChargesBlastNotWhatItWouldAddToAGun()
     {
         var charge = ItemCards.Of(Spec.Shots.BlastCharge.Id);
-        // As content stands: 120 off each wreck within 8 cells, power 500 on rock in tenths, a throw a second.
-        Assert.Equal([("120", "Damage"), ("50", "Block"), ("8 cells", "Radius"), ("1s", "Reload time")], Said(charge.Tiles));
+        // As content stands: 120 off each wreck within 12 cells (its wave), power 500 on rock in tenths, a throw a second.
+        Assert.Equal([("120", "Damage"), ("50", "Block"), ("12 cells", "Radius"), ("1s", "Reload time")], Said(charge.Tiles));
         Assert.Equal([CardSign.Damage, CardSign.Block, CardSign.Reach, CardSign.Pace], charge.Tiles!.Select(t => t.Sign));
         Assert.All(charge.Tiles!, t => Assert.Equal(CardGroup.Blast, t.Group));
         Assert.True(charge.Tool);

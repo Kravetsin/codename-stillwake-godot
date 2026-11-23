@@ -10,13 +10,16 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public class BurstPushTests
 {
-    private static readonly Spec.Blast Charge = Spec.Blasting.Charge;
+    private static readonly Spec.Blast Charge = Spec.Blasting.Charge, Drum = Spec.Blasting.Drum;
+
+    /// <summary>A small power, so the plank's pushes stay under <c>Debris.BurstFastest</c> and show the falloff alone.</summary>
+    private const int Power = 100;
 
     /// <summary>A long flat box, 4 cells by 1, at the origin.</summary>
     private static readonly PieceShape Plank = PieceShape.Sized(2000, 500);
 
-    private static RopeImpulse? Push(double cx, double cy, double angle = 0, PieceShape? shape = null, int reach = 8) =>
-        BurstPush.Of(cx, cy, Charge.Power, reach, 0, 0, angle, shape ?? Plank);
+    private static RopeImpulse? Push(double cx, double cy, double angle = 0, PieceShape? shape = null, int reach = 8, int power = Power) =>
+        BurstPush.Of(cx, cy, power, reach, 0, 0, angle, shape ?? Plank);
 
     private static double Strength(RopeImpulse i) => Math.Sqrt(i.X * i.X + i.Y * i.Y);
 
@@ -26,13 +29,13 @@ public class BurstPushTests
     [Fact]
     public void ItFallsOffToNoneAtItsReachAndPushesNothingBeyondIt()
     {
-        double full = Charge.Power * (double)Spec.Debris.BurstPush;
+        double full = Power * (double)Spec.Debris.BurstPush;
         // Straight above the middle, gaps of 0, half the reach, all of it, and more: from the box's top edge, 500 up.
         Assert.Equal(full, Strength(Push(0, -500)!.Value), 6);
         Assert.Equal(full / 2, Strength(Push(0, -500 - 4000)!.Value), 6);
         Assert.Null(Push(0, -500 - 8000));
         Assert.Null(Push(0, -500 - 9000));
-        Assert.True(Strength(Push(0, -500 - 7990)!.Value) is > 0 and < 0.01 * 500 * 100);
+        Assert.True(Strength(Push(0, -500 - 7990)!.Value) is > 0 and < 0.01 * Power * Spec.Debris.BurstPush);
         // A burst of no reach pushes nothing, even on the box.
         Assert.Null(Push(0, -500, reach: 0));
     }
@@ -66,7 +69,7 @@ public class BurstPushTests
         Assert.Equal(500, turned.AtX, 6);
         Assert.Equal(0, turned.AtY, 6);
         Assert.True(turned.X < 0);
-        Assert.Equal(Charge.Power * Spec.Debris.BurstPush * (1 - 2500 / 8000.0), Strength(turned), 6);
+        Assert.Equal(Power * Spec.Debris.BurstPush * (1 - 2500 / 8000.0), Strength(turned), 6);
     }
 
     [Fact]
@@ -79,15 +82,21 @@ public class BurstPushTests
         var middle = Push(0, 0)!.Value;
         Assert.Equal((0, 0), (middle.AtX, middle.AtY));
         Assert.Equal(0, middle.X, 6);
-        Assert.Equal(-Charge.Power * (double)Spec.Debris.BurstPush, middle.Y, 6);
+        Assert.Equal(-Power * (double)Spec.Debris.BurstPush, middle.Y, 6);
     }
 
     [Fact]
-    public void AChargeTwoCellsOffThrowsASmallPieceTenToTwentyCellsASecondAndACargoContainerFarLess()
+    public void ACargoContainerJustPastADrumsWaveDriftsOffASmallPieceAtItsMiddleFliesFastButNotAbsurdly()
     {
-        double Speed(PieceShape shape) => Strength(Push(0, -shape.HalfH - 2000, shape: shape)!.Value) / shape.Mass / 1000;
-        double small = Speed(PieceShape.Of("scrapChunk")), container = Speed(PieceShape.Of("cargoContainer"));
-        Assert.InRange(small, 10, 20);
-        Assert.True(container < small / 4, $"{container} of {small}");
+        double Speed(PieceShape shape, Spec.Blast blast, double gap) =>
+            Strength(Push(0, -shape.HalfH - gap, shape: shape, reach: blast.Push, power: blast.Power)!.Value) / shape.Mass / 1000;
+        PieceShape small = PieceShape.Of("scrapChunk"), container = PieceShape.Of("cargoContainer");
+        Assert.InRange(Speed(container, Drum, (Drum.Wave + 1) * 1000), 2, 5);
+        Assert.InRange(Speed(container, Charge, (Charge.Wave + 1) * 1000), 2, 5);
+        Assert.InRange(Speed(small, Drum, 0), 20, 40);
+        // A charge would throw it past 50 by its mass alone: held at the fastest.
+        Assert.Equal(Spec.Debris.BurstFastest / 1000.0, Speed(small, Charge, 0), 6);
+        // Two cells off a charge, the big wreck goes some fifth as fast.
+        Assert.True(Speed(container, Charge, 2000) < Speed(small, Charge, 2000) / 4);
     }
 }

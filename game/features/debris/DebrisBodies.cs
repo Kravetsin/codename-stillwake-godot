@@ -93,7 +93,7 @@ public sealed partial class DebrisBodies : Node
             foreach (var body in _bodies.Values)
             {
                 var (x, y, angle) = PoseOf(body);
-                if (BurstPush.Of(cx, cy, burst.Power, burst.Reach, x, y, angle, body.Shape) is { } push)
+                if (BurstPush.Of(cx, cy, burst.Power, burst.Push, x, y, angle, body.Shape) is { } push)
                     PhysicsServer2D.BodyApplyImpulse(body.Rid, Pixels(push.X, push.Y), Pixels(push.AtX, push.AtY));
             }
         }
