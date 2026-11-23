@@ -11,12 +11,13 @@ using Spec = Stillwake.Content.Debris;
 namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
-/// The pieces as rigid bodies on the host player's client (debris-physics): a body a piece of the surface its hero is on, in a physics
-/// space of their own, so they meet only each other; the ship and heroes pass through. Each eases back to its piece's drift and tumble
-/// (<see cref="PieceShape"/>), and every line the sim holds pulls it by its rope (<see cref="PieceRope"/>), its holder's body middle the
-/// anchor (<see cref="AnchorOf"/>). After each tick, the bodies strayed from the sim's poses, and the lines wound or let out, go to it
-/// as a <see cref="Moved"/> (<see cref="BodyFeed"/>). Bodies are made and freed as pieces come and go, and made anew from the sim when
-/// its world is another (a load, a resync, another surface). Nothing on a guest's client.
+/// The pieces as rigid bodies on the host player's client (debris-physics): a body a piece of the ship's surface
+/// (<see cref="DebrisModule.BodiesOn"/>) wherever its hero is, a planet too, in a physics space of their own, so they meet only each
+/// other; the ship and heroes pass through. Each eases back to its piece's drift and tumble (<see cref="PieceShape"/>), and every line
+/// the sim holds, a guest's too, pulls it by its rope (<see cref="PieceRope"/>), its holder's body middle the anchor (<see cref="AnchorOf"/>).
+/// After each tick, the bodies strayed from the sim's poses, and the lines wound or let out, go to it as a <see cref="Moved"/> addressed
+/// to that surface (<see cref="BodyFeed"/>). Bodies are made and freed as pieces come and go, and made anew from the sim when its world
+/// is another (a load, a resync). Nothing on a guest's client.
 /// </summary>
 public sealed partial class DebrisBodies : Node
 {
@@ -49,7 +50,7 @@ public sealed partial class DebrisBodies : Node
     public Func<int, (double X, double Y, double Vx, double Vy)?> AnchorOf { get; set; } = _ => null;
 
     /// <summary>
-    /// After the session's frame: on the host player's client, the bodies of <paramref name="debris"/>'s pieces, the surface its hero is on,
+    /// After the session's frame: on the host player's client, the bodies of <paramref name="debris"/>'s pieces, the ship's surface's,
     /// kept in step with them, and once a tick the feed; the sim's pieces drawn <paramref name="drift"/> ticks on.
     /// </summary>
     public void Frame(Client client, DebrisModule debris, double drift)
@@ -227,7 +228,7 @@ public sealed partial class DebrisBodies : Node
         if (picked.Count == 0 && lengths.Count == 0) return;
         var bodies = new List<Sim.Debris.Body>(picked.Count);
         foreach (int id in picked) bodies.Add(Fed(_bodies[id], drift));
-        client.Send(new Moved(debris.Clock, bodies, lengths));
+        client.Send(new Moved(debris.Clock, bodies, lengths) { Surface = DebrisModule.BodiesOn });
     }
 
     /// <summary><paramref name="body"/>'s pose <paramref name="drift"/> ticks back along its motion and spin: where it was at the tick's time.</summary>

@@ -335,6 +335,20 @@ public class LinesTests
     }
 
     [Fact]
+    public void AFeedFromTheHostPlayerOnAPlanetMovesTheShipsPieces()
+    {
+        var w = Out();
+        var piece = Put(w, 20, 20);
+        w.Do(new Stillwake.Sim.OpenSurface(Content.Surfaces.TestStrip.Id)).Run();
+        w.Do(new Transfer(w.World.Surfaces[^1].Id)).Run();
+        Assert.NotEqual(DebrisModule.BodiesOn, w.World.SurfaceOf(DebrisModule.HostPlayer));
+        // As its client sends it: addressed to the ship, though its hero stands on the strip.
+        w.Do(new Moved(w.M.Debris.Clock, [new Body(piece.Id, 30_000, 12_000, 0, 0, 0, 0)], []) { Surface = DebrisModule.BodiesOn }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((30_000, 12_000), (piece.X, piece.Y));
+    }
+
+    [Fact]
     public void AFeedFromAGuestIsRefused()
     {
         var w = Out().Do(new Enter(At(30, 20)) { From = 1 }).Run();

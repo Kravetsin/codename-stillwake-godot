@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Stillwake.Sim;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Structure = Stillwake.Content.Structure;
@@ -64,6 +65,35 @@ public class SurfaceStampTests
         Assert.Empty(client.InFlight);
         host.Advance();
         Assert.Equal([World.Elsewhere], Assert.Single(client.Update()).Refused.Select(r => r.Reason));
+    }
+
+    [Fact]
+    public void ACommandAddressedToASurfaceKeepsItAndStaysInFlightAsItsSenderLeavesAndRunsThere()
+    {
+        var game = Definition.Game();
+        var (host, client) = LocalSession.Create(game.Create(1, Layout.Parse(["#.D.#"])));
+        client.Send(new OpenSurface(Strip));
+        client.Send(new Transfer(1));
+        host.Advance();
+        client.Update();
+        // From the strip, addressed to the ship: the stamp is not the sender's surface.
+        client.Send(new Moved(0, [], []) { Surface = 0 });
+        Assert.Equal(0, Assert.Single(client.InFlight).Surface);
+        host.Advance();
+        Assert.Empty(Assert.Single(client.Update()).Refused);
+        // Sent aboard, addressed to the ship, its sender gone to the strip before its tick: still to come, and taken there.
+        client.Send(new Transfer(0));
+        host.Advance();
+        client.Update();
+        client.Send(new Transfer(1));
+        host.Advance();
+        client.Send(new Moved(0, [], []) { Surface = 0 });
+        host.Advance();
+        client.Update(1);
+        Assert.Equal(1, client.World.SurfaceOf(client.Id));
+        Assert.IsType<Moved>(Assert.Single(client.InFlight));
+        Assert.Empty(Assert.Single(client.Update()).Refused);
+        Assert.Empty(client.InFlight);
     }
 
     [Fact]

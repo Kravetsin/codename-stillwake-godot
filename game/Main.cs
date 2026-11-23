@@ -739,7 +739,8 @@ public partial class Main : Node2D, ITogether
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
-        _pieceBodies.Frame(client, _m.Debris, session.Drift);
+        // The ship's pieces wherever this hero is, a planet too: the physics always runs (debris-physics).
+        _pieceBodies.Frame(client, _ship.Debris, session.Drift);
         _frameLog?.Mark("debris");
         _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null,

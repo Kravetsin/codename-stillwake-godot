@@ -16,10 +16,19 @@ public abstract record Command
 
     /// <summary>
     /// The surface its sender stood on when it sent it, stamped by the client (0076): one whose sender is elsewhere
-    /// by its tick is refused. Null, as the host's farewells and tests send it, goes wherever the sender is.
+    /// by its tick is refused. Null, as the host's farewells and tests send it, goes wherever the sender is. A
+    /// <see cref="ISurfaceAddressed"/> command's is the surface it is for, wherever its sender stands.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Surface { get; init; }
+}
+
+/// <summary>
+/// Marks a command type addressed to a surface rather than sent from one (debris-physics): it is applied on its
+/// <see cref="Command.Surface"/> whatever surface its sender stands on by its tick, and stays in flight when its sender moves.
+/// </summary>
+public interface ISurfaceAddressed
+{
 }
 
 /// <summary>A world's surfaces as a module sees them (0076).</summary>

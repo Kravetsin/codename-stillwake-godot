@@ -53,9 +53,10 @@ public readonly record struct LineLength(int By, int Piece, int Length);
 /// <summary>
 /// The host player's feed (debris-physics): <c>Bodies</c> as its physics had them at the start of the debris tick <c>ForTick</c>
 /// (<see cref="IDebrisQueries.Clock"/>), before its drift, each carried on its own motion to the tick it applies on; and the
-/// <c>Lines</c>' lengths its ropes wound and paid out. A piece gone or a line no longer there is skipped. From the host player alone.
+/// <c>Lines</c>' lengths its ropes wound and paid out. A piece gone or a line no longer there is skipped. From the host player alone,
+/// addressed to <see cref="DebrisModule.BodiesOn"/> wherever its hero stands, a planet too.
 /// </summary>
-public sealed record Moved(int ForTick, IReadOnlyList<Body> Bodies, IReadOnlyList<LineLength> Lines) : Command;
+public sealed record Moved(int ForTick, IReadOnlyList<Body> Bodies, IReadOnlyList<LineLength> Lines) : Command, ISurfaceAddressed;
 
 /// <summary>What another module may read of the debris: the pieces, and one by its id.</summary>
 public interface IDebrisQueries
