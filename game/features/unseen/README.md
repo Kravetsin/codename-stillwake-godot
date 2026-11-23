@@ -18,7 +18,8 @@ the grid and where the heroes stand; the sim knows nothing of it.
   shut doors and shut hatches stop it. A door or hatch opened beside a hero shows the space past it; a hero walking in shows it
   too. Every hero on the surface sees, so friends share what they open.
 - **Seen stays seen**, a door shut again or not. A cell newly dark goes dark at once; one seen fades over `Sight.FadeMs`
-  (300 ms). The first look, as the hero arrives, shows the airlock and what open doors join it at once.
+  (300 ms). The first look, as the hero arrives, shows the airlock and what open doors join it at once, and on a wreck every
+  room a breach opened to space, as the space round it (vessel-wrecks); sealed rooms stay dark till seen.
 - **Dark** is unseen space, and every sealed cell with the dark on both its sides, across or up and down, within two cells
   (a hull wall's thickness): a shut door or a deck's floor between unseen rooms, the floor under such a door. The hull,
   with space past it, and a wall beside a seen room stay drawn.

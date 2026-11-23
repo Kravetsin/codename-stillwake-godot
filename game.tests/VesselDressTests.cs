@@ -18,9 +18,9 @@ public class VesselDressTests
     internal static Registry Laid(Vessel v)
     {
         var m = new Registry();
-        Stillwake.Sim.World.Create(1, Shipyard.Space(v), m.All);
+        Stillwake.Sim.World.Create(1, Shipyard.Space(Made.Of(v)), m.All);
         int w = m.Grid.Width;
-        foreach (var part in Shipyard.Stamp(v))
+        foreach (var part in Made.Of(v).Parts)
         {
             int cell = (V.Margin + part.Y) * w + V.Margin + part.X;
             if (part.Layer == "machine" || part.Layer == "back" && m.Grid.BackAt(cell) != null) continue;
@@ -43,14 +43,14 @@ public class VesselDressTests
     [Fact]
     public void OneSeedIsPaintedAsPinned()
     {
-        var dress = new VesselDress(Of("freighter", 1));
+        var dress = new VesselDress(Made.Of(Of("freighter", 1)));
         Assert.Equal(("LOON", "TN-4769", 3), (dress.Name, dress.Code, dress.Livery));
     }
 
     [Fact]
     public void OneLinerIsPaintedAsPinnedInItsOwnLightLiveryAndDressedRoomByRoom()
     {
-        var dress = new VesselDress(Of("liner", 1));
+        var dress = new VesselDress(Made.Of(Of("liner", 1)));
         Assert.Equal(("LOON", "TN-4769", 1), (dress.Name, dress.Code, dress.Livery));
         Assert.Same(VesselLooks.LinerLiveries[dress.Livery], dress.Colours);
         // Its decor in reading order of its rooms: the pool's, the restaurant's, the hangar's pad and bay doors; then the fin's emblem, the
@@ -68,7 +68,7 @@ public class VesselDressTests
     [Fact]
     public void OneTankerIsPaintedAsPinnedInItsOwnLiveryNameAndLetters()
     {
-        var dress = new VesselDress(Of("tanker", 1));
+        var dress = new VesselDress(Made.Of(Of("tanker", 1)));
         Assert.Equal(("GRAVITAS", "TK-4769", 1), (dress.Name, dress.Code, dress.Livery));
         Assert.Same(VesselLooks.TankerLiveries[dress.Livery], dress.Colours);
         Assert.Same(VesselLooks.TankerLiveries, VesselLooks.LiveriesOf("tanker"));
@@ -76,7 +76,7 @@ public class VesselDressTests
         for (uint seed = 1; seed <= 16; seed++)
         {
             var v = Of("tanker", seed);
-            var other = new VesselDress(v);
+            var other = new VesselDress(Made.Of(v));
             Assert.All(other.Decors, d => Assert.StartsWith("vessel_digit_", d.Picture));
             Assert.Contains(other.Name, VesselLooks.TankerNames);
             Assert.StartsWith(VesselLooks.TankerPrefix + "-", other.Code);
@@ -88,7 +88,7 @@ public class VesselDressTests
     {
         var v = Of("liner", 2);
         var m = Laid(v);
-        var dress = new VesselDress(v);
+        var dress = new VesselDress(Made.Of(v));
         // Its rooms' decor and bay doors; the fin's emblem shows only with its fin, a machine, which this grid leaves out.
         Assert.All(dress.Decors, d => Assert.Equal(d.On != VesselDress.DecorOn.Machine, dress.Shows(m.Grid, d)));
         // The pool hall's tiles reach up past the floor of the deck it spans first: a cell on that upper deck stripped hides them.
@@ -112,7 +112,7 @@ public class VesselDressTests
     {
         var v = Of("liner", 2);
         var m = Laid(v);
-        var dress = new VesselDress(v);
+        var dress = new VesselDress(Made.Of(v));
         var hangar = v.Compartments.Single(c => c.Role == VesselRole.Hangar);
         var doors = dress.Decors.Where(d => d.On == VesselDress.DecorOn.Wall && d.Picture != VesselDress.Chevron).ToList();
         Assert.Equal(BayDoors, doors.Select(d => d.Picture));
@@ -135,7 +135,7 @@ public class VesselDressTests
     {
         var v = Of("liner", 2);
         var m = Laid(v);
-        var dress = new VesselDress(v);
+        var dress = new VesselDress(Made.Of(v));
         var fin = v.Outside.Single(f => f.Kind == V.Fin);
         var emblem = Assert.Single(dress.Decors, d => d.On == VesselDress.DecorOn.Machine && d.Machine == V.Fin);
         Assert.Equal(("vessel_emblem", fin.X, fin.Y, V.Fin, VesselDress.DecorTint.Stripe), (emblem.Picture, emblem.X, emblem.Y, emblem.Machine, emblem.Tint));
@@ -146,7 +146,7 @@ public class VesselDressTests
         m.Grid.Clear(cell, "machine");
         Assert.False(dress.Shows(m.Grid, emblem));
         // No fin on a tanker, so no emblem.
-        Assert.DoesNotContain(new VesselDress(Of("tanker", 1)).Decors, d => d.Picture == "vessel_emblem");
+        Assert.DoesNotContain(new VesselDress(Made.Of(Of("tanker", 1))).Decors, d => d.Picture == "vessel_emblem");
     }
 
     [Theory]
@@ -157,7 +157,7 @@ public class VesselDressTests
     public void TheSameSeedIsDressedAlikeTwice(string cls, uint seed)
     {
         var m = Laid(Of(cls, seed));
-        VesselDress a = new(Of(cls, seed)), b = new(Of(cls, seed));
+        VesselDress a = new(Made.Of(Of(cls, seed))), b = new(Made.Of(Of(cls, seed)));
         Assert.Equal((a.Name, a.Code, a.Livery), (b.Name, b.Code, b.Livery));
         Assert.Equal(a.Labels, b.Labels);
         var v = Of(cls, seed);
@@ -173,7 +173,7 @@ public class VesselDressTests
     {
         var v = Of("freighter", 3);
         var m = Laid(v);
-        var dress = new VesselDress(v);
+        var dress = new VesselDress(Made.Of(v));
         var painted = Dressed(dress, v, m.Grid).First(d => d.Dress.Paint != null);
         m.Grid.Clear(painted.Cell, "structure");
         Assert.Null(dress.At(m.Grid, painted.Cell).Paint);
@@ -197,7 +197,7 @@ public class VesselDressTests
         int start = bow.Left + bow.Flat - bow.Run;
         for (int i = 0; i < bow.Fall * bow.Run; i++) slope.Add((start + i, bow.Top + i / bow.Run));
         for (int i = 0; i < bow.Rise * bow.Run; i++) slope.Add((start + i, bow.Bottom - i / bow.Run));
-        var diagonal = Dressed(new VesselDress(v), v, m.Grid).Where(d => d.Dress.Wall?.Sheet.StartsWith("vessel_bow_") == true).Select(d => (d.X, d.Y)).ToHashSet();
+        var diagonal = Dressed(new VesselDress(Made.Of(v)), v, m.Grid).Where(d => d.Dress.Wall?.Sheet.StartsWith("vessel_bow_") == true).Select(d => (d.X, d.Y)).ToHashSet();
         Assert.Equal(slope.Order(), diagonal.Order());
     }
 
@@ -212,7 +212,7 @@ public class VesselDressTests
         int w = g.Width;
         bool Space(int cell) => g.StructureAt(cell) == Structure.Empty && g.BackAt(cell) == null;
         int heavy = 0, light = 0;
-        foreach (var (cell, _, _, d) in Dressed(new VesselDress(v), v, g))
+        foreach (var (cell, _, _, d) in Dressed(new VesselDress(Made.Of(v)), v, g))
         {
             if (d.Ink is not { } ink) continue;
             var sides = ink.Split('_');
@@ -233,7 +233,7 @@ public class VesselDressTests
         {
             var v = Of("liner", seed);
             var m = Laid(v);
-            var dress = new VesselDress(v);
+            var dress = new VesselDress(Made.Of(v));
             var bow = v.Sections.Single(s => s.Kind == Vessel.SectionKind.Bow);
             var hangar = v.Compartments.Single(c => c.Role == VesselRole.Hangar);
             var (top, lip) = VesselDress.VisorOf(v)!.Value;
@@ -262,7 +262,7 @@ public class VesselDressTests
         for (uint seed = 1; seed <= 12; seed++)
         {
             var v = Of(cls, seed);
-            VesselDress a = new(v), b = new(Of(cls, seed));
+            VesselDress a = new(Made.Of(v)), b = new(Made.Of(Of(cls, seed)));
             var containers = v.Fittings.Concat(v.Outside).Where(f => V.FirstLook(f.Kind) is V.Container or V.Cargo).ToList();
             var digits = a.Decors.Where(d => d.Picture.StartsWith("vessel_digit_")).ToList();
             Assert.Equal(2 * containers.Count, digits.Count);
@@ -285,7 +285,7 @@ public class VesselDressTests
         // Shown while its container stands, its top-left where it was stamped.
         var liner = Of("liner", 1);
         var m = Laid(liner);
-        var dress = new VesselDress(liner);
+        var dress = new VesselDress(Made.Of(liner));
         var digit = dress.Decors.First(d => d.Picture.StartsWith("vessel_digit_"));
         int cell = dress.CellOf(digit.Cells[0].X, digit.Cells[0].Y, m.Grid.Width);
         Assert.False(dress.Shows(m.Grid, digit));

@@ -31,9 +31,10 @@ public sealed record Course(int To, int TicksLeft);
 /// A shuttle in the air with its riders (shuttle-flight): <c>From</c> the cell it stood at on this surface, <c>Riders</c> in seat
 /// order, arriving in <c>TicksLeft</c> ticks; <c>Home</c> the ship cell it docks at. <c>Out</c> the kind of vessel world it flies to,
 /// grown from <c>Seed</c>; null for a flight home. <c>Load</c> what its hopper held, <c>Fuel</c> what its store held, in millilitres,
-/// the trip's burnt fuel taken (fuel-liquid).
+/// the trip's burnt fuel taken (fuel-liquid); <c>Wreck</c> the vessel's forced chain (vessel-wrecks), null for its seed's own.
 /// </summary>
-public sealed record Voyage(int From, IReadOnlyList<int> Riders, int TicksLeft, int Home, string? Out = null, uint Seed = 0, Stack? Load = null, int Fuel = 0);
+public sealed record Voyage(int From, IReadOnlyList<int> Riders, int TicksLeft, int Home, string? Out = null, uint Seed = 0, Stack? Load = null, int Fuel = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<WreckStep>? Wreck = null);
 
 /// <summary>Shuttle <c>Shuttle</c>, a machine id, standing on a vessel world, its home aboard <c>Home</c>: where it docks.</summary>
 public sealed record Parked(int Shuttle, int Home);
@@ -125,7 +126,7 @@ public interface ILandingOps
     /// The shuttle <paramref name="peer"/>'s hero sits in sets off from the ship to a vessel world of <paramref name="kind"/> grown from
     /// <paramref name="seed"/>, burning <paramref name="fuel"/> millilitres from its store: the round trip.
     /// </summary>
-    void SetOff(int peer, string kind, uint seed, int fuel);
+    void SetOff(int peer, string kind, uint seed, int fuel, IReadOnlyList<WreckStep>? wreck = null);
 
     /// <summary>The shuttle <paramref name="peer"/>'s hero sits in, off the ship, sets off home.</summary>
     void SetOffHome(int peer);
@@ -539,7 +540,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
             State.Voyages[i] = v = v with { TicksLeft = v.TicksLeft - 1 };
             if (v.Out != null && v.TicksLeft == shut) Shut(Craft.Kind, v.Home);
             if (v.TicksLeft > 0) continue;
-            int to = v.Out != null ? Surfaces.Open(v.Out, v.Seed) : 0;
+            int to = v.Out != null ? Surfaces.Open(v.Out, v.Seed, v.Wreck) : 0;
             foreach (int rider in v.Riders) Surfaces.Send(rider, to);
         }
     }
@@ -557,7 +558,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
     /// <paramref name="seed"/>; off the ship home, burning nothing. Its machine and seats go; its hopper's stack and its store's fuel fly
     /// with it, taken out before the machine goes.
     /// </summary>
-    private void Away(int peer, string? @out, uint seed, int burn)
+    private void Away(int peer, string? @out, uint seed, int burn, IReadOnlyList<WreckStep>? wreck = null)
     {
         int shuttle = SeatOf(peer)!.Value;
         var m = _grid.MachineById(shuttle)!;
@@ -573,10 +574,10 @@ public sealed class LandingModule : Module<LandingState>, ICarries, IOutlives, I
         var (load, fuel) = Empty(shuttle);
         _gridOps.Clear(m.Cell, "machine");
         State.Seats.RemoveAll(s => s.Pod == shuttle);
-        State.Voyages.Add(new Voyage(m.Cell, riders, Content.Shuttle.FlightTicks, home, @out, seed, load, fuel));
+        State.Voyages.Add(new Voyage(m.Cell, riders, Content.Shuttle.FlightTicks, home, @out, seed, load, fuel, wreck));
     }
 
-    public void SetOff(int peer, string kind, uint seed, int fuel) => Away(peer, kind, seed, fuel);
+    public void SetOff(int peer, string kind, uint seed, int fuel, IReadOnlyList<WreckStep>? wreck = null) => Away(peer, kind, seed, fuel, wreck);
 
     public void SetOffHome(int peer) => Away(peer, null, 0, 0);
 

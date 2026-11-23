@@ -35,16 +35,15 @@ public class BigVesselTests(ITestOutputHelper output)
             foreach (var h in v.Hatches) text.Append(h).Append('|');
             foreach (var r in v.Compartments) text.Append($"{r.Deck},{r.Left},{r.Width},{r.Top},{r.Role},{r.Interior}|");
             foreach (var f in v.Fittings.Concat(v.Outside)) text.Append($"{f.Kind},{f.X},{f.Y},{string.Join("+", f.Loot)}|");
-            foreach (var cause in (VesselCause[])[VesselCause.None, VesselCause.Breach])
-                foreach (var p in Shipyard.Make(c, seed, cause))
-                    text.Append($"{p.X},{p.Y},{p.Layer},{p.Kind},{p.Material},{p.Open},{string.Join("+", p.Holds ?? [])};");
+            foreach (var p in Shipyard.Build(c, seed, null, 0).Parts)
+                text.Append($"{p.X},{p.Y},{p.Layer},{p.Kind},{p.Material},{p.Open},{string.Join("+", p.Holds ?? [])};");
         }
         return Fnv(text.ToString());
     }
 
     [Theory]
-    [InlineData("shuttle", 0x649E21D68D96DC46UL)]
-    [InlineData("freighter", 0xFE3B6FEDE7D90D02UL)]
+    [InlineData("shuttle", 0xF3924CF8538154B5UL)]
+    [InlineData("freighter", 0x854F09669AF781A1UL)]
     public void TheShuttleAndTheFreighterAreMadeAsBeforeTheLiner(string cls, ulong pinned)
     {
         ulong made = Fingerprint(cls);
@@ -59,7 +58,16 @@ public class BigVesselTests(ITestOutputHelper output)
         // (big-vessels fixes).
         ulong made = Fingerprint("liner", 16);
         output.WriteLine($"liner: 0x{made:X16}UL");
-        Assert.Equal(0xDFC44D3D8A5F71E2UL, made);
+        Assert.Equal(0x67E03E5BC49C8A80UL, made);
+    }
+
+    [Fact]
+    public void TheTankerIsMadeAsBeforeItsWrecks()
+    {
+        // Re-recorded as its tank bays' capsules came to hold fuel and its fuel columns more (vessel-wrecks fixes).
+        ulong made = Fingerprint("tanker", 16);
+        output.WriteLine($"tanker: 0x{made:X16}UL");
+        Assert.Equal(0x80405069E3E78665UL, made);
     }
 
     private static readonly VesselClass Liner = Content.Vessels.Class("liner")!;
@@ -312,7 +320,7 @@ public class BigVesselTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ATankBayHoldsTwoTallTanksOrOneCapsuleNeverOfFuel()
+    public void ATankBayHoldsTwoTallTanksOrOneCapsuleTheCapsuleOftenOfFuel()
     {
         var contents = new HashSet<string>();
         for (uint seed = 1; seed <= 60; seed++)
@@ -330,7 +338,6 @@ public class BigVesselTests(ITestOutputHelper output)
                     case VesselRole.TankBay:
                         var tanks = inside.Where(f => Content.Vessels.FirstLook(f.Kind) is Content.Vessels.Capsule or Content.Vessels.TankTall).ToList();
                         Assert.True(tanks.Count is 1 or 2, $"{tanks.Count} tanks in a bay");
-                        Assert.DoesNotContain(tanks, f => f.Kind == Content.Vessels.Capsule);
                         Assert.Single(tanks.Select(f => f.Kind).Distinct());
                         contents.UnionWith(tanks.Select(f => f.Kind));
                         break;
@@ -344,8 +351,8 @@ public class BigVesselTests(ITestOutputHelper output)
             }
             Assert.False(v.Doors[0].Open, "the way in stands open");
         }
-        // Every content but fuel, in both kinds of tank.
-        var all = Enumerable.Range(1, Content.Vessels.CapsuleContents - 1).Select(k => Content.Vessels.LookKind(Content.Vessels.Capsule, k))
+        // Every content in a capsule, every but fuel in a tall tank.
+        var all = Enumerable.Range(0, Content.Vessels.CapsuleContents).Select(k => Content.Vessels.LookKind(Content.Vessels.Capsule, k))
             .Concat(Enumerable.Range(0, Content.Vessels.TankTallContents).Select(k => Content.Vessels.LookKind(Content.Vessels.TankTall, k)));
         Assert.Equal(all.Order(), contents.Order());
     }
@@ -537,17 +544,18 @@ public class BigVesselTests(ITestOutputHelper output)
                 string first = Content.Vessels.FirstLook(f.Kind);
                 var room = At(v, f.X, f.Y);
                 var size = first is Content.Vessels.TankTall or Content.Vessels.Sphere ? Content.Vessels.Fits.SmallTank
+                    : f.Kind is Content.Vessels.FuelColumn3 or Content.Vessels.FuelColumn4 ? Content.Vessels.Fits.ColumnTank
                     : room!.Role == VesselRole.FuelBay ? Content.Vessels.Fits.LargeTank : Content.Vessels.Fits.MediumTank;
                 Assert.InRange(count, size.Min, size.Max);
                 Assert.Equal(f.Loot, parts[(f.X, f.Y)].Holds);
                 Assert.True(count <= Content.Vessels.TankSlots * Content.Items.Get(item).Stack, "more than its slots hold");
                 (int Least, int Most) had = seen.GetValueOrDefault(size, (int.MaxValue, 0));
                 seen[size] = (Math.Min(had.Least, count), Math.Max(had.Most, count));
-                // A sphere holds what the bay over it holds; a fuel bay's tank fuel.
+                // A sphere holds what the bay over it holds, water under a fuel capsule; a fuel bay's tank fuel.
                 if (first == Content.Vessels.Sphere)
                 {
                     var bay = v.Compartments.Where(c => c.Role == VesselRole.TankBay && c.Left <= f.X && f.X < c.Left + c.Width).MaxBy(c => c.Top)!;
-                    Assert.Contains(v.Fittings, t => bay.Holds(t.X, t.Y) && Content.Vessels.ContentsOf(t.Kind) == contents);
+                    Assert.Contains(v.Fittings, t => bay.Holds(t.X, t.Y) && Math.Max(1, Content.Vessels.ContentsOf(t.Kind) ?? -1) == contents);
                 }
                 if (room?.Role == VesselRole.FuelBay) Assert.Equal(0, contents);
             }

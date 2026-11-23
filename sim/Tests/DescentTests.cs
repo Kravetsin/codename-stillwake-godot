@@ -174,9 +174,11 @@ public class DescentTests
         public bool Away => false;
         public void LeavePlanet() => throw new NotSupportedException();
         public int OpenPlanet(string kind, IReadOnlyList<string>? ores) => throw new NotSupportedException();
-        public int Open(string kind, uint seed) => throw new NotSupportedException();
+        public int Open(string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null) => throw new NotSupportedException();
         public uint Seed => 0;
-        public int Visit(int peer, string kind, uint seed) => throw new NotSupportedException();
+        public IReadOnlyList<Content.WreckStep>? Wreck => null;
+        public Built? Vessel => null;
+        public int Visit(int peer, string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null) => throw new NotSupportedException();
     }
 
     [Fact]

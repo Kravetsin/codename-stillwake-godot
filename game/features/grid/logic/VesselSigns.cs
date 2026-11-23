@@ -60,11 +60,13 @@ public sealed class VesselSigns
     public uint Seed { get; }
     public IReadOnlyList<VesselSign> Signs { get; }
 
-    public VesselSigns(Vessel vessel)
+    public VesselSigns(Built made)
     {
+        var vessel = made.Vessel;
         Seed = vessel.Seed;
         int w = vessel.Width, h = vessel.Height;
-        var parts = Shipyard.Stamp(vessel);
+        // What a break moved off the frame is no room's.
+        var parts = made.Parts.Where(p => p.X >= 0 && p.Y >= 0 && p.X < w && p.Y < h).ToList();
         // What each cell was stamped with: a hull back wall, a structure (a wall of the hull among them), a machine.
         var back = new bool[w * h];
         var built = new bool[w * h];
@@ -88,7 +90,7 @@ public sealed class VesselSigns
         bool Bare(int x, int y) => Backed(x, y) && !machine[y * w + x];
         bool Wall(int x, int y) => In(x, y) && wall[y * w + x];
 
-        var (sx, sy) = Shipyard.Door(vessel);
+        var (sx, sy) = Shipyard.Door(made);
         bool Holds(Vessel.Compartment c, int x, int y) => c.Holds(x, y);
         // A room reaches over the free columns at its ends, to a door or a wall: the bow's hollow past the last room is that room's.
         var all = vessel.Compartments.Select(c =>
@@ -118,6 +120,8 @@ public sealed class VesselSigns
         foreach (var kind in kinds)
         {
             if (signs.Count == count) break;
+            // A wreck's own soot and frost (vessel-wrecks) stand for these: none drawn at random beside them.
+            if (made.Wreck != null && kind is SignKind.Soot or SignKind.Frost) continue;
             var fits = Candidates(kind).Where(s => !Box(s).Any(used.Contains)).ToList();
             // A room of its own while one is left.
             var alone = fits.Where(s => !full.Contains((s.RoomLeft, s.RoomTop))).ToList();
@@ -196,9 +200,12 @@ public sealed class VesselSigns
                 yield return (x, y);
     }
 
-    /// <summary>The signs inside the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/>; none off a vessel.</summary>
-    public static VesselSigns? For(Surfaces.Kind rules, uint seed) =>
-        rules is VesselKind kind ? new VesselSigns(Shipyard.Describe(Vessels.Class(kind.Class)!, seed)) : null;
+    /// <summary>
+    /// The signs inside the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/> and its forced chain
+    /// <paramref name="wreck"/> (vessel-wrecks); none off a vessel.
+    /// </summary>
+    public static VesselSigns? For(Surfaces.Kind rules, uint seed, IReadOnlyList<WreckStep>? wreck = null) =>
+        rules is VesselKind kind ? new VesselSigns(Shipyard.Build(Vessels.Class(kind.Class)!, seed, wreck)) : null;
 
     /// <summary>The grid cell of the frame's (<paramref name="x"/>, <paramref name="y"/>), the frame's top-left at <c>Vessels.Margin</c> every way.</summary>
     public static int CellOf(int x, int y, int gridWidth) => (y + Vessels.Margin) * gridWidth + x + Vessels.Margin;
