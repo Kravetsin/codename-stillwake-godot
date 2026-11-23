@@ -60,7 +60,7 @@ public class StationsTests
     {
         var spec = Content.Items.Get(item);
         if (Crafts.TryGet(item, out var craft))
-            foreach (var (part, n) in craft.Cost) Parts(part, n * parts, into);
+            foreach (var (part, n) in craft.Cost) Parts(part, n * parts / craft.Makes, into);
         else if (spec.Yields is { } yields)
             foreach (var (y, n) in yields) Parts(y, n * parts / spec.SmeltTakes, into);
         else into[item] = into.GetValueOrDefault(item) + parts;
@@ -89,7 +89,7 @@ public class StationsTests
             // A paid entry's units are paid for; one fed from the inputs holds only its unit begun.
             var queue = w.M.Crafting.Queue(m.Id);
             for (int i = 0; i < queue.Count; i++)
-                Raw(queue[i].Recipe, !queue[i].FromInputs ? queue[i].Count : i == 0 && w.M.Crafting.Progress(m.Id) > 0 ? 1 : 0, all);
+                Raw(queue[i].Recipe, (!queue[i].FromInputs ? queue[i].Count : i == 0 && w.M.Crafting.Progress(m.Id) > 0 ? 1 : 0) * Crafts.Get(queue[i].Recipe).Makes, all);
         }
         foreach (var s in w.M.Items.Floor) Add(new Stack(s.Item, s.Count));
         int planks = all.GetValueOrDefault("planks") / Scale;

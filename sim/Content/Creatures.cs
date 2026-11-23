@@ -341,7 +341,7 @@ public static class Creatures
     /// it strikes (2026-10-27-sentry-arc): its eye flickers 0.6 s, its aim held for the last 0.2 s, then an arc strikes at once up
     /// to 60 cells, stopped by walls, four units of a suit off each hero it crosses, and it waits 2 s. Struck, or its wreck
     /// struck, it answers the striker at once the same way, by how far it is. It flies home at 40 cells a second, past a
-    /// jetpack. Thirty hit points, five of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
+    /// jetpack. Thirty hit points, fifteen of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
     /// It dies with its wreck, dropping scrap and two or three circuits, a fighter's share of what is rare. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 3, Crawl: 40),
@@ -354,7 +354,7 @@ public static class Creatures
     /// The warden, the Istukan (spire guards): a machine of the arc makers, two to a spire's hall, each by a post (<c>Ruins.PostLeft</c>,
     /// <c>Ruins.PostRight</c>), four cells by five, folded in its niche like a column. By turns it crouches 0.8 s and flies straight at
     /// 36 cells a second, 1.4 s at most, five units of a suit if it hits, and lies stuck a second where it fell. It takes 24 hit points,
-    /// four of the nailer's nails or six of the axe's; never knocked. Killed it gives two or three circuits and a little alloy scrap, and
+    /// twelve of the nailer's nails or six of the axe's; never knocked. Killed it gives two or three circuits and a little alloy scrap, and
     /// its post is felled for good; the relic taken, it falls with nothing. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Warden = new("warden", Look: "istukan",

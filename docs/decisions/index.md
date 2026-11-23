@@ -131,7 +131,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
-| [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce (in part) |
+| [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce, nailer-auto (in part) |
 | [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted | fuel-liquid (in part) |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
@@ -434,3 +434,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |
