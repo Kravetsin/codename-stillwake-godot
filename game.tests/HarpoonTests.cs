@@ -315,13 +315,13 @@ public class HarpoonTests
     }
 
     [Fact]
-    public void APiecesLineIsAsLongAsTheSimHoldsItSaggingShortOfThatAndNeverShorterThanItsSpan()
+    public void APiecesLineSagsByItsSlackAndIsStraightOnceStretched()
     {
         var line = new HarpoonLine((0, 0), (12_000, 0));
-        for (int i = 0; i < 120; i++) line.Update((0, 0), (12_000, 0), taut: false, 1000.0 / 60, held: 20_000);
+        for (int i = 0; i < 120; i++) line.Update((0, 0), (12_000, 0), taut: false, 1000.0 / 60, slack: 8_000);
         Assert.Equal(20_000, line.Length, 0);
-        // Paid out past its length, the way it spans: straight.
-        for (int i = 0; i < 5; i++) line.Update((0, 0), (24_000, 0), taut: false, 1000.0 / 60, held: 20_000);
+        // Stretched past its length, the way it spans: straight.
+        for (int i = 0; i < 5; i++) line.Update((0, 0), (24_000, 0), taut: false, 1000.0 / 60, slack: -4_000);
         Assert.Equal(24_000, line.Length, 0);
     }
 

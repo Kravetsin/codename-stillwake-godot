@@ -55,16 +55,17 @@ public sealed class HarpoonLine
 
     /// <summary>
     /// Moves the line on by <paramref name="elapsedMs"/>, from <paramref name="gun"/> to <paramref name="eye"/>, slack or <paramref name="taut"/>;
-    /// on a piece, <paramref name="held"/> as long as its line.
+    /// on a piece, as slack as its line is, <paramref name="slack"/> thousandths of a cell past the way it spans, straight at 0 or less.
     /// </summary>
-    public void Update((double X, double Y) gun, (double X, double Y) eye, bool taut, double elapsedMs, double? held = null) =>
+    public void Update((double X, double Y) gun, (double X, double Y) eye, bool taut, double elapsedMs, double? slack = null) =>
         _rope.Update(gun, eye, elapsedMs, span =>
         {
-            // On a piece, exactly as long as its line: eased, a wound line drawn longer than it is curls into a loop.
-            if (held is double length)
+            // On a piece, the slack of its line, not its length: drawn from the gun to the eye, a shorter way than the rope pulls along,
+            // the whole length would curl into a loop.
+            if (slack is double loose)
             {
-                _length = Math.Max(span, length);
-                return span >= length ? span * Stretch : length;
+                _length = span + Math.Max(0, loose);
+                return loose <= 0 ? span * Stretch : _length;
             }
             _length = taut ? Math.Max(span, _length - WindIn) : Math.Max(span, _length + (span * Slack - _length) * PayOut);
             return taut && _length <= span ? span * Stretch : _length;

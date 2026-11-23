@@ -243,7 +243,7 @@ public partial class HeroView
             if (drums) shown.Drum.Play();
             else shown.Drum.Stop();
         }
-        DrawRod(rod.Rod, rod.Tip, rod.Heading, from, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs, HeldLength(peer, rod.Piece));
+        DrawRod(rod.Rod, rod.Tip, rod.Heading, from, ref shown.Line, shown.RodPicture, RodLook.Of(wields), shown.Light, peer, elapsedMs, HeldSlack(peer, rod.Piece));
     }
 
     /// <summary>Where a hero's line leaves it: the gun's muzzle as drawn, else, holding a piece with the gun put away (<paramref name="holding"/>), its chest.</summary>
@@ -251,11 +251,19 @@ public partial class HeroView
         muzzle ?? (holding is { } hero ? new Vector2(Chest(hero).X, Chest(hero).Y) : null);
 
     /// <summary>
-    /// How long peer <paramref name="peer"/>'s line on <paramref name="piece"/> is: as the host player's drum has it now, else as the sim
-    /// holds it; none for a rod on no piece or a line not there yet.
+    /// How slack peer <paramref name="peer"/>'s line on <paramref name="piece"/> is, in thousandths of a cell: its length (the host player's
+    /// drum now, else the sim's) less the way from the holder's body middle to the hook point, the span the rope pulls along; below 0
+    /// stretched. None for a rod on no piece, a line not there yet or a holder unheard. The line is drawn from the gun to the rod's eye, a
+    /// shorter way, so given its whole length it would curl up the difference.
     /// </summary>
-    private double? HeldLength(int peer, int? piece) =>
-        piece is int on && _m?.Debris.LineOf(peer) is { } line && line.Piece == on ? LiveDebris.LineLength(peer, on) ?? line.Length : null;
+    private double? HeldSlack(int peer, int? piece)
+    {
+        if (piece is not int on || _m?.Debris.LineOf(peer) is not { } line || line.Piece != on || PieceDrawnAt(on) is not { } pose
+            || AnchorOf(peer) is not { } anchor) return null;
+        var (hx, hy) = pose.At(line.HookX, line.HookY);
+        double length = LiveDebris.LineLength(peer, on) ?? line.Length;
+        return length - Math.Sqrt((hx - anchor.X) * (hx - anchor.X) + (hy - anchor.Y) * (hy - anchor.Y));
+    }
 
     /// <summary>Every ping shown, this player's and its friends' here, drawn in their colours and listed for the markers (gesture-pings).</summary>
     private void ShowPings(Registry m)
@@ -344,7 +352,7 @@ public partial class HeroView
         var shot = _harpoon.Piece == null && _harpoonGun.Piece != null ? _harpoonGun : _harpoon;
         var from = shot == _harpoon ? HolderOf(_figure.Muzzle, shot.Piece != null ? _current : null) : HolderOf(null, _current);
         DrawRod(shot.Rod, shot.Tip, shot.Heading, from, ref _line, _rod,
-            RodLook.Of(shot == _grappleGun ? Content.Grapple.Item : Content.Harpoon.Item), _rodLight, 0, elapsedMs, HeldLength(_client!.Id, shot.Piece));
+            RodLook.Of(shot == _grappleGun ? Content.Grapple.Item : Content.Harpoon.Item), _rodLight, 0, elapsedMs, HeldSlack(_client!.Id, shot.Piece));
     }
 
     /// <summary>
