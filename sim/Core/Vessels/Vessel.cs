@@ -75,6 +75,12 @@ public sealed record Vessel(
 
         /// <summary>Whether cell (<paramref name="x"/>, <paramref name="y"/>) is one of its open cells.</summary>
         public bool Holds(int x, int y) => x >= Left && x < Left + Width && y >= Top && y < Floor;
+
+        /// <summary>
+        /// The compartment this is the bow half of, by index, where a break cut one in two (vessel-wrecks): listed after every
+        /// whole one, its stern half keeping the index; -1 for any other.
+        /// </summary>
+        public int Of { get; init; } = -1;
     }
 
     /// <summary>A machine from its top-left, and what it holds: a crate's loot.</summary>

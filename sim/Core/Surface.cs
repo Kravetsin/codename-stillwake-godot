@@ -18,6 +18,12 @@ public sealed record Surface(int Id, string Kind, uint Seed)
     /// null for all: the ship, a vessel, a dev or test planet, an old save's.
     /// </summary>
     public IReadOnlyList<string>? Ores { get; init; }
+
+    /// <summary>
+    /// A vessel's forced chain of events (vessel-wrecks), a dev's: an empty one an intact vessel; null for the chain its seed draws,
+    /// as for every other surface.
+    /// </summary>
+    public IReadOnlyList<Content.WreckStep>? Wreck { get; init; }
 }
 
 /// <summary>

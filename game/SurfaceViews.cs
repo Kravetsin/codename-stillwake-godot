@@ -21,11 +21,20 @@ namespace Stillwake.Game;
 /// <param name="Hosts">Whether this peer hosts its world, so draws its own shots as the sim flies them (<c>ShotDraws</c>).</param>
 /// <param name="Arrivals">The drop pods still coming down on this surface (the landing feature's): held out of the grid's drawing till they stand.</param>
 /// <param name="Seed">The surface's seed, 0 for the ship: what its ground grew from.</param>
+/// <param name="Wreck">A vessel's forced chain (vessel-wrecks), null for its seed's own: what it was built by.</param>
+/// <param name="Seen">Whether a vessel's rooms are all seen from the start (<c>--seen</c>): no dark over what no hero looked at.</param>
 /// <param name="Heroes">Every hero on this surface: its feet, in pixels of the world, and how fast it goes across, in pixels a second: what stirs the plants (plant-stirs).</param>
 public sealed record SurfaceContext(
     Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps,
-    Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
-    Features.Landing.Arrivals Arrivals, uint Seed, Func<IReadOnlyList<(Vector2 Feet, float Vx)>> Heroes);
+    Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool Seen, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
+    Features.Landing.Arrivals Arrivals, uint Seed, Func<IReadOnlyList<(Vector2 Feet, float Vx)>> Heroes,
+    IReadOnlyList<Content.WreckStep>? Wreck = null)
+{
+    private Built? _built;
+
+    /// <summary>The vessel a vessel world holds as built (vessel-wrecks), built once for every view; null off a vessel.</summary>
+    public Built? Built => M.Rules is Content.VesselKind k ? _built ??= Shipyard.Build(Content.Vessels.Class(k.Class)!, Seed, Wreck) : null;
+}
 
 /// <summary>One view of a surface: how it is made, null where it has nothing to draw; whether it fades with the plan's front layer.</summary>
 public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = false);
@@ -44,7 +53,7 @@ public static class SurfaceViews
     public static readonly IReadOnlyList<SurfaceView> All =
     [
         new(c => new GridView(c.M.Grid, c.M.Rules is Content.PlanetType p ? new Features.Grid.Strata(p, PlanetLooks.Of[p.Id].StrataFrom) : null,
-            Render.VesselDress.For(c.M.Rules, c.Seed))
+            c.Built is { } dressed ? new Render.VesselDress(dressed) : null)
         {
             // The alien core is gone for a player who has their drone, and for all once it broke loose (drone-companion).
             HeldBack = id => c.Arrivals.Holds(id) || c.M.Grid.MachineById(id) is { } core && Content.Machines.Is(core.Kind, Content.MachineTrait.Wakes) && CoreGone(c),
@@ -101,13 +110,18 @@ public static class SurfaceViews
         // A magnetic flare's aurora over the stars and its flash, wherever one may strike: by hand on any surface (magnetic-flare).
         new(c => new Features.Hazards.AuroraView(c.M.Grid, c.M.Power, c.M.Hazards, c.Progress, c.Tick)),
         // A derelict's beacons blinking outside its hull (derelict-looks), from the vessel its seed describes.
-        new(c => c.M.Rules is Content.VesselKind k ? new Features.Light.BeaconLights(c.M.Grid, Shipyard.Describe(Content.Vessels.Class(k.Class)!, c.Seed)) : null),
+        new(c => c.Built is { } beacons ? new Features.Light.BeaconLights(c.M.Grid, beacons.Vessel) : null),
         // Its dark inside: red lamps, the one dying, screens, a dot over each shut door (derelict-looks).
-        new(c => Features.Light.VesselLights.For(c.M.Rules, c.Seed) is { } inside ? new Features.Light.VesselLamps(c.M.Grid, inside) : null),
+        new(c => c.Built is { } lit ? new Features.Light.VesselLamps(c.M.Grid, new Features.Light.VesselLights(lit)) : null),
         // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
-        new(c => Features.Grid.VesselSigns.For(c.M.Rules, c.Seed) is { } signs ? new Features.Grid.VesselSignsView(c.M.Grid, signs) : null),
+        new(c => c.Built is { } signed ? new Features.Grid.VesselSignsView(c.M.Grid, new Features.Grid.VesselSigns(signed)) : null),
+        // A wreck's looks, from its wreck's record (vessel-wrecks W-2): soot, frost, petals, cables over its hull and in its rooms.
+        new(c => Features.Wrecked.WreckView.Of(c.M.Grid, c.Built)),
+        // What still moves on it (vessel-wrecks W-3): dust, ash and ice, drifters outside, sparks, vents, embers; dust warm in a lamp's light.
+        new(c => c.Built is { Wreck: not null } moving ? Features.Wrecked.WreckLifeView.Of(moving,
+            [.. new Features.Light.VesselLights(moving).Lamps.Where(l => l.State != Features.Light.LampState.Dead).Select(l => (l.X + 1.0, l.Y + 0.75, 8.0))]) : null),
         // Its inside dark till a hero has seen it, over all of the above (hidden-rooms).
-        new(c => Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
+        new(c => c.Seen ? null : Features.Unseen.UnseenView.Of(c.M.Grid, c.M.Rules, c.HeroBodies)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
         // A planet's weather blowing over its open sky, and its wind heard, where a stretch of it brings one (docs/plans/surface-storms.md).

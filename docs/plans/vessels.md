@@ -318,12 +318,6 @@ a **bridge with glass and consoles**, a **cargo hold** and **quarters**; other r
   and consoles in their picked art, looked at by the user; a hero has walked from the stern door to the bridge and broken
   the main engine.
 
-### V-2 — Three more causes, two more classes, the outside
-
-- Blast, cut in two and scavenged, the cause drawn at `Jump` by the class's weights; the corvette and the frigate
-  (nacelle and keel sections join here); antennas, radiators and docking ports as fittings, with art the user picks.
-- **Done when** each cause reads at a glance on a frame, and the scenarios of each cause pass.
-
 ### V-3 — The cruiser
 
 - The cruiser's class (up to 448×128, 5–8 decks); its jump measured, and the write spread only if the hitch shows.

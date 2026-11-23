@@ -94,7 +94,25 @@ const pileBits = (a) => {
   laid(a, r, [[13.4, 14.2, 3.6, 2.4, -.25, HULL]]);
 };
 
+/**
+ * A stone an asteroid left in a wreck's crater (vessel-wrecks, the mockup's rock): dark grey-brown, faceted, its top lit from the
+ * side, a deep facet at its foot, a chip of it beside. 3 × 2 cells, flat on the floor.
+ */
+const ROCK = { base: '#5c5045', shade: '#3d342d', deep: '#2a231e', lite: '#7e6e5e', spec: '#968672', ink: '#120e0c' };
+const pileRock = (a) => {
+  const body = poly(1.2, 16, 1.6, 10.4, 4.6, 5.4, 9.6, 2.4, 14.8, 2.8, 18.4, 5.6, 20.6, 10.2, 20.2, 16);
+  a.shape(body, ROCK, {
+    lite: poly(4.6, 5.4, 9.6, 2.4, 14.8, 2.8, 11.6, 6.6, 6.4, 8.2),
+    shade: poly(14.8, 2.8, 18.4, 5.6, 20.6, 10.2, 20.2, 16, 13.6, 16, 13, 9.4, 11.6, 6.6),
+    deep: poly(1.2, 16, 1.6, 13.4, 8, 14.2, 13.6, 16),
+  });
+  a.line('M6.4 8.2L11.6 6.6L13 9.4L13.6 16', { w: .6 });
+  a.line('M8 14.2L9.6 11.4', { w: .5 });
+  a.shape(poly(20.4, 16, 21, 13, 23, 12.2, 23.8, 14.4, 23.4, 16), ROCK, { lite: poly(21, 13, 23, 12.2, 22.6, 13.4), shade: poly(23, 12.2, 23.8, 14.4, 23.4, 16, 22.4, 16) });
+};
+
 Subjects.piles = function () {
+  out('machine_pileRock', bake({ w: 24, h: 16, draw: pileRock }));
   for (const [kind, size, draw] of [['pileHull', 32, pileHull], ['pileScrap', 24, pileScrap], ['pileCargo', 24, pileCargo], ['pileBits', 16, pileBits]])
     out(`machine_${kind}`, bake({ w: size, h: size, draw }));
 };

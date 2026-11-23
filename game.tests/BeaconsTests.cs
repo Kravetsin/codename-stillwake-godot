@@ -43,7 +43,7 @@ public class BeaconsTests
         int x = bow.Left + bow.Width - 1;
         var (top, bottom) = bow.RowsAt(x);
         Assert.Equal((x, (top + bottom) / 2), beacons[1].Cell);
-        Assert.Contains(Shipyard.Stamp(vessel), p => p.Kind == "wall" && (p.X, p.Y) == beacons[1].Cell);
+        Assert.Contains(Made.Of(vessel).Parts, p => p.Kind == "wall" && (p.X, p.Y) == beacons[1].Cell);
         Assert.InRange(beacons[1].X, x * Camera.Cell, (x + 1) * Camera.Cell);
     }
 

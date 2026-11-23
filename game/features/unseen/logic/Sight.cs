@@ -60,6 +60,11 @@ public sealed class Sight
             _stamp++;
             foreach (int c in heroes)
                 if (c >= 0 && _open(c)) Spread(c);
+            // A room a breach opened to space is seen as the space round it is (vessel-wrecks): every open cell beside space, and all
+            // joined to it, seen from the first look. Sealed rooms stay dark till a hero looks in.
+            if (_first)
+                for (int c = 0; c < _width * _height; c++)
+                    if (_open(c) && BesideSpace(c)) Spread(c);
             moved = Settle(instant: _first);
             _first = false;
         }
@@ -94,6 +99,15 @@ public sealed class Sight
     }
 
     private bool Hidden(int cell) => _open(cell) && !_seen[cell];
+
+    /// <summary>Whether <paramref name="cell"/> has space beside it: past the frame, or a cell neither open nor sealing.</summary>
+    private bool BesideSpace(int cell)
+    {
+        int x = cell % _width, y = cell / _width;
+        bool Space(int n) => !_open(n) && !_seals(n);
+        return x == 0 || y == 0 || x + 1 == _width || y + 1 == _height
+            || Space(cell - 1) || Space(cell + 1) || Space(cell - _width) || Space(cell + _width);
+    }
 
     /// <summary>
     /// Whether the dark lies a step or two from a sealed <paramref name="cell"/> towards (dx, dy), only sealed cells between: unseen
