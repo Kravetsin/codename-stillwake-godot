@@ -1018,23 +1018,6 @@ P.tankCluster = (a) => {
   a.shape(rr(.5, 13.4, 15, 1.7, .2), GUN, { lite: band(.5, 13.4, 15.5, 13.9), shade: band(.5, 14.5, 15.5, 15.1) });
   a.flat(rr(6.8, 10.4, 2.4, 1.6, .1), '#d4d4cc');
 };
-P.fuelDrum = (a) => {
-  // The fuel drum (barrels): the gas bottle across the slot, oxblood, its shoulder striped, a brass valve.
-  const { OX, STRIPE, SOOT, COPPER } = window.DebrisKit;
-  const turned = (cx, cy, t) => { const c = Math.cos(t), s = Math.sin(t); return (u, v) => [cx + u * c - v * s, cy + u * s + v * c]; };
-  const P = (pts) => poly(pts.flat());
-  const strip = (T, u0, u1, v0, v1) => P([T(u0, v0), T(u1, v0), T(u1, v1), T(u0, v1)]);
-
-  const T = turned(7.8, 8.4, -Math.PI / 4);
-  const body = P([[-7.8, -2.6], [4.6, -2.6], [6.4, -2.2], [7.6, -1], [7.6, 1], [6.4, 2.2], [4.6, 2.6], [-7.8, 2.6], [-8.4, 1.6], [-8.4, -1.6]].map(([u, v]) => T(u, v)));
-  a.shape(body, OX, { lite: strip(T, -9, 8, -3, -1.6), shade: strip(T, -9, 8, 1.2, 3), deep: .5 });
-  a.flat(strip(T, 4, 8, -3, 3), STRIPE[0], { clip: body });
-  a.flat(strip(T, 4, 8, 1.2, 3), '#7a6224', { clip: body });
-  a.flat(P([T(4.8, -3), T(5.6, -3), T(6.6, 3), T(5.8, 3)]), SOOT.base, { clip: body });
-  a.line(`M${T(4, -2.6).join(' ')}L${T(4, 2.6).join(' ')}`, { w: .8 });
-  a.shape(P([T(-8.4, -2.7), T(-6.8, -2.7), T(-6.8, 2.7), T(-8.4, 2.7)]), SOOT, { shade: strip(T, -8.4, -6.8, 1.6, 3) });
-  a.shape(strip(T, 7.4, 9.6, -1.4, 1.4), COPPER, { shade: strip(T, 7.4, 9.6, .7, 1.4) });
-};
 P.ration = (a) => {
   // A bar of pressed ration in waxed paper, torn back off its end; a red-brown band and an inked stamp.
   const PAPER = { base: '#988a64', shade: '#6a6048', deep: '#4c4636', lite: '#bcae84', spec: '#d8cca4' };
