@@ -426,8 +426,9 @@ public class EscortAboardTests
         Assert.Equal((x, y), (a.Escort.X, a.Escort.Y));
     }
 
+    /// <summary>A blow wakes it, so none dies asleep: struck on and on, it dies still waking in its stand.</summary>
     [Fact]
-    public void KilledItGivesMoreCircuitsAndScrapThanTheSentryAndItsStandIsLeftEmpty()
+    public void StruckDeadWhileItWakesItGivesMoreCircuitsAndScrapThanTheSentryAndItsStandIsLeftEmpty()
     {
         int Least(Spec.Species s, string item) => s.Yields.Single(y => y.Item == item).Min;
         int Most(Spec.Species s, string item) => s.Yields.Single(y => y.Item == item).Max;
@@ -435,11 +436,16 @@ public class EscortAboardTests
         Assert.Equal(2 * Spec.Sentry.Life.Hp, Spec.Escort.Life.Hp);
         var a = new Aboard();
         int dock = CreaturesModule.DockOf(a.Escort)!.Value;
+        var postures = new List<Posture>();
         Assert.True(a.RunTill(() =>
         {
-            if (a.V.Creatures.Creatures.Contains(a.Escort)) a.W.Do(new Strike(a.Escort.Id, Content.Weapons.Axe.Item));
-            return !a.V.Creatures.Creatures.Contains(a.Escort);
-        }, 400), $"damage {a.Escort.Damage}");
+            if (!a.V.Creatures.Creatures.Contains(a.Escort)) return true;
+            postures.Add(a.Escort.Posture);
+            a.W.Do(new Strike(a.Escort.Id, Content.Weapons.Axe.Item));
+            return false;
+        }, Wake - 1), $"damage {a.Escort.Damage}");
+        Assert.Equal(Posture.Docked, postures[0]);
+        Assert.All(postures.Skip(1), p => Assert.Equal(Posture.Waking, p));
         Assert.DoesNotContain(a.V.Creatures.Creatures, c => CreaturesModule.DockOf(c) == dock);
     }
 

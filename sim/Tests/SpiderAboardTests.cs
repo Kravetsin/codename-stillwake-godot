@@ -22,7 +22,7 @@ public class SpiderAboardTests
 
     private static readonly int Wake = Spec.Spider.Brain.OfType<Spec.Dock>().Single().Wake;
 
-    /// <summary>A freighter boarded (<see cref="GuardsAboardTests.Boarded"/>), its spiders asleep.</summary>
+    /// <summary>A vessel boarded (<see cref="GuardsAboardTests.Boarded"/>), a freighter unless said, its spiders asleep.</summary>
     private sealed class Aboard
     {
         public readonly Scenario W;
@@ -31,10 +31,43 @@ public class SpiderAboardTests
 
         public Vessel Vessel => Built.Vessel;
 
-        public Aboard()
+        public Aboard(string cls = "freighter")
         {
-            (W, V, Built) = GuardsAboardTests.Boarded("freighter");
+            (W, V, Built) = GuardsAboardTests.Boarded(cls);
             Assert.True(Spiders.Count >= 2, $"{Spiders.Count} spiders");
+        }
+
+        public Creature Spider(int id) => Spiders.Single(s => s.Id == id);
+
+        /// <summary>The way in's cells in the world: its left column and top row.</summary>
+        public (int X, int Y) WayIn => (M + Shipyard.WayIn(Built).X, M + Shipyard.WayIn(Built).Y);
+
+        /// <summary>Its hero out past the way in, in space: aboard no more.</summary>
+        public Aboard Out(int peer = 0) => Hero(WayIn.X - 4, WayIn.Y + Content.Vessels.Open - 1, peer);
+
+        /// <summary>Woken by a blow, its hero out past the way in: awake, no hero aboard.</summary>
+        public Aboard Woken(Creature spider)
+        {
+            Out();
+            W.Do(new Strike(spider.Id, Content.Weapons.Axe.Item));
+            Run(Wake + 2);
+            Assert.True(Awake(spider), $"{spider.Posture}");
+            return this;
+        }
+
+        /// <summary>Every inner door on the way in's deck opened, and the way in.</summary>
+        public Aboard OpenWayInsDeck()
+        {
+            foreach (var d in Vessel.Doors.Where(d => M + d.Y == WayIn.Y)) W.Do(new SetDoor(Cell(M + d.X, M + d.Y), true));
+            return Run(Content.Doors.SwingTicks);
+        }
+
+        /// <summary>Whether a body of <paramref name="c"/> lies wholly in the hull box, read from the vessel's sections.</summary>
+        public bool InHull(Creature c)
+        {
+            var hull = GuardsAboardTests.HullOf(Built);
+            int half = Spec.Spider.Body.Width * U / 2;
+            return hull.Contains((c.X - half) / U, (c.Y - Spec.Spider.Body.Height * U) / U) && hull.Contains((c.X + half - 1) / U, (c.Y - 1) / U);
         }
 
         public IReadOnlyList<Creature> Spiders => [.. V.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id)];
@@ -128,17 +161,23 @@ public class SpiderAboardTests
         Assert.True(Awake(spider));
     }
 
+    /// <summary>A blow wakes it, so none dies asleep: struck on and on, it dies still waking.</summary>
     [Fact]
-    public void KilledAsleepItsDockIsLeftEmptyAndTheOthersSleepOn()
+    public void StruckDeadWhileItWakesItsDockIsLeftEmptyAndTheOthersSleepOn()
     {
         var a = new Aboard();
         var spider = a.Spiders[0];
         int dock = CreaturesModule.DockOf(spider)!.Value;
+        var postures = new List<Posture>();
         Assert.True(a.RunTill(() =>
         {
-            if (a.V.Creatures.Creatures.Contains(spider)) a.W.Do(new Strike(spider.Id, Content.Weapons.Axe.Item));
-            return !a.V.Creatures.Creatures.Contains(spider);
-        }, 40));
+            if (!a.V.Creatures.Creatures.Contains(spider)) return true;
+            postures.Add(spider.Posture);
+            a.W.Do(new Strike(spider.Id, Content.Weapons.Axe.Item));
+            return false;
+        }, Wake - 1));
+        Assert.Equal(Posture.Docked, postures[0]);
+        Assert.All(postures.Skip(1), p => Assert.Equal(Posture.Waking, p));
         Assert.Equal(Spec.Spider.Life.Hp, spider.Damage);
         Assert.DoesNotContain(a.V.Creatures.Creatures, c => CreaturesModule.DockOf(c) == dock);
         Assert.Equal(a.V.Creatures.Docks.Count - 1, a.V.Creatures.Creatures.Count);
@@ -197,13 +236,151 @@ public class SpiderAboardTests
     }
 
     [Fact]
+    public void APryBrokenOffByItsShotAtABlowStartsOverAfterIt()
+    {
+        var (a, spider, door, body) = BehindADoor();
+        Assert.True(a.RunTill(() => spider.Recall(ProwlDrive.PryKey) != 0, 300));
+        int since = spider.Recall(ProwlDrive.PrySince);
+        // Its hero gone on, past its pounce's reach behind the door.
+        a.Hero(door.X - 24, body).Run(Prowl.Pry / 2);
+        // Struck mid-pry: it answers him with its shot where it stands, its pry let go, begun anew once the shot is over.
+        a.W.Do(new Strike(spider.Id, Content.Weapons.Axe.Item));
+        Assert.True(a.RunTill(() => spider.Act != null, 3));
+        Assert.IsType<Spec.Shoot>(Spec.Spider.Moves[spider.Act!.Move]);
+        Assert.Null(CreaturesModule.PryingAt(spider));
+        Assert.True(a.RunTill(() => spider.Act == null, 60));
+        int over = a.V.Creatures.Clock;
+        Assert.True(a.RunTill(() => !a.Shut(door.X, door.Y), 300));
+        Assert.True(a.V.Creatures.Clock >= over + Prowl.Pry, $"opened at {a.V.Creatures.Clock}, its shot over at {over}, first pried at {since}");
+    }
+
+    [Fact]
+    public void ItHuntsTheNearerOfTwoHeroesAndAtATieTheFirstInTheCrewsOrder()
+    {
+        var a = new Aboard();
+        var spider = a.Spiders.MaxBy(s => Math.Min(s.X / U - a.Room(s).Left, a.Room(s).Left + a.Room(s).Width - 1 - s.X / U))!;
+        var room = a.Room(spider);
+        a.Woken(spider);
+        GuardsAboardTests.Board(a.W, 1, a.Cell(a.WayIn.X - 4, a.WayIn.Y + Content.Vessels.Open - 1));
+        int body = Body(room.Floor);
+        // Both on its room's floor either side of it: the nearer, then as near, the first in the crew's order whichever side.
+        void Check(int zero, int one, int way)
+        {
+            int x = spider.X / U, d = Math.Min(x - room.Left, room.Left + room.Width - 1 - x);
+            Assert.True(d >= 4, $"room {room.Left}+{room.Width}, at {x}");
+            int at0 = x + zero * d / 4, at1 = x + one * d / 4;
+            a.Hero(at0, body, 0).Hero(at1, body, 1).Run();
+            Assert.Equal(Math.Abs(at0 - x) <= Math.Abs(at1 - x) ? (at0, body) : (at1, body), a.V.Creatures.Quarry(spider));
+            Assert.True(Math.Sign(spider.VX) == way, $"going {spider.VX}, the heroes at {at0} and {at1}, it at {x}");
+        }
+        Check(-3, 4, -1);
+        Check(4, -3, -1);
+        Check(4, -4, 1);
+        Check(-4, 4, -1);
+    }
+
+    /// <summary>The cells of what is solid inside room <paramref name="r"/>, off its floor: a shelf, a bunk.</summary>
+    private static List<(int X, int Y)> Shelves(Aboard a, Vessel.Compartment r) =>
+        [.. from y in Enumerable.Range(r.Top, r.Floor - r.Top - 1) from x in Enumerable.Range(r.Left, r.Width) where a.V.Grid.Solid(a.Cell(x, y)) select (x, y)];
+
+    [Fact]
+    public void AShelfInItsWayItCannotLeapUnderItsCeilingItClimbsAndGoesOver()
+    {
+        var a = new Aboard("liner");
+        // A spider with a shelf in its room on one side of it, its hero past the shelf's far end.
+        var (spider, room, shelf) = a.Spiders.Select(s => (s, r: a.Room(s))).Select(t => (t.s, t.r, sh: Shelves(a, t.r)))
+            .Where(t => t.sh.Count > 0 && t.sh.Max(c => c.X) < t.s.X / U - 2 && t.sh.Min(c => c.X) - 2 >= t.r.Left).Select(t => (t.s, t.r, t.sh)).First();
+        int left = shelf.Min(c => c.X);
+        a.Woken(spider).Hero(left - 2, Body(room.Floor));
+        bool climbed = false;
+        Assert.True(a.RunTill(() =>
+        {
+            Assert.False(a.V.Creatures.Overlaps(Spec.Spider.Body, spider.X, spider.Y), $"in the shelf at {spider.X},{spider.Y}");
+            climbed |= spider.Posture == Posture.Climbing && spider.Recall(WalkerBody.Wall) == -1;
+            return spider.X / U < left && a.Grounded(spider);
+        }, 300), $"never over it: at {spider.X},{spider.Y} {spider.Posture}");
+        Assert.True(climbed, "it got past without climbing");
+    }
+
+    /// <summary>
+    /// In a hall two decks high (the liner's hold, its escort struck dead), the hero past a wall built up from the floor: one three cells
+    /// high it leaps, its jump clearing it with the ceiling far over it; one four high, more than its jump, it climbs.
+    /// </summary>
+    [Theory]
+    [InlineData(3, false)]
+    [InlineData(4, true)]
+    public void InATallHallItLeapsAWallItsJumpClearsAndClimbsOneItDoesNot(int high, bool climbs)
+    {
+        var a = new Aboard("liner");
+        var escort = a.V.Creatures.Creatures.Single(c => c.Species == Spec.Escort.Id && a.Room(c).Left == M + 34);
+        var hall = a.Room(escort);
+        Assert.True(a.RunTill(() =>
+        {
+            if (a.V.Creatures.Creatures.Contains(escort)) a.W.Do(new Strike(escort.Id, Content.Weapons.Axe.Item));
+            return !a.V.Creatures.Creatures.Contains(escort);
+        }, 100));
+        // The well at the hall's left end, its hatches opened; the spider on the deck two over it.
+        var well = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Where(h => h.X == hall.Left && h.Y < hall.Top).ToList();
+        foreach (var h in well) a.W.Do(new SetDoor(a.Cell(h.X, h.Y), true));
+        var spider = a.Spiders.Single(s => a.Room(s).Left == hall.Left && a.Room(s).Floor == well.Min(h => h.Y) + Content.Vessels.Pitch);
+        int wall = hall.Left + 6, floor = hall.Floor;
+        for (int y = floor - high; y < floor; y++)
+            for (int x = wall; x < wall + 2; x++)
+            {
+                if (a.V.Grid.MachineAt(a.Cell(x, y)) != null) a.V.Grid.Clear(a.Cell(x, y), "machine");
+                a.V.Grid.Place(a.Cell(x, y), Placement.Wall());
+            }
+        a.Woken(spider).Hero(wall + 8, Body(floor));
+        bool leapt = false, climbed = false;
+        Assert.True(a.RunTill(() =>
+        {
+            if (spider.Y / U > hall.Top && spider.Act == null && spider.Recall(WalkerBody.Wall) == 0 && spider.VY < 0) leapt = true;
+            climbed |= spider.Y / U > hall.Top && spider.Recall(WalkerBody.Wall) == 1;
+            return spider.X / U > wall + 2 && spider.Y == floor * U;
+        }, 400), $"never past it: at {spider.X},{spider.Y} {spider.Posture}");
+        Assert.Equal((!climbs, climbs), (leapt, climbed));
+    }
+
+    /// <summary>
+    /// A hole taken out of the liner's roof over the hall under its top tier, the hatch between open: the hall's left wall runs up to the
+    /// roof, the hull box's top. Its hero on the hull's roof past that wall, the spider meets the wall and stands: a climb would carry it
+    /// out of the hull box before past the wall's top, out into space.
+    /// </summary>
+    [Fact]
+    public void ItNeverClimbsAWallPastTheHullsTopThroughAHoleInTheRoof()
+    {
+        var a = new Aboard("liner");
+        var hull = GuardsAboardTests.HullOf(a.Built);
+        var tier = a.Vessel.Sections.Where(s => s.Kind == Vessel.SectionKind.Tier).MinBy(s => s.Top)!;
+        Assert.Equal(hull.Top, M + tier.Top);
+        int roof = M + a.Vessel.Sections.First(s => s.Kind == Vessel.SectionKind.Body).Top;
+        var spider = a.Spiders.Single(s => a.Room(s).Left == M + tier.Left + 2 && a.Room(s).Top > M + tier.Bottom && a.Room(s).Floor <= roof);
+        var room = a.Room(spider);
+        var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Single(h => h.X == room.Left && h.Y < room.Top);
+        a.W.Do(new SetDoor(a.Cell(hatch.X, hatch.Y), true));
+        for (int y = hull.Top; y < hull.Top + 2; y++)
+            for (int x = room.Left; x < room.Left + 2; x++) a.V.Grid.Clear(a.Cell(x, y), "structure");
+        Assert.True(Enumerable.Range(hull.Top, room.Floor - hull.Top).All(y => a.V.Grid.Solid(a.Cell(room.Left - 1, y))), "no wall up to the roof");
+        a.Woken(spider).Hero(room.Left - 12, roof - 3).Run();
+        Assert.NotNull(a.V.Creatures.Quarry(spider));
+        Assert.True(a.RunTill(() =>
+        {
+            Assert.True(a.InHull(spider), $"out of the hull at {spider.X},{spider.Y} {spider.Posture}");
+            return spider.X / U <= room.Left + 1 && a.Grounded(spider);
+        }, 300), $"never at the wall: at {spider.X},{spider.Y} {spider.Posture}");
+        for (int t = 0; t < 200; t++)
+        {
+            a.Run();
+            Assert.True(a.InHull(spider), $"out of the hull at {spider.X},{spider.Y} {spider.Posture} at tick {t}");
+        }
+    }
+
+    [Fact]
     public void ItNeverPriesTheWayIn()
     {
         var a = new Aboard();
-        var door = Shipyard.WayIn(a.Built);
-        var (x, y) = (M + door.X, M + door.Y);
+        var (x, y) = a.WayIn;
         Assert.True(a.Shut(x, y));
-        Assert.Null(a.V.Creatures.ShutDoorway(x, y, x + 1, y + Content.Vessels.Open - 1));
         // Its hero just inside the way in, then out past it: the spider comes, then stands, the way in shut.
         var (fx, fy) = Shipyard.Door(a.Built);
         var spider = a.Spiders[0];
@@ -212,6 +389,66 @@ public class SpiderAboardTests
         a.Hero(x - 2, M + fy).Run(600);
         Assert.True(a.Shut(x, y));
         Assert.Equal(0, spider.Recall(ProwlDrive.PryKey));
+    }
+
+    /// <summary>The spider of the liner's way in's deck, woken, the deck's doors and the way in open.</summary>
+    private static (Aboard A, Creature Spider) ByTheWayIn()
+    {
+        var a = new Aboard("liner");
+        var spider = a.Spiders.First(s => a.Room(s).Floor == a.WayIn.Y + Content.Vessels.Open);
+        a.Woken(spider).OpenWayInsDeck();
+        Assert.False(a.Shut(a.WayIn.X, a.WayIn.Y));
+        return (a, spider);
+    }
+
+    /// <summary>Whether <paramref name="c"/>'s body has a column in the way in's.</summary>
+    private static bool InWayIn(Aboard a, Creature c) =>
+        (c.X - Spec.Spider.Body.Width * U / 2) / U <= a.WayIn.X + 1 && (c.X + Spec.Spider.Body.Width * U / 2 - 1) / U >= a.WayIn.X;
+
+    [Fact]
+    public void StandingInTheWayInWhenItsHeroShutsItFromInsideItNeverOpensIt()
+    {
+        var (a, spider) = ByTheWayIn();
+        int body = a.WayIn.Y + Content.Vessels.Open - 3;
+        // Its hero in the open way in: it comes to him, into the doorway.
+        a.Hero(a.WayIn.X + 1, body);
+        Assert.True(a.RunTill(() => InWayIn(a, spider) && spider.Act == null && a.Grounded(spider), 900), $"at {spider.X},{spider.Y} {spider.Posture}");
+        // He steps in past it and shuts the way in on it: it is shut in, its hero aboard, and never pries it.
+        var (fx, fy) = Shipyard.Door(a.Built);
+        a.Hero(M + fx, M + fy);
+        a.W.Do(new SetDoor(a.Cell(a.WayIn.X, a.WayIn.Y), false));
+        a.Run(Content.Doors.SwingTicks + 1);
+        Assert.Empty(a.W.Refusals);
+        Assert.True(a.Shut(a.WayIn.X, a.WayIn.Y));
+        Assert.True(a.V.Creatures.InShutDoorway(Spec.Spider.Body, spider.X, spider.Y), $"at {spider.X},{spider.Y}, not shut in");
+        Assert.NotNull(a.V.Creatures.Quarry(spider));
+        for (int t = 0; t < 300; t++)
+        {
+            a.Run();
+            Assert.True(a.Shut(a.WayIn.X, a.WayIn.Y), $"opened at tick {t}");
+            Assert.Null(CreaturesModule.PryingAt(spider));
+        }
+    }
+
+    [Fact]
+    public void APounceAtAHeroInTheOpenWayInStopsAtTheHullNeverOutIntoSpace()
+    {
+        var (a, spider) = ByTheWayIn();
+        var (fx, fy) = Shipyard.Door(a.Built);
+        // Crouched at its hero inside, he steps back into the open way in: its pounce flies at him there, out at the way in.
+        a.Hero(M + fx + 12, M + fy);
+        Assert.True(a.RunTill(() => spider.Act is { Move: 0, Phase: ActPhase.WindUp }, 600), $"it never crouched: at {spider.X},{spider.Y}");
+        Assert.True(spider.X / U > M + fx + 4, $"crouched at {spider.X / U}");
+        a.Hero(a.WayIn.X, a.WayIn.Y + Content.Vessels.Open - 3);
+        bool flew = false;
+        Assert.True(a.RunTill(() =>
+        {
+            Assert.True(a.InHull(spider), $"out of the hull at {spider.X},{spider.Y} {spider.Posture} v {spider.VX},{spider.VY}");
+            if (spider.Act is { Move: 0, Phase: ActPhase.Active }) flew |= spider.VX < 0;
+            return flew && spider.Act == null;
+        }, 40), $"it never pounced out at the way in: at {spider.X},{spider.Y}");
+        a.Run(60);
+        Assert.True(a.InHull(spider), $"out of the hull at {spider.X},{spider.Y}");
     }
 
     [Fact]
@@ -312,11 +549,10 @@ public class SpiderAboardTests
     /// What a spider may stand on, every tick of a play aboard: its body in the hull box; climbing, it holds a wall flush beside it or is in
     /// line with a hatch over its well; never two ticks running at one height in the air, held by nothing (a ceiling, a back wall).
     /// </summary>
-    private static void Holds(Registry v, Vessel vessel, Creature c, Dictionary<int, int> aloft)
+    private static void Holds(Registry v, Vessel vessel, Box hull, Creature c, Dictionary<int, int> aloft)
     {
         var w = (Spec.Walker)Spec.Spider.Body;
         int half = w.Width * U / 2, left = (c.X - half) / U, right = (c.X + half - 1) / U, top = (c.Y - w.Height * U) / U, feet = (c.Y - 1) / U;
-        var hull = v.Creatures.Hull;
         Assert.True(hull.Contains(left, top) && hull.Contains(right, feet), $"spider {c.Id} at {c.X},{c.Y} out of the hull box {hull}");
         bool Solid(int x, int y) => v.Grid.Solid(y * v.Grid.Width + x);
         if (c.Posture == Posture.Climbing)
@@ -349,19 +585,60 @@ public class SpiderAboardTests
     [Property(MaxTest = 12)]
     public Property ASpiderIsNeverOnABackWallACeilingOrOutsideTheHullBox() => Prop.ForAll(Plays(), play =>
     {
-        var (w, v, built) = GuardsAboardTests.Boarded(play.Class, play.Index);
+        Play(play.Class, play.Index, play.Seed);
+        return true.ToProperty();
+    });
+
+    /// <summary>
+    /// The property's plays reach side-wall climbs, a shelf in the spider's way, a vessel's only inner wall: half of these six do (5 of 12 at
+    /// random), the hero put by a shelf every other time; on rooms' floors at random alone, a third did. A vessel with no shelf has none.
+    /// </summary>
+    [Fact]
+    public void ThePlaysClimbSideWalls()
+    {
+        var plays = new[] { ("freighter", 0u), ("freighter", 1u), ("freighter", 2u), ("liner", 0u), ("liner", 1u), ("liner", 2u) };
+        int climbing = plays.Count(p => Play(p.Item1, p.Item2, 7) > 0);
+        Assert.True(climbing >= plays.Length / 2, $"{climbing} of {plays.Length} plays climbed a side wall");
+    }
+
+    /// <summary>
+    /// A play aboard <paramref name="cls"/>'s <paramref name="index"/>th vessel from <paramref name="seed"/>, every awake spider held to what
+    /// it may stand on each tick (<see cref="Holds"/>): how many times a spider took hold of a side wall.
+    /// </summary>
+    private static int Play(string cls, uint index, uint seed)
+    {
+        var (w, v, built) = GuardsAboardTests.Boarded(cls, index);
         var vessel = built.Vessel;
-        var rng = new Rng(new RngState { S = play.Seed | 1 });
+        var hull = GuardsAboardTests.HullOf(built);
+        var rng = new Rng(new RngState { S = seed | 1 });
         var rooms = vessel.Compartments;
         var aloft = new Dictionary<int, int>();
-        int surface = w.World.SurfaceOf(0);
+        var holding = new Dictionary<int, int>();
+        int surface = w.World.SurfaceOf(0), climbs = 0;
+        // Beside each end of a shelf, on its room's floor: where a spider coming from past its other end must climb it.
+        var byShelves = new List<int>();
+        foreach (var room in rooms)
+        {
+            var r = room with { Left = M + room.Left, Top = M + room.Top };
+            for (int y = r.Top; y < r.Floor - 1; y++)
+                for (int x = r.Left + 1; x < r.Left + r.Width - 1; x++)
+                {
+                    bool solid = v.Grid.Solid(y * v.Grid.Width + x);
+                    if (solid && !v.Grid.Solid(y * v.Grid.Width + x - 1)) byShelves.Add(Body(r.Floor) * v.Grid.Width + x - 1);
+                    if (solid && !v.Grid.Solid(y * v.Grid.Width + x + 1)) byShelves.Add(Body(r.Floor) * v.Grid.Width + x + 1);
+                }
+        }
         for (int t = 0; t < 1500; t++)
         {
             if (t % 30 == 0)
             {
-                // The hero somewhere aboard, on a room's floor; now and then a blow on a spider, a doorway set.
-                var r = rooms[(int)rng.Below((uint)rooms.Count)];
-                w.Do(new Enter((M + Body(r.Floor)) * v.Grid.Width + M + r.Left + (int)rng.Below((uint)r.Width)));
+                // The hero somewhere aboard: by a shelf every other time, else on a room's floor; now and then a blow on a spider, a doorway set.
+                if (byShelves.Count > 0 && rng.Below(2) == 0) w.Do(new Enter(byShelves[(int)rng.Below((uint)byShelves.Count)]));
+                else
+                {
+                    var r = rooms[(int)rng.Below((uint)rooms.Count)];
+                    w.Do(new Enter((M + Body(r.Floor)) * v.Grid.Width + M + r.Left + (int)rng.Below((uint)r.Width)));
+                }
                 var all = v.Creatures.Creatures;
                 if (rng.Below(3) == 0 && all.Count > 0) w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item));
                 if (rng.Below(3) == 0)
@@ -378,14 +655,20 @@ public class SpiderAboardTests
             w.Run();
             // Its hero beaten and carried home, the vessel's world closes: the play is over.
             if (w.World.SurfaceOf(0) != surface) break;
-            foreach (var c in v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id && Awake(c))) Holds(v, vessel, c, aloft);
+            foreach (var c in v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id && Awake(c)))
+            {
+                Holds(v, vessel, hull, c, aloft);
+                int side = c.Recall(WalkerBody.Wall);
+                if (side is 1 or -1 && holding.GetValueOrDefault(c.Id) != side) climbs++;
+                holding[c.Id] = side;
+            }
         }
-        return true.ToProperty();
-    });
+        return climbs;
+    }
 
     /// <summary>
     /// Two worlds fed the same commands aboard a freighter, alike every tick while a spider wakes, pries a door, is struck and hunts its
-    /// hero up the well; mid-hunt a second hero comes aboard, and a peer joins: the one world's save loaded, played on beside the other.
+    /// hero up the well; as it climbs a second hero comes aboard, and a peer joins: the one world's save loaded, played on beside the other.
     /// </summary>
     [Fact]
     public void TwoWorldsStayAlikeThroughAWakeAPryABlowAndAHuntAndAJoinMidHunt()
@@ -426,11 +709,14 @@ public class SpiderAboardTests
         // Up a deck: a hunt up the well.
         var hatch = vessel.Hatches.Where(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1).Single();
         Both(new Enter((M + Body(hatch.Y)) * width + M + hatch.X + 6));
-        Run(60);
+        var hunting = v.Creatures.Creatures.Single(c => c.Id == id);
+        for (int i = 0; i < 600 && hunting.Posture != Posture.Climbing; i++) Both();
         Both(new Enter(a.Crew.Spawn) { From = 1 });
         Both(new Transfer(surface) { From = 1 });
-        Run(30);
+        // Saved as it climbs, its hold on the well kept in what is saved.
+        Assert.Equal(Posture.Climbing, hunting.Posture);
         var joined = World.Load(first.Save(), new Registry().All);
+        Assert.Equal(Posture.Climbing, Registry.On(joined, surface).Creatures.Creatures.Single(c => c.Id == id).Posture);
         Assert.Equal(first.Hash(), joined.Hash());
         for (int i = 0; i < 300; i++)
         {

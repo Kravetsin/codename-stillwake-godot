@@ -37,22 +37,30 @@ internal sealed class ProwlDrive : DriveRule
         var prowl = (Spec.Prowl)d;
         Guard.Run(m, c, spec, prowl.Guard);
         if (c.Act == null) Steer(m, c, spec, prowl);
+        else Forget(c);
         return true;
     }
 
     /// <summary>Alerted long enough, it pounces or shoots as its guard does; holding a wall it waits till it is off.</summary>
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
-        if (c.Recall(WalkerBody.Wall) == 0) return Guard.Next(m, c, spec, ((Spec.Prowl)d).Guard);
-        if (c.Step == GuardDrive.Alerted) c.DriveLeft = 1;
-        return true;
+        if (c.Recall(WalkerBody.Wall) != 0)
+        {
+            if (c.Step == GuardDrive.Alerted) c.DriveLeft = 1;
+            return true;
+        }
+        bool next = Guard.Next(m, c, spec, ((Spec.Prowl)d).Guard);
+        if (c.Act != null) Forget(c);
+        return next;
     }
 
-    /// <summary>Struck, it answers as its guard does; an answer begun on a wall lets go of it.</summary>
+    /// <summary>Struck, it answers as its guard does; an answer begun on a wall lets go of it. A pry an act breaks off starts over after.</summary>
     internal override bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit)
     {
         bool claimed = Guard.Hurt(m, c, spec, ((Spec.Prowl)d).Guard, at, hit);
-        if (c.Act != null && c.Recall(WalkerBody.Wall) != 0) LetGo(c, 0);
+        if (c.Act == null) return claimed;
+        Forget(c);
+        if (c.Recall(WalkerBody.Wall) != 0) LetGo(c, 0);
         return claimed;
     }
 
