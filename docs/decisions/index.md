@@ -297,7 +297,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted | light-drone (in part) |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
-| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
+| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw, fuel-drums (in part) |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted | board-islands (in part) |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted | planet-variety (in part) |
@@ -426,7 +426,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted | drone-colour (in part) |
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
 | [breakers-look](2026-11-22-breakers-look.md) | Breakers are robots of painted pieces, a pack all of one kind | accepted |  |
-| [companion-fights](2026-11-22-companion-fights.md) | Breakers to mow down, and the weapon thrown on the drone's thread | accepted | breakers-look (in part) |
+| [companion-fights](2026-11-22-companion-fights.md) | Breakers to mow down, and the weapon thrown on the drone's thread | accepted | breakers-look, fuel-drums (in part) |
 | [drone-colour](2026-11-22-drone-colour.md) | The drone burns in its player's colour; eight suit colours, none amber | accepted |  |
 | [drone-spring](2026-11-22-drone-spring.md) | The drone catches up on a spring and shines from open air | accepted |  |
 | [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |
@@ -434,4 +434,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
 | [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |

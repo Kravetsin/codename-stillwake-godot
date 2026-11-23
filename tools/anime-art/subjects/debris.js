@@ -942,6 +942,41 @@ draw('tanks_01', 32, 32, (a) => {
   for (const x of [4, 9, 14, 19, 24, 28]) a.flat(rr(x, 29.4, 1.6, .9, .2), SOOT.deep);
 });
 
+// The fuel drum (fuel-drums), picked on its page: a long gas bottle in oxblood lying across its box, its shoulder striped black and
+// yellow, a brass valve with a torn hose, rime at the neck.
+draw('fueldrum_01', 32, 32, (a) => {
+  const turned = (cx, cy, t) => { const c = Math.cos(t), s = Math.sin(t); return (u, v) => [cx + u * c - v * s, cy + u * s + v * c]; };
+  const P = (pts) => poly(pts.flat());
+  const strip = (T, u0, u1, v0, v1) => P([T(u0, v0), T(u1, v0), T(u1, v1), T(u0, v1)]);
+
+  const T = turned(16, 16.1, -Math.PI / 4);
+  const R = 5.4, outline = [[-14.8, -R], [8.6, -R], [11.4, -R * .9], [13.4, -R * .7], [14.6, -R * .44], [15.1, -1.5], [15.1, 1.5], [14.6, R * .44], [13.4, R * .7], [11.4, R * .9], [8.6, R], [-14.8, R], [-15.6, R * .82], [-16, R * .42], [-16, -R * .42], [-15.6, -R * .82]];
+  const body = P(outline.map(([u, v]) => T(u, v)));
+  a.shape(body, OX, { lite: strip(T, -17, 16, -6, -3.4), shade: strip(T, -17, 16, 2.6, 6), deep: .9 });
+  // the shoulder painted yellow, black bands slanting across it
+  const shoulder = strip(T, 8.2, 16, -6, 6);
+  a.flat(shoulder, STRIPE[0], { clip: body });
+  a.flat(strip(T, 8.2, 16, 2.6, 6), '#7a6224', { clip: body });
+  a.flat(strip(T, 8.2, 16, -6, -3.6), '#cfae58', { clip: body });
+  for (const u of [8.8, 11.8]) a.flat(P([T(u, -6), T(u + 1.4, -6), T(u + 2.8, 6), T(u + 1.4, 6)]), SOOT.base, { clip: body });
+  a.line(`M${T(8.2, -R).join(' ')}L${T(8.2, R).join(' ')}`, { w: 1 });
+  a.flat(strip(T, 2.6, 3.8, -6, 6), CREAM.base, { clip: body });
+  a.flat(strip(T, 2.6, 3.8, 2.6, 6), CREAM.shade, { clip: body });
+  // the rubber foot, a dent and a long scrape, rust at the foot
+  a.shape(P([T(-16, -R - .3), T(-13, -R - .3), T(-13, R + .3), T(-16, R + .3)]), SOOT, { lite: strip(T, -16.2, -13, -6, -4.2), shade: strip(T, -16.2, -13, 3.4, 6) });
+  a.flat(ell(...T(-5, -1.4), 2, 1.4), OX.shade, { clip: body }); a.line(`M${T(-6.8, -2.6).join(' ')}Q${T(-5, -3.4).join(' ')} ${T(-3.2, -2.4).join(' ')}`, { w: 1 });
+  a.line(`M${T(-11, 1.6).join(' ')}L${T(1, 2.4).join(' ')}`, { w: .8 });
+  rusted(a, ...T(-12.6, 3.4), 1.2, .9, body); rusted(a, ...T(6.4, -3.6), .8, .7, body);
+  // the neck, the brass valve and its torn hose; rime where the gas escapes
+  a.shape(strip(T, 15, 17.8, -1.6, 1.6), GUN, { lite: strip(T, 15, 17.8, -1.6, -.8), shade: strip(T, 15, 17.8, .8, 1.6) });
+  for (const u of [15.8, 16.8]) a.line(`M${T(u, -1.6).join(' ')}L${T(u, 1.6).join(' ')}`, { w: .7 });
+  a.shape(strip(T, 17.4, 19.6, -2.4, 2.4), COPPER, { lite: strip(T, 17.4, 19.6, -2.4, -1.4), shade: strip(T, 17.4, 19.6, 1.2, 2.4) });
+  a.flat(ell(...T(18.5, 0), .7), SOOT.deep);
+  a.tube(`M${T(18.5, 2.2).join(' ')}Q${T(18.4, 4.4).join(' ')} ${T(16.6, 5.4).join(' ')}`, 1.3, SOOT, { spec: false });
+  a.flat(ell(...T(16.4, 5.5), .6, .5), '#7a5c44');
+  a.flat(ell(...T(14.2, -2.2), 1.2, .8), FROST[1]); a.flat(ell(...T(14.6, 2.2), 1, .7), FROST[0]);
+});
+
 // ---------- pods on their frames ----------
 /** A pod on its arm, nose toward its frame at angle t: enamelled plate, the hard dark of its far side, a painted stripe, hoops riveted round it, its burned tail cap and a port. orange paints the whole of it. */
 function egg(a, cx, cy, rx, ry, t, o) {

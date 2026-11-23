@@ -34,7 +34,7 @@ Every creature composed (creatures-are-composed): a species names a body, life, 
 drives, moves and yields, each a rule here. The dead are gone to all from the blow.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
+  (queries, `Unreel`, `Hit`, `TakeBursting`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
   `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Nests`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
@@ -80,7 +80,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **Shots:** `Fire` takes ammo and `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id creature,
   machine (the lifepod stops it), wreck (not `Passed`), through bodies it `Pierces`, broken cells while it `Carries` some; falls
   (`ShotFlight`). One that `Homes` turns `Turn` a tick at the nearest awake hero, bursting in `Reach`. One that `Bursts` bursts
-  at the first it meets (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
+  at the first it meets (`Spoils.Drop`; a relic shocks the thrower). **A burst** (fuel-drums; drums' first): wrecks in `Reach`
+  take `WreckDamage`, awake heroes and live creatures it sees `Body`, its setter too, a target once.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as a hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
@@ -107,7 +108,6 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 
 - **No collisions** (0006); a clinger senses through rock; despawn loses damage; no stun.
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing. **Lifetime:** the keep box's.
-- **A burst hurts no creature; a hero's, no hero.**
 - **A catcher:** none on a planet under twice `RingFrom` wide.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow breaking its wreck: unanswered.
 - **Shots** (0034): muzzle, pace, charge the client's; a guest's copy stops at blocks the nailer breaks.
