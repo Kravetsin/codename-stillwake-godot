@@ -614,13 +614,18 @@ public static class Sound
         [Stillwake.Content.Creatures.Warden.Id] = WardenCues,
     };
 
+    private static readonly Cue SentryPunch = new(Shots("creatures/sentry-punch", 1), -1.5f, Heard: ToolReach);
+
     /// <summary>
     /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch, and
-    /// the warden's, a boxer's. This player's own on Suit, a friend's on World.
+    /// the warden's, a boxer's; a vessel's guards, the spider's pounce and the escort's claw, land the sentry's (derelict-enemies).
+    /// This player's own on Suit, a friend's on World.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>
     {
-        [Stillwake.Content.Creatures.Sentry.Id] = new(Shots("creatures/sentry-punch", 1), -1.5f, Heard: ToolReach),
+        [Stillwake.Content.Creatures.Sentry.Id] = SentryPunch,
+        [Stillwake.Content.Creatures.Spider.Id] = SentryPunch,
+        [Stillwake.Content.Creatures.Escort.Id] = SentryPunch,
         [Stillwake.Content.Creatures.Warden.Id] = new(Shots("creatures/warden-punch", 1), -1.5f, Heard: ToolReach),
     };
 
@@ -798,7 +803,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.Distinct().SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.Distinct().SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.Distinct().SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.Distinct().SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values.Distinct(), .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

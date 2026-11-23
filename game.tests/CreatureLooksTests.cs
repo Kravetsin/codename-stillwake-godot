@@ -35,16 +35,24 @@ public class CreatureLooksTests
         Assert.Same(catcher.Of(1), catcher.Of(1 + catcher.Gear.Count));
     }
 
+    [Fact]
+    public void TheGuardsHitAHeroWithTheSentrysPunch()
+    {
+        var punch = Sound.RamHits[Spec.Creatures.Sentry.Id];
+        Assert.Same(punch, Sound.RamHits.GetValueOrDefault(Spec.Creatures.Spider.Id));
+        Assert.Same(punch, Sound.RamHits.GetValueOrDefault(Spec.Creatures.Escort.Id));
+    }
+
     [Theory]
     [MemberData(nameof(Species))]
     public void EverySpeciesHasItsHitsLookAndItsHitsAndDeathsSound(string species)
     {
         Assert.True(HitLooks.Creatures.TryGetValue(species, out var impact), $"{species} has no hit look");
         Assert.NotEmpty(HitLooks.Of[impact].Throws);
-        // The escort is silent till its sounds are picked (derelict-enemies): none of its own, none borrowed.
+        // The escort is silent till its sounds are picked (derelict-enemies), but for its claw on a hero, the sentry's punch.
         if (CreatureLooks.Escorts.Contains(Spec.Creatures.Get(species).Look))
         {
-            Assert.False(Sound.Creatures.ContainsKey(species) || Sound.Istukans.ContainsKey(species) || Sound.RamHits.ContainsKey(species), $"{species} is heard");
+            Assert.False(Sound.Creatures.ContainsKey(species) || Sound.Istukans.ContainsKey(species), $"{species} is heard");
             return;
         }
         if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look))
