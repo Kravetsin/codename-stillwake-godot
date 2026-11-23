@@ -264,7 +264,7 @@ public partial class HeroView
     {
         if (!_throw.Flying || _ui.Wielded.Get() is not { } tool) return;
         var going = _throw.Velocity;
-        var hit = _throw.Step(elapsedMs, m, _current, Outside(m, _current), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        var hit = _throw.Step(elapsedMs, m, _current, Outside(m, _current), _progress, _wreckPixels.Solid(_progress));
         // Home in the fist: the glove's thump, as on what it grabs.
         if (_throw.Caught) _act.Play(Floats);
         if (hit == null) return;
@@ -431,7 +431,7 @@ public partial class HeroView
     {
         var near = new List<Piece>();
         double perPixel = Hero.Unit / Rig.Cell;
-        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+        var solid = _wreckPixels.Solid(_progress);
         if (hazes.Count > 0)
         {
             double left = double.MaxValue, right = double.MinValue, top = double.MaxValue, bottom = double.MinValue;
@@ -478,7 +478,7 @@ public partial class HeroView
     private EdgeHit? EdgeOf(Registry m, Hero hero, string tool, Figure figure)
     {
         if (!figure.Visible || !figure.Aimed || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
-        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+        var solid = _wreckPixels.Solid(_progress);
         if (tool == Content.Weapons.PlasmaCutter.Item)
             return ToolEdges.Hits(m, ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end)), Outside(m, hero), _progress, solid);
         var hand = Aiming.HandOf(hero);
@@ -492,7 +492,7 @@ public partial class HeroView
     /// the shoulder (tool-reach), the wrecks as drawn this frame.
     /// </summary>
     private EdgeHit StrokeOf(Registry m, Hero hero, Point at, string tool) =>
-        ToolRays.Fan(m, hero, tool, ToolRays.HeadingOf(hero, (at.X, at.Y)), Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        ToolRays.Fan(m, hero, tool, ToolRays.HeadingOf(hero, (at.X, at.Y)), Outside(m, hero), _progress, _wreckPixels.Solid(_progress));
 
     /// <summary>Whether <paramref name="hero"/> is out in space, where its tools touch wrecks.</summary>
     private static bool Outside(Registry m, Hero hero) => m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;

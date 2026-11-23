@@ -420,6 +420,8 @@ public class AimTests
             var pieces = root["slices"]!["debris"]!["pieces"]!.AsArray();
             var first = pieces[0]!;
             first["item"] = "hullSection";
+            // Upright and still: the turned ones are TurnedAimTests'.
+            (first["angle"], first["spin"]) = (0, 0);
             var chunk = first.DeepClone();
             chunk["id"] = 99;
             chunk["item"] = "scrapChunk";
@@ -497,6 +499,7 @@ public class AimTests
             {
                 var piece = model.DeepClone();
                 (piece["id"], piece["item"], piece["x"], piece["y"], piece["speed"]) = (i + 1, items[i].Item, items[i].X, items[i].Y, 0);
+                (piece["angle"], piece["spin"]) = (0, 0);
                 pieces.Add(piece);
             }
             debris["nextId"] = items.Length + 1;

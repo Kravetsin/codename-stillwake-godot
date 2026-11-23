@@ -5,7 +5,7 @@ using Stillwake.Sim.Debris;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The box a wreck is pointed at by (0034): its whole picture and a little more, as it rocks. The crew aims its hands by it,
+/// The box a wreck is pointed at by (0034): its whole picture, turned as the sim turns it, and a little more. The crew aims its hands by it,
 /// the scanner reads by it (2026-11-07-the-scanner).
 /// </summary>
 public static class WreckAim
@@ -19,12 +19,15 @@ public static class WreckAim
             ? (size.W * DebrisModule.Unit / (2 * Camera.Cell) + Margin, size.H * DebrisModule.Unit / (2 * Camera.Cell) + Margin)
             : null;
 
-    /// <summary>The first wreck of <paramref name="pieces"/>, in spawn order, with <paramref name="point"/> (in cells) in its box; none over none.</summary>
+    /// <summary>
+    /// The first wreck of <paramref name="pieces"/>, in spawn order, with <paramref name="point"/> (in cells) within <see cref="Margin"/>
+    /// of its turned box, the sim's (<see cref="DebrisModule.ShapeOf"/>, debris-physics); none over none.
+    /// </summary>
     public static Piece? Under(IReadOnlyList<Piece> pieces, (double X, double Y) point)
     {
-        double px = point.X * DebrisModule.Unit, py = point.Y * DebrisModule.Unit;
+        int px = (int)Math.Round(point.X * DebrisModule.Unit), py = (int)Math.Round(point.Y * DebrisModule.Unit);
         for (int i = 0; i < pieces.Count; i++)
-            if (HalfOf(pieces[i].Item) is var (halfW, halfH) && Math.Abs(pieces[i].X - px) <= halfW && Math.Abs(pieces[i].Y - py) <= halfH) return pieces[i];
+            if (DebrisModule.ShapeOf(pieces[i]) is { } shape && shape.Gap(px, py) <= Margin) return pieces[i];
         return null;
     }
 }
