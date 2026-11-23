@@ -70,9 +70,18 @@ public partial class DocksView : Node2D, ILightSource
 
     private const float HookApart = 10, CableLeft = 22.4f, CableRight = 25.6f, CableTop = 12.4f, CableShort = 4;
 
+    /// <summary>
+    /// The docks' pictures, read as the surface opens, never at a dock's first sight: a capsule shut, open, its iris's steps; a stand. Its
+    /// moving parts are warmed with the creatures' (<see cref="CreatureParts.Warm"/>).
+    /// </summary>
+    private readonly Texture2D _capsule, _capsuleOpen, _stand;
+    private readonly Texture2D[] _iris;
+
     public DocksView(CreaturesModule creatures, Func<double> progress)
     {
         (_creatures, _progress) = (creatures, progress);
+        (_capsule, _capsuleOpen, _stand) = (PixelArt.Picture("guard_capsule"), PixelArt.Picture("guard_capsule_open"), PixelArt.Picture("guard_stand"));
+        _iris = [.. IrisSteps.Select(PixelArt.Picture)];
         var docks = creatures.Docks;
         _docks = new (Vector2, bool)[docks.Count];
         _now = new (Shown, double)[docks.Count];
@@ -207,13 +216,13 @@ public partial class DocksView : Node2D, ILightSource
             if (capsule != capsules) continue;
             if (!capsule)
             {
-                Stand(g, corner, Let(i), Lamp(i) != null);
+                Stand(g, _stand, corner, Let(i), Lamp(i) != null);
                 continue;
             }
             var (state, p) = _now[i];
             int step = state switch { Shown.Asleep => 0, Shown.Waking => DockWake.IrisStep(p), _ => DockWake.IrisSteps + 1 };
-            g.DrawTexture(PixelArt.Picture(step == 0 ? "guard_capsule" : "guard_capsule_open"), corner);
-            if (step is > 0 and <= DockWake.IrisSteps) g.DrawTexture(PixelArt.Picture(IrisSteps[step - 1]), corner);
+            g.DrawTexture(step == 0 ? _capsule : _capsuleOpen, corner);
+            if (step is > 0 and <= DockWake.IrisSteps) g.DrawTexture(_iris[step - 1], corner);
         }
     }
 
@@ -225,9 +234,9 @@ public partial class DocksView : Node2D, ILightSource
         corner + Yoke + new Vector2(0, (float)((StandWake.Hang - StandWake.Hung(p) - StandWake.Risen(p)) * Cell));
 
     /// <summary>A stand's back at <paramref name="p"/>: its picture, its drum turned as it pays out, its cables down to the yoke, its beacon lit or not.</summary>
-    private static void Stand(Sketch g, Vector2 corner, double p, bool beacon)
+    private static void Stand(Sketch g, Texture2D picture, Vector2 corner, double p, bool beacon)
     {
-        g.DrawTexture(PixelArt.Picture("guard_stand"), corner);
+        g.DrawTexture(picture, corner);
         Part(g, "drum", corner + Drum, (float)((StandWake.Hang - StandWake.Hung(p)) * 9), 1);
         float bottom = YokeAt(corner, p).Y - CableShort;
         foreach (float x in new[] { CableLeft, CableRight }) g.DrawLine(corner + new Vector2(x, CableTop), new Vector2(corner.X + x, bottom), Cable, 0.8f);
