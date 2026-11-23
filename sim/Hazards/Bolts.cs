@@ -103,7 +103,7 @@ public sealed partial class HazardsModule
     private void StrikeBolt(Strike strike)
     {
         if (BoltRules is not { } rule) return;
-        _building.Burst(FloorStack.Nobody, strike.Cell, rule.Power, rule.Reach, Spoils.Lost);
+        _building.Burst(FloorStack.Nobody, strike.Cell, rule.Power, rule.Reach, rule.Reach * Content.Blasting.PushPerReach, Spoils.Lost);
         int width = _grid.Width, x = strike.Cell % width;
         var heroes = _crew.Heroes;
         for (int i = 0; i < heroes.Count; i++)

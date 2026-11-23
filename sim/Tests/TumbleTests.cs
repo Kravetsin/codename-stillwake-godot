@@ -142,10 +142,10 @@ public class TumbleTests
         Piece Burst(int angle)
         {
             var w = ShotsTests.Space();
-            var hold = Wreck(w, 30, 10, "cargoHold", angle);
+            var hold = Wreck(w, 30, 17, "cargoHold", angle);
             var drum = BarrelsTests.Put(w, 30, 0, damage: Spec.Wreckage.HpOf("fuelDrum")!.Value - 1);
-            // Six cells' reach from (30.5, 0.5): the upright hold's top is 7 off, the one turned a quarter's 4.
-            Assert.Equal(7_000, TurnedBox.Of(hold.Id, hold.X, hold.Y, 6_000, 3_000, 0).Gap(30_500, 500));
+            // A wave of 12 from (30.5, 0.5): the upright hold's top is 14 off, the one turned a quarter's 11.
+            Assert.Equal(14_000, TurnedBox.Of(hold.Id, hold.X, hold.Y, 6_000, 3_000, 0).Gap(30_500, 500));
             w.Do(new HewPieces(Axe, [drum.Id])).Run();
             Assert.Empty(w.Refusals);
             return hold;

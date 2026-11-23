@@ -156,7 +156,7 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// A homing shot's turn before its step (catcher-missile): the nearest awake hero (by squared distance, the first in the crew's
-    /// order at a tie) within its burst's reach and in its sight, true: it bursts where it is. Else its heading turns toward that
+    /// order at a tie) within its burst's wave and in its sight, true: it bursts where it is. Else its heading turns toward that
     /// hero's middle by at most its <c>Turn</c> and its speed is set along it, rounded toward zero; no awake hero, it flies on straight.
     /// </summary>
     private bool Steer(Shot s, Content.Projectile p, Content.Homing homes, int heading)
@@ -170,7 +170,7 @@ public sealed partial class CreaturesModule
             if (dx * dx + dy * dy < best) (best, target) = (dx * dx + dy * dy, at);
         }
         if (target is not { } t) return false;
-        int reach = p.Bursts?.Reach ?? 0, ex = t.X - s.X / Unit, ey = t.Y - s.Y / Unit;
+        int reach = p.Bursts?.Wave ?? 0, ex = t.X - s.X / Unit, ey = t.Y - s.Y / Unit;
         if (ex * ex + ey * ey <= reach * reach && Sees(s.X, s.Y, t)) return true;
         int turn = Math.Clamp(Rays.FineApart(heading, Rays.FineHeadingTo(Middle(t.X) - s.X, Middle(t.Y) - s.Y)), -homes.Turn, homes.Turn);
         s.Heading = (heading + turn) & (Rays.FineTurn - 1);
@@ -354,15 +354,15 @@ public sealed partial class CreaturesModule
     /// A burst of <paramref name="blast"/> by peer <paramref name="peer"/> from <paramref name="cell"/> (blasting-charge, unified-damage,
     /// fuel-drums): a shot's where it ends, a drum's where it broke. <see cref="IBuildingOps.Burst"/> of its power, what it breaks dropped
     /// there for anyone, wherever it goes off: the grid takes it only where a burst may enter (one-damage-rule). Then every wreck within
-    /// its reach takes its damage, in spawn order, one gone skipped; every awake hero within its reach and in its sight its
+    /// its <see cref="Content.Blast.Wave"/> takes its damage, in spawn order, one gone skipped; every awake hero within it and in its sight its
     /// <see cref="Content.Blast.Body"/>, in the crew's order; every live creature whose body's box is within it and whose middle it sees
     /// the same, in id order, through the hit path with no knock: whoever set it off too. The body <paramref name="shot"/> struck is
     /// spared: a burst hurts it once, by its hit.
     /// </summary>
     private void Burst(int peer, int cell, Content.Blast blast, Shot? shot)
     {
-        _building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop);
-        long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Reach * Unit;
+        _building.Burst(peer, cell, blast.Power, blast.Reach, blast.Push, Sim.Building.Spoils.Drop);
+        long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Wave * Unit;
         foreach (var w in _wrecks)
             if (w.Gap((int)cx, (int)cy) <= reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
         int x = cell % _grid.Width, y = cell / _grid.Width;
@@ -370,7 +370,7 @@ public sealed partial class CreaturesModule
         {
             if (HeroAt(hero.Id, awake: true) is not { } at) continue;
             int dx = at.X - x, dy = at.Y - y;
-            if (dx * dx + dy * dy <= blast.Reach * blast.Reach && Sees(Middle(x), Middle(y), at)) _crewOps.Blow(hero.Id, blast.Body, Harm.Blow);
+            if (dx * dx + dy * dy <= blast.Wave * blast.Wave && Sees(Middle(x), Middle(y), at)) _crewOps.Blow(hero.Id, blast.Body, Harm.Blow);
         }
         int struck = shot != null ? StruckBy(shot) : 0;
         for (int i = 0; i < State.Creatures.Count; i++)

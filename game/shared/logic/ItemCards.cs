@@ -133,14 +133,14 @@ public static class ItemCards
     }
 
     /// <summary>
-    /// A thrown charge's rows, under its blast: what it takes off each wreck within its reach, its power on rock and walls in the
-    /// tenths a tool's block damage is shown in, its reach in cells, and the seconds between throws (<see cref="Spec.Blast"/>).
+    /// A thrown charge's rows, under its blast: what it takes off each wreck within its wave, its power on rock and walls in the
+    /// tenths a tool's block damage is shown in, its wave in cells, and the seconds between throws (<see cref="Spec.Blast"/>).
     /// </summary>
     private static List<CardTile> BlastTiles(Spec.Gun gun, Spec.Blast blast) =>
     [
         Hits(Number(blast.WreckDamage), null, CardGroup.Blast),
         Rock(blast.Power, null, CardGroup.Blast),
-        new CardTile(T("card.cells", ("n", Number(blast.Reach))), T("card.radius")) { Sign = CardSign.Reach, Group = CardGroup.Blast },
+        new CardTile(T("card.cells", ("n", Number(blast.Wave))), T("card.radius")) { Sign = CardSign.Reach, Group = CardGroup.Blast },
         new CardTile(T("card.seconds", ("n", Number((double)gun.Pace / World.TicksPerSecond))), T("card.reload")) { Sign = CardSign.Pace, Group = CardGroup.Blast },
     ];
 

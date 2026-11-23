@@ -12,7 +12,7 @@ public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weig
 
 /// <summary>
 /// How a homing shot flies (catcher-missile): at <paramref name="Speed"/> thousandths of a cell a tick, turning at most
-/// <paramref name="Turn"/> fine headings a tick toward the nearest awake hero; within its burst's reach of that hero it bursts.
+/// <paramref name="Turn"/> fine headings a tick toward the nearest awake hero; within its burst's <see cref="Blast.Wave"/> of that hero it bursts.
 /// </summary>
 public sealed record Homing(int Speed, int Turn);
 
@@ -83,12 +83,12 @@ public static class Shots
 
     /// <summary>
     /// The catcher's shell (catcher-combat), lobbed in a salvo: only solid cells stop it; it bursts where it ends (<see cref="Blasting.Shell"/>),
-    /// its burst's <see cref="Blast.Body"/> off each body within the burst's reach.
+    /// its burst's <see cref="Blast.Body"/> off each body within the burst's wave.
     /// </summary>
     public static readonly Projectile Shell = new("shell", Damage: 3, BlockDamage: 0, Weight: 1, HitsBodies: false, Bursts: Blasting.Shell);
 
     /// <summary>
-    /// The catcher's homing missile (catcher-missile): 6 off a creature it strikes, its burst's <see cref="Blast.Body"/> off each body in its reach and sight but that one;
+    /// The catcher's homing missile (catcher-missile): 6 off a creature it strikes, its burst's <see cref="Blast.Body"/> off each body in its wave and sight but that one;
     /// stopped by cells, creatures and wrecks; 20 cells a second (the jetpack's top is 30), turning some 42° a second, a circle some 27
     /// cells across. Placeholders for a play pass.
     /// </summary>

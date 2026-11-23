@@ -11,6 +11,7 @@
 | `logic/PieceShape.cs` | A body's box, mass, inertia and drag. |
 | `logic/PieceRope.cs` | A line's rope as the physics pulls it. |
 | `logic/BodyFeed.cs` | Which strayed bodies are fed. |
+| `logic/BurstPush.cs` | A burst's push on a body. |
 | `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
 | `DebrisDemo.cs` | The world and the script of `--debris`. |
 | `WreckDemo.cs` | The world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple`. |
@@ -46,7 +47,7 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   where `Shared.PieceDrawn` says: the host player's body (`LiveDebris`), else the sim's pose run on, a guest easing
   each correction away (`PieceEase`, debris-coop).
 - **Bodies** (debris-host-physics): on the host player's client a body a ship's piece wherever its hero is, meeting only pieces,
-  eased to its drift and tumble; guests' lines too; lines pull by `PieceRope`; strays past `FeedSlack` go to the sim as `Moved`.
+  eased to its drift and tumble; guests' lines too; lines pull by `PieceRope`; bursts push (`BurstPush`, debris-bursts); strays past `FeedSlack` go to the sim as `Moved`.
 - **Damage** (cracks-to-end): a dent per blow seen, one within 3 px deepening it, and one network out of the first
   (`game/shared`'s `WreckCracks`, `WreckInk` on the picture, lit, clipped) run on with the share lost to cover it by 0.92; one first
   seen damaged is struck in its middle. Kept out of view; blows there go unseen.
@@ -82,7 +83,7 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 - **Entry** of the chosen kind (the first found until one is clicked): the look big, a strip of every look (not found
   black, a click shows a found one big, "2/5"; none for a one-look kind); name, hit points (`Wreckage.HpOf`) or
   "Caught by hand"; loot slot by slot (`Loot.Of`): a seen item with its range, an unseen one a black silhouette, a pie
-  for a roll's chance (`OneIn`). With nothing found, the entry says what to do.
+  for a roll's chance (`OneIn`).
 - Words only in the one tooltip (`Finds`); "???" for what is not found or seen.
 - Reads `Found` every 250 ms while shown, rebuilt on a change.
 

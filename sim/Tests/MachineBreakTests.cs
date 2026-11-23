@@ -60,10 +60,10 @@ public class MachineBreakTests
         return (m.Cell / width + spec.Height - 1) * width + m.Cell % width + spec.Width;
     }
 
-    private static bool Burst(Scenario w, int cell, int power) => w.M.Building.Burst(0, cell, power, Blasting.Charge.Reach, Spoils.Drop);
+    private static bool Burst(Scenario w, int cell, int power) => w.M.Building.Burst(0, cell, power, Blasting.Charge.Reach, 0, Spoils.Drop);
 
     /// <summary>A burst of no one's, in full aboard as a meteor's, its spoils dropped as a charge's.</summary>
-    private static bool Full(Scenario w, int cell, int power) => w.M.Building.Burst(FloorStack.Nobody, cell, power, Blasting.Charge.Reach, Spoils.Drop);
+    private static bool Full(Scenario w, int cell, int power) => w.M.Building.Burst(FloorStack.Nobody, cell, power, Blasting.Charge.Reach, 0, Spoils.Drop);
 
     private static int CrackAt(Scenario w, int cell) => w.M.Building.Cracks.SingleOrDefault(c => c.Cell == cell && !c.Back)?.Damage ?? 0;
 

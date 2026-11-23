@@ -233,7 +233,7 @@ public partial class HazardsTests
         Assert.Equal([3, 4, 5, 6, 7], walls);
         Assert.Equal(walls, backs);
         var charged = Soil();
-        Assert.True(charged.M.Building.Burst(FloorStack.Nobody, 7, HazardsModule.Charge(2, Shower), Shower.Reach, Spoils.Drop));
+        Assert.True(charged.M.Building.Burst(FloorStack.Nobody, 7, HazardsModule.Charge(2, Shower), Shower.Reach, 0, Spoils.Drop));
         Assert.All(walls, c => Assert.Null(charged.M.Grid.WallAt(c)));
         Assert.All(Enumerable.Range(0, 8), c => Assert.NotNull(charged.M.Grid.BackAt(c)));
     }
