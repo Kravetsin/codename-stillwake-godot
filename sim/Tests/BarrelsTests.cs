@@ -9,7 +9,7 @@ using Tune = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Fuel drums (barrels): a wreck that bursts as it breaks, where it was, by whoever broke it; and every burst, a drum's, a charge's, a
+/// Fuel drums (fuel-drums): a wreck that bursts as it breaks, where it was, by whoever broke it; and every burst, a drum's, a charge's, a
 /// shell's or a missile's, hurting every body in its reach and sight, heroes, the one who set it off among them, and creatures.
 /// </summary>
 public class BarrelsTests

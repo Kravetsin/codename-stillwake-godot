@@ -10,7 +10,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// What fuel drums must always keep (barrels), over drums put out at random among wrecks, axed and blown up at random, their bursts
+/// What fuel drums must always keep (fuel-drums), over drums put out at random among wrecks, axed and blown up at random, their bursts
 /// breaking each other: every drum broken goes off once, where it was, and no other.
 /// </summary>
 public class BarrelsInvariantTests

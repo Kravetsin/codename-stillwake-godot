@@ -114,7 +114,7 @@ public sealed class NetEntry
 }
 
 /// <summary>
-/// A wreck that bursts as it breaks (<c>Wreckage.Bursts</c>, barrels), broken and not yet gone off: at <paramref name="Cell"/>, its
+/// A wreck that bursts as it breaks (<c>Wreckage.Bursts</c>, fuel-drums), broken and not yet gone off: at <paramref name="Cell"/>, its
 /// middle's when it broke, by peer <paramref name="Peer"/> (<c>FloorStack.Nobody</c> for a creature's shot or burst), its blast its
 /// kind's, <paramref name="Kind"/>. A record of public properties, as the saves write those alone.
 /// </summary>

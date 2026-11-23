@@ -942,7 +942,7 @@ draw('tanks_01', 32, 32, (a) => {
   for (const x of [4, 9, 14, 19, 24, 28]) a.flat(rr(x, 29.4, 1.6, .9, .2), SOOT.deep);
 });
 
-// The fuel drum (barrels), picked on its page: a long gas bottle in oxblood lying across its box, its shoulder striped black and
+// The fuel drum (fuel-drums), picked on its page: a long gas bottle in oxblood lying across its box, its shoulder striped black and
 // yellow, a brass valve with a torn hose, rime at the neck.
 draw('fueldrum_01', 32, 32, (a) => {
   const turned = (cx, cy, t) => { const c = Math.cos(t), s = Math.sin(t); return (u, v) => [cx + u * c - v * s, cy + u * s + v * c]; };

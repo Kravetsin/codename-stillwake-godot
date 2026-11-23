@@ -163,7 +163,7 @@ public static class Items
         new("cableRack", 1, Group: ItemGroup.Other),
         new("tankCluster", 1, Group: ItemGroup.Other),
         new("shieldSlab", 1, Group: ItemGroup.Other),
-        // A fuel drum, bursting as it breaks (barrels).
+        // A fuel drum, bursting as it breaks (fuel-drums).
         new("fuelDrum", 1, Group: ItemGroup.Other),
         // A clod of some ship's farm, drifting with a sprout: seeds and soil when broken.
         new("soilClod", 1, Group: ItemGroup.Other),

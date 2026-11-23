@@ -35,7 +35,7 @@ public static class Wreckage
         // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): as hard as the small asteroid and the mafia crate whose looks they wear for now.
         ("iceBlock", 50),
         ("contrabandCrate", 15),
-        // A fuel drum (barrels): two axe hits, a shot or two; it bursts as it breaks (Bursts).
+        // A fuel drum (fuel-drums): two axe hits, a shot or two; it bursts as it breaks (Bursts).
         ("fuelDrum", 4),
     ];
 
@@ -77,7 +77,7 @@ public static class Wreckage
     ];
 
     /// <summary>
-    /// The kinds that burst as they break (barrels), by item, and their burst: where the piece's middle was, by whoever broke it,
+    /// The kinds that burst as they break (fuel-drums), by item, and their burst: where the piece's middle was, by whoever broke it,
     /// with no fuse.
     /// </summary>
     public static readonly IReadOnlyList<(string Item, Blast Blast)> Bursts =

@@ -49,7 +49,7 @@ public static class Debris
         // A galley's fridge torn loose (food-and-the-body): rations and canned meat.
         ("fridge", 10),
         // Wreckage (Wreckage): 29 of 314, a wreck about every 45 s; the cable rack a third as common as the rest, circuits found
-        // being rare (economy rework); a fuel drum a little more common than the tanks (barrels).
+        // being rare (economy rework); a fuel drum a little more common than the tanks (fuel-drums).
         ("hullSection", 9),
         ("cargoContainer", 6),
         ("machineBlock", 3),
@@ -292,7 +292,7 @@ public static class Loot
             new("canister", 2, 3),
             new("scrapChunk", 1, 1),
         ]),
-        // What is left of a fuel drum once it burst (barrels).
+        // What is left of a fuel drum once it burst (fuel-drums).
         ("fuelDrum",
         [
             new("scrapChunk", 1, 1),

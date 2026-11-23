@@ -89,14 +89,14 @@ public sealed partial class CreaturesModule
         });
     }
 
-    /// <summary>The wrecks that went off this tick as they broke (barrels), in the order they did; derived, emptied as the next tick's shots fly.</summary>
+    /// <summary>The wrecks that went off this tick as they broke (fuel-drums), in the order they did; derived, emptied as the next tick's shots fly.</summary>
     private readonly List<PendingBurst> _drums = [];
 
     /// <summary>The wrecks that burst this tick as they broke, where and whose: what the client shows a drum's burst by.</summary>
     public IReadOnlyList<PendingBurst> DrumBursts => _drums;
 
     /// <summary>
-    /// The wrecks broken since the last tick's drain go off, in the order broken (barrels); then every shot's step, in id order,
+    /// The wrecks broken since the last tick's drain go off, in the order broken (fuel-drums); then every shot's step, in id order,
     /// those fired this tick too: one that met something it did not break ends, as one that ran out or left the grid. The wrecks
     /// are taken once, the debris having drifted. A drum broken now goes off on the next tick. Those killed are swept out at the
     /// end, as the creatures' system sweeps a command's: the tick saves no creature dead and still listed.
@@ -333,7 +333,7 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// A burst of <paramref name="blast"/> by peer <paramref name="peer"/> from <paramref name="cell"/> (blasting-charge, unified-damage,
-    /// barrels): a shot's where it ends, a drum's where it broke. <see cref="IBuildingOps.Burst"/> of its power, what it breaks dropped
+    /// fuel-drums): a shot's where it ends, a drum's where it broke. <see cref="IBuildingOps.Burst"/> of its power, what it breaks dropped
     /// there for anyone, wherever it goes off: the grid takes it only where a burst may enter (one-damage-rule). Then every wreck within
     /// its reach takes its damage, in spawn order, one gone skipped; every awake hero within its reach and in its sight its
     /// <see cref="Content.Blast.Body"/>, in the crew's order; every live creature whose body's box is within it and whose middle it sees

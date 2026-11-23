@@ -1,4 +1,4 @@
-// «Топливная бочка»: five looks for the fuel drum (docs/plans/barrels.md), a wreckage kind 4 × 4 cells that bursts when broken.
+// «Топливная бочка»: five looks for the fuel drum (docs/decisions/2026-11-23-fuel-drums.md), a wreckage kind 4 × 4 cells that bursts when broken.
 // Each is drawn by tools/anime-art's own engine and finish with the debris subject's kit (DebrisKit), pasted in as they are, so
 // the picked drawing goes into subjects/debris.js and items.js unchanged. The scene, the hero and the burst's flash are the page's.
 // For a frame: index.html#at=<s into the loop>&pause. node tools/pick-kit/build.js tools/pick-kit/pages/fuel-drum.js <out-dir>

@@ -142,7 +142,7 @@ public partial class ShotsView : Node2D
         // afloat heard through the suit, as its launch is.
         foreach (var end in creatures.Ended)
             if (end.Burst >= 0) Burst(end.Burst, end.Id, end.By == Ref.Hero(own) || end.By == Ref.None && _m.Rooms.Afloat(end.Burst));
-        // A drum's burst (barrels), drawn as a charge's for now; out in space, heard through the suit as a creature's is.
+        // A drum's burst (fuel-drums), drawn as a charge's for now; out in space, heard through the suit as a creature's is.
         foreach (var drum in creatures.DrumBursts) Burst(drum.Cell, null, drum.Peer == own || _m.Rooms.Afloat(drum.Cell));
         Round(creatures);
         var flying = new HashSet<int>();
