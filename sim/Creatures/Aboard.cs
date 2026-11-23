@@ -204,6 +204,19 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
+    /// Whether cell (<paramref name="column"/>, <paramref name="row"/>) is in an open hatch narrower than a body of <paramref name="s"/>:
+    /// floor to it, its feet on the floor either side (the escort's).
+    /// </summary>
+    internal bool Spanned(Spec.Shape s, int column, int row)
+    {
+        if (s.Width <= Doorways.Thick) return false;
+        foreach (var h in _hatches)
+            if (h.Y == row && column >= h.X && column < h.X + Doorways.Thick && Doorways.IsOpen(_grid.StructureAt(row * _grid.Width + h.X)))
+                return true;
+        return false;
+    }
+
+    /// <summary>
     /// The first shut doorway cell, row by row from the top-left, in the box of cells (<paramref name="x0"/>, <paramref name="y0"/>) to
     /// (<paramref name="x1"/>, <paramref name="y1"/>), the way in left out: what a guard pries open; null for none.
     /// </summary>

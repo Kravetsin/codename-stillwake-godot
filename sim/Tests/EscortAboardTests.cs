@@ -40,10 +40,11 @@ public class EscortAboardTests
         public readonly Creature Escort;
         public readonly Vessel.Compartment Room;
 
-        public Aboard()
+        /// <param name="left">Its hall's left column in the vessel: 34 the hold on the bottom deck, 203 the hall over the hold on the right.</param>
+        public Aboard(int left = 34)
         {
             (W, V, Built) = GuardsAboardTests.Boarded("liner");
-            Escort = V.Creatures.Creatures.Where(c => c.Species == Spec.Escort.Id).Single(c => Of(c).Left == M + 34 && Of(c).Decks == 2);
+            Escort = V.Creatures.Creatures.Where(c => c.Species == Spec.Escort.Id).Single(c => Of(c).Left == M + left && Of(c).Decks == 2);
             Room = Of(Escort);
         }
 
@@ -250,6 +251,39 @@ public class EscortAboardTests
         a.Run();
         Assert.Empty(a.W.Refusals);
         Assert.Equal(air - lunge.Damage, a.Air);
+    }
+
+    /// <summary>Its feet on its deck's rows: never off them.</summary>
+    private static void OnItsRows(Aboard a) =>
+        Assert.InRange((a.Escort.Y - 1) / U, a.Room.Floor - Content.Vessels.Open, a.Room.Floor - 1);
+
+    [Fact]
+    public void AnOpenHatchInItsFloorIsWalkedOverToItsHeroNeverDownIt()
+    {
+        // The hall over the hold on the right, its deck's floor holding the well's hatch at the left end, its hero past it.
+        var a = new Aboard(left: 203);
+        var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Where(h => h.Y == a.Room.Floor && h.X < a.Column).MaxBy(h => h.X);
+        Assert.True(((Spec.Walker)Spec.Escort.Body).Width > Doorways.Thick);
+        foreach (var d in a.Doors.Where(d => d.X >= hatch.X - Doorways.Thick && d.X < a.Column)) a.W.Do(new SetDoor(a.Cell(d.X, d.Y), true));
+        a.W.Do(new SetDoor(a.Cell(hatch.X, hatch.Y), true));
+        a.Woken().Run(Content.Doors.SwingTicks);
+        Assert.False(a.Shut(hatch.X, hatch.Y));
+        int hero = hatch.X - 10;
+        a.Hero(hero, a.Body);
+        Assert.True(a.RunTill(() =>
+        {
+            OnItsRows(a);
+            return a.Escort.X / U < hatch.X - 2;
+        }, 1200), $"stuck at {a.Escort.X},{a.Escort.Y}, the hatch at column {hatch.X}");
+        Assert.True(a.RunTill(() =>
+        {
+            OnItsRows(a);
+            return a.Act == typeof(Spec.Lunge);
+        }, 200), $"never lunged: at {a.Column}");
+        Assert.InRange(a.Column - hero, 0, Patrol.Strike);
+        a.Run(Claw.WindUp + Claw.Ticks + 2);
+        OnItsRows(a);
+        Assert.False(a.Shut(hatch.X, hatch.Y));
     }
 
     [Fact]

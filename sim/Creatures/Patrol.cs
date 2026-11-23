@@ -9,7 +9,8 @@ namespace Stillwake.Sim.Creatures;
 /// Else it walks: toward its quarry on its deck; off it, to the nearest door of its deck (the lower column at a tie) and on that way,
 /// turning back at a wall; and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made
 /// on the move: <see cref="Afoot"/>) whenever that is ready. A shut door on its way it pries as a spider does
-/// (<see cref="ProwlDrive.Pry"/>), never a hatch, which lies under its feet or over its head, nor the way in. With no hero aboard it stands.
+/// (<see cref="ProwlDrive.Pry"/>), never a hatch, which lies under its feet (an open one it walks over) or over its head, nor the way in.
+/// With no hero aboard it stands.
 /// </summary>
 internal sealed class PatrolDrive : DriveRule
 {
@@ -108,7 +109,7 @@ internal sealed class PatrolDrive : DriveRule
             return;
         }
         ProwlDrive.Forget(c);
-        if (WalkerBody.Blocked(m, c, w, way, w.Run) || !m.InHull(w, c.X + way * w.Run, c.Y))
+        if (WalkerBody.Blocked(m, c, w, way, w.Run, spans: true) || !m.InHull(w, c.X + way * w.Run, c.Y))
         {
             c.VX = 0;
             if (!level) c.Keep(WayKey, -way);
@@ -125,6 +126,9 @@ internal sealed class PatrolDrive : DriveRule
 
     /// <summary>A move over, it stands till its next tick's steering.</summary>
     internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) => (c.VX, c.VY) = (0, 0);
+
+    /// <summary>An open hatch in its deck's floor is floor to it: its feet span the hatch's two cells, and it never goes down one.</summary>
+    internal override bool Spans(CreaturesModule m, Creature c) => true;
 
     internal override Gait GaitOf(Creature c) => Gait.Steered;
 

@@ -133,14 +133,15 @@ internal sealed class WalkerBody : BodyRule
     /// Whether a walker standing as <paramref name="c"/> stands must turn from <paramref name="way"/>: the grid's edge, a wall in the
     /// column ahead it cannot step up (more than <c>Creatures.StepUp</c> cells high, or no room over its body to rise into), or no floor
     /// there within <c>Creatures.Drop</c> rows under its feet; or such a drop in a column its leading edge reaches going
-    /// <paramref name="speed"/> this tick, so a fleeing one turns at the brink rather than past it. A wall is met flush as it moves.
+    /// <paramref name="speed"/> this tick, so a fleeing one turns at the brink rather than past it. A wall is met flush as it moves. An
+    /// open hatch narrower than its body is floor to one whose drive <paramref name="spans"/> it (<see cref="CreaturesModule.Spanned"/>).
     /// </summary>
-    internal static bool Blocked(CreaturesModule m, Creature c, Spec.Walker w, int way, int speed)
+    internal static bool Blocked(CreaturesModule m, Creature c, Spec.Walker w, int way, int speed, bool spans = false)
     {
         int half = w.Width * Unit / 2;
         int column = Down(way > 0 ? c.X + half : c.X - half - 1, Unit);
         if (column < 0 || column >= m.GridWidth) return true;
-        if (Ahead(m, c, w, column)) return true;
+        if (Ahead(m, c, w, column, spans)) return true;
         int reached = Down(way > 0 ? c.X + half + speed - 1 : c.X - half - speed, Unit);
         int feet = c.Y / Unit;
         // Only over flat ground: a step up met first is climbed this tick, and a column off the grid is the edge's, met next tick.
@@ -148,14 +149,18 @@ internal sealed class WalkerBody : BodyRule
         for (int at = column + way; at != reached + way; at += way)
         {
             if (at < 0 || at >= m.GridWidth || Rise(m, at, feet) > 0) return false;
-            if (Falls(m, at, feet)) return true;
+            if (Falls(m, w, at, feet, spans)) return true;
         }
         return false;
     }
 
-    /// <summary>Whether no floor lies in <paramref name="column"/> within <c>Creatures.Drop</c> rows from <paramref name="feet"/> down.</summary>
-    private static bool Falls(CreaturesModule m, int column, int feet)
+    /// <summary>
+    /// Whether no floor lies in <paramref name="column"/> within <c>Creatures.Drop</c> rows from <paramref name="feet"/> down; an open hatch
+    /// narrower than <paramref name="w"/> there is floor to one that <paramref name="spans"/> it.
+    /// </summary>
+    private static bool Falls(CreaturesModule m, Spec.Walker w, int column, int feet, bool spans)
     {
+        if (spans && m.Spanned(w, column, feet)) return false;
         for (int row = feet; row < feet + Spec.Drop; row++)
             if (m.Solid(column, row)) return false;
         return true;
@@ -170,7 +175,8 @@ internal sealed class WalkerBody : BodyRule
     }
 
     /// <summary>Whether the column just ahead of <paramref name="c"/>'s leading edge turns it back: a wall it cannot step up, or a drop.</summary>
-    private static bool Ahead(CreaturesModule m, Creature c, Spec.Walker w, int column) => Walled(m, c, w, column) || Rise(m, column, c.Y / Unit) == 0 && Falls(m, column, c.Y / Unit);
+    private static bool Ahead(CreaturesModule m, Creature c, Spec.Walker w, int column, bool spans) =>
+        Walled(m, c, w, column) || Rise(m, column, c.Y / Unit) == 0 && Falls(m, w, column, c.Y / Unit, spans);
 
     /// <summary>The column just ahead of <paramref name="c"/>'s leading edge going <paramref name="way"/>: off the grid at its edge.</summary>
     internal static int AheadOf(Creature c, Spec.Walker w, int way) => Down(way > 0 ? c.X + w.Width * Unit / 2 : c.X - w.Width * Unit / 2 - 1, Unit);
