@@ -114,7 +114,7 @@ public class HitTargetTests
         var bush = w.M.Building.Plants.Single();
         Assert.True(Flora.Get(bush.Kind).Strength > 0);
         // From beside it, too weak to break the ground under it, which would fell it.
-        Assert.True(w.M.Building.Burst(0, At(w, 1, 3), 10, 8, Spoils.Drop));
+        Assert.True(w.M.Building.Burst(0, At(w, 1, 3), 10, 8, 0, Spoils.Drop));
         Assert.Equal([bush], w.M.Building.Plants);
         Assert.DoesNotContain(w.M.Building.Cracks, c => c.Cell == bush.Cell);
     }
@@ -123,7 +123,7 @@ public class HitTargetTests
     public void ABurstStopsAtAGrate()
     {
         var w = Ground(".%#", "..s");
-        Assert.True(w.M.Building.Burst(0, 0, 4000, 8, Spoils.Drop));
+        Assert.True(w.M.Building.Burst(0, 0, 4000, 8, 0, Spoils.Drop));
         Assert.NotNull(w.M.Grid.WallAt(2));
         Assert.Equal(Structure.Grate, w.M.Grid.StructureAt(1));
         Assert.Empty(w.M.Building.Cracks);

@@ -112,6 +112,8 @@ public sealed partial class BuildingModule
 
     public override void Rebuild()
     {
+        _recent.Clear();
+        _burstSerial = 0;
         _plantsSeen = -1;
         _plants.Clear();
         _plantOwn.Clear();

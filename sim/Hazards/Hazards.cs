@@ -84,7 +84,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
         Handles<MeteorHit>(c => HitProblem(c.Cell), c =>
         {
             if (c.Power is int power) StrikeMeteor(c.Cell, power, Shower ?? Meteors.StartingSpace);
-            else _building.Burst(FloorStack.Nobody, c.Cell, _grid.WallAt(c.Cell)!.Strength, 0, Spoils.Lost);
+            else _building.Burst(FloorStack.Nobody, c.Cell, _grid.WallAt(c.Cell)!.Strength, 0, 0, Spoils.Lost);
         });
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
         Handles<BoltNow>(BoltNowProblem, BringBolt);
@@ -161,7 +161,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// </summary>
     private void StrikeMeteor(int cell, int power, Meteors.Shower shower)
     {
-        if (HitProblem(cell) == null) _building.Burst(FloorStack.Nobody, cell, Charge(power, shower), shower.Reach, Spoils.Lost);
+        if (HitProblem(cell) == null) _building.Burst(FloorStack.Nobody, cell, Charge(power, shower), shower.Reach, shower.Reach * Blasting.PushPerReach, Spoils.Lost);
     }
 
     /// <summary>The burst a meteor of <paramref name="power"/> sets off, in tenths of strength.</summary>

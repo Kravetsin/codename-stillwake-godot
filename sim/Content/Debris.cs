@@ -70,6 +70,21 @@ public static class Debris
     public const int Drag = 25;
 
     /// <summary>
+    /// How hard a burst pushes a body (debris-bursts): mass times thousandths of a cell a second for each point of its power, falling
+    /// off to none at its <c>Blast.Push</c>. 300: a cargo container (a 6.4 × 3.2 box weighing 20.5) 13 cells off a drum (300, push 30),
+    /// just past its wave, drifts off at 300 × 300 × 17/30 / 20.5, 2.5 cells a second, 4.1 from a charge (500). A small piece (a 1.6-cell
+    /// box, 2.56) at a drum's middle would take 35 cells a second, at a charge's 59: <see cref="BurstFastest"/> holds that down.
+    /// </summary>
+    public const int BurstPush = 300;
+
+    /// <summary>
+    /// The fastest a burst sends a body, in thousandths of a cell a second: 36 cells a second, a little over what a drum gives a small piece
+    /// at its middle, some 70 cells before <see cref="Drag"/> settles it; a charge's small pieces fly so out to some 12 cells. Pushing
+    /// light pieces as far as a big wreck needs, by mass alone, would fling them past 60.
+    /// </summary>
+    public const int BurstFastest = 36_000;
+
+    /// <summary>
     /// The host player feeds a body's pose to the sim once a corner of its box strays this far from the sim's, in thousandths of a
     /// cell: a sixteenth of a cell, half a pixel, one threshold for place and turn; a guest eases each correction away. Only bodies
     /// knocked or towed off their drift stray at all, so the wire stays near empty.

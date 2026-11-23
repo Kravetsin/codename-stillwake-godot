@@ -98,9 +98,9 @@ public class BarrelsTests
     [Fact]
     public void AHeroInReachIsHurtItsBodyOneOutOfReachOrBehindAWallNot()
     {
-        // The drum at (30, 10): hero 1 four cells off, hero 2 seven, past its 6; hero 3 five cells off behind a wall.
+        // The drum at (30, 10): hero 1 four cells off, hero 2 thirteen, past its wave of 12; hero 3 five cells off behind a wall.
         var wall = Enumerable.Range(5, 11).Select(y => (27, y)).ToList();
-        var w = Space(wall, (34, 10), (37, 10), (25, 10));
+        var w = Space(wall, (34, 10), (43, 10), (25, 10));
         var drum = Put(w, 30, 10, damage: Hp - 1);
         var hurts = Enumerable.Range(0, 4).Select(p => HeroOf(w, p).Hurts).ToList();
         w.Do(Hew(drum)).Run();
@@ -153,20 +153,39 @@ public class BarrelsTests
     }
 
     [Fact]
+    public void ItsWaveReachesWrecksPastWhatItDigsAWallThereUntouched()
+    {
+        // The drum at (30, 10) digs 6 round (Reach) and hurts 12 round (Wave): an engine block's box 10 cells right takes its damage, one
+        // 13 cells left nothing, and a scrap wall 9 cells up stands uncracked.
+        var w = Space([(30, 1)]);
+        var drum = Put(w, 30, 10, damage: Hp - 1);
+        var near = Put(w, 45, 10, item: "engineBlock");
+        var far = Put(w, 12, 10, item: "engineBlock");
+        Assert.InRange(Drum.Reach, 0, 8);
+        Assert.InRange(Drum.Wave, 10, 12);
+        w.Do(Hew(drum)).Run();
+        Assert.Single(w.M.Creatures.DrumBursts);
+        Assert.Equal(Drum.WreckDamage, near.Damage);
+        Assert.Equal(0, far.Damage);
+        Assert.NotNull(w.M.Grid.WallAt(CellOf(30, 1)));
+        Assert.Empty(w.M.Building.Cracks);
+    }
+
+    [Fact]
     public void AChainGoesOffATickALinkAllTheFirstOnesBreakers()
     {
         var w = Space(null, (2, 3));
-        // Five cells apart, each within the last's reach of its box, the third past the first's.
-        var drums = new[] { Put(w, 20, 10, damage: Hp - 1), Put(w, 25, 10), Put(w, 30, 10) };
+        // Eight cells apart, each within the last's wave of its box, the third past the first's.
+        var drums = new[] { Put(w, 20, 10, damage: Hp - 1), Put(w, 28, 10), Put(w, 36, 10) };
         w.Do(Hew(drums[0], peer: 1)).Run();
         Assert.Equal([new PendingBurst(CellOf(20, 10), 1, DrumKind)], w.M.Creatures.DrumBursts);
         Assert.False(Out(w, drums[1]));
         Assert.True(Out(w, drums[2]));
         w.Run();
-        Assert.Equal([new PendingBurst(CellOf(25, 10), 1, DrumKind)], w.M.Creatures.DrumBursts);
+        Assert.Equal([new PendingBurst(CellOf(28, 10), 1, DrumKind)], w.M.Creatures.DrumBursts);
         Assert.False(Out(w, drums[2]));
         w.Run();
-        Assert.Equal([new PendingBurst(CellOf(30, 10), 1, DrumKind)], w.M.Creatures.DrumBursts);
+        Assert.Equal([new PendingBurst(CellOf(36, 10), 1, DrumKind)], w.M.Creatures.DrumBursts);
         w.Run();
         Assert.Empty(w.M.Creatures.DrumBursts);
     }

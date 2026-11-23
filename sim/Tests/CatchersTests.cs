@@ -104,11 +104,11 @@ public class CatchersTests
     {
         var w = Arrive(Arrive(Field(), 40), 10, peer: 1);
         long before = Worth(w);
-        w.M.Building.Burst(1, Cell(60, Ground + 2), 400, 3, Spoils.Drop);
+        w.M.Building.Burst(1, Cell(60, Ground + 2), 400, 3, 0, Spoils.Drop);
         Assert.True(Worth(w) > before);
         Assert.Equal(Worth(w) - before, w.M.Crew.HeroOf(1)!.Wanted);
         Assert.Equal(0, w.M.Crew.HeroOf(0)!.Wanted);
-        w.M.Building.Burst(FloorStack.Nobody, Cell(80, Ground + 2), 400, 3, Spoils.Drop);
+        w.M.Building.Burst(FloorStack.Nobody, Cell(80, Ground + 2), 400, 3, 0, Spoils.Drop);
         Assert.Equal(0, w.M.Crew.HeroOf(0)!.Wanted);
     }
 
@@ -1380,7 +1380,7 @@ public class CatchersTests
         Assert.Equal(launched + Hunt.Missile.Every, next);
         Assert.NotNull(end);
         Assert.True(end!.Value.Burst >= 0);
-        Assert.True(FromItsHero(w, end.Value.Burst) <= Spec.Blasting.Missile.Reach, $"{FromItsHero(w, end.Value.Burst):F1} off");
+        Assert.True(FromItsHero(w, end.Value.Burst) <= Spec.Blasting.Missile.Wave, $"{FromItsHero(w, end.Value.Burst):F1} off");
     }
 
     /// <summary>
@@ -1403,7 +1403,7 @@ public class CatchersTests
         Assert.True(dodging);
         Assert.False(end.Met);
         Assert.True(end.Burst >= 0);
-        Assert.True(FromItsHero(w, end.Burst) > Spec.Blasting.Missile.Reach, $"{FromItsHero(w, end.Burst):F1} off");
+        Assert.True(FromItsHero(w, end.Burst) > Spec.Blasting.Missile.Wave, $"{FromItsHero(w, end.Burst):F1} off");
     }
 
     /// <summary>Led into a wreck on its way, it bursts there: the wreck takes its hit and its burst.</summary>

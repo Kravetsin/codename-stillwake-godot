@@ -90,9 +90,10 @@ public interface IBuildingOps
     /// (unified-damage): the shared <see cref="Wave"/> through open cells, ground and what is built, each cell it pays for broken, in
     /// cell order, a piece whole, and each it reaches but cannot pay for cracked by what was left, once; a player's own ship, from their burst, at
     /// its <see cref="Content.Damage.OwnShipTakes"/> share (damage-scale); bedrock, lava, the fog and machines stop it. What breaks goes as
-    /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Whether it went off: not from where it stops.
+    /// <paramref name="spoils"/> says; a relic it takes shocks the peer. Logged with <paramref name="push"/>, how far it pushes debris
+    /// (<see cref="BuildingModule.Bursts"/>). Whether it went off: not from where it stops.
     /// </summary>
-    bool Burst(int peer, int cell, int power, int reach, Spoils spoils);
+    bool Burst(int peer, int cell, int power, int reach, int push, Spoils spoils);
 
     /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
     void FellPost(int cell);
