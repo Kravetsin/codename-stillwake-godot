@@ -8,14 +8,17 @@ public enum DroneMode { Lamp, Scan }
 /// <summary>
 /// The light drone's modes (light-drone): the client's, never a command and never saved, a new game or a reload on the lamp; sent with the
 /// hero so friends see its beam. Held, the drone key opens their wheel (<see cref="Wheel{T}"/>); a tap goes on to the next open one. Each
-/// mode opens with its node, known crew-wide: the drone comes dark.
+/// mode opens once its player's drone has learned its form (drone-lessons): the drone comes dark.
 /// </summary>
 public static class DroneModes
 {
     /// <summary>The wheel's sides, from the top clockwise.</summary>
     public static readonly DroneMode[] Sides = [DroneMode.Lamp, DroneMode.Scan];
 
-    /// <summary>The node that opens <paramref name="mode"/>.</summary>
+    /// <summary>A wheel side's thread icon (thread-icons).</summary>
+    public static Shared.IconLines IconOf(DroneMode mode) => mode == DroneMode.Scan ? Shared.IconInk.Scan : Shared.IconInk.Lamp;
+
+    /// <summary>The form that opens <paramref name="mode"/>.</summary>
     public static string NodeOf(DroneMode mode) => mode switch
     {
         DroneMode.Scan => Stillwake.Content.LightDrone.ScannerMode,
@@ -39,7 +42,7 @@ public static class DroneModes
 
     /// <summary>
     /// The figure's lamp and scanner for a hero who wears the drone or not, in <paramref name="mode"/> (heard as none: the lamp), each
-    /// only once the crew <paramref name="knows"/> it.
+    /// only once its player <paramref name="knows"/> it.
     /// </summary>
     public static (bool Lamp, bool Scanner) Shown(bool worn, DroneMode? mode, Func<string, bool> knows)
     {

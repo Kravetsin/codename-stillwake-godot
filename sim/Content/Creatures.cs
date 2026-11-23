@@ -213,6 +213,14 @@ public static class Creatures
     /// </summary>
     public sealed record Lob(int Every, int Tell, int Flight, int Standoff, string Projectile);
 
+    /// <summary>
+    /// A pack's one drive (companion-fights): flying at the nearest hero out in space to one of eight places
+    /// <paramref name="Ring"/> cells round it, its velocity turned by at most <paramref name="Accel"/> a tick on each axis up to
+    /// <paramref name="Speed"/>; within <paramref name="Strike"/> cells in line it makes its first move, one of the pack beginning
+    /// one at a hero each <paramref name="Every"/> ticks. Knocked, it drifts till slowed to a quarter of its speed.
+    /// </summary>
+    public sealed record Swarm(int Ring, int Speed, int Accel, int Strike, int Every) : Drive;
+
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
 
@@ -243,10 +251,12 @@ public static class Creatures
 
     /// <summary>
     /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
-    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed). A walker's flies
-    /// with no gravity and ends at the first solid cell on its way; a clinger's passes walls.
+    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed) unless
+    /// <paramref name="Cuttable"/>. <paramref name="AtTarget"/> (companion-fights): at the hero it was begun at alone, let be out of
+    /// run or no longer out in space. A walker's flies with no gravity and ends at the first solid cell on its way; a clinger's
+    /// passes walls.
     /// </summary>
-    public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage) : Move(Damage);
+    public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage, bool Cuttable = false, bool AtTarget = false) : Move(Damage);
 
     /// <summary>
     /// An arc from where it clings (2026-10-27-sentry-arc): crouched <paramref name="WindUp"/> ticks, its eye flickering, its aim
@@ -360,7 +370,7 @@ public static class Creatures
     /// it strikes (2026-10-27-sentry-arc): its eye flickers 0.6 s, its aim held for the last 0.2 s, then an arc strikes at once up
     /// to 60 cells, stopped by walls, four units of a suit off each hero it crosses, and it waits 2 s. Struck, or its wreck
     /// struck, it answers the striker at once the same way, by how far it is. It flies home at 40 cells a second, past a
-    /// jetpack. Thirty hit points, five of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
+    /// jetpack. Thirty hit points, fifteen of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
     /// It dies with its wreck, dropping scrap and two or three circuits, a fighter's share of what is rare. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 3, Crawl: 40),
@@ -373,7 +383,7 @@ public static class Creatures
     /// The warden, the Istukan (spire guards): a machine of the arc makers, two to a spire's hall, each by a post (<c>Ruins.PostLeft</c>,
     /// <c>Ruins.PostRight</c>), four cells by five, folded in its niche like a column. By turns it crouches 0.8 s and flies straight at
     /// 36 cells a second, 1.4 s at most, five units of a suit if it hits, and lies stuck a second where it fell. It takes 24 hit points,
-    /// four of the nailer's nails or six of the axe's; never knocked. Killed it gives two or three circuits and a little alloy scrap, and
+    /// twelve of the nailer's nails or six of the axe's; never knocked. Killed it gives two or three circuits and a little alloy scrap, and
     /// its post is felled for good; the relic taken, it falls with nothing. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Warden = new("warden", Look: "istukan",
@@ -433,6 +443,18 @@ public static class Creatures
         Purse: new(150, 300));
 
     /// <summary>
+    /// The breaker («Разборщик», companion-fights): the dead fleet's service machine on its last order, to take apart what drifts,
+    /// two cells by two, in packs. It flies at 14 cells a second round a hero out in space and darts at it, a crouch of 0.6 s, then
+    /// 30 cells a second for 0.3 s, one unit of a suit; one of a pack begins each 1.5 s. A blow cuts the dart and flings it some four
+    /// cells along the blow. Four hit points, two of the axe's. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Breaker = new("breaker", Look: "breaker", Body: new Flyer(Width: 2, Height: 2),
+        Life: new(Hp: 4, Knock: 1200, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
+        Brain: [new Swarm(Ring: 4, Speed: 700, Accel: 150, Strike: 9, Every: 30)],
+        Moves: [new Pounce(WindUp: 12, Speed: 1500, Ticks: 6, Damage: 1, Cuttable: true, AtTarget: true)],
+        Yields: [new("scrapChunk", 1, 1, OneIn: 2)]);
+
+    /// <summary>
     /// The spider (derelict-enemies): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall
     /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
     /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
@@ -461,7 +483,7 @@ public static class Creatures
             Muzzle: 4_850)],
         Yields: [new("scrapChunk", 6, 9), new("circuit", 4, 6)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Spider, Escort];
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Breaker, Spider, Escort];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):
@@ -475,6 +497,22 @@ public static class Creatures
     /// on (<c>Wreckage.Perches</c>): a sortie's prize is guarded. Pod clusters have none.
     /// </summary>
     public static readonly OnDebris Derelicts = new(Sentry.Id, [("engineBlock", 500), ("cargoHold", 500)]);
+
+    /// <summary>
+    /// A pack asleep on pieces of one zone (companion-fights): each new piece of <paramref name="Zone"/> and one of
+    /// <paramref name="Kinds"/>, not struck yet, has a nest <paramref name="PerMille"/> times in a thousand, of
+    /// <paramref name="Least"/> to <paramref name="Most"/> of <paramref name="Species"/>, a flyer. It wakes whole when its piece is
+    /// struck or a hero out in space is within <paramref name="Wake"/> cells, while that hero's keep box would hold no more than
+    /// <paramref name="PerKeep"/> of them.
+    /// </summary>
+    public sealed record Nest(string Species, string Zone, IReadOnlyList<string> Kinds, int PerMille, int Least, int Most, int Wake, int PerKeep);
+
+    /// <summary>
+    /// Breakers on one in ten of the far field's lesser wrecks (companion-fights), four to eight to a nest: a pack met within
+    /// minutes of flying out, never in the stream by the hull. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Nest Dismantlers = new(Breaker.Id, Content.Debris.Far.Id,
+        ["hullSection", "cargoContainer", "machineBlock", "shieldSlab"], PerMille: 100, Least: 4, Most: 8, Wake: 32, PerKeep: 16);
 
     /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's

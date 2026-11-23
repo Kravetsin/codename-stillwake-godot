@@ -18,6 +18,9 @@ public sealed partial class CreaturesModule
     /// <summary>Whether each hero of <see cref="_heroes"/> is awake, not passed out.</summary>
     private readonly List<bool> _awake = [];
 
+    /// <summary>The peer of each hero of <see cref="_heroes"/>.</summary>
+    private readonly List<int> _peers = [];
+
     /// <summary>The habitats of this surface's type: none aboard, on a drawn map, or on a lifeless type.</summary>
     private IReadOnlyList<Spec.Habitat> Habitats => Rules is PlanetType type ? type.Creatures : [];
 
@@ -105,9 +108,10 @@ public sealed partial class CreaturesModule
         Linger();
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
-        if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
-        // A surface with no life, none let out and no patch left runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
-        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0 && !AnyHunted()) return;
+        if ((Rules.Guards.Count > 0 || Rules.Nests.Count > 0) && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
+        // A surface with no life, none let out or asleep and no patch left runs nothing and draws nothing: aboard, only a guarded or
+        // nested kind drifting in draws.
+        if (s.Creatures.Count == 0 && s.Patches.Count == 0 && s.Nests.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0 && !AnyHunted()) return;
         s.Clock += 1;
         FindHeroes();
         Fume();
@@ -128,6 +132,7 @@ public sealed partial class CreaturesModule
             if (!creature.Dead) all[kept++] = creature;
         }
         all.RemoveRange(kept, all.Count - kept);
+        WakeNests();
         if (s.Clock % Spec.Beat != 0) return;
         Posted();
         if (Habitats.Count > 0) Spawn();
@@ -159,6 +164,7 @@ public sealed partial class CreaturesModule
     {
         _heroes.Clear();
         _awake.Clear();
+        _peers.Clear();
         int width = _grid.Width, cells = width * _grid.Height;
         var heroes = _crew.Heroes;
         for (int i = 0; i < heroes.Count; i++)
@@ -167,7 +173,31 @@ public sealed partial class CreaturesModule
             if (cell < 0 || cell >= cells) continue;
             _heroes.Add((cell % width, cell / width));
             _awake.Add(heroes[i].Out == 0);
+            _peers.Add(heroes[i].Id);
         }
+    }
+
+    /// <summary>
+    /// Peer <paramref name="peer"/>'s hero's reported cell while it is out (companion-fights): awake, in open space. A room with no
+    /// back wall, afloat as it is, is not out.
+    /// </summary>
+    internal (int X, int Y)? OutAt(int peer) => HeroAt(peer, awake: true) is { } at && InOpen(at) ? at : null;
+
+    private bool InOpen((int X, int Y) at) => _rooms.RoomAt(at.Y * _grid.Width + at.X) == Stillwake.Sim.Rooms.RoomsModule.Space;
+
+    /// <summary>The hero out (<see cref="OutAt"/>) nearest cell (<paramref name="x"/>, <paramref name="y"/>) by box distance, the first in id order at a tie; null for none.</summary>
+    internal (int Peer, (int X, int Y) At, int Distance)? NearestOut(int x, int y)
+    {
+        (int Peer, (int X, int Y) At, int Distance)? nearest = null;
+        for (int i = 0; i < _heroes.Count; i++)
+        {
+            var at = _heroes[i];
+            if (!_awake[i] || !InOpen(at)) continue;
+            int d = Math.Max(Math.Abs(x - at.X), Math.Abs(y - at.Y));
+            if (nearest is { } best && d >= best.Distance) continue;
+            nearest = (_peers[i], at, d);
+        }
+        return nearest;
     }
 
     private static bool Within(int x, int y, (int X, int Y) at, HalfBox box) => Math.Abs(x - at.X) <= box.X && Math.Abs(y - at.Y) <= box.Y;

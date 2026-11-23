@@ -41,7 +41,7 @@ smelt, crush, grow (0060), ferment (power-chain).
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
   `Ticks × 1000` of work; crafts layer parts, components, products (0046). What each makes is
-  content's (`Content.Stations` rows; the arc bench's, 0099).
+  `Content.Stations`' rows (the arc bench's, 0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod, the
   workbench have none, the arc bench's one is a vise (0099), the galley's its fuel: a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs, Endless)`**: paid (the default) takes all `Count` units' cost from the
@@ -55,8 +55,8 @@ smelt, crush, grow (0060), ferment (power-chain).
   the head, the next starts from nothing.
 - **`SetEndless(Machine, Entry, On)`** sets (not toggles) an entry fed from the inputs to repeat: a unit made leaves its
   count. Refused `crafting.noStation`, `crafting.notHere`, `crafting.noEntry`, `crafting.paid`.
-- Each tick the head adds its work, at most its craft's; at its work one unit goes to the outputs
-  (`IItemsOps.Output`) and the next starts. No room: the unit waits at full progress. The queue runs whoever is near.
+- Each tick the head adds its work, at most its craft's; at its work a unit, `Makes` of its item, goes to the outputs
+  (`IItemsOps.Output`) and the next starts. No room: it waits at full progress. The queue runs whoever is near.
 - **A unit fed from the inputs** takes its cost (`TakeInputs`, first slot first) on its first tick with work above
   0, so an unpowered station takes nothing; creative mode does not make it free. While inputs lack it the entry waits
   at 0 and the whole queue behind it, first in, first out. `Lacks(machine)` says what it waits for.

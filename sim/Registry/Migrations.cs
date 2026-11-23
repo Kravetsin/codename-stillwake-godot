@@ -19,6 +19,9 @@ public static class Migrations
     /// <summary>The oldest format a save may have and still load: the tech tree's first.</summary>
     public const int Oldest = 39;
 
+    /// <summary>Where each of format 71's six suit colours is among format 72's eight.</summary>
+    private static readonly int[] Colours72 = [0, 1, 5, 7, 2, 6];
+
     /// <summary>The market's five orders as format 57 had them, in turn.</summary>
     private static readonly (string Item, int Count)[][] OldOrders58 =
     [
@@ -433,6 +436,33 @@ public static class Migrations
                     slots.RemoveAt(Mount70);
                 }
             if (root["slices"]!["players"] is JsonObject players) players["drones"] = new JsonArray([.. paired.Select(p => (JsonNode)p)]);
+            return root;
+        },
+        // 70 → 71 (drone-lessons): the lessons, rules only, save an empty slice aboard and on every open surface. A lamp or scanner the
+        // crew bought stays known to all (saves break at release).
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                slices.AsObject()["lessons"] = new JsonObject();
+            return root;
+        },
+        // 71 → 72 (drone-colour): the eight suit colours in their own order: a hero keeps its colour, or its nearest, the amber one
+        // gone for lime.
+        root =>
+        {
+            foreach (var worn in root["slices"]!["players"]?["colours"]?.AsArray() ?? [])
+                worn!["colour"] = Colours72[worn["colour"]!.GetValue<int>()];
+            return root;
+        },
+        // 72 → 73 (debris-physics): every piece tumbles, its angle and spin from its id as a new one's are, on every surface.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var piece in slices["debris"]?["pieces"]?.AsArray() ?? [])
+                {
+                    var (angle, spin) = Debris.DebrisModule.TumbleOf(piece!["id"]!.GetValue<int>(), piece["item"]!.GetValue<string>());
+                    (piece["angle"], piece["spin"]) = (angle, spin);
+                }
             return root;
         },
     ];

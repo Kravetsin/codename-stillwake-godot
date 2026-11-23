@@ -71,7 +71,7 @@ public class ShotsTests
     [Fact]
     public void WhatAShotKeepsThroughTheBodiesItPiercedIsItsGunsKeepRoundedDownEachTimeAndNoGunKeepsAll()
     {
-        Assert.Equal([6, 3, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.DamageOf(Nailer, Nail.Id, n)));
+        Assert.Equal([2, 1, 0, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.DamageOf(Nailer, Nail.Id, n)));
         Assert.Equal(10, Spec.Shots.BlockDamageOf(Nailer, Nail.Id));
         Assert.Equal(Nail.Damage, Spec.Shots.DamageOf(null, Nail.Id, 3));
     }
@@ -325,10 +325,12 @@ public class ShotsTests
     {
         Scenario Killed()
         {
-            var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
+            int nails = Spec.Creatures.Loper.Life.Hp / Hit;
+            var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", nails)).Wields(Nailer).Run();
             w.Let(Spec.Creatures.Loper, 40, 19);
-            // Two nails from beside it on one tick: 12, the loper's hit points.
-            return w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Run();
+            // As many nails from beside it on one tick as its hit points take.
+            for (int i = 0; i < nails; i++) w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right));
+            return w.Run();
         }
         var kept = Killed();
         var loaded = Killed().ReloadOnPlanet();

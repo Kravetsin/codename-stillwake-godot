@@ -11,6 +11,9 @@ public static class Layers
     /// <summary>Debris drifting past behind the hull (debris).</summary>
     public const int Debris = -20;
 
+    /// <summary>A breaker still coming out from beneath its nest's piece (creatures, breakers-look).</summary>
+    public const int UnderDebris = Debris - 1;
+
     /// <summary>A trade station's capsule going off behind the hull (research, 2026-10-30-trade-capsule).</summary>
     public const int Capsules = -15;
 

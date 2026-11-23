@@ -50,18 +50,25 @@ public partial class TickBodies : Node2D
         public Footfalls Feet = null!;
         public int? Prying;
         public Vector2 From, To, Drawn;
+        /// <summary>How it was last drawn turned with its wreck, in radians: kept as it dies.</summary>
+        public double Stance;
         public int Tick = -1, Damage, Cut, Piece;
         public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed, SawOwed, WhipLeft;
         /// <summary>The way the line it saws runs off, from its claw: what its snap whips along.</summary>
         public Vector2 LineWay = Vector2.Left;
         public string Species = "";
+        public CreatureLooks.TickLook Look = null!;
 
-        /// <summary>Its sprite drawn in its motion's pose, at its place, turned and facing as it flies.</summary>
-        public void Show(Vector2 feet)
+        /// <summary>
+        /// Its sprite drawn in its motion's pose, at its place, turned and facing as it flies; clamped on, turned about its feet by its
+        /// wreck's <paramref name="stance"/>, in radians (debris-physics).
+        /// </summary>
+        public void Show(Vector2 feet, double stance)
         {
+            Stance = stance;
             Anchors = _rig.Place(Motion.Pose);
             _ink.Show(_rig.Slots, Motion.Flash, 0);
-            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, TickRig.Size);
+            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Look.Size, stance);
         }
 
         /// <summary>Where a point of its sprite (<see cref="TickArt.Anchors"/>) is in the world this frame.</summary>
@@ -117,15 +124,17 @@ public partial class TickBodies : Node2D
                 one.Visible = DockWake.Shown(p);
                 feet = DocksView.Shelf(creatures.Docks[dock]).Lerp(feet, (float)DockWake.Drop(p));
             }
-            if (c.Damage > one.Damage)
+            bool blown = c.Damage > one.Damage;
+            if (blown)
             {
                 // A friend's strike, or one of this player's own already shown as it was sent.
                 if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
                 one.Damage = c.Damage;
             }
-            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress, folded), dt);
+            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress, folded) with { Blown = blown }, dt);
             one.Drawn = feet;
-            one.Show(feet);
+            // Clamped on, it stands on its wreck as the wreck is drawn turned (debris-physics).
+            one.Show(feet, CreaturesModule.Clamped(c) && debris.PieceById(one.Piece) is { } on ? PieceDrawn.Pose(on, progress).Radians : 0);
             Moments(one, moments);
             Walked(one, c, dt);
             Cut(one, c);
@@ -176,13 +185,14 @@ public partial class TickBodies : Node2D
         (one.Cut, one.OwnAt, one.Piece) = (CreaturesModule.LastCut(c), double.NegativeInfinity, -1);
         one.Cues = S.Ticks.GetValueOrDefault(c.Species);
         (one.Feet, one.Prying) = (new Footfalls(S.SpiderStepEvery, S.SpiderStepLeastS), CreaturesModule.PryingAt(c));
+        one.Look = CreatureLooks.Ticks[Spec.Creatures.Get(c.Species).Look];
         one.Burning = default;
         (one.WhipLeft, one.LineWay) = (0, Vector2.Left);
         one.Visible = true;
         one.Modulate = Colors.White;
-        if (one.Cues is { } cues && one.Burner == null)
+        if (one.Cues?.Thrust is { } burns && one.Burner == null)
         {
-            one.Burner = Cues.Player2D(cues.Thrust, S.Suit);
+            one.Burner = Cues.Player2D(burns, S.Suit);
             AddChild(one.Burner);
         }
         return one;
@@ -207,7 +217,8 @@ public partial class TickBodies : Node2D
     {
         var at = new Vector2(c.X, c.Y);
         int piece = creatures.ClingsTo(c) ?? -1;
-        double along = debris.PieceById(piece) is { } p ? c.X - p.X : 0;
+        // Along its wreck's own top, however the wreck is turned (debris-physics).
+        double along = debris.PieceById(piece) is { } p && debris.Shape(p) is { } shape ? shape.Local(c.X, c.Y).X : 0;
         if (one.Tick < 0 || tick - one.Tick > 1 || piece != one.Piece) (one.From, one.To, one.AlongFrom, one.AlongTo) = (at, at, along, along);
         else if (tick != one.Tick) (one.From, one.To, one.AlongFrom, one.AlongTo) = (one.To, at, one.AlongTo, along);
         (one.Tick, one.Piece) = (tick, piece);
@@ -240,7 +251,7 @@ public partial class TickBodies : Node2D
         (double, double)? line = cutting && LineEnd(debris, one.Piece) is { } end ? (end.X - middle.X, end.Y - middle.Y) : null;
         double done = cutting ? Math.Clamp((cutOf - cutLeft + Math.Clamp(progress, 0, 1)) / cutOf, 0, 1) : 0;
         return new TickMotion.Seen(clamped, CreaturesModule.Alerted(c), winding, windUpS, pouncing, pouncing ? act!.Left : 0,
-            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked, walker, folded, wall);
+            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked, Walker: walker, Folded: folded, Wall: wall);
     }
 
     /// <summary>
@@ -437,21 +448,23 @@ public partial class TickBodies : Node2D
             flares.Bloom(nozzle.X, nozzle.Y, 6.4, Plume, 0.5 * thrust);
             double length = (4 + glims.Between(0, 2.5)) * thrust;
             flares.Trail(nozzle.X, nozzle.Y, nozzle.X + px * length, nozzle.Y + py * length, Plume, 0.6, 0.95, 0.45);
-            lights.Add(new LightSource(nozzle.X, nozzle.Y, (1f, 190 / 255f, 90 / 255f), CreatureLooks.TickBurnerLight * (float)thrust,
-                CreatureLooks.TickBurnerReach, CreatureLooks.LightKeep, 1));
+            if (one.Look.LitCruising || motion.Hot)
+                lights.Add(new LightSource(nozzle.X, nozzle.Y, (1f, 190 / 255f, 90 / 255f), CreatureLooks.TickBurnerLight * (float)thrust,
+                    CreatureLooks.TickBurnerReach, CreatureLooks.LightKeep, 1));
+            double burn = thrust * Fx.Count * one.Look.Burn;
             double plume = Math.Atan2(py, px);
-            for (int i = Due(ref one.BurnOwed, 120 * thrust * Fx.Count, dt); i > 0; i--)
+            for (int i = Due(ref one.BurnOwed, 120 * burn, dt); i > 0; i--)
             {
                 double a = plume + glims.Between(-0.3, 0.3), s = glims.Between(160, 240);
                 glims.Add(Luminous.Burner, nozzle.X + glims.Between(-0.5, 0.5), nozzle.Y + glims.Between(-0.5, 0.5), vx * 0.85 + Math.Cos(a) * s,
                     vy * 0.85 + Math.Sin(a) * s);
             }
-            for (int i = Due(ref one.MotesOwed, 36 * thrust * Fx.Count, dt); i > 0; i--)
+            for (int i = Due(ref one.MotesOwed, 36 * burn, dt); i > 0; i--)
             {
                 double a = plume + glims.Between(-0.5, 0.5), s = glims.Between(40, 110);
                 glims.Add(Luminous.BurnerMote, nozzle.X, nozzle.Y, vx * 0.7 + Math.Cos(a) * s, vy * 0.7 + Math.Sin(a) * s);
             }
-            for (int i = Due(ref one.SmokeOwed, 22 * thrust * Fx.Count, dt); i > 0; i--)
+            for (int i = Due(ref one.SmokeOwed, 22 * burn, dt); i > 0; i--)
             {
                 double a = plume + glims.Between(-0.4, 0.4), s = glims.Between(20, 50);
                 glims.Add(Luminous.BurnerSmoke, nozzle.X, nozzle.Y, vx * 0.6 + Math.Cos(a) * s, vy * 0.6 + Math.Sin(a) * s);
@@ -468,7 +481,7 @@ public partial class TickBodies : Node2D
             }
         }
         var cues = one.Cues;
-        if (one.Burner is { } burner && cues != null)
+        if (one.Burner is { } burner && cues?.Thrust != null)
         {
             one.Burning.Step(thrust > 0.05, dt, S.ThrustAttackS, S.ThrustReleaseS);
             burner.GlobalPosition = nozzle;
@@ -502,7 +515,7 @@ public partial class TickBodies : Node2D
         {
             var one = _dying[i];
             one.Motion.Step(default, dt);
-            one.Show(one.Drawn);
+            one.Show(one.Drawn, one.Stance);
             var middle = one.World(one.Anchors.Centre);
             var glims = Stages.Of(Layers.Effects).Glims;
             for (int k = Due(ref one.SpitOwed, 30 * Fx.Count, dt); k > 0; k--)

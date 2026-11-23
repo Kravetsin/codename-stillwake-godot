@@ -2,7 +2,9 @@
 
 - Status: accepted; supersedes in part [0083](0083-the-handbook-is-a-tablet.md) and
   [tablet-edge](2026-11-02-tablet-edge.md) (the rugged tablet, its rim along the foot), [0074](0074-the-inventory-is-a-wrist-computer.md)
-  (the bag on the forearm, once paired) and [machine-holograms](2026-11-07-machine-holograms.md) (how a window opens)
+  (the bag on the forearm, once paired) and [machine-holograms](2026-11-07-machine-holograms.md) (how a window opens); the motes and the net superseded by [drone-threads](2026-11-21-drone-threads.md);
+  the tablets' fade, the machine windows as the drone's and what opens before the pairing superseded by
+  [drone-windows](2026-11-21-drone-windows.md)
 - Date: 2026-11-21
 
 ## Context

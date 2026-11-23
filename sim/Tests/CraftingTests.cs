@@ -94,6 +94,20 @@ public class CraftingTests
     }
 
     [Fact]
+    public void MakesNailsTenAUnitForTenScrapInASecond()
+    {
+        var nail = Crafts.Get(Content.Shots.Nail.Id);
+        Assert.Equal((10, 10, Sim.World.TicksPerSecond), (nail.Makes, nail.Cost.Single(c => c.Item == "scrap").Count, nail.Ticks));
+        var w = World().GiveItems(0, ("scrap", 20));
+        Craft(w, nail.Item, 2);
+        Assert.Equal(0, Count(w, "scrap"));
+        w.Run(nail.Ticks * 1000 / BenchSpeed - 1);
+        Assert.Equal(nail.Makes, Made(w, nail.Item));
+        w.Run(nail.Ticks * 1000 / BenchSpeed);
+        Assert.Equal(2 * nail.Makes, Made(w, nail.Item));
+    }
+
+    [Fact]
     public void MakesFiveQueuedAtOnceOneByOneEachInItsOwnTicks()
     {
         var w = World().GiveItems(0, ("scrap", 10));
@@ -307,8 +321,9 @@ public class CraftingTests
     private static Dictionary<string, int> Raw(string item, int count, Dictionary<string, int>? into = null)
     {
         into ??= new Dictionary<string, int>(StringComparer.Ordinal);
+        // A batch's cost shared among what it makes: whole, as every batch's cost divides by its count.
         if (Crafts.TryGet(item, out var craft))
-            foreach (var (part, n) in craft.Cost) Raw(part, n * count, into);
+            foreach (var (part, n) in craft.Cost) Raw(part, n * count / craft.Makes, into);
         else into[item] = into.GetValueOrDefault(item) + count;
         return into;
     }
@@ -319,7 +334,7 @@ public class CraftingTests
         var all = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int peer = 0; peer < 3; peer++)
             foreach (var s in w.M.Items.Inventory(peer)) if (s != null) Raw(s.Item, s.Count, all);
-        foreach (var e in w.M.Crafting.Queue(Bench)) Raw(e.Recipe, e.Count, all);
+        foreach (var e in w.M.Crafting.Queue(Bench)) Raw(e.Recipe, e.Count * Crafts.Get(e.Recipe).Makes, all);
         foreach (var s in w.M.Items.Crate(Bench)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var s in w.M.Items.Crate(Crate)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var s in w.M.Items.Floor) Raw(s.Item, s.Count, all);
@@ -380,7 +395,7 @@ public class CraftingTests
                         var first = Crafts.Get(queue[0].Recipe);
                         int work = first.Ticks * 1000;
                         if (progress > work) return false;
-                        if (progress == work && w.M.Items.OutputFull(Bench, [(first.Item, 1)]) == null) return false;
+                        if (progress == work && w.M.Items.OutputFull(Bench, [(first.Item, first.Makes)]) == null) return false;
                         for (int i = 1; i < queue.Count; i++)
                             if (queue[i].Id <= queue[i - 1].Id) return false;
                         if (queue[0].Id < seen || queue.Any(e => e.Count < 1)) return false;

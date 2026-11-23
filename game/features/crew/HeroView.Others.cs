@@ -28,11 +28,12 @@ public partial class HeroView
         var others = _remote.At(_clockMs).Where(o => _client.World.SurfaceOf(o.Id) == here).ToList();
         _chargingNow.Clear();
         foreach (var c in m.Creatures.Creatures)
-            if (c.Posture == Stillwake.Sim.Creatures.Posture.Charge) _chargingNow.Add(c.Id);
+            if (c.Posture == Stillwake.Sim.Creatures.Posture.Charge) _chargingNow[c.Id] = c.Damage;
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
             {
                 shown.Figure.Visible = false;
+                shown.Figure.Thrown = null;
                 EndMeeting(id);
                 (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
@@ -83,6 +84,13 @@ public partial class HeroView
             shown.Gesture.Step(elapsedMs);
             shown.Ping.Hear(seen.Ping);
             shown.Ping.Step(elapsedMs);
+            // What its peer threw, where that peer says it flies (companion-fights): its hits are that peer's alone.
+            Busy? flung = seen.Busy is { Flung: true } flight ? flight : null;
+            // Thumped where it was caught: not where it was dropped far off, let go for a seat or for another thing.
+            if (flung == null && shown.Figure.Thrown is { Hauled: true } last && !out_ && shown.Figure.Visible
+                && WeaponThrow.Lands(seen.Wields, Aiming.PointOf(Thousandths(last.At)), hero))
+                _othersThump.PlayAt(shown.Figure.GlobalPosition);
+            shown.Figure.Thrown = flung is { } thing ? (Pixels(thing.At), thing.Swings, thing.Work == Handwork.Haul) : null;
             ShowHands(shown.Figure, seen.Wields, Fittings.Of(m.Items, id, seen.Wields), seen.Busy, drawnSwing, shown.Gesture);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
@@ -99,13 +107,15 @@ public partial class HeroView
             // pairing here, it stands through its meeting, its drone shown as the meeting ends (drone-meeting).
             if (_watch.Turned(m, id, m.Players.HasDrone(id), crew.CoreLost())) MeetFriend(id);
             shown.Figure.Paired = m.Players.HasDrone(id);
-            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, _knows);
+            // Its forms are its peer's own (drone-lessons): its beam shows once that peer learned the lamp.
+            (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, form => m.Research.Knows(id, form));
             shown.Figure.DroneWindow = (seen.Projects, 0);
             shown.Figure.Senses = DroneSensesOf(m, id, here);
             shown.Figure.CapeWorn = cape;
             shown.Figure.EffectSkin = SkinEffects.Of(effect);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Room = RoomOf(ship, hero);
+            shown.Figure.StopsLight = _stopsLight ??= StopsLight;
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.InWater = ship.Wading(hero.FeetCell(ship.Width));
             shown.Figure.Ledge = LedgeOf(ship, hero);
@@ -279,6 +289,42 @@ public partial class HeroView
         return new DroneSenses(default, default, surface, Meteor: meteor, Bolt: bolt, Hunter: hunter, Low: low);
     }
 
+    // Its own drone's cues for its thoughts (drone-thoughts): an item's icon scanned, a lesson's machine visited, the form it last showed off.
+    private bool _droneFinds, _droneVisits;
+    private string? _droneShowed;
+    private DroneWonder? _wonder;
+    private double _wonderMs;
+
+    /// <summary>
+    /// The nearest machine within <c>Lessons.Wonder</c> of <paramref name="hero"/> that teaches a form its player does not know (drone-thoughts),
+    /// its top's middle in px; looked for twice a second, not each frame.
+    /// </summary>
+    private DroneWonder? DroneWonderOf(Registry m, Sim.Crew.Hero? hero, double elapsedMs)
+    {
+        if ((_wonderMs -= elapsedMs) > 0) return _wonder;
+        _wonderMs = WonderEveryMs;
+        _wonder = null;
+        if (hero == null) return null;
+        int width = m.Grid.Width;
+        foreach (var lesson in Content.Lessons.All)
+            if (lesson.Source is Content.Near near && !_knows(lesson.Form) && m.Lessons.Teacher(hero.Cell, near.Machine, Content.Lessons.Wonder) is { } machine)
+            {
+                var spec = Content.Machines.Get(machine.Kind);
+                _wonder = new DroneWonder(machine.Cell, new Vec((machine.Cell % width + spec.Width / 2.0) * Rig.Cell, machine.Cell / width * Rig.Cell));
+                break;
+            }
+        return _wonder;
+    }
+
+    private const double WonderEveryMs = 500;
+
+    /// <summary>Whether a deed lesson's vision just ended this frame (drone-thoughts, form-vision): the drone is proud.</summary>
+    private bool DroneProud()
+    {
+        string? was = _droneShowed;
+        _droneShowed = _vision?.Form;
+        return was != null && _droneShowed == null && Content.Lessons.All.Any(l => l.Form == was && l.Source is Content.Deed);
+    }
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>
         DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod,

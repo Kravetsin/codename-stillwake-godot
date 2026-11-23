@@ -1,7 +1,8 @@
 # Each hero pairs once with a shard of the alien core; the bag comes with it
 
 - Status: accepted; supersedes in part [room-upgrades](2026-10-30-room-upgrades.md) (the bag's rows open from the start)
-  and [the-scoop](2026-10-31-the-scoop.md) (the landing's roof and floor)
+  and [the-scoop](2026-10-31-the-scoop.md) (the landing's roof and floor); what waits for the pairing superseded by
+  [drone-windows](2026-11-21-drone-windows.md)
 - Date: 2026-11-21
 
 ## Context

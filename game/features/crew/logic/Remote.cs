@@ -26,17 +26,22 @@ public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = nu
 
 /// <summary>
 /// What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the
-/// drill running aimed at a point (0054); or a sign made in place of words (<see cref="Gestures"/>, gestures-for-words).
+/// drill running aimed at a point (0054); a sign made in place of words (<see cref="Gestures"/>, gestures-for-words); or what
+/// they wield out of them, thrown, and the drone's thread cast to it, hauled (<see cref="WeaponThrow"/>, companion-fights).
 /// </summary>
-public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No }
+public enum Handwork { Work, Chop, Beam, Drill, Point, Wave, Yes, No, Throw, Haul }
 
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
 /// own position; chopping, the point its latest swing is aimed at (<see cref="AxeSwing.At"/>) and how many
-/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did.
+/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did; throwing, where the thing
+/// flies and the throw's number (<see cref="WeaponThrow.Count"/>).
 /// </summary>
 public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
 {
+    /// <summary>Whether what they wield is out of them, thrown or hauled.</summary>
+    public bool Flung => Work is Handwork.Throw or Handwork.Haul;
+
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
 
@@ -197,16 +202,21 @@ public sealed class RemoteHeroes
         double t = (then - a.At) / (b.At - a.At);
         double? look = a.Seen.Look is double la && b.Seen.Look is double lb ? la + (lb - la) * t : a.Seen.Look;
         var hero = ha with { X = (int)Math.Round(ha.X + (hb.X - ha.X) * t), Y = (int)Math.Round(ha.Y + (hb.Y - ha.Y) * t) };
-        return a.Seen with { Hero = hero, Look = look, Busy = Sweep(a.Seen.Busy, b.Seen.Busy, t) };
+        var to = b.Seen.Busy;
+        // Hauled till a packet says it is in the hand: swept on into that hand, never left hanging short of it.
+        if (a.Seen.Busy is { Work: Handwork.Haul } hauled && to is not { Flung: true } && a.Seen.Wields == b.Seen.Wields
+            && WeaponThrow.Lands(a.Seen.Wields, hauled.At, ha))
+            to = hauled with { At = Aiming.HandOf(hb) };
+        return a.Seen with { Hero = hero, Look = look, Busy = Sweep(a.Seen.Busy, to, t) };
     }
 
     /// <summary>
-    /// A drill's bit, which follows its pointer, swept between samples as the body is; other work is a point of its own, each
-    /// change news (a swing, a plan's square, a beam), kept as sent.
+    /// A drill's bit, which follows its pointer, and one throw's flight swept between samples as the body is; other work is a point
+    /// of its own, each change news (a swing, a plan's square, a beam, the next throw), kept as sent.
     /// </summary>
     private static Busy? Sweep(Busy? a, Busy? b, double t) =>
-        a is { Work: Handwork.Drill, At: var pa } && b is { Work: Handwork.Drill, At: var pb }
-            ? a.Value with { At = new Point((int)Math.Round(pa.X + (pb.X - pa.X) * t), (int)Math.Round(pa.Y + (pb.Y - pa.Y) * t)) }
+        a is { } was && b is { } now && (was.Work == Handwork.Drill && now.Work == Handwork.Drill || was.Flung && now.Flung && now.Swings == was.Swings)
+            ? was with { At = new Point((int)Math.Round(was.At.X + (now.At.X - was.At.X) * t), (int)Math.Round(was.At.Y + (now.At.Y - was.At.Y) * t)) }
             : a;
 
     /// <summary>Where a hero <paramref name="late"/> ms past its newest sample is: walking on for a while, then standing there.</summary>

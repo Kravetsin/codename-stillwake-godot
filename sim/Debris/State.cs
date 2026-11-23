@@ -21,6 +21,10 @@ public sealed class Piece
     [JsonInclude] public int Y { get; internal set; }
     /// <summary>How far it drifts left a tick, in thousandths of a cell.</summary>
     [JsonInclude] public int Speed { get; internal set; }
+    /// <summary>How it is turned about its middle, in 65536ths of a turn, clockwise as the screen shows it; 0 upright.</summary>
+    [JsonInclude] public int Angle { get; internal set; }
+    /// <summary>How far it turns a tick, in 65536ths of a turn, clockwise positive: its own from its id as it spawns (<c>DebrisModule.TumbleOf</c>).</summary>
+    [JsonInclude] public int Spin { get; internal set; }
     /// <summary>Where its way begins: <see cref="X"/> at its first tick, but for a piece a world begins with.</summary>
     [JsonInclude] public int Start { get; internal set; }
     /// <summary>It is gone once <see cref="X"/> is below this.</summary>
@@ -114,6 +118,13 @@ public sealed class NetEntry
 }
 
 /// <summary>
+/// A wreck that bursts as it breaks (<c>Wreckage.Bursts</c>, fuel-drums), broken and not yet gone off: at <paramref name="Cell"/>, its
+/// middle's when it broke, by peer <paramref name="Peer"/> (<c>FloorStack.Nobody</c> for a creature's shot or burst), its blast its
+/// kind's, <paramref name="Kind"/>. A record of public properties, as the saves write those alone.
+/// </summary>
+public sealed record PendingBurst(int Cell, int Peer, string Kind);
+
+/// <summary>
 /// The debris slice. Public so it can be named, its members internal: others read
 /// <see cref="DebrisModule.Pieces"/>.
 /// </summary>
@@ -140,5 +151,19 @@ public sealed class DebrisState
     {
         get => Held.Count == 0 ? null : Held;
         set => Held = value ?? [];
+    }
+
+    /// <summary>
+    /// Wrecks broken that burst and have not gone off, in the order broken: drained by Creatures as its shots fly
+    /// (<see cref="IDebrisOps.TakeBursting"/>). Saved, as a shot breaks one after that tick's drain.
+    /// </summary>
+    [JsonIgnore] internal List<PendingBurst> Bursting { get; set; } = [];
+
+    /// <summary><see cref="Bursting"/> as saved: not written while empty, so a world with none saves as before drums.</summary>
+    [JsonInclude, JsonPropertyName("bursting"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<PendingBurst>? BurstingSaved
+    {
+        get => Bursting.Count == 0 ? null : Bursting;
+        set => Bursting = value ?? [];
     }
 }

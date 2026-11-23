@@ -12,6 +12,7 @@ using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Landing;
+using Stillwake.Sim.Lessons;
 using Stillwake.Sim.Liquids;
 using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Pipes;
@@ -62,6 +63,8 @@ public sealed class Registry
     public FuelModule Fuel { get; }
     public LiquidsModule Liquids { get; }
     public PlacesModule Places { get; }
+    /// <summary>The drone's lessons learned by passing a machine (drone-lessons): new to format 71, run and saved last.</summary>
+    public LessonsModule Lessons { get; }
 
     /// <summary>The rules of the kind of surface this registry runs (0076): what the client draws and allows by.</summary>
     public Surfaces.Kind Rules => Grid.Rules;
@@ -113,7 +116,8 @@ public sealed class Registry
         // (made above, before Building).
         // Vessels beside the ship (generated-vessels): new to format 57, run and saved last.
         Places = new PlacesModule(Grid, Grid, Items, Crew, Landing, Landing);
-        Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water, Places, Fuel];
+        Lessons = new LessonsModule(Grid, Crew, Players, Knowledge, Knowledge);
+        Module[] surface = [Grid, Sky, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water, Places, Fuel, Lessons];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

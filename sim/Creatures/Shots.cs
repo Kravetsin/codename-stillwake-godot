@@ -89,22 +89,38 @@ public sealed partial class CreaturesModule
         });
     }
 
+    /// <summary>The wrecks that went off this tick as they broke (fuel-drums), in the order they did; derived, emptied as the next tick's shots fly.</summary>
+    private readonly List<PendingBurst> _drums = [];
+
+    /// <summary>The wrecks that burst this tick as they broke, where and whose: what the client shows a drum's burst by.</summary>
+    public IReadOnlyList<PendingBurst> DrumBursts => _drums;
+
     /// <summary>
-    /// Every shot's step, in id order, those fired this tick too: one that met something it did not break ends, as one that ran
-    /// out or left the grid. The wrecks are taken once, the debris having drifted. Those its hits killed are swept out at the end,
-    /// as the creatures' system sweeps a command's: the tick saves no creature dead and still listed.
+    /// The wrecks broken since the last tick's drain go off, in the order broken (fuel-drums); then every shot's step, in id order,
+    /// those fired this tick too: one that met something it did not break ends, as one that ran out or left the grid. The wrecks
+    /// are taken once, the debris having drifted. A drum broken now goes off on the next tick. Those killed are swept out at the
+    /// end, as the creatures' system sweeps a command's: the tick saves no creature dead and still listed.
     /// </summary>
     private void Fly()
     {
         _ended.Clear();
         _hits.Clear();
+        _drums.Clear();
+        var bursting = _debrisOps.TakeBursting();
         var shots = State.Shots;
-        if (shots.Count == 0) return;
-        _wrecks = _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
-        int kept = 0;
-        for (int i = 0; i < shots.Count; i++)
-            if (Step(shots[i])) shots[kept++] = shots[i];
-        shots.RemoveRange(kept, shots.Count - kept);
+        if (bursting.Count > 0 || shots.Count > 0)
+        {
+            _wrecks = _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
+            foreach (var drum in bursting)
+            {
+                Burst(drum.Peer, drum.Cell, Content.Wreckage.BurstOf(drum.Kind) ?? throw new InvalidOperationException($"creatures.burst: {drum.Kind} never bursts"), null);
+                _drums.Add(drum);
+            }
+            int kept = 0;
+            for (int i = 0; i < shots.Count; i++)
+                if (Step(shots[i])) shots[kept++] = shots[i];
+            shots.RemoveRange(kept, shots.Count - kept);
+        }
         State.Creatures.RemoveAll(c => c.Dead);
     }
 
@@ -244,7 +260,7 @@ public sealed partial class CreaturesModule
     /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else a machine,
     /// once by its top-left, the lifepod stopping it whole (one-damage-rule), else the first wreck of <paramref name="wrecks"/> still out; null for none.
     /// </summary>
-    private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
+    private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<TurnedBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
         if (Solid(cell))
         {
@@ -273,7 +289,7 @@ public sealed partial class CreaturesModule
                 int away = s.VX != 0 ? Math.Sign(s.VX) : AwayFrom(creature, HeroCell(peer));
                 // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
                 int knock = Math.Min(Spec.KnockPace, Content.Shots.GunOf(s.Gun)?.Knock ?? 0);
-                return Hurt(creature, Spec.Get(creature.Species), damage, new Hit(peer, away, knock, _debris.Clock, Shot: true));
+                return Hurt(creature, Spec.Get(creature.Species), damage, new Hit(peer, away, knock, _debris.Clock, Shot: true, Line: (s.VX, s.VY)));
             default:
                 return _debrisOps.Hit(peer, target.Pass.Id, damage);
         }
@@ -327,33 +343,54 @@ public sealed partial class CreaturesModule
     }
 
 
-    /// <summary>
-    /// <paramref name="s"/>'s burst from <paramref name="cell"/> (blasting-charge, unified-damage): <see cref="IBuildingOps.Burst"/> of
-    /// <paramref name="blast"/>'s power, what it breaks dropped there for anyone. Then every wreck within its reach takes its damage, in
-    /// spawn order; a creature's burst (catcher-combat) takes its projectile's damage off every awake hero within its reach in its sight,
-    /// in id order, once. Creatures are untouched, and heroes by a hero's. The cell it went off at: it goes off wherever its shot ends,
-    /// the grid taking it only where a burst may enter (one-damage-rule).
-    /// </summary>
+    /// <summary><paramref name="s"/>'s burst from <paramref name="cell"/>, by its shooter (a creature's by no one): the cell it went off at.</summary>
     private int Burst(Shot s, Content.Blast blast, int cell)
     {
-        int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        // It goes off wherever it ends: the grid takes it only where a burst may enter (not past the zone, nor in the lifepod).
+        Burst(s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody, cell, blast, s);
+        return cell;
+    }
+
+    /// <summary>
+    /// A burst of <paramref name="blast"/> by peer <paramref name="peer"/> from <paramref name="cell"/> (blasting-charge, unified-damage,
+    /// fuel-drums): a shot's where it ends, a drum's where it broke. <see cref="IBuildingOps.Burst"/> of its power, what it breaks dropped
+    /// there for anyone, wherever it goes off: the grid takes it only where a burst may enter (one-damage-rule). Then every wreck within
+    /// its reach takes its damage, in spawn order, one gone skipped; every awake hero within its reach and in its sight its
+    /// <see cref="Content.Blast.Body"/>, in the crew's order; every live creature whose body's box is within it and whose middle it sees
+    /// the same, in id order, through the hit path with no knock: whoever set it off too. The body <paramref name="shot"/> struck is
+    /// spared: a burst hurts it once, by its hit.
+    /// </summary>
+    private void Burst(int peer, int cell, Content.Blast blast, Shot? shot)
+    {
         _building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop);
         long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Reach * Unit;
         foreach (var w in _wrecks)
-        {
-            long dx = Math.Max(0, Math.Max(w.Left - cx, cx - w.Right)), dy = Math.Max(0, Math.Max(w.Top - cy, cy - w.Bottom));
-            if (dx * dx + dy * dy <= reach * reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
-        }
-        if (s.By.Kind != RefKind.None) return cell;
-        int damage = Content.Shots.Get(s.Projectile).Damage, x = cell % _grid.Width, y = cell / _grid.Width;
+            if (w.Gap((int)cx, (int)cy) <= reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
+        int x = cell % _grid.Width, y = cell / _grid.Width;
         foreach (var hero in _crew.Heroes)
         {
             if (HeroAt(hero.Id, awake: true) is not { } at) continue;
             int dx = at.X - x, dy = at.Y - y;
-            if (dx * dx + dy * dy <= blast.Reach * blast.Reach && Sees(Middle(x), Middle(y), at)) _crewOps.Blow(hero.Id, damage, Harm.Blow);
+            if (dx * dx + dy * dy <= blast.Reach * blast.Reach && Sees(Middle(x), Middle(y), at)) _crewOps.Blow(hero.Id, blast.Body, Harm.Blow);
         }
-        return cell;
+        int struck = shot != null ? StruckBy(shot) : 0;
+        for (int i = 0; i < State.Creatures.Count; i++)
+        {
+            var c = State.Creatures[i];
+            if (c.Dead || c.Id == struck) continue;
+            var spec = Spec.Get(c.Species);
+            var box = BoxOf(c);
+            if (box.Gap((int)cx, (int)cy) > reach || FirstSolid((int)cx, (int)cy, box.X, box.Y) != null) continue;
+            // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
+            Hurt(c, spec, blast.Body, new Hit(peer, AwayFrom(c, cell), 0, _debris.Clock, Shot: true));
+        }
+    }
+
+    /// <summary>The creature <paramref name="s"/>'s hit struck this tick, by id, the last hits being its own; 0 for none.</summary>
+    private int StruckBy(Shot s)
+    {
+        for (int i = _hits.Count - 1; i >= 0 && _hits[i].Shot == s.Id; i--)
+            if (_hits[i].What == ShotTarget.Creature) return _hits[i].Id;
+        return 0;
     }
 
     /// <summary>
@@ -426,10 +463,10 @@ public sealed partial class CreaturesModule
         ShotFlight.Gravity(Rules, p, gun, _rooms.Afloat(y / Unit * _grid.Width + x / Unit));
 
     /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>
-    private IReadOnlyList<WreckBox> _wrecks = [];
+    private IReadOnlyList<TurnedBox> _wrecks = [];
 
     /// <summary>The first wreck of <paramref name="wrecks"/>, in spawn order, still out and not in <paramref name="passed"/>, whose box covers part of <paramref name="cell"/>; null for none.</summary>
-    private WreckBox? WreckIn(int cell, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
+    private TurnedBox? WreckIn(int cell, IReadOnlyList<TurnedBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
         foreach (var w in wrecks)
             if (w.Covers(cell, _grid.Width) && _debris.PieceById(w.Piece) != null && !passed.Contains(new ShotPass(ShotTarget.Wreck, w.Piece))) return w;
@@ -439,15 +476,8 @@ public sealed partial class CreaturesModule
     /// <summary>The lowest-id live creature not in <paramref name="passed"/> whose body's box overlaps <paramref name="cell"/>; null for none.</summary>
     private Creature? CreatureIn(int cell, IReadOnlyList<ShotPass> passed)
     {
-        int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
         foreach (var c in State.Creatures)
-        {
-            if (c.Dead) continue;
-            var body = Spec.Get(c.Species).Body;
-            int half = body.Width * Unit / 2;
-            if (c.X - half < left + Unit && c.X + half > left && c.Y - body.Height * Unit < top + Unit && c.Y > top
-                && !passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) return c;
-        }
+            if (!c.Dead && BoxOf(c).Covers(cell, _grid.Width) && !passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) return c;
         return null;
     }
 }

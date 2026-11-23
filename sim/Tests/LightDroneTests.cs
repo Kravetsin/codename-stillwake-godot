@@ -260,15 +260,16 @@ public class LightDroneTests
         Assert.Equal(["crew.hasDrone"], w.Refusals.Select(r => r.Reason));
     }
 
-    /// <summary>The lamp and the scanner are the drone's modes, each opened by its node (light-drone): no item, so no wreck or crate gives one.</summary>
+    /// <summary>The drone's forms are learned (drone-lessons): no item and no node of the market, so no wreck, crate or purchase gives one.</summary>
     [Theory]
     [InlineData("scanner")]
     [InlineData("droneLamp")]
-    public void EachModeIsANodeNeitherAnItemNorLoot(string mode)
+    [InlineData("droneAlarms")]
+    public void EachFormIsLearnedNeitherAnItemANodeNorLoot(string mode)
     {
-        Assert.Contains(mode, (string[])[LightDrone.ScannerMode, LightDrone.LampMode]);
+        Assert.Contains(mode, Content.Lessons.Forms);
         Assert.False(Content.Items.TryGet(mode, out _));
-        Assert.NotNull(Content.Research.Node(mode));
+        Assert.Null(Content.Research.Node(mode));
         Assert.DoesNotContain(mode, Content.Research.GearSold);
         Assert.DoesNotContain(Loot.All.SelectMany(t => t.Entries), e => e.Item == mode);
         Assert.DoesNotContain(mode, Content.Research.StartKnown);

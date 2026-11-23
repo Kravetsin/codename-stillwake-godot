@@ -12,9 +12,10 @@ internal enum Gait { Still, Walk, Run, Steered }
 /// A hit taking hold (2026-10-26-creatures-are-composed): by peer <paramref name="Peer"/>'s hero, the way across away from it,
 /// the weapon's pace (0098), and <paramref name="Answered"/>, the debris clock through which a blow on its wreck is answered with
 /// it: the clock and one from a command, which lands before the debris drifts, the clock from a system, which lands after;
-/// <paramref name="Shot"/>, a gun's shot rather than a blow in hand.
+/// <paramref name="Shot"/>, a gun's shot rather than a blow in hand; <paramref name="Line"/>, the way it goes both ways, which a
+/// flyer afloat is knocked along (companion-fights): none, across alone.
 /// </summary>
-internal readonly record struct Hit(int Peer, int Away, int Pace, int Answered, bool Shot = false);
+internal readonly record struct Hit(int Peer, int Away, int Pace, int Answered, bool Shot = false, (int X, int Y) Line = default);
 
 /// <summary>
 /// The rule of one kind of drive (<see cref="Spec.Drive"/>). Rules hold no state: what a creature needs remembered is on it.

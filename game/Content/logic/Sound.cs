@@ -569,7 +569,7 @@ public static class Sound
     /// power-down over a heavy clatter). All on the Suit bus, the hero's, as a wreck's are: it lives out in space, where the World
     /// bus is silent. A walking one's <see cref="TickCues.Step"/> and <see cref="TickCues.Pry"/> are on World, aboard; none for the sentry.
     /// </summary>
-    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue Thrust, Cue Hit, Cue Death, Cue? Step = null, Cue? Pry = null);
+    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue? Thrust, Cue Hit, Cue Death, Cue? Step = null, Cue? Pry = null);
 
     /// <summary>The sentry's cues; the spider keeps them (derelict-enemies).</summary>
     private static readonly TickCues SentryCues = new(
@@ -599,10 +599,12 @@ public static class Sound
     /// </summary>
     public const double SpiderStepEvery = 12, SpiderStepLeastS = 0.09;
 
-    /// <summary>Each species drawn as a tick (<c>CreatureLooks.Ticks</c>): its cues, levelled alike on the audition page.</summary>
+    /// <summary>Each species drawn as a tick or a breaker (<c>CreatureLooks.Ticks</c>, <c>Breakers</c>): its cues, levelled alike on the audition page.</summary>
     public static readonly IReadOnlyDictionary<string, TickCues> Ticks = new Dictionary<string, TickCues>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = SentryCues,
+        // The sentry's till the breaker's audition, its one shots only: eight loops at once would drown the rest.
+        [Stillwake.Content.Creatures.Breaker.Id] = SentryCues with { Thrust = null },
         [Stillwake.Content.Creatures.Spider.Id] = SpiderCues,
     };
 
@@ -680,6 +682,7 @@ public static class Sound
     public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = SentryPunch,
+        [Stillwake.Content.Creatures.Breaker.Id] = SentryPunch,
         [Stillwake.Content.Creatures.Spider.Id] = SentryPunch,
         [Stillwake.Content.Creatures.Escort.Id] = SentryPunch,
         [Stillwake.Content.Creatures.Warden.Id] = new(Shots("creatures/warden-punch", 1), -1.5f, Heard: ToolReach),
@@ -815,7 +818,7 @@ public static class Sound
     public const double MusicFadeS = 2.5;
 
     /// <summary>
-    /// The quiet bed that fills the silence of space (0042), on the Music bus: faded in over
+    /// The quiet bed that fills the silence of space (0042), only while no ship track plays (ship-music), on the Music bus: faded in over
     /// <see cref="SpaceInS"/> seconds as this player's hero leaves the ship, out over <see cref="SpaceOutS"/>
     /// back aboard; 3 dB lower since 0059, under what the hero touches. A placeholder, the synthesised drone "Wreck", until the
     /// team's own track.
@@ -823,6 +826,17 @@ public static class Sound
     public static readonly Cue Space = new(["res://audio/music/space-1.ogg"], -13, Loops: true);
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
+
+    /// <summary>
+    /// The ship's music (ship-music), on the Music bus, heard aboard and out in space, never on a planet; the bed
+    /// of space plays only in its silences: about half as loud as the title's (10 dB under it,
+    /// the tracks levelled 1 dB hotter). No pitch varied: they are music. Placeholders made with Suno, played once each in turn by <c>ShipMusic</c>.
+    /// </summary>
+    public static readonly IReadOnlyList<Cue> ShipTracks =
+        [new(["res://audio/music/ship-1.ogg"], -13, Pitch: 0), new(["res://audio/music/ship-2.ogg"], -13, Pitch: 0)];
+
+    /// <summary>Seconds off a planet before the first track; the silence after a track, least and most; its fade in and out.</summary>
+    public const double ShipFirstS = 60, ShipGapLeastS = 180, ShipGapMostS = 360, ShipInS = 2.5, ShipOutS = 2;
 
     /// <summary>
     /// A drop pod's engine (the descent's sounds): the jetpack's thrust, lower and louder, placed on the pod and heard far on the
@@ -856,10 +870,10 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, .. ShipTracks, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.Distinct().SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death, t.Step, t.Pry }.OfType<Cue>()),
+        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death, t.Step, t.Pry }.OfType<Cue>()).Distinct(),
         CapsuleAlarm, CapsuleIris, StandClamp, StandWinch, StandYoke,
         .. Escorts.Values.SelectMany(e => new[] { e.Wake, e.Step, e.Servo, e.Pry, e.Charge, e.Shot, e.Stop, e.Lunge, e.Hit, e.Killed }), .. Istukans.Values.Distinct().SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values.Distinct(), .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.

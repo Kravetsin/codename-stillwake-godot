@@ -145,17 +145,20 @@ public class GunHandTests
         Assert.Equal((true, false, true), (ShotDraws.FliesOwn(hosts: false), ShotDraws.DrawsSims(mine, 0, hosts: false), ShotDraws.DrawsSims(theirs, 0, hosts: false)));
     }
 
+    /// <summary>The nails that kill a loper.</summary>
+    private static readonly int ToKill = Spec.Creatures.Loper.Life.Hp / Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id);
+
     [Fact]
     public void AGuestsCopyFliesOnThroughALoperItWouldKillHittingTheNextAsTheSimDoes()
     {
         string open = new('.', 60), ground = new('#', 60);
         var layout = Layout.Parse([.. Enumerable.Repeat(open, 20), ground, ground]) with { Kind = Spec.Surfaces.TestStrip.Id };
-        var w = new TestWorld(layout).Step(new Sim.Crew.Enter(19 * 60 + 2)).Give(0, (Nailer.Item, 1), (Spec.Shots.Nail.Id, 5))
+        var w = new TestWorld(layout).Step(new Sim.Crew.Enter(19 * 60 + 2)).Give(0, (Nailer.Item, 1), (Spec.Shots.Nail.Id, ToKill + 1))
             .Step(new Release(Spec.Creatures.Loper.Id, 19 * 60 + 30)).Step(new Release(Spec.Creatures.Loper.Id, 19 * 60 + 34));
         var first = w.M.Creatures.Creatures[0];
         (int x, int y) = (first.X - 3000, first.Y - 2000);
-        // A nail of the sim's alone first: 6 of the loper's 12, so the next kills it.
-        w.Step(new Fire(Nailer.Item, x, y, 0));
+        // The sim's nails alone first, on one tick before it bolts, till the next kills it.
+        w.Step([.. Enumerable.Repeat<Command>(new Fire(Nailer.Item, x, y, 0), ToKill - 1)]);
         var hand = new GunHand { Flies = ShotDraws.FliesOwn(hosts: false) };
         var fire = hand.Step(16, pressed: true, Nailer, (x, y), 0, Spec.Shots.Nail).Fire!;
         var drawn = new List<(ShotTarget, bool)>();
@@ -183,11 +186,12 @@ public class GunHandTests
     {
         string open = new('.', 60), ground = new('#', 60);
         var layout = Layout.Parse([.. Enumerable.Repeat(open, 20), ground, ground]) with { Kind = Spec.Surfaces.TestStrip.Id };
-        var w = new TestWorld(layout).Step(new Sim.Crew.Enter(19 * 60 + 2)).Give(0, (Nailer.Item, 1), (Spec.Shots.Nail.Id, 5))
+        var w = new TestWorld(layout).Step(new Sim.Crew.Enter(19 * 60 + 2)).Give(0, (Nailer.Item, 1), (Spec.Shots.Nail.Id, ToKill + 1))
             .Step(new Release(Spec.Creatures.Loper.Id, 19 * 60 + 30));
         var loper = w.M.Creatures.Creatures.Single();
         (int x, int y) = (loper.X - 3000, loper.Y - 2000);
-        w.Step(new Fire(Nailer.Item, x, y, 0));
+        // The sim's nails alone on one tick, before it bolts, till one is left to kill it: the hand's.
+        w.Step([.. Enumerable.Repeat<Command>(new Fire(Nailer.Item, x, y, 0), ToKill - 1)]);
         var hand = new GunHand { Flies = ShotDraws.FliesOwn(hosts: true) };
         var fire = hand.Step(16, pressed: true, Nailer, (x, y), 0, Spec.Shots.Nail).Fire!;
         // As the host's frame runs: the world's tick, then this hand's shots flown to it.

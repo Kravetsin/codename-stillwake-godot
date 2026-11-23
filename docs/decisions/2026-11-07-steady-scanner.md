@@ -1,6 +1,6 @@
 # A steady scanner readout
 
-- Status: accepted
+- Status: accepted; the digits superseded by [drone-threads](2026-11-21-drone-threads.md)
 - Date: 2026-11-07
 - Amends [the-scanner](2026-11-07-the-scanner.md)
 

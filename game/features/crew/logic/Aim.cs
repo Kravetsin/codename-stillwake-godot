@@ -53,15 +53,16 @@ public static class Aiming
     }
 
     /// <summary>
-    /// Whether any point of a box <paramref name="halfW"/> by <paramref name="halfH"/> thousandths of a
-    /// cell either side of (<paramref name="x"/>, <paramref name="y"/>) is within the hero's reach: a wreck
-    /// is reached at its nearest edge, not its middle.
+    /// Whether any point of <paramref name="box"/>, turned as the sim turns it (debris-physics), is within the hero's reach of the
+    /// middle of its body: a wreck is reached at its nearest edge, not its middle.
     /// </summary>
-    public static bool ReachesBox(Hero hero, int x, int y, int halfW, int halfH)
+    public static bool ReachesBox(Hero hero, TurnedBox box) => box.Gap(hero.X, hero.Middle.Y) <= Spec.Hero.Reach;
+
+    /// <summary>Whether the point (<paramref name="x"/>, <paramref name="y"/>), in thousandths of a cell, is in <paramref name="box"/>, its edges too.</summary>
+    internal static bool Inside(TurnedBox box, double x, double y)
     {
-        long dx = Math.Max(0, Math.Abs((long)x - hero.X) - halfW);
-        long dy = Math.Max(0, Math.Abs((long)y - hero.Middle.Y) - halfH);
-        return dx * dx + dy * dy <= (long)Spec.Hero.Reach * Spec.Hero.Reach;
+        var (lx, ly) = PieceDrawn.Local(box, x, y);
+        return Math.Abs(lx) <= box.HalfW && Math.Abs(ly) <= box.HalfH;
     }
 
     /// <summary>Whether the hero's body is within <see cref="Spec.Hero.CoreTouch"/> of <paramref name="core"/>'s footprint either way: near enough to lay a palm on it.</summary>
@@ -114,9 +115,10 @@ public static class Aiming
         (int, (double, double), double)? first = null;
         foreach (var p in m.Debris.Pieces)
         {
-            var (x, y) = Shared.PieceDrawn.At(p, progress);
             var (halfW, halfH, pictureW, pictureH) = BoxOf(p.Item);
-            if (Entered((from.X, from.Y, to.X, to.Y), x - halfW, y - halfH, x + halfW, y + halfH) is not double t) continue;
+            // Its box as drawn, turned as the sim turns it (debris-physics).
+            var box = Shared.PieceDrawn.Shape(p, progress, halfW, halfH);
+            if (Entered((from.X, from.Y, to.X, to.Y), box) is not double t) continue;
             if (first is var (_, _, nearest) && nearest <= t) continue;
             if (m.Debris.ReelProblem(peer, p.Id) != null) continue;
             if (solid != null && HalfOf(p.Item) != null)
@@ -126,9 +128,10 @@ public static class Aiming
                 first = (p.Id, at, hit);
                 continue;
             }
-            double ax = from.X + (to.X - from.X) * t, ay = from.Y + (to.Y - from.Y) * t;
+            var (ax, ay) = Shared.PieceDrawn.Local(box, from.X + (to.X - from.X) * t, from.Y + (to.Y - from.Y) * t);
             int inW = pictureW - Bite, inH = pictureH - Bite;
-            first = (p.Id, (Math.Clamp(ax, x - inW, x + inW), Math.Clamp(ay, y - inH, y + inH)), t);
+            var (sx, sy) = box.At(Math.Clamp(ax, -inW, inW), Math.Clamp(ay, -inH, inH));
+            first = (p.Id, (sx, sy), t);
         }
         return first;
     }
@@ -295,7 +298,7 @@ public static class Aiming
         }
         if (armed || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
-        return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
+        return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, TurnedBox.Of(piece.Id, piece.X, piece.Y, halfW, halfH, piece.Angle)), grab, Piece: piece.Id);
     }
 
     /// <summary>
@@ -431,17 +434,30 @@ public static class Aiming
     /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
     private const int CreatureMargin = 400;
 
-    /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
-    internal static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
+    /// <summary>
+    /// The box creature <paramref name="c"/> is struck in, in thousandths of a cell: the sim's box of its body
+    /// (<see cref="CreaturesModule.BoxOf"/>), turned with the wreck it stands on, and a margin.
+    /// </summary>
+    internal static TurnedBox BoxOf(Registry m, Creature c)
     {
-        var spec = Spec.Creatures.Get(c.Species);
-        int half = spec.Body.Width * Hero.Unit / 2 + CreatureMargin;
-        return (c.X - half, c.Y - spec.Body.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
+        var body = m.Creatures.BoxOf(c);
+        return body with { HalfW = body.HalfW + CreatureMargin, HalfH = body.HalfH + CreatureMargin };
     }
 
     /// <summary>A strike with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> make.</summary>
     public static List<Strike> StrikesOf(Registry m, int peer, IEnumerable<Creature> touched, string tool) =>
         touched.Where(c => m.Creatures.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
+
+    /// <summary>
+    /// How far along the segment <paramref name="e"/>, from 0 to 1, it enters <paramref name="box"/>, clipped to it; none when it
+    /// misses: its ends taken into the box's own frame by the sim's maths (debris-physics).
+    /// </summary>
+    internal static double? Entered((double Ax, double Ay, double Bx, double By) e, TurnedBox box)
+    {
+        var (ax, ay) = Shared.PieceDrawn.Local(box, e.Ax, e.Ay);
+        var (bx, by) = Shared.PieceDrawn.Local(box, e.Bx, e.By);
+        return Entered((ax, ay, bx, by), -box.HalfW, -box.HalfH, box.HalfW, box.HalfH);
+    }
 
     /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, clipped to it; none when it misses.</summary>
     internal static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)

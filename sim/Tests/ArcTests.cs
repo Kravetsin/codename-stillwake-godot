@@ -173,12 +173,13 @@ public class ArcTests
     }
 
     [Fact]
-    public void FiveNailsKillIt()
+    public void FifteenNailsKillIt()
     {
         var (w, _, c) = SentryTests.OnAWreck();
-        Assert.Equal(5, (Tune.Sentry.Life.Hp + Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id) - 1) / Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id));
-        w.GiveItems(0, (Spec.Shots.Nailer.Item, 1), (Spec.Shots.Nail.Id, 5)).Wields(Spec.Shots.Nailer.Item);
-        for (int i = 0; i < 4; i++) w.Do(new Fire(Spec.Shots.Nailer.Item, c.X - 2000, c.Y - 1000, 0)).Run();
+        int nails = (Tune.Sentry.Life.Hp + Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id) - 1) / Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id);
+        Assert.Equal(15, nails);
+        w.GiveItems(0, (Spec.Shots.Nailer.Item, 1), (Spec.Shots.Nail.Id, nails)).Wields(Spec.Shots.Nailer.Item);
+        for (int i = 0; i < nails - 1; i++) w.Do(new Fire(Spec.Shots.Nailer.Item, c.X - 2000, c.Y - 1000, 0)).Run();
         Assert.Contains(c, w.M.Creatures.Creatures);
         w.Do(new Fire(Spec.Shots.Nailer.Item, c.X - 2000, c.Y - 1000, 0)).Run();
         Assert.DoesNotContain(c, w.M.Creatures.Creatures);

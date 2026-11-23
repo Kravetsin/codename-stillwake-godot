@@ -140,8 +140,12 @@ public partial class ShotsView : Node2D
                 _fired.Play(S.FiredOf(hit.Projectile, hit.Gun), new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
+        // Whose it is, from the end itself: a charge thrown point-blank ends the tick it is born, never seen in flight. A creature's
+        // afloat heard through the suit, as its launch is.
         foreach (var end in creatures.Ended)
-            if (end.Burst >= 0) Burst(end, own);
+            if (end.Burst >= 0) Burst(end.Burst, end.Id, end.By == Ref.Hero(own) || end.By == Ref.None && _m.Rooms.Afloat(end.Burst));
+        // A drum's burst (fuel-drums), drawn as a charge's for now; out in space, heard through the suit as a creature's is.
+        foreach (var drum in creatures.DrumBursts) Burst(drum.Cell, null, drum.Peer == own || _m.Rooms.Afloat(drum.Cell));
         Round(creatures);
         var flying = new HashSet<int>();
         int launched = 0;
@@ -204,24 +208,24 @@ public partial class ShotsView : Node2D
     private static readonly (int R, int G, int B) Afterglow = (255, 176, 84);
 
     /// <summary>
-    /// A charge's burst (blasting-charge), the user's pick: a white flash, a grey ring of dust thrown out as wide as what broke, and
-    /// out of every wall it broke chips of its ground flung away from the burst, falling where there is weight; heard as far as a
-    /// wreck breaks and farther, the own one through the suit.
+    /// A charge's burst at <paramref name="at"/> (blasting-charge), the user's pick: a white flash, a grey ring of dust thrown out as wide as
+    /// what broke, and out of every wall it broke round charge <paramref name="charge"/> (none for a drum's) chips of its ground flung away
+    /// from the burst, falling where there is weight; heard as far as a wreck breaks and farther, through the suit if <paramref name="suit"/>.
     /// </summary>
-    private void Burst(ShotEnd end, int own)
+    private void Burst(int at, int? charge, bool suit)
     {
         var grid = _m.Grid;
-        double cell = Camera.Cell, x = (end.Burst % grid.Width + 0.5) * cell, y = (end.Burst / grid.Width + 0.5) * cell;
-        bool afloat = _m.Rooms.Afloat(end.Burst);
+        double cell = Camera.Cell, x = (at % grid.Width + 0.5) * cell, y = (at / grid.Width + 0.5) * cell;
+        bool afloat = _m.Rooms.Afloat(at);
         var stage = Stages.Of(Layers.Effects);
         var glims = stage.Glims;
         double farthest = 2 * cell;
-        if (_charges.Remove(end.Id, out var kept))
+        if (charge is int id && _charges.Remove(id, out var kept))
         {
-            foreach (var (at, wall) in kept)
+            foreach (var (wallAt, wall) in kept)
             {
-                if (grid.WallAt(at) != null) continue;
-                double wx = (at % grid.Width + 0.5) * cell, wy = (at / grid.Width + 0.5) * cell, dx = wx - x, dy = wy - y;
+                if (grid.WallAt(wallAt) != null) continue;
+                double wx = (wallAt % grid.Width + 0.5) * cell, wy = (wallAt / grid.Width + 0.5) * cell, dx = wx - x, dy = wy - y;
                 double far = Math.Sqrt(dx * dx + dy * dy);
                 farthest = Math.Max(farthest, far);
                 double away = far > 0 ? Math.Atan2(dy, dx) : glims.Between(0, Math.Tau);
@@ -250,16 +254,14 @@ public partial class ShotsView : Node2D
             double a = glims.Between(0, Math.Tau), s = ring * glims.Between(0.5, 0.9);
             glims.Add(BurstCloud, x, y, Math.Cos(a) * s, Math.Sin(a) * s, bright: 0.7, size: glims.Between(1.6, 2.4));
         }
-        Sparks(glims, x, y, ring, afloat, Floor(end.Burst));
+        Sparks(glims, x, y, ring, afloat, Floor(at));
         stage.Flares.Glint(x, y, 1.5 * cell, (255, 255, 255));
         stage.Flares.Bloom(x, y, 4 * cell, White, 0.9 * Fx.Glow);
         stage.Flares.Shock(x, y, 4, ring, 450, (200, 198, 190), 0.5 * Fx.Glow, 0.5);
         stage.Flares.Flash(x, y, White, 1.4 * Fx.Glow, 20, 0.6f, 0.8);
         // The sulfur burning on: a warm light lingering in the dark after the white is gone.
         stage.Flares.Flash(x, y, Afterglow, 0.7 * Fx.Glow, 16, 0.5f, 0.96);
-        // Whose it is, from the end itself: a charge thrown point-blank ends the tick it is born, never seen in flight.
-        // A creature's afloat heard through the suit, as its launch is.
-        (end.By == Ref.Hero(own) || afloat && end.By == Ref.None ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
+        (suit ? _ownEnds : _ends).Play(S.ChargeBurst, new Vector2((float)x, (float)y));
     }
 
     /// <summary>The sparks, streaks and embers of a burst at (<paramref name="x"/>, <paramref name="y"/>), thrown about as far as <paramref name="ring"/>; weightless afloat, else bouncing on <paramref name="floor"/>.</summary>

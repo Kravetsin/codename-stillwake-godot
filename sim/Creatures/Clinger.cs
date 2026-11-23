@@ -35,7 +35,8 @@ internal sealed class ClingerBody : BodyRule
     {
         var piece = WreckAt(m, cell)!;
         var (w, _) = Content.Wreckage.SizeOf(piece.Item)!.Value;
-        int x = m.Middle(cell % m.GridWidth) - piece.X;
+        // Along its own top, as it is turned: the cell's middle in the wreck's frame.
+        int x = m.Debris.Shape(piece)!.Value.Local(m.Middle(cell % m.GridWidth), m.Middle(cell / m.GridWidth)).X;
         var perches = Content.Wreckage.PerchesOf(piece.Item, piece.Id);
         for (int i = 0; i < perches.Count; i++)
             if (Fits(perches[i], spec.Body) && x >= perches[i].Left * Pixel - w * Unit / 2 && x < perches[i].Right * Pixel - w * Unit / 2)
@@ -74,17 +75,18 @@ internal sealed class ClingerBody : BodyRule
     }
 
     /// <summary>
-    /// Where <paramref name="c"/> clamps on: its wreck's perch, or box top, at its point along it, kept as its home; with the wreck
-    /// gone, the home last kept.
+    /// Where <paramref name="c"/> clamps on: its wreck's perch, or box top, at its point along it, turned with the wreck
+    /// (debris-physics), kept as its home; with the wreck gone, the home last kept.
     /// </summary>
     internal static (int X, int Y) Hold(CreaturesModule m, Creature c)
     {
-        if (m.Debris.PieceById(c.Recall(Piece)) is { } piece && Content.Wreckage.SizeOf(piece.Item) is var (_, h))
+        if (m.Debris.PieceById(c.Recall(Piece)) is { } piece && m.Debris.Shape(piece) is { } shape)
         {
             var s = Spec.Get(c.Species).Body;
             int perch = c.Recall(Perch), top = perch == 0 ? 0 : Content.Wreckage.PerchesOf(piece.Item, piece.Id)[perch - 1].Top * Pixel;
-            c.Keep(HomeX, ClampX(m, s, piece.X + c.Recall(Along)));
-            c.Keep(HomeY, ClampY(m, s, piece.Y - h * Unit / 2 + top));
+            var (x, y) = shape.At(c.Recall(Along), top - shape.HalfH);
+            c.Keep(HomeX, ClampX(m, s, x));
+            c.Keep(HomeY, ClampY(m, s, y));
         }
         return (c.Recall(HomeX), c.Recall(HomeY));
     }
@@ -130,14 +132,11 @@ internal sealed class ClingerBody : BodyRule
     /// <summary>A body's feet kept so the whole of it is on the grid down.</summary>
     private static int ClampY(CreaturesModule m, Spec.Shape s, int y) => Math.Clamp(y, s.Height * Unit, m.GridHeight * Unit);
 
-    /// <summary>The first wreck in spawn order whose box (<c>Wreckage.SizeOf</c>) covers part of <paramref name="cell"/>; null for none.</summary>
+    /// <summary>The first wreck in spawn order whose turned box (<see cref="IDebrisQueries.Shape"/>) covers part of <paramref name="cell"/>; null for none.</summary>
     private static Piece? WreckAt(CreaturesModule m, int cell)
     {
-        int left = cell % m.GridWidth * Unit, top = cell / m.GridWidth * Unit;
         foreach (var p in m.Debris.Pieces)
-            if (Content.Wreckage.SizeOf(p.Item) is var (w, h)
-                && p.X - w * Unit / 2 < left + Unit && p.X + w * Unit / 2 > left && p.Y - h * Unit / 2 < top + Unit && p.Y + h * Unit / 2 > top)
-                return p;
+            if (m.Debris.Shape(p) is { } shape && shape.Covers(cell, m.GridWidth)) return p;
         return null;
     }
 }

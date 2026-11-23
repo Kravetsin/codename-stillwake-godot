@@ -62,8 +62,8 @@ public class CreaturesInvariantTests
             // A catcher leaving its hunt (tracker-catchers) flies off through anything.
             bool leaving = spec.Lifetime == Tune.Lifetime.Hunter && CreaturesModule.Hunting(c) == null;
             if (!leaving && w.M.Creatures.Overlaps(spec.Body, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
-            // A lurker on guard (cave-hostiles) watches with no count, alerted with its alert's. A catcher hunts with none.
-            int least = c.Act == null && spec.Brain[c.Drive] is Tune.Guard or Tune.Hunt ? 0 : 1;
+            // A lurker on guard (cave-hostiles) watches with no count, alerted with its alert's. A catcher hunts and a breaker swarms with none.
+            int least = c.Act == null && spec.Brain[c.Drive] is Tune.Guard or Tune.Hunt or Tune.Swarm ? 0 : 1;
             if (c.Left < least || c.Left > LongestOf(c, spec)) return $"creature {c.Id} {c.Posture} with {c.Left} ticks left";
         }
         foreach (var hero in w.M.Crew.Heroes)

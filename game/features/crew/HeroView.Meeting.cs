@@ -144,8 +144,7 @@ public partial class HeroView
         }
         else Place(figure, this);
         bool pit = m.Crew.CoreLost() || m.Players.HasDrone(_client!.Id) || _ui.CoreTaken;
-        view.Show(new MeetingFrame(u, Time.GetTicksMsec() / 1000.0, figure.ClockMs / 1000, palm, figure.DroneAnchor, figure.HeadLampToward.Angle(),
-            figure.DroneLensColour, pit));
+        view.Show(new MeetingFrame(u, Time.GetTicksMsec() / 1000.0, figure.ClockMs / 1000, palm, figure.DroneAnchor, figure.HeadLampToward.Angle(), pit));
     }
 
     /// <summary>What this player's meeting tells the rest of the client this frame: the screen's swim, the cutscene, how long the core still lies.</summary>

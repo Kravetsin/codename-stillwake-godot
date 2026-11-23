@@ -9,14 +9,17 @@ public class CreatureLooksTests
     public static TheoryData<string> Species() => [.. Spec.Creatures.All.Select(s => s.Id)];
 
     [Fact]
+    public void APacksBurnersDoNotLoop() => Assert.Null(Sound.Ticks[Spec.Creatures.Breaker.Id].Thrust);
+
+    [Fact]
     public void EveryWalkerHasARig() =>
         Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look) && !CreatureLooks.Escorts.Contains(s.Look)
-            && !CreatureLooks.Ticks.Contains(s.Look)), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
+            && !CreatureLooks.Ticks.ContainsKey(s.Look)), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
 
     [Theory]
     [MemberData(nameof(Species))]
     public void EverySpeciesIsDrawnByItsRigOrAsTheTickOrAHero(string species) =>
-        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Escorts.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Breakers.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Escorts.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Heroes.ContainsKey(Spec.Creatures.Get(species).Look)), species);
 
     [Fact]
     public void EveryOutfitOfAHeroLookHasEveryPictureAndEachCatcherOneByItsId()
@@ -62,10 +65,12 @@ public class CreatureLooksTests
             Assert.All(new[] { guard.Wake, guard.Alert, guard.WindUp, guard.Pounce, guard.Land, guard.Hit, guard.Killed, guard.ShutDown }, cue => Assert.NotNull(cue.Heard));
             return;
         }
-        if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look))
+        if (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(species).Look) || CreatureLooks.Breakers.ContainsKey(Spec.Creatures.Get(species).Look))
         {
             Assert.True(Sound.Ticks.TryGetValue(species, out var tick), $"{species} is drawn as the tick with no tick's sounds");
-            Assert.All(new[] { tick.Alert, tick.WindUp, tick.Unclamp, tick.Clamp, tick.Snap, tick.Thrust, tick.Hit, tick.Death }, cue => Assert.NotNull(cue.Heard));
+            Assert.All(new[] { tick.Alert, tick.WindUp, tick.Unclamp, tick.Clamp, tick.Snap, tick.Hit, tick.Death }, cue => Assert.NotNull(cue.Heard));
+            Assert.All(new[] { tick.Alert, tick.WindUp, tick.Charge, tick.Unclamp, tick.Clamp, tick.Snap, tick.Hit, tick.Death }, cue => Assert.False(cue.Loops));
+            if (tick.Thrust is { } thrust) Assert.NotNull(thrust.Heard);
             // One walking aboard (the spider) is heard stepping and prying too.
             if (Spec.Creatures.Get(species).Body is Spec.Creatures.Walker)
                 Assert.All(new[] { tick.Step, tick.Pry }, cue => Assert.NotNull(cue?.Heard));

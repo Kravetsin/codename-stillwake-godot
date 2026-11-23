@@ -33,7 +33,7 @@ A living document: what is decided about the game and what is still open. Techni
 - **Who:** a scavenger who was a slave aboard a ship, thin, in what was issued, a tracker still on the leg.
 - **Start:** the hero is left alive in the torn-off scoop of a scavenger, and has to make it livable to
   survive: an iron room whose air the lifepod makes, a lock each way, the open hold on the left and on the right a
-  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). In the landing's floor lies an alien core: E on it shows the hero a vision and gives them their companion, a light drone, for good ([drone-companion](decisions/2026-11-21-drone-companion.md), [drone-meeting](decisions/2026-11-21-drone-meeting.md)). Everything is caught as debris: a furnace built of caught salvage burns
+  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). In the landing's floor lies an alien core: E on it shows the hero a vision and gives them their companion, a light drone, for good ([drone-companion](decisions/2026-11-21-drone-companion.md), [drone-meeting](decisions/2026-11-21-drone-meeting.md)); each form it learns it shows the hero in a vision of its own ([form-vision](decisions/2026-11-22-form-vision.md)). Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
@@ -136,7 +136,9 @@ A living document: what is decided about the game and what is still open. Techni
 - **Dangers:** yes — the game can hurt you: the cold and the vacuum, lava, grazers that ram when struck, and sentries on
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
-  the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
+  the shard, so a hero kills them for circuits or takes the shard and leaves; and breakers, the dead fleet's service machines
+  asleep in nests on far wrecks, that wake in packs to take a hero apart and are there to be mown down
+  ([companion-fights](decisions/2026-11-22-companion-fights.md)). Which others is open.
 - **Temperature:** every place has one in degrees: space −100° by the ship, −200° at the field's line and colder on to the
   world's edge, an aired room +20°, a planet smoothly by its depth, the first one mild on its surface and cold in its caves
   ([temperature-gradients](decisions/2026-11-14-temperature-gradients.md), [mild-surface](decisions/2026-11-18-mild-surface.md)).
@@ -153,8 +155,9 @@ A living document: what is decided about the game and what is still open. Techni
   sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and adds 5° against the cold. Both are a
   planet's, so nothing needed before the first landing is made of them.
-- **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
-  two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
+- **Fighting:** the axe and the drill up close; the right button is the companion's ability with what is in hand, the axe, the
+  sledgehammer and the spear thrown and hauled back on its thread ([companion-fights](decisions/2026-11-22-companion-fights.md)); almost at the start, the nailer, made at the Fabricator, firing
+  nails of a scrap each, made ten at a time, a burst while held ([nailer-auto](decisions/2026-11-23-nailer-auto.md)), arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
   the gun's damage and its projectile's added, so guns to come fire the same nails their own way
   ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).
 - **Salvage tools,** made at the workbench past the axe and the drill: the angle grinder, three times the drill on wrecks and

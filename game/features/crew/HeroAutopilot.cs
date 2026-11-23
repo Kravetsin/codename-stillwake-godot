@@ -234,6 +234,17 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// <c>-- --lessons</c> (drone-lessons): a moment still, so the board has read what is known, then a walk right along the corridor to
+    /// map character <paramref name="block"/>, within reach of its emergency lamp, and a long wait there while the wreck by it is broken.
+    /// </summary>
+    public static HeroAutopilot Lessons(int block) => new(
+    [
+        Wait(60),
+        Walk(1, h => Block(h) >= block),
+        Wait(2000),
+    ]);
+
+    /// <summary>
     /// <c>-- --wheel</c>: in the testbed, from beside the treadmill wheel, the hero gets in, runs five seconds, stands a second
     /// and gets out, for recordings of its hoop turning.
     /// </summary>

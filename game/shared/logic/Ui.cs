@@ -335,14 +335,18 @@ public sealed class Ui
     /// </summary>
     public (float X, float Y, float W, float H)? DroneLens { get; set; }
 
-    /// <summary>
-    /// The drone windows' claims on the drone's soot (drone-frame): each hands its outline every frame, the newest open owns it.
-    /// </summary>
-    public SootClaims Soot { get; } = new();
+    /// <summary>The drone's windows (drone-windows): each hands its place and clock every frame; the drone's frame corners each one shown.</summary>
+    public DroneWindows Windows { get; } = new();
 
     /// <summary>
-    /// Whether a drone window is open, and how far its soot is out, 0..1 (drone-frame). Set by <c>DroneFrame</c> every frame;
-    /// <c>crew</c> draws the drone bare while either is so. Local: friends never see it.
+    /// Whether this player's drone is paired (drone-windows): before, only the gear and a station's own window open
+    /// (<see cref="DroneWindows.Opens"/>). Set by the game; paired with no world, as a dev room's demo is.
+    /// </summary>
+    public Func<bool> Paired { get; set; } = () => true;
+
+    /// <summary>
+    /// Whether a drone window is open, and how far its screen is out, 0..1 (drone-windows). Set by <c>DroneFrame</c> every frame;
+    /// <c>crew</c> brings the drone to the waist while either is so. Local: friends never see it.
     /// </summary>
     public (bool Open, double Out) DroneWindow { get; set; }
 
@@ -392,12 +396,6 @@ public sealed class Ui
     public Store<(int Id, bool Refused)?> AimedPiece { get; } = new(null);
 
     /// <summary>
-    /// The turn of every piece of debris as last drawn, in radians, by id. Set by <c>debris</c> every frame; <c>crew</c> turns a
-    /// wreck's picture so where a running tool's edge tests its pixels (tool-edge).
-    /// </summary>
-    public IReadOnlyDictionary<int, double> DebrisTurns { get; set; } = new Dictionary<int, double>();
-
-    /// <summary>
     /// Whether the game menu is open: set by the menu. The world runs on behind it, but the hero takes
     /// no keys and the hands no pointer, so nothing in the world answers a player who is not there.
     /// </summary>
@@ -437,14 +435,6 @@ public sealed class Ui
     public event Action<string, string>? MealRefused;
 
     public void RefuseMeal(string food, string problem) => MealRefused?.Invoke(food, problem);
-
-    /// <summary>
-    /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
-    /// <c>crew</c> sends it, as it does for V.
-    /// </summary>
-    public event Action? SuitSwitched;
-
-    public void SwitchSuit() => SuitSwitched?.Invoke();
 
     /// <summary>
     /// This player's hero breathed a canister in (0047, 0081): <c>crew</c> sent the refill, once a breath, whether asked

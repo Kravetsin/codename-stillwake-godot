@@ -17,6 +17,19 @@ public class DroneWillTests
 
     private static bool InHome(Vec goal, Vec anchor) => Math.Abs(goal.X - anchor.X) <= T.HomeX + 1e-9 && Math.Abs(goal.Y - anchor.Y) <= T.HomeY + 1e-9;
 
+    /// <summary>The tow is play: windows, dangers, visits, signs, a lesson, a meeting and a hero passed out all outrank it.</summary>
+    [Fact]
+    public void ItMayTowOnlyWhileNothingMattersMore()
+    {
+        Assert.True(Will().Pick(Still, 16).Free);
+        DroneSenses[] busier =
+        [
+            Still with { Window = WindowAt }, Still with { Meteor = Meteor }, Still with { Visit = WindowAt },
+            Still with { Signing = true }, Still with { Icon = true }, Still with { Quiet = true }, Still with { Out = true },
+        ];
+        foreach (var senses in busier) Assert.False(Will().Pick(senses, 16).Free);
+    }
+
     [Fact]
     public void AWindowOutranksADartADartAPerch()
     {
@@ -29,6 +42,21 @@ public class DroneWillTests
         var settle = will.Pick(Still, 16);
         Assert.False(settle.Darting);
         Assert.True(InHome(settle.Goal, Anchor));
+    }
+
+    /// <summary>A machine to learn from (drone-lessons): flown to and looked at, under a window and a dart, over a perch; never a dart, never red.</summary>
+    [Fact]
+    public void AVisitOutranksAPerchButNotAWindowOrADart()
+    {
+        var will = Will();
+        var machine = new Vec(300, 180);
+        var visit = will.Pick(Still with { Visit = machine }, 16);
+        Assert.Equal(machine, visit.Goal);
+        Assert.True(visit.Look.X < 0);
+        Assert.False(visit.Darting);
+        Assert.Equal(0, visit.Tint);
+        Assert.Equal(WindowAt, will.Pick(Still with { Visit = machine, Window = WindowAt }, 16).Goal);
+        Assert.Equal(Meteor.At, will.Pick(Still with { Visit = machine, Meteor = Meteor }, 16).Goal);
     }
 
     [Fact]
@@ -141,6 +169,42 @@ public class DroneWillTests
             }
             Assert.InRange(sat, T.BoredMinMs - 16, T.BoredMaxMs + 16);
             Assert.InRange(perches, 60000 / T.BoredMaxMs, 60000 / T.BoredMinMs + 1);
+        }
+    }
+
+    /// <summary>Seen in play flying in the head: soon after it is shown it perches aside, and every perch after is aside.</summary>
+    [Fact]
+    public void EveryPerchIsAsideOfTheHeadFromSoonAfterItIsShown()
+    {
+        var will = Will();
+        for (int ms = 0; ms < 120000; ms += 16)
+        {
+            var goal = will.Pick(Still, 16).Goal;
+            if (ms > T.AsideMs) Assert.InRange(Math.Abs(goal.X - Anchor.X), T.HomeNear - 1e-9, T.HomeX + 1e-9);
+        }
+        will.Reset();
+        Assert.Equal(Anchor, will.Pick(Still, 16).Goal);
+    }
+
+    /// <summary>Seen in play sitting in a lintel: by walls and under any ceiling it perches in the open, still clear of the helmet.</summary>
+    [Theory]
+    [InlineData(48, 64)]
+    [InlineData(64, 64)]
+    [InlineData(48, 32)]
+    public void ItPerchesInTheOpenAirAndClearOfTheHelmet(int high, int wide)
+    {
+        var feet = new Vec(408, 400);
+        var neck = new Vec(feet.X, feet.Y - Rig.Neck);
+        bool Walls(double x, double y) => y >= feet.Y || y < feet.Y - high || x < feet.X - wide / 2 || x >= feet.X + wide / 2;
+        var anchor = DroneFlight.Anchor(neck, feet.X);
+        var senses = Still with { Anchor = anchor, At = anchor, Neck = neck, StopsLight = Walls };
+        var will = Will();
+        var helmet = new Vec(neck.X, neck.Y - DroneInk.HelmetUp);
+        for (int ms = 0; ms < 120000; ms += 64)
+        {
+            var goal = will.Pick(senses, 64).Goal;
+            Assert.False(Walls(goal.X, goal.Y), $"perched in the wall at {goal}");
+            Assert.True(DroneFlight.Length(DroneFlight.Minus(goal, helmet)) >= T.Clear - 0.01, $"perched in the helmet at {goal}");
         }
     }
 

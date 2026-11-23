@@ -76,7 +76,7 @@ public class DeliveriesTests
     [Theory]
     [InlineData("bag1", DebrisSpec.Parcel)]
     [InlineData("solarPanel", DebrisSpec.DeliveryCrate)]
-    [InlineData("scanner", DebrisSpec.DeliveryCrate)]
+    [InlineData("powerDriver", DebrisSpec.DeliveryCrate)]
     [InlineData(Tree.Confiscated, Tree.Confiscated)]
     public void AnUpgradeComesAsAParcelABlueprintOrGearAsACrateTheContainerAsItself(string good, string kind)
     {
@@ -141,7 +141,7 @@ public class DeliveriesTests
     {
         var w = World();
         Mafia.Reach(w, 1);
-        var piece = Near(w, Buy(w, "scanner").M.Debris.Pieces.Single(p => p.Delivery != 0));
+        var piece = Near(w, Buy(w, Content.Foods.Stim).M.Debris.Pieces.Single(p => p.Delivery != 0));
         w.Do(new Enter(Out)).Run().Do(new Grab(piece.Id)).Run();
         Assert.Equal(["debris.tooBig"], w.Refusals.Select(r => r.Reason));
     }
@@ -173,24 +173,6 @@ public class DeliveriesTests
         Assert.DoesNotContain(w.M.Items.Gains, g => g.Item == Content.Foods.Stim);
         Assert.False(w.M.Research.Knows(0, Content.Foods.Stim));
         Assert.Empty(w.M.Knowledge.Deliveries);
-    }
-
-    /// <summary>The scanner is the light drone's mode (light-drone): its crate broken by anyone, the crew knows it, no item falls, and it is not sold again.</summary>
-    [Fact]
-    public void TheScannersCrateBrokenGrantsTheModeCrewWideOnce()
-    {
-        string scanner = Content.LightDrone.ScannerMode;
-        var w = World();
-        Mafia.Reach(w, Tree.Node(scanner)!.Ring);
-        Buy(w, scanner).Do(new Enter(Out)).Do(new Enter(Out) { From = 2 }).Run();
-        Break(w, Sent(w).Single(), peer: 2);
-        Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Knows(0, scanner));
-        Assert.True(w.M.Research.Knows(2, scanner));
-        Assert.Empty(w.M.Items.Floor);
-        Assert.Contains(w.M.Items.Gains, g => g is { Peer: 2, Item: "scanner", Count: 1 });
-        Buy(w, scanner);
-        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
@@ -256,7 +238,7 @@ public class DeliveriesTests
     /// <summary>One step of the invariant: a buy, a grab or a break of the first delivery out, or ticks run.</summary>
     public sealed record Step(int Kind, int Good, int Ticks);
 
-    private static readonly string[] Goods = ["bag1", "bag2", "bag3", "scanner", Tree.Confiscated, "solarPanel"];
+    private static readonly string[] Goods = ["bag1", "bag2", "bag3", Content.Foods.Stim, Tree.Confiscated, "solarPanel"];
 
     /// <summary>
     /// Over any buys, catches, breaks and ticks: a delivery is queued once until its piece is caught, broken or gone; no

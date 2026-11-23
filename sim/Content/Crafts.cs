@@ -2,11 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Stillwake.Content;
 
-/// <summary>A part a queued station makes, one unit at a time: what one unit costs and how long it takes.</summary>
-/// <param name="Item">The item made, one a unit; the craft is named by it.</param>
+/// <summary>A part a queued station makes, one unit at a time: what one unit costs, how long it takes and how many it makes.</summary>
+/// <param name="Item">The item made, <paramref name="Makes"/> a unit; the craft is named by it.</param>
 /// <param name="Cost">Whole units of items one unit takes: all of a paid craft's taken when it is queued, one fed from a station's inputs a unit's as it begins.</param>
 /// <param name="Ticks">Ticks one unit takes at full speed, 20 to a second.</param>
-public sealed record Craft(string Item, IReadOnlyList<(string Item, int Count)> Cost, int Ticks);
+/// <param name="Makes">How many of its item a unit makes: a batch for ammunition (nailer-auto).</param>
+public sealed record Craft(string Item, IReadOnlyList<(string Item, int Count)> Cost, int Ticks, int Makes = 1);
 
 /// <summary>Every craft, by the item made: what each station of <see cref="Stations"/> makes is in its rows (the crafting module).</summary>
 public static class Crafts
@@ -29,8 +30,8 @@ public static class Crafts
         new("grapple", [("tube", 2), ("gear", 2), ("coil", 1), ("wire", 8)], Ticks: 120),
         // The first gun (shots-are-the-sims): after the harpoon, as what it fights is only met flying; the axe's time.
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
-        // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
-        new("nail", [("scrap", 2)], Ticks: 4),
+        // Ten nails of ten scrap in a second (nailer-auto): a gun firing three a second needs them in handfuls.
+        new("nail", [("scrap", 10)], Ticks: 20, Makes: 10),
         // Of the deep's sulfur (blasting-charge): had only after a planet's been dug.
         new("blastCharge", [("sulfur", 2), ("tube", 1)], Ticks: 40),
         // Free, a convention: the hero has to go and take them (2026-10-27-suits-are-worn). Five seconds each at the pod.

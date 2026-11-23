@@ -24,5 +24,6 @@
     <ProjectReference Include="../Liquids/Liquids.csproj" />
     <ProjectReference Include="../Sky/Sky.csproj" />
     <ProjectReference Include="../Places/Places.csproj" />
+    <ProjectReference Include="../Lessons/Lessons.csproj" />
   </ItemGroup>
 </Project>

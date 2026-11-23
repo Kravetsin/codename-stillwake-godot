@@ -18,14 +18,16 @@ public sealed class TickMotion(Func<double> random)
     /// the way to the hero nearest it from its middle (none for no hero); cutting a harpoon line on its wreck,
     /// <paramref name="CutDone"/> of the way through it, the line going off toward <paramref name="Line"/> from its middle; aiming an
     /// arc (<paramref name="Aiming"/>, 2026-10-27-sentry-arc), its eye flickering the arc's cyan, held bright once its aim is taken
-    /// (<paramref name="Locked"/>). A vessel's spider (derelict-enemies) is a <paramref name="Walker"/>: clamped is on its feet, its
-    /// burner lit only pouncing, upright in the air; <paramref name="Folded"/> in its capsule (1) or unfolding from it; holding the wall
-    /// on its left (-1) or right (1), or the hatch well (2), turned nose up against it (<paramref name="Wall"/>).
+    /// (<paramref name="Locked"/>); a blow landed on it since the last frame (<paramref name="Blown"/>). A vessel's spider
+    /// (derelict-enemies) is a <paramref name="Walker"/>: clamped is on its feet, its burner lit only pouncing, upright in the air;
+    /// <paramref name="Folded"/> in its capsule (1) or unfolding from it; holding the wall on its left (-1) or right (1), or the hatch
+    /// well (2), turned nose up against it (<paramref name="Wall"/>).
     /// </summary>
     public readonly record struct Seen(
         bool Clamped, bool Alerted, bool WindingUp, double WindUpS, bool Pouncing, int FlightLeft,
         double Vx, double Vy, double Crawl, (double X, double Y)? Hero, bool Cutting = false, double CutDone = 0,
-        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false, bool Walker = false, double Folded = 0, int Wall = 0);
+        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false, bool Blown = false, bool Walker = false, double Folded = 0,
+        int Wall = 0);
 
     /// <summary>Its moments, seen and heard once each as it comes.</summary>
     [Flags]
@@ -132,12 +134,15 @@ public sealed class TickMotion(Func<double> random)
         bool flying = !s.Clamped, sawing = s.Cutting && s.Clamped;
         double speed = Math.Sqrt(s.Vx * s.Vx + s.Vy * s.Vy);
 
+        // Winding up afloat it noses at the hero, however it still drifts.
+        (double X, double Y)? at = flying && s.WindingUp ? s.Hero : null;
         // Holding a wall it faces it; in the well it keeps its way.
         if (s.Wall != 0)
         {
             if (s.Wall is 1 or -1) Face = s.Wall;
         }
-        else if (flying && Math.Abs(s.Vx) > 1) Face = Math.Sign(s.Vx);
+        else if (at is { } aimed && Math.Abs(aimed.X) > 2) Face = Math.Sign(aimed.X);
+        else if (flying && at == null && Math.Abs(s.Vx) > 1) Face = Math.Sign(s.Vx);
         else if (!flying && sawing)
         {
             // At a line it cuts, it faces the line.
@@ -168,6 +173,7 @@ public sealed class TickMotion(Func<double> random)
         // On a wall, nose up; a walker in the air but pouncing stays upright.
         if (s.Wall != 0) angle = -Face * Math.PI / 2;
         else if (flying && s.Walker && !s.Pouncing) angle = 0;
+        else if (at is { } noses) angle = Math.Atan2(Face * noses.Y, Math.Max(1, Face * noses.X));
         else if (flying && speed > 1) angle = Math.Atan2(Face * s.Vy, Face * s.Vx);
         else if (flying) angle = _angle;
         // Reared at the line, its head up; as the line snaps, thrown back a moment.
@@ -239,8 +245,8 @@ public sealed class TickMotion(Func<double> random)
         if (_was.Pouncing && !s.Pouncing)
         {
             m |= Moment.Brake;
-            // A flight ends on its last tick; one that stopped with ticks to go struck a hero (HitBy ends it).
-            if (_flightLeft > 1) m |= Moment.HeroHit;
+            // A flight ends on its last tick; one that stopped with ticks to go struck a hero (HitBy ends it), unless a blow cut it.
+            if (_flightLeft > 1 && !s.Blown) m |= Moment.HeroHit;
         }
         return m;
     }

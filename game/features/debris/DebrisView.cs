@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
 /// The debris drifting by (features/debris): each piece its item's picture, drawn between ticks so it
-/// glides, tumbling slowly — a wreck only rocking, too big to spin — faded in over the start of its path
+/// glides, turned as the sim tumbles it (debris-physics), faded in over the start of its path
 /// and out at its end; behind the hull, since it never collides with it (0006). Only pieces within the
 /// camera's view and <see cref="Margin"/> cells round it are drawn, their pictures taken from a pool that
 /// never frees (0052). The piece the crew's hands would work is outlined, green while they would and red
@@ -27,8 +27,6 @@ public partial class DebrisView(Ui ui) : Node2D
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = DebrisModule.Unit;
-    /// <summary>A wreck rocks this far either way, in radians, once in <see cref="RockMs"/>.</summary>
-    private const double Rock = 0.08, RockMs = 7000;
     /// <summary>A hit knocks a piece <see cref="JoltPixels"/> away from the nearest hero and turns it <see cref="JoltTurn"/>, settling over <see cref="JoltMs"/>.</summary>
     private const double JoltMs = 220, JoltPixels = 3, JoltTurn = 0.07;
     /// <summary>Cells round the camera's view a piece is still drawn in: the biggest wreck's half and a frame's drift.</summary>
@@ -68,7 +66,6 @@ public partial class DebrisView(Ui ui) : Node2D
     private double _clockMs;
     /// <summary>Every piece out but those this peer is grabbing, and of them the ones drawn this frame.</summary>
     private readonly HashSet<int> _out = [], _drawn = [];
-    private readonly Dictionary<int, double> _turns = new();
     private readonly List<int> _gone = [];
     /// <summary>The blows seen landing on each wreck still out, kept while it drifts out of view and back (<see cref="WreckCracks"/>).</summary>
     private readonly Dictionary<int, List<Blow>> _blows = new();
@@ -78,7 +75,7 @@ public partial class DebrisView(Ui ui) : Node2D
 
     /// <summary>
     /// A delivery's beacon (2026-11-08-mafia-deliveries), blinking amber as a body's does, lighting what is round it: on a wreck's top,
-    /// rocking with it, the crate's at its own lamp; on a parcel's middle. Made as one comes into view and freed as it goes.
+    /// turning with it, the crate's at its own lamp; on a parcel's middle. Made as one comes into view and freed as it goes.
     /// </summary>
     private sealed record Tag(Vector2 Offset, Glow Glow);
     private readonly Dictionary<int, Tag> _tags = new();
@@ -95,6 +92,15 @@ public partial class DebrisView(Ui ui) : Node2D
     public IReadOnlyList<Piece> Pieces { get; private set; } = [];
     /// <summary>The pictures drawn last frame, and the most ever made: for the frame log and scripted runs.</summary>
     public (int Drawn, int Made) Pictures => (_shown.Count, _shown.Count + _small.Count + _wrecks.Count);
+
+    /// <summary>Where the last wreck seen broken was, world px: the place the drone learns the scan from at the tenth (drone-lessons); null before one.</summary>
+    public Rect2? LastBroken { get; private set; }
+
+    private static Rect2 BoxOf(Sprite2D picture)
+    {
+        var size = picture.Texture.GetSize() * picture.Scale;
+        return new Rect2(picture.Position - size / 2, size);
+    }
 
     public override void _Ready()
     {
@@ -151,7 +157,10 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
+            {
                 Burst(gone.Picture, gone.Item, _own.Ran(id));
+                if (gone.Wreck) LastBroken = BoxOf(gone.Picture);
+            }
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
@@ -166,8 +175,6 @@ public partial class DebrisView(Ui ui) : Node2D
         }
 
         var aimed = ui.AimedPiece.Get();
-        _turns.Clear();
-        ui.DebrisTurns = _turns;
         _aimed.Begin();
         for (int i = 0; i < all.Count; i++)
         {
@@ -179,8 +186,8 @@ public partial class DebrisView(Ui ui) : Node2D
                 _shown[piece.Id] = one;
             }
             (one.X, one.Speed, one.End, one.Tick) = (piece.X, piece.Speed, piece.End, client.World.Tick);
-            var (x, y) = PieceDrawn.At(piece, progress);
-            var at = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell));
+            var pose = PieceDrawn.Pose(piece, progress);
+            var at = new Vector2((float)(pose.X / Unit * Cell), (float)(pose.Y / Unit * Cell));
             if (_own.SentOn(piece.Id) is { } sent && !HeldLook.IsDrill(sent)) Felt(one, piece.Id, at, sent, null, own: true);
             if (piece.Damage > one.Damage) Struck(one, piece, at);
             one.Cracks?.Zoomed();
@@ -192,12 +199,8 @@ public partial class DebrisView(Ui ui) : Node2D
             // A struck wreck flares, its picture brighter before the light falls on it, dying away smoothly.
             one.Flash *= Math.Pow(FlashDecay, elapsedMs / FrameMs);
             picture.Modulate = one.Flash > 0.02 ? Colors.White + FlashTint * (float)one.Flash : Colors.White;
-            // A slow tumble, each piece its own way; a wreck rocks.
-            double turn = one.Wreck
-                ? Rock * Math.Sin(_clockMs / RockMs * 2 * Math.PI + piece.Id)
-                : _clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id;
-            picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
-            _turns[piece.Id] = picture.Rotation;
+            // Turned as the sim turns it (debris-physics), a hit's jolt over it.
+            picture.Rotation = (float)(pose.Radians + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
             if (piece.Delivery != 0) Tagged(piece, picture);
             else if (piece.Item == ContrabandCrate) Lamp(piece, picture);
             if (aimed is { } a && a.Id == piece.Id)
@@ -227,7 +230,7 @@ public partial class DebrisView(Ui ui) : Node2D
 
     /// <summary>
     /// The delivery <paramref name="piece"/>'s beacon over <paramref name="picture"/>, made the first frame it is drawn, moving and
-    /// rocking with it, its light blinking out of step with the next one's.
+    /// turning with it, its light blinking out of step with the next one's.
     /// </summary>
     private void Tagged(Piece piece, Sprite2D picture)
     {

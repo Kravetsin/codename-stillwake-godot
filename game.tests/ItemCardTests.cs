@@ -81,8 +81,8 @@ public class ItemCardTests
     {
         var gun = ItemCards.Of(Spec.Shots.Nailer.Item);
         Assert.Equal(Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id).ToString(), gun.Tiles![0].Value);
-        // As content stands: the nailer's 4 and the nail's 2, 1 off a block, a shot every 60 ticks, half kept through a pierce.
-        Assert.Equal([("6", "Damage"), ("1", "Block"), ("3s", "Reload time"), ("50%", "Kept through")], Said(gun.Tiles));
+        // As content stands: the nail's 2 alone, 1 off a block, a shot every 6 ticks, half kept through a pierce.
+        Assert.Equal([("2", "Damage"), ("1", "Block"), ("0.3s", "Reload time"), ("50%", "Kept through")], Said(gun.Tiles));
         Assert.Equal([CardSign.Damage, CardSign.Block, CardSign.Pace, CardSign.Pierce], gun.Tiles.Select(t => t.Sign));
         Assert.All(gun.Tiles, t => Assert.Equal(CardGroup.Shot, t.Group));
         Assert.True(gun.Tool && ItemCards.IsTool(Spec.Shots.Nailer.Item));

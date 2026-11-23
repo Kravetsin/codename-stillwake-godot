@@ -21,7 +21,8 @@ public partial class HeroView
     /// so a door opens with a card or a cable out; the left button held works plans with the screwdriver in
     /// hand (0107); the left button grabs only with a free hand, as it is the card's otherwise, and held
     /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
-    /// unless the click grabbed a piece, hitting what its fan of rays from the shoulder meets (tool-reach); the right button does nothing with a tool.
+    /// unless the click grabbed a piece, hitting what its fan of rays from the shoulder meets (tool-reach); the right button, with a
+    /// drone paired, throws what has a throw (<see cref="WeaponThrow"/>, companion-fights).
     /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
@@ -75,12 +76,12 @@ public partial class HeroView
         bool wheelKey = pointer != null && BindKeys.Held(Bind.Gesture) && !typing && !_locked;
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
-        _wheelView.Show(_wheel, wheelScale, WheelView.Hand);
+        _wheelView.Show(_wheel, wheelScale, Gestures.IconOf, drone: false);
         // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
         if (!DroneOpen(_droneMode) && DroneModes.Next(_droneMode, _droneOpen) is { } otherMode) _droneMode = otherMode;
         bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
         if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
-        _droneWheelView.Show(_droneWheel, wheelScale, WheelView.Drone);
+        _droneWheelView.Show(_droneWheel, wheelScale, DroneModes.IconOf, drone: true);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
         if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
         _ping.Step(elapsedMs);
@@ -117,21 +118,36 @@ public partial class HeroView
         bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
         _grabHeld = (_grabHeld || grabbed) && _mouse.Buttons.HoldsLeft;
         bool swings = acts && stroke != null && !working && Poses.HoldsIn(pose);
+        // The throw (companion-fights): the arm's overhand raises it and lets go where a swing would strike.
+        var throwing = new ThrowHands(_ui.Wielded.Get(), handFree, passedOut || Seating.Held(m, client.Id), _surface);
+        _throw.Wait(elapsedMs);
+        _throw.Keep(throwing);
+        double slow = AxeSwing.SlowOf(BodyHeat.SpeedOf(Body));
+        if (rightClicked && swings && pointer != null && !_ui.DroneWindow.Open && m.Players.HasDrone(client.Id))
+            _throw.Begin(throwing, stroke!.PaceMs * slow);
+        if (_throw.Leg == ThrowLeg.Raised && (!swings || pointer == null)) _throw.Cancel();
+        ThrowFlies(client, m, elapsedMs);
         if (!swings) _swing.Stop();
-        bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
+        bool raised = _throw.Leg == ThrowLeg.Raised;
+        bool wanted = swings && pointer != null && _throw.LetsSwing(_ui.Wielded.Get())
+            && (raised || !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked));
         // Aimed from the hero as an offset it carries along, its motion picked at the press by the angle the figure, faced to
         // strike, sees: asked only while a stroke is wanted.
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
         var place = AxeSwing.PlaceOf(_current);
         double? angle = wanted ? AimAngle(_figure, AxeSwing.OffsetOf(swingAt, place), _current) : null;
-        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, AxeSwing.SlowOf(BodyHeat.SpeedOf(Body)));
+        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle, slow);
         if (swung.Begun)
         {
+            _swingThrows = raised;
+            if (raised) _throw.Swung();
             _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
             _current = _current with { Facing = _swingFace };
         }
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
-        if (swung.Hits)
+        if (swung.Hits && _swingThrows)
+            ThrowLeaves(m, struck!, _swing.Toward(_current));
+        else if (swung.Hits)
         {
             // What the stroke's fan of rays from the shoulder meets as it lands (tool-reach): the cells, wrecks and
             // creatures the sim would take its hits on; a creature's flinch and a wreck's chop are theirs to show (0102, DebrisView).
@@ -214,27 +230,61 @@ public partial class HeroView
             : _armUp && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
-        var work = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
+        var work = _throw.Flying ? new Busy(_throw.Hauled ? Handwork.Haul : Handwork.Throw, new Point((int)System.Math.Round(_throw.At.X), (int)System.Math.Round(_throw.At.Y)), _throw.Count)
+            : working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : (Busy?)null;
         // A gesture plays while nothing else takes the hands: any work, an aimed arm, the plan or the pose cuts it off (gestures-for-words).
-        if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated, holdsPlan: !handFree)) _gesture.Stop();
+        if (!Gestures.CanStart(pose, work != null || _armUp || passedOut || seated || _throw.Flying, holdsPlan: !handFree)) _gesture.Stop();
         else if (asked is { } sign && pointer is { } pointed) _gesture.Start(sign, Aiming.PointOf(pointed));
         _gesture.Step(elapsedMs);
         _busy = work ?? _gesture.Sent;
         _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
+        _figure.Thrown = _throw.Flying ? (Pixels(_throw.At), _throw.Count, _throw.Hauled) : null;
         ShowHands(_figure, _wields, Fittings.Of(m.Items, client.Id, _wields), _busy, _swing, _gesture);
-        // The computer opens its own window; every other machine its slots under the inventory.
+        // The computer opens its own window; every other machine its slots under the inventory, the station's own, paired or not.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
         {
             if (Content.Machines.Is(machine.Kind, Content.MachineTrait.Computer)) _ui.OpenComputer.Set(open);
-            else _ui.OpenCrate.Set(open);
+            else if (DroneWindows.Opens(DroneWindowKind.Station, m.Players.HasDrone(client.Id))) _ui.OpenCrate.Set(open);
         }
         // A crate or a computer stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
         if (_ui.OpenComputer.Get() is int screen && (passedOut || !Aiming.CrateInReach(m.Grid, _current, screen))) _ui.OpenComputer.Set(null);
+    }
+
+    /// <summary>This hero's throw (companion-fights), and whether the stroke playing lets it go rather than strikes.</summary>
+    private readonly WeaponThrow _throw = new();
+    private bool _swingThrows;
+
+    /// <summary>A frame of the throw's flight: what it struck is sent as a swing's hit is, through the one lookup.</summary>
+    private void ThrowFlies(Client client, Registry m, double elapsedMs)
+    {
+        if (!_throw.Flying || _ui.Wielded.Get() is not { } tool) return;
+        var going = _throw.Velocity;
+        var hit = _throw.Step(elapsedMs, m, _current, Outside(m, _current), _progress, _wreckPixels.Solid(_progress));
+        // Home in the fist: the glove's thump, as on what it grabs.
+        if (_throw.Caught) _act.Play(Floats);
+        if (hit == null) return;
+        var sent = ToolEdges.CommandsOf(m, client.Id, tool, hit);
+        if (sent.Cells is { } cells) client.Send(cells);
+        if (sent.Pieces is { } pieces) client.Send(pieces);
+        foreach (var strike in sent.Strikes) client.Send(strike);
+        if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, tool, _current, client.Id);
+        // What it drives on as it bites is stirred the way it was going, as a stroke's along the stroke (air-gusts).
+        if (hit.Contact != null || sent.Strikes.Count > 0) StrokeGust(m, tool, hit, going);
+    }
+
+    /// <summary>The raised item let go toward <paramref name="toward"/>, the air stirred as by a stroke's end.</summary>
+    private void ThrowLeaves(Registry m, string tool, Point toward)
+    {
+        if (!_throw.Leave(_current, toward)) return;
+        var hand = Aiming.HandOf(_current);
+        var (vx, vy) = _throw.Velocity;
+        double speed = System.Math.Max(1, System.Math.Sqrt(vx * vx + vy * vy)), ahead = Content.Weapons.Of(tool)?.Range ?? 0;
+        StrokeGust(m, tool, new EdgeHit([], [], [], [], (hand.X + vx / speed * ahead, hand.Y + vy / speed * ahead)), (vx, vy));
     }
 
     /// <summary>
@@ -381,7 +431,7 @@ public partial class HeroView
     {
         var near = new List<Piece>();
         double perPixel = Hero.Unit / Rig.Cell;
-        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+        var solid = _wreckPixels.Solid(_progress);
         if (hazes.Count > 0)
         {
             double left = double.MaxValue, right = double.MinValue, top = double.MaxValue, bottom = double.MinValue;
@@ -428,7 +478,7 @@ public partial class HeroView
     private EdgeHit? EdgeOf(Registry m, Hero hero, string tool, Figure figure)
     {
         if (!figure.Visible || !figure.Aimed || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
-        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+        var solid = _wreckPixels.Solid(_progress);
         if (tool == Content.Weapons.PlasmaCutter.Item)
             return ToolEdges.Hits(m, ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end)), Outside(m, hero), _progress, solid);
         var hand = Aiming.HandOf(hero);
@@ -442,7 +492,7 @@ public partial class HeroView
     /// the shoulder (tool-reach), the wrecks as drawn this frame.
     /// </summary>
     private EdgeHit StrokeOf(Registry m, Hero hero, Point at, string tool) =>
-        ToolRays.Fan(m, hero, tool, ToolRays.HeadingOf(hero, (at.X, at.Y)), Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        ToolRays.Fan(m, hero, tool, ToolRays.HeadingOf(hero, (at.X, at.Y)), Outside(m, hero), _progress, _wreckPixels.Solid(_progress));
 
     /// <summary>Whether <paramref name="hero"/> is out in space, where its tools touch wrecks.</summary>
     private static bool Outside(Registry m, Hero hero) => m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;

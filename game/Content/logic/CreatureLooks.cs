@@ -107,9 +107,23 @@ public static class CreatureLooks
 
     /// <summary>
     /// The looks drawn as the tick, the sentry page's candidate 3 «Клещ» (<c>TickArt</c>, <c>TickMotion</c>): a sprite posed and
-    /// drawn anew each frame, not a rig of painted parts.
+    /// drawn anew each frame, not a rig of painted parts. Each at its size, its burner throwing its share of sparks and smoke, lit
+    /// cruising or only while it acts.
     /// </summary>
-    public static readonly IReadOnlySet<string> Ticks = new HashSet<string> { Stillwake.Content.Creatures.Sentry.Look };
+    public static readonly IReadOnlyDictionary<string, TickLook> Ticks = new Dictionary<string, TickLook>
+    {
+        [Stillwake.Content.Creatures.Sentry.Look] = new(0.65f, Burn: 1, LitCruising: true),
+    };
+
+    /// <summary>The looks drawn as a breaker of painted pieces (breakers-look), each its kind; a pack is all of one.</summary>
+    public static readonly IReadOnlyDictionary<string, Features.Creatures.BreakerKind> Breakers = new Dictionary<string, Features.Creatures.BreakerKind>
+    {
+        [Stillwake.Content.Creatures.Breaker.Look] = // Smaller than its box, a tick wanting to latch on (the user's).
+        new(CreatureArt.BreakerKnot, Features.Creatures.KnotMoves.One, Body: "core", Across: 10),
+    };
+
+    /// <summary>How a look drawn as the tick differs (<see cref="Ticks"/>): its size of its pictures', its burner's share, whether that burner lights the world as it cruises.</summary>
+    public sealed record TickLook(float Size, float Burn, bool LitCruising);
 
     /// <summary>
     /// The looks drawn as the Istukan, the guard page's candidate 4 (<c>IstukanArt</c>, <c>IstukanMotion</c>): a sprite posed and drawn anew,

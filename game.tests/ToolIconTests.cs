@@ -111,9 +111,17 @@ public class ToolIconTests
                     if (x < M || y < M || x >= c.side - M || y >= c.side - M) Assert.Equal(0, icon(x, y).A);
         });
 
+    /// <summary>A tool has no icon, being drawn as held; every other item has one but a wreck drawn by its debris picture, never in a bag.</summary>
     [Fact]
-    public void OnlyAToolHasNoIconDrawn() =>
-        Assert.All(Spec.Items.All, i => Assert.Equal(HeldLook.Of(i.Id) == null, Png.Has($"items/{i.Id}")));
+    public void OnlyAToolHasNoIconDrawnAndAWreckNeedsNone() =>
+        Assert.All(Spec.Items.All, i =>
+        {
+            if (HeldLook.Of(i.Id) != null) Assert.False(Png.Has($"items/{i.Id}"), i.Id);
+            else if (!IsWreckWithItsPicture(i.Id)) Assert.True(Png.Has($"items/{i.Id}"), i.Id);
+        });
+
+    private static bool IsWreckWithItsPicture(string item) =>
+        Spec.Wreckage.All.Any(w => w.Item == item) && DebrisLooks.Of.ContainsKey(item);
 
     [Fact]
     public void EveryToolHasALargeIconPictureToFitDownNeverUp()
