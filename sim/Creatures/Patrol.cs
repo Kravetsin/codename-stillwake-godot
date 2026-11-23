@@ -4,7 +4,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// Hunting the crew on its deck (derelict-enemies), the escort's once awake: at its quarry (<see cref="CreaturesModule.Quarry"/>), bound to
+/// Hunting the crew on its deck (derelict-guards), the escort's once awake: at its quarry (<see cref="CreaturesModule.Quarry"/>), bound to
 /// its dock's deck, never jumping. Its quarry on its deck within its strike, it lunges (its first move), dropping a shot it was charging.
 /// Else it walks: toward its quarry on its deck; off it, to the nearest door of its deck (the lower column at a tie) and on that way,
 /// turning back at a wall; and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made

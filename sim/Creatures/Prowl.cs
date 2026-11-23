@@ -4,7 +4,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// Hunting the crew through its vessel (derelict-enemies), a spider's once awake: at its quarry (<see cref="CreaturesModule.Quarry"/>),
+/// Hunting the crew through its vessel (derelict-guards), a spider's once awake: at its quarry (<see cref="CreaturesModule.Quarry"/>),
 /// by the vessel's shape, no path searched. On its quarry's deck it runs at it, leaping what its jump clears and climbing a wall it does
 /// not; on another it runs to the hatch well, opens the hatch and climbs up through it, or drops down through it. A shut doorway on its
 /// way, a hatch too, it pries its <c>Pry</c> ticks and opens, the way in never; the doorway changed meanwhile, it starts over. With no

@@ -5,7 +5,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// A vessel's guards (derelict-enemies): one asleep at each of its docks (<see cref="Shipyard.Guards"/>), spawned as its world opens,
+/// A vessel's guards (derelict-guards): one asleep at each of its docks (<see cref="Shipyard.Guards"/>), spawned as its world opens,
 /// before any other creature there, so their ids follow the docks. Read from the vessel's description, never the grid: Places writes
 /// the vessel after this module has run. What they wake and hunt by is the vessel's too: its rooms, hull box, floors, hatches, way in.
 /// </summary>

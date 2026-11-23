@@ -78,7 +78,7 @@ public static class Layers
     public const int Creatures = FloorItems;
 
     /// <summary>
-    /// The escorts (derelict-enemies) a step under the creatures, so what holds one in its stand, its yoke and clamp, lies over it at the
+    /// The escorts (derelict-guards) a step under the creatures, so what holds one in its stand, its yoke and clamp, lies over it at the
     /// creatures' z, whatever the order of the nodes.
     /// </summary>
     public const int Escorts = Bodies, StandFronts = Creatures;

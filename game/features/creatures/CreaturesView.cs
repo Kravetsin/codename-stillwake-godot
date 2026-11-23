@@ -183,7 +183,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             var c = all[i];
             _out.Add(c.Id);
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
-            // A spider asleep in its capsule is hidden in it (DocksView, derelict-enemies); waking, the tick shows it unfolding there. An
+            // A spider asleep in its capsule is hidden in it (DocksView, derelict-guards); waking, the tick shows it unfolding there. An
             // escort hangs in its stand in sight.
             if (CreatureLooks.Escorts.Contains(Spec.Creatures.Get(c.Species).Look))
             {

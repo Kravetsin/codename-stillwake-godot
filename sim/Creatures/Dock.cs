@@ -3,7 +3,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// A vessel's guard in its dock (derelict-enemies): still on its dock's floor, folded in its capsule or hung in its stand, never yielding
+/// A vessel's guard in its dock (derelict-guards): still on its dock's floor, folded in its capsule or hung in its stand, never yielding
 /// while asleep. An awake hero's reported cell in its dock's room, or a blow from anywhere, wakes one that wakes (<c>Wake</c> over 0): its
 /// <c>Wake</c> ticks waking, then awake for good (<see cref="Woke"/>), the next drive of its brain in charge. A blow hurts it as any other.
 /// </summary>

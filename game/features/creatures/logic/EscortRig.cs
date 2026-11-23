@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The escort A1 «Конвоир» in ink (derelict-enemies): where each of its parts goes in a <see cref="Pose"/>, the guard page's <c>drawA1</c>
+/// The escort A1 «Конвоир» in ink (derelict-guards): where each of its parts goes in a <see cref="Pose"/>, the guard page's <c>drawA1</c>
 /// ported. Legs solved hip to ankle as it strides, its rail gun turned to its aim and kicked back by a shot, its claw arm reaching out by
 /// two-bone IK and its jaws opening, its camera head bowed and everything stowed in its stand, its red lamp shining. Its origin the middle
 /// of its feet, facing right, y down, in world pixels. Plain C#, tested.

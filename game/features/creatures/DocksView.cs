@@ -14,7 +14,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// A vessel's guards' docks (derelict-enemies), from <see cref="CreaturesModule.Docks"/>, listed once as its world opens: a spider's
+/// A vessel's guards' docks (derelict-guards), from <see cref="CreaturesModule.Docks"/>, listed once as its world opens: a spider's
 /// capsule G1 on its room's back wall, a robot's stand S1 on its room's floor, its yoke and clamp in front of its robot. A capsule is drawn with the
 /// back-wall objects; a stand before the machines, for it stands over what furniture its floor holds; both behind bodies and under the
 /// unseen rooms' fog. A capsule shows its spider's state: asleep, shut, its hazard lamp's amber standby pip blinking with a little light;

@@ -102,7 +102,7 @@ public static class Shots
     public static readonly Gun Thrown = new("blastCharge", ["blastCharge"], Damage: 0, BlockDamage: 0, Knock: 10, Speed: 1500, Reach: 40, Pace: 20, PierceKeep: 0);
 
     /// <summary>
-    /// The escort robot's gauss (derelict-enemies), flown by a <see cref="Creatures.Shoot"/> with a speed: straight, across its reach in a
+    /// The escort robot's gauss (derelict-guards), flown by a <see cref="Creatures.Shoot"/> with a speed: straight, across its reach in a
     /// tick, stopped by the first solid cell or the first awake hero whose body it enters, six units of that hero's suit; it never bursts.
     /// Placeholder numbers, for a play pass.
     /// </summary>

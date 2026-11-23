@@ -28,7 +28,7 @@ public static class Creatures
     /// <summary>
     /// A walker under the surface's gravity: how fast it walks and runs a tick, and its jump — the speed up it leaps at most, and
     /// across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for one that never
-    /// jumps; how fast it climbs up a wall it holds, gravity let go of, 0 for one that never climbs (a vessel's spider, derelict-enemies).
+    /// jumps; how fast it climbs up a wall it holds, gravity let go of, 0 for one that never climbs (a vessel's spider, derelict-guards).
     /// </summary>
     public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross, int Climb = 0) : Shape(Width, Height);
 
@@ -64,7 +64,7 @@ public static class Creatures
     /// its post or its arena's relic is gone or its drive calms. Never let out: no post, no guard.
     /// <see cref="Hunter"/>, a catcher (tracker-catchers): kept while it hunts, whatever the keep boxes say, gone once it has left every
     /// hero's view.
-    /// <see cref="Aboard"/>, a vessel's guard (derelict-enemies): spawned at its dock as the vessel world opens, never swept by the keep
+    /// <see cref="Aboard"/>, a vessel's guard (derelict-guards): spawned at its dock as the vessel world opens, never swept by the keep
     /// boxes (a vessel is wider than one); gone only killed, or with its world. Never let out.
     /// </summary>
     public enum Lifetime { Wild, Posted, Hunter, Aboard }
@@ -121,21 +121,21 @@ public static class Creatures
     public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
 
     /// <summary>
-    /// Asleep in its dock aboard a vessel (derelict-enemies): still, folded in its capsule or hung in its stand, till an awake hero's
+    /// Asleep in its dock aboard a vessel (derelict-guards): still, folded in its capsule or hung in its stand, till an awake hero's
     /// reported cell is in its dock's room or a blow lands; then <paramref name="Wake"/> ticks waking, and awake for good, the next drive
     /// of its brain in charge. 0 never wakes.
     /// </summary>
     public sealed record Dock(int Wake = 0) : Drive;
 
     /// <summary>
-    /// Hunting the crew through its vessel (derelict-enemies): at the nearest awake hero aboard, by its decks, doorways and hatch well, no
+    /// Hunting the crew through its vessel (derelict-guards): at the nearest awake hero aboard, by its decks, doorways and hatch well, no
     /// path searched; a shut doorway on its way (the way in never) it pries <paramref name="Pry"/> ticks, then opens; a wall in its way it
     /// climbs. It fights by its <paramref name="Guard"/>: alerted by a hero in line within its notice, it pounces or shoots as a guard does.
     /// </summary>
     public sealed record Prowl(Guard Guard, int Pry) : Drive;
 
     /// <summary>
-    /// Hunting the crew on its own deck (the escort, derelict-enemies), never off its floor rows: at the nearest awake hero aboard on its deck
+    /// Hunting the crew on its own deck (the escort, derelict-guards), never off its floor rows: at the nearest awake hero aboard on its deck
     /// within <paramref name="Strike"/> columns it lunges with its first move, dropping a shot it was charging. Else it walks: at a hero on its
     /// deck, toward him; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
     /// a hero within <paramref name="Notice"/> cells (box distance) and in line with its gun, on any deck, it shoots with its second move as
@@ -268,7 +268,7 @@ public static class Creatures
     /// <paramref name="Leaves"/>, a patch's kind, lies on the floor: such an arc is a lob, hurting no one, flying its <paramref name="Lingers"/>
     /// ticks and laying its patch as it lands (lurker-attacks). With a <paramref name="Through"/> it is a beam (catcher-combat): it runs
     /// on past that point, that many cells off in all, to the first wall, and hurts a hero touching any of it all its <paramref name="Lingers"/>.
-    /// With a <paramref name="Speed"/> (the escort's gauss, derelict-enemies) it is no arc but a shot flown at that speed a tick on the longer
+    /// With a <paramref name="Speed"/> (the escort's gauss, derelict-guards) it is no arc but a shot flown at that speed a tick on the longer
     /// axis, at the middle of the hero aimed at, <paramref name="Reach"/> cells' worth at most: stopped by the first solid cell or awake hero;
     /// it leaves <paramref name="Muzzle"/> thousandths of a cell over its feet (its gun's height), 0 for its middle. With an <paramref name="Every"/>
     /// it is not begun again till that many ticks after the last began.
@@ -457,7 +457,7 @@ public static class Creatures
         Yields: [new("scrapChunk", 1, 1, OneIn: 2)]);
 
     /// <summary>
-    /// The spider (derelict-enemies): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall
+    /// The spider (derelict-guards): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall
     /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
     /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
     /// cells a second, jumping some three and a half cells, climbing a wall at 6 cells a second; a shut doorway it pries two seconds
@@ -469,7 +469,7 @@ public static class Creatures
         Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40)], Moves: Sentry.Moves, Yields: Sentry.Yields);
 
     /// <summary>
-    /// The guard robot, the escort («Конвоир», derelict-enemies), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
+    /// The guard robot, the escort («Конвоир», derelict-guards), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
     /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
     /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second always to close in: a hero within 6 columns on
     /// its deck it claws, a crouch of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit. On its way, at one in line

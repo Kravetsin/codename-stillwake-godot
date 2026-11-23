@@ -11,7 +11,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The escort aboard a liner (derelict-enemies, G-3): woken in its stand by a hero walking into its hall or by a blow, let down to the floor,
+/// The escort aboard a liner (derelict-guards, G-3): woken in its stand by a hero walking into its hall or by a blow, let down to the floor,
 /// then hunting the crew on its deck: walking always to close in, a lunge at a hero near on its deck, a gauss on the way at one in line within
 /// its notice, up too, at most every so often and never while it lunges; out of line, off through a door; prying doors, never a hatch nor
 /// the way in; never off its deck's rows.

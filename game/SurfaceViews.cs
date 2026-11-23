@@ -115,7 +115,7 @@ public static class SurfaceViews
         new(c => c.Built is { } lit ? new Features.Light.VesselLamps(c.M.Grid, new Features.Light.VesselLights(lit)) : null),
         // What was left behind inside it: frost, a sparking cable, soot, a burst pipe, a fallen panel, a toppled crate (derelict-looks).
         new(c => c.Built is { } signed ? new Features.Grid.VesselSignsView(c.M.Grid, new Features.Grid.VesselSigns(signed)) : null),
-        // Its guards' docks, an intact one's (derelict-enemies): capsules on back walls, stands on hall floors, their guards asleep inside.
+        // Its guards' docks, an intact one's (derelict-guards): capsules on back walls, stands on hall floors, their guards asleep inside.
         new(c => Features.Creatures.DocksView.Of(c.M.Creatures, c.Progress)),
         // A wreck's looks, from its wreck's record (vessel-wrecks W-2): soot, frost, petals, cables over its hull and in its rooms.
         new(c => Features.Wrecked.WreckView.Of(c.M.Grid, c.Built)),

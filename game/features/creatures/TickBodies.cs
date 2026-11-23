@@ -114,7 +114,7 @@ public partial class TickBodies : Node2D
             if (!_shown.TryGetValue(c.Id, out var one)) _shown[c.Id] = one = Take(c, creatures, tick);
             Follow(one, c, creatures, debris, tick);
             var feet = one.From.Lerp(one.To, (float)Math.Clamp(progress, 0, 1)) / Unit * Cell;
-            // A vessel's spider waking (derelict-enemies): hidden till its capsule's iris is open, then unfolding on its shelf and dropping.
+            // A vessel's spider waking (derelict-guards): hidden till its capsule's iris is open, then unfolding on its shelf and dropping.
             double folded = 0;
             one.Visible = true;
             if (c.Posture == Posture.Waking && CreaturesModule.DockOf(c) is int dock && dock < creatures.Docks.Count)
@@ -229,7 +229,7 @@ public partial class TickBodies : Node2D
     {
         var spec = Spec.Creatures.Get(c.Species);
         var act = c.Act;
-        // A vessel's spider walks (derelict-enemies): on its feet or holding a wall, it is as a tick clamped on; it crawls at its run or climb.
+        // A vessel's spider walks (derelict-guards): on its feet or holding a wall, it is as a tick clamped on; it crawls at its run or climb.
         bool walker = spec.Body is Spec.Creatures.Walker, flies = act is { Phase: ActPhase.Active } && spec.Moves[act.Move] is Spec.Creatures.Pounce;
         int wall = walker ? CreaturesModule.Holds(c) : 0;
         bool clamped = walker ? !flies && (wall != 0 || c.VY == 0) : CreaturesModule.Clamped(c);
@@ -282,7 +282,7 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>
-    /// A walking one heard on World, aboard (derelict-enemies): its steps at its feet as its crawl passes them, on the floor or a wall;
+    /// A walking one heard on World, aboard (derelict-guards): its steps at its feet as its crawl passes them, on the floor or a wall;
     /// its pry as it begins at a doorway.
     /// </summary>
     private void Walked(Shown one, Creature c, double dt)

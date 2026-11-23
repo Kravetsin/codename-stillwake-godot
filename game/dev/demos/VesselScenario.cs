@@ -16,7 +16,7 @@ namespace Stillwake.Game.Dev;
 /// said so; <c>--wrecked=none</c> an intact one, <c>--wrecked</c> alone the chain its seed draws.
 /// </summary>
 [Dev("--vessel", "the new game's world with the hero on a vessel's world: =class, a freighter by default (VesselScenario)", Shape = DevShape.Either)]
-[Dev("--dock", "with --vessel, the hero arrives beside its first guard's dock, on an intact vessel: =spider (by default) or =escort (derelict-enemies)", Shape = DevShape.Either)]
+[Dev("--dock", "with --vessel, the hero arrives beside its first guard's dock, on an intact vessel: =spider (by default) or =escort (derelict-guards)", Shape = DevShape.Either)]
 [Dev("--wrecked", "with --vessel, its chain of events: =blast,fire,ice,rock,break each, :old to age one; =none intact; alone the seed's (vessel-wrecks)", Shape = DevShape.Either)]
 [Dev("--breakers", "with --vessel, the pickaxe, sledgehammer, fire axe, fifty blasting charges and the railgun with nails on 1-6, a battery on the belt, creative (damage-scale)")]
 public sealed class VesselScenario : DevScenario

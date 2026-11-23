@@ -12,7 +12,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Guards aboard an intact vessel (derelict-enemies, G-1): where <see cref="Shipyard.Guards"/> docks them, and the creatures module
+/// Guards aboard an intact vessel (derelict-guards, G-1): where <see cref="Shipyard.Guards"/> docks them, and the creatures module
 /// spawning one asleep at each dock as the vessel world opens, kept there whatever the keep boxes say.
 /// </summary>
 public class GuardsAboardTests
@@ -161,7 +161,7 @@ public class GuardsAboardTests
     }
 
     /// <summary>
-    /// A wreck docks no guard (derelict-enemies): built from its seed's own chain or a forced one, no dock, no creature as its world
+    /// A wreck docks no guard (derelict-guards): built from its seed's own chain or a forced one, no dock, no creature as its world
     /// opens, and every machine it was built with laid where it stands, none left out under a capsule.
     /// </summary>
     [Theory]

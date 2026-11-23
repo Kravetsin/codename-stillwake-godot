@@ -1,4 +1,4 @@
-// The guard robot A1 «Конвоир», as picked (derelict-enemies): ported from the pick page's drawA1 (ROBOTS[0], leg2, clawArm, pincer,
+// The guard robot A1 «Конвоир», as picked (derelict-guards): ported from the pick page's drawA1 (ROBOTS[0], leg2, clawArm, pincer,
 // drawGun 'rail', head, lamp), in cells as the page drew it, 8 world pixels a cell, facing right, y down. Each part is its own picture, its
 // pivot its origin; a bone hangs straight down from its pivot (+y) and the game turns it. `torso` and `shoulder` keep their place about the
 // feet's middle. Shining parts (`gun_coil`, `lamp`, `lamp_heart`) are plain. Pivots go into Content/logic/EscortInk.cs; the kit is guards.js's.

@@ -6,7 +6,7 @@ namespace Stillwake.Sim;
 public static partial class Shipyard
 {
     /// <summary>
-    /// A guard's dock aboard a vessel (derelict-enemies): its <paramref name="Rule"/> (a capsule or a stand, its guard's species and
+    /// A guard's dock aboard a vessel (derelict-guards): its <paramref name="Rule"/> (a capsule or a stand, its guard's species and
     /// box), the compartment it is in by its index, and its box's top-left (<paramref name="X"/>, <paramref name="Y"/>) in the
     /// vessel's frame, standing on that room's floor.
     /// </summary>

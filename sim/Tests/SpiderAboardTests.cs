@@ -11,7 +11,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The spider aboard an intact vessel (derelict-enemies, G-2): woken by a hero walking into its room or by a blow, then hunting the crew
+/// The spider aboard an intact vessel (derelict-guards, G-2): woken by a hero walking into its room or by a blow, then hunting the crew
 /// through the vessel by its decks, doorways and hatch well, prying shut doorways open, the way in never.
 /// </summary>
 public class SpiderAboardTests

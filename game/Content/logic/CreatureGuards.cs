@@ -29,7 +29,7 @@ public static partial class CreatureArt
     public sealed record IstukanDesign(string Id, IReadOnlyDictionary<string, Part> Parts, int Body, IstukanNode[] Nodes);
 
     /// <summary>
-    /// A design posed by its own rig in code (the escort A1 «Конвоир», its stand S1's moving parts; derelict-enemies): only its parts, each its
+    /// A design posed by its own rig in code (the escort A1 «Конвоир», its stand S1's moving parts; derelict-guards): only its parts, each its
     /// picture and pivot; where each goes is the rig's (<c>Features.Creatures.EscortRig</c>, <c>DocksView</c>).
     /// </summary>
     public sealed record PartsDesign(string Id, IReadOnlyDictionary<string, Part> Parts);

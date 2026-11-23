@@ -197,7 +197,7 @@ public class ModulesTests
     }
 
     /// <summary>
-    /// The suites aboard a vessel world with its guards at their docks (derelict-enemies): two worlds fed the same commands kept alike while
+    /// The suites aboard a vessel world with its guards at their docks (derelict-guards): two worlds fed the same commands kept alike while
     /// the fuzz runs on the vessel's modules too and the hero steps into one dock's room after another, waking its guard, then stands in
     /// the first escort's hall (a liner's) to be shot at; then the one saved, loaded and played on beside the live one.
     /// </summary>

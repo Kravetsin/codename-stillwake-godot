@@ -21,7 +21,7 @@ public static partial class Shipyard
         return (door.X + 2, door.Y + Vessels.Open - 1);
     }
 
-    /// <summary>The way in through <paramref name="b"/>'s armour (<see cref="Built.Entry"/>): always shut, which no guard opens (derelict-enemies).</summary>
+    /// <summary>The way in through <paramref name="b"/>'s armour (<see cref="Built.Entry"/>): always shut, which no guard opens (derelict-guards).</summary>
     public static Vessel.Door WayIn(Built b) => b.Vessel.Doors[b.Entry];
 
     /// <summary>

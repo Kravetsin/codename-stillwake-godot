@@ -19,7 +19,7 @@ public sealed class TickMotion(Func<double> random)
     /// <paramref name="CutDone"/> of the way through it, the line going off toward <paramref name="Line"/> from its middle; aiming an
     /// arc (<paramref name="Aiming"/>, 2026-10-27-sentry-arc), its eye flickering the arc's cyan, held bright once its aim is taken
     /// (<paramref name="Locked"/>); a blow landed on it since the last frame (<paramref name="Blown"/>). A vessel's spider
-    /// (derelict-enemies) is a <paramref name="Walker"/>: clamped is on its feet, its burner lit only pouncing, upright in the air;
+    /// (derelict-guards) is a <paramref name="Walker"/>: clamped is on its feet, its burner lit only pouncing, upright in the air;
     /// <paramref name="Folded"/> in its capsule (1) or unfolding from it; holding the wall on its left (-1) or right (1), or the hatch
     /// well (2), turned nose up against it (<paramref name="Wall"/>).
     /// </summary>

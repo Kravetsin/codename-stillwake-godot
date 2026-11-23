@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// How a capsule's spider is seen waking (derelict-enemies), over its dock's <c>Wake</c> ticks, as shares of it: its hazard lamp flashing
+/// How a capsule's spider is seen waking (derelict-guards), over its dock's <c>Wake</c> ticks, as shares of it: its hazard lamp flashing
 /// all through; its iris opening; the spider shown folded on its shelf once the iris is mostly open, unfolding, then dropping to the floor
 /// under gravity. Plain C#, tested.
 /// </summary>
@@ -58,7 +58,7 @@ public static class DockWake
 }
 
 /// <summary>
-/// How a stand lets its escort go (derelict-enemies), the pick page's S1 «Люлька» over its dock's <c>Wake</c> ticks, as shares of it: the
+/// How a stand lets its escort go (derelict-guards), the pick page's S1 «Люлька» over its dock's <c>Wake</c> ticks, as shares of it: the
 /// waist clamp swinging up; the drum paying out its cable as the robot is lowered its hang to the floor; the yoke's hooks opening and the
 /// yoke rising off its shoulders; the robot unfolding, its red lamp flickering on; the beacon flashing all through. Plain C#, tested.
 /// </summary>

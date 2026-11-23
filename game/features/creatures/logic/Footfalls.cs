@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// When a walking guard is heard stepping (derelict-enemies): a foot down each time its way walked passes another <c>every</c>, but never
+/// When a walking guard is heard stepping (derelict-guards): a foot down each time its way walked passes another <c>every</c>, but never
 /// two closer than <c>leastS</c> seconds, as a hero's are heard each half stride. Plain C#, tested.
 /// </summary>
 public sealed class Footfalls(double every, double leastS)

@@ -571,7 +571,7 @@ public static class Sound
     /// </summary>
     public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue? Thrust, Cue Hit, Cue Death, Cue? Step = null, Cue? Pry = null);
 
-    /// <summary>The sentry's cues; the spider keeps them (derelict-enemies).</summary>
+    /// <summary>The sentry's cues; the spider keeps them (derelict-guards).</summary>
     private static readonly TickCues SentryCues = new(
         Alert: new(Shots("creatures/sentry-alert", 1), -1.5f, Heard: ToolReach),
         WindUp: new(Shots("creatures/sentry-windup", 1), -1.5f, Heard: ToolReach),
@@ -584,7 +584,7 @@ public static class Sound
         Death: new(Shots("creatures/sentry-death", 1), -1.5f, Heard: BreakReach));
 
     /// <summary>
-    /// The spider's (derelict-enemies, the user's picks on the guards' page): the sentry's, and a robot's footsteps, one of four cut
+    /// The spider's (derelict-guards, the user's picks on the guards' page): the sentry's, and a robot's footsteps, one of four cut
     /// from one recording, at its feet as it runs or climbs (<see cref="SpiderStepEvery"/>); a metal creak as it pries a door or hatch.
     /// </summary>
     private static readonly TickCues SpiderCues = SentryCues with
@@ -609,7 +609,7 @@ public static class Sound
     };
 
     /// <summary>
-    /// A vessel's guards' docks waking (derelict-enemies), the user's picks on the guards' page, each where its part of the dock is: a
+    /// A vessel's guards' docks waking (derelict-guards), the user's picks on the guards' page, each where its part of the dock is: a
     /// capsule's hazard alarm, a two-tone whoop as its lamp starts flashing (<see cref="CapsuleAlarm"/>), its iris a sci-fi door sliding
     /// open (<see cref="CapsuleIris"/>); a stand's clamp swinging up, an air brake (<see cref="StandClamp"/>), its drum lowering the robot,
     /// a hoist's chains (<see cref="StandWinch"/>), its yoke letting go, a release of air (<see cref="StandYoke"/>). On the World bus.
@@ -621,7 +621,7 @@ public static class Sound
     public static readonly Cue StandYoke = new(Shots("creatures/stand-yoke", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach);
 
     /// <summary>
-    /// An escort's sounds (derelict-enemies, the user's picks on the guards' page): a machine powering up as its lamp lights in its stand
+    /// An escort's sounds (derelict-guards, the user's picks on the guards' page): a machine powering up as its lamp lights in its stand
     /// (<see cref="EscortCues.Wake"/>); each step a big robot's, at its feet; a servo as it turns round or swings its gun to aim; metal
     /// bending as it pries a door; its gauss a rail gun charging over its wind-up, a shipboard rail gun's shot, a ricochet where it stops
     /// (one of three); a metal pipe's whoosh as it dashes and swings its claw; a blow on it a metal boom; killed, a machine shutting
@@ -682,7 +682,7 @@ public static class Sound
 
     /// <summary>
     /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch, and
-    /// the warden's, a boxer's; a vessel's guards, the spider's pounce and the escort's claw, land the sentry's (derelict-enemies).
+    /// the warden's, a boxer's; a vessel's guards, the spider's pounce and the escort's claw, land the sentry's (derelict-guards).
     /// This player's own on Suit, a friend's on World.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>

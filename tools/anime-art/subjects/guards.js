@@ -1,4 +1,4 @@
-// A vessel's guards' docks, as picked (derelict-enemies): capsule G1 «Зрачок — впадина» on a small room's back wall and stand S1 «Люлька»
+// A vessel's guards' docks, as picked (derelict-guards): capsule G1 «Зрачок — впадина» on a small room's back wall and stand S1 «Люлька»
 // on a big room's floor, ported from the pick pages' draw code (mountG, faceLamp, CAP_G1; STANDS[0]). Asleep: the capsule shut behind its
 // smoked iris, its hazard lamp dark (the game blinks its amber pip); the stand without its robot and without what moves.
 // `guard_capsule_open` is the capsule awake, its iris open; `guard_capsule_iris_<n>`, drawn over it, the iris's steps opening, as the game plays them.

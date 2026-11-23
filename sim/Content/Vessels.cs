@@ -596,7 +596,7 @@ public static class Vessels
     }
 
     /// <summary>
-    /// Guards aboard an intact vessel (derelict-enemies): a spider asleep in a capsule on a small room's back wall, a robot in a stand on
+    /// Guards aboard an intact vessel (derelict-guards): a spider asleep in a capsule on a small room's back wall, a robot in a stand on
     /// a big room's floor. One of a kind for every <see cref="Rule.Per"/> rooms of its size, rounded up, each in a room of its own,
     /// never the arrival room, nor one where its dock's box fits nowhere clear of every fitting, ladder and shelf.
     /// </summary>

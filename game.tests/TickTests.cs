@@ -191,7 +191,7 @@ public class TickTests
     private static readonly IEqualityComparer<TickArt.Rgb> Near = EqualityComparer<TickArt.Rgb>.Create(
         (a, b) => Math.Abs(a.R - b.R) < 2 && Math.Abs(a.G - b.G) < 2 && Math.Abs(a.B - b.B) < 2, _ => 0);
 
-    /// <summary>A vessel's spider (derelict-enemies): folded asleep, its legs tucked and its burner dark; holding a wall it faces it nose up.</summary>
+    /// <summary>A vessel's spider (derelict-guards): folded asleep, its legs tucked and its burner dark; holding a wall it faces it nose up.</summary>
     [Fact]
     public void ASpiderFoldedTucksItsLegsAndOnAWallTurnsNoseUpFacingIt()
     {

@@ -22,7 +22,7 @@ public class CreatureSpeciesGuardTests
         "sim/Content/Creatures.cs",
         "sim/Content/PlanetTypes.cs",
         "sim/Content/Ruins.cs",
-        // The guards aboard a vessel (derelict-enemies), by their docks.
+        // The guards aboard a vessel (derelict-guards), by their docks.
         "sim/Content/Vessels.cs",
         // A save step rewrites the saved data of a species as it was then, by its id.
         "sim/Registry/Migrations.cs",

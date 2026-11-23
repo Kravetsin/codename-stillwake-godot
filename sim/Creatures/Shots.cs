@@ -210,7 +210,7 @@ public sealed partial class CreaturesModule
             if (broke) broken = target.Pass;
             else s.Passed.Add(target.Pass);
         }
-        // A creature's shot that never bursts (the escort's gauss, derelict-enemies) stops in the first awake hero it enters, hurting him.
+        // A creature's shot that never bursts (the escort's gauss, derelict-guards) stops in the first awake hero it enters, hurting him.
         if (s.By.Kind != RefKind.None || p.Bursts != null || HeroIn(cell) is not int hero) return false;
         _crewOps.Blow(hero, p.Damage, Harm.Blow);
         return true;
@@ -429,7 +429,7 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
-    /// <paramref name="c"/>'s <paramref name="shoot"/> flown (the escort's gauss, derelict-enemies) from its muzzle (<see cref="MuzzleY"/>) at the middle of the
+    /// <paramref name="c"/>'s <paramref name="shoot"/> flown (the escort's gauss, derelict-guards) from its muzzle (<see cref="MuzzleY"/>) at the middle of the
     /// hero whose reported cell, its body's middle's, is <paramref name="cell"/>: its speed on the longer axis, the other its share, rounded toward none, for as many
     /// ticks as its reach takes, rounded up; its shooter flown through. False, and none, with its aim on its own middle or it off the grid.
     /// </summary>

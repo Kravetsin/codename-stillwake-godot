@@ -13,7 +13,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The creatures drawn as the escort A1 «Конвоир» (derelict-enemies), posed each frame by <see cref="EscortRig"/>: asleep stowed in its
+/// The creatures drawn as the escort A1 «Конвоир» (derelict-guards), posed each frame by <see cref="EscortRig"/>: asleep stowed in its
 /// stand, hung its <see cref="StandWake.Hang"/> over the floor, then lowered and unfolding as it wakes (the stand's own parts are
 /// <see cref="DocksView"/>'s); awake striding, its rail gun turning to its aim as it charges and kicking back as it fires, its claw reaching
 /// out as it dashes. Its red head lamp shines and lights the hall; each gauss is a bright cyan-white trace to where it stopped, sparks

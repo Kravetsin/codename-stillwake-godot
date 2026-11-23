@@ -180,7 +180,7 @@ public static class Light
     public static readonly LampLight SparkFlash = new((1f, 0.75f, 0.43f), 0.75f, 5, 0.75f, 0xffbe6eff);
 
     /// <summary>
-    /// A sleeping guard's capsule's standby pip (derelict-enemies): a dim amber dot in its hazard lamp, lit <see cref="GuardPipOnMs"/>
+    /// A sleeping guard's capsule's standby pip (derelict-guards): a dim amber dot in its hazard lamp, lit <see cref="GuardPipOnMs"/>
     /// of every <see cref="GuardPipEveryMs"/>, each capsule <see cref="GuardPipStaggerMs"/> after the one before; <see cref="GuardPipSize"/>
     /// pixels across, its light a cell or two round.
     /// </summary>
@@ -189,7 +189,7 @@ public static class Light
     public const double GuardPipEveryMs = 2000, GuardPipOnMs = 400, GuardPipStaggerMs = 370;
 
     /// <summary>
-    /// A capsule's hazard lamp as its spider wakes (derelict-enemies): flashing red and amber (<c>DockWake.FlashHz</c>), lighting its room
+    /// A capsule's hazard lamp as its spider wakes (derelict-guards): flashing red and amber (<c>DockWake.FlashHz</c>), lighting its room
     /// a few cells round; then red and dimmer while its spider lives, <see cref="GuardAlarmSize"/> pixels across. Dark once it is killed.
     /// </summary>
     public static readonly LampLight GuardAlarm = new((1f, 0.2f, 0.12f), 0.9f, 5, 0.6f, 0xff3a2cff),
