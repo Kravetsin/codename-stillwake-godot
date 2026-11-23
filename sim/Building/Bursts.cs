@@ -21,10 +21,10 @@ public enum Spoils
 }
 
 /// <summary>
-/// A burst Building was asked for (<see cref="BuildingModule.Bursts"/>): from <paramref name="Cell"/>, of <paramref name="Power"/>, within
-/// <paramref name="Reach"/> cells; <paramref name="Serial"/> counts every burst since the world was made or loaded, from 1.
+/// A burst Building was asked for (<see cref="BuildingModule.Bursts"/>): from <paramref name="Cell"/>, of <paramref name="Power"/>, pushing
+/// debris within <paramref name="Push"/> cells; <paramref name="Serial"/> counts every burst since the world was made or loaded, from 1.
 /// </summary>
-public sealed record RecentBurst(int Serial, int Cell, int Power, int Reach);
+public sealed record RecentBurst(int Serial, int Cell, int Power, int Push);
 
 /// <summary>
 /// Bursts (unified-damage, damage-scale): the one rule for what a charge or a meteor breaks, as a tool's or a shot's hit, in every
@@ -53,11 +53,11 @@ public sealed partial class BuildingModule
     public IReadOnlyList<RecentBurst> Bursts => _recent;
 
     /// <inheritdoc/>
-    public bool Burst(int peer, int cell, int power, int reach, Spoils spoils)
+    public bool Burst(int peer, int cell, int power, int reach, int push, Spoils spoils)
     {
         if (cell < 0 || cell >= _grid.Width * _grid.Height) return false;
         if (_recent.Count == BurstsKept) _recent.RemoveAt(0);
-        _recent.Add(new RecentBurst(++_burstSerial, cell, power, reach));
+        _recent.Add(new RecentBurst(++_burstSerial, cell, power, push));
         // Cleared before the first cell is priced: what the last burst paid for must not make this one's first cell free.
         _burstBroken.Clear();
         _burstPaid.Clear();

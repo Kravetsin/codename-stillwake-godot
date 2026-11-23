@@ -49,7 +49,7 @@ public class BurstTests
 
     private static int At(Scenario w, int x, int y) => y * w.M.Grid.Width + x;
 
-    private static bool Burst(Scenario w, int cell, int power, int reach = 8) => w.M.Building.Burst(0, cell, power, reach, Spoils.Drop);
+    private static bool Burst(Scenario w, int cell, int power, int reach = 8) => w.M.Building.Burst(0, cell, power, reach, 0, Spoils.Drop);
 
     private static (int Cell, int Damage)[] Cracks(Scenario w) => [.. w.M.Building.Cracks.Select(c => (c.Cell, c.Damage))];
 
@@ -109,7 +109,7 @@ public class BurstTests
     public void AboardABurstOfNoOnesAMeteorsIsInFull()
     {
         var w = Aboard(".####", ".wwww");
-        Assert.True(w.M.Building.Burst(FloorStack.Nobody, 0, Charge, 8, Spoils.Lost));
+        Assert.True(w.M.Building.Burst(FloorStack.Nobody, 0, Charge, 8, 0, Spoils.Lost));
         Assert.Null(w.M.Grid.WallAt(1));
         Assert.Equal([(2, Charge - Damage.Step - Scrap - Damage.Step)], Cracks(w));
     }
@@ -124,7 +124,7 @@ public class BurstTests
         // The first wall of the vessel's middle row.
         int width = v.Grid.Width, row = v.Grid.Height / 2;
         int hull = Enumerable.Range(0, width).Select(x => row * width + x).First(c => v.Grid.WallAt(c) != null);
-        Assert.True(v.Building.Burst(0, hull, v.Grid.WallAt(hull)!.Strength, 0, Spoils.Drop));
+        Assert.True(v.Building.Burst(0, hull, v.Grid.WallAt(hull)!.Strength, 0, 0, Spoils.Drop));
         Assert.Null(v.Grid.WallAt(hull));
     }
 
@@ -194,7 +194,7 @@ public class BurstTests
         int under = Cell(w, 24, 58);
         int air = m.Crew.HeroOf(0)!.Air;
         for (int i = 0; i < 10 && !m.Building.Relics.Single(r => r.Kind == Ruins.Cradle).Taken; i++)
-            m.Building.Burst(0, under, Charge, Blasting.Charge.Reach, Spoils.Drop);
+            m.Building.Burst(0, under, Charge, Blasting.Charge.Reach, 0, Spoils.Drop);
         Assert.True(m.Building.Relics.Single(r => r.Kind == Ruins.Cradle).Taken);
         Assert.Equal(Ruins.CradleShock, air - m.Crew.HeroOf(0)!.Air);
         Assert.Equal(Flora.Get(Ruins.Cradle).Yields.Single().Count, m.Items.Floor.Where(s => s.Item == Ruins.Shard).Sum(s => s.Count));
@@ -209,7 +209,7 @@ public class BurstTests
         Assert.Equal(2, wardens.Count);
         int post = Post(w, Ruins.PostLeft);
         for (int i = 0; i < 6 && m.Building.PostAt(post) != null; i++)
-            m.Building.Burst(0, post, Charge, Blasting.Charge.Reach, Spoils.Drop);
+            m.Building.Burst(0, post, Charge, Blasting.Charge.Reach, 0, Spoils.Drop);
         Assert.Null(m.Building.PostAt(post));
         w.Run();
         Assert.Single(m.Creatures.Creatures, c => c.Species == Tune.Warden.Id);

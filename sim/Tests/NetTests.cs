@@ -436,7 +436,7 @@ public class NetTests
         var w = Struck();
         int cell = w.M.Grid.MachinesOf("net")[0].Cell;
         // From inside the room, a burst of no one's, in full, to break the hull beside it (unified-damage): no net left hanging in the air.
-        Assert.True(w.M.Building.Burst(FloorStack.Nobody, 3 * 10 + 4, 2000, 8, Spoils.Drop));
+        Assert.True(w.M.Building.Burst(FloorStack.Nobody, 3 * 10 + 4, 2000, 8, 0, Spoils.Drop));
         Assert.Null(w.M.Grid.WallAt(3 * 10 + 5));
         Assert.Empty(w.M.Grid.MachinesOf("net"));
         w.Run();
