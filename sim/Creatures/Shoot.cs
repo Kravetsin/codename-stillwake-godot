@@ -6,7 +6,7 @@ namespace Stillwake.Sim.Creatures;
 /// The arc (the sentry's, 2026-10-27-sentry-arc): crouched its wind-up where it clings, its eye flickering; <c>Lock</c> ticks before
 /// its end it takes its target's reported cell as it is then — its grudge wherever it is, else the nearest awake hero within its
 /// reach — and holds it; none, and it strikes nothing. At the end its arc strikes that cell at once (<see
-/// cref="CreaturesModule.StrikeArc"/>), or, with a speed, flies a shot at that hero (<see cref="CreaturesModule.Rail"/>, the escort's gauss). Then it recovers, still clamped; never cut short by a blow. One that leaves a patch (the capback's slime) is a lob, landing on the floor under its end as its lingering ends. However it ends, the drive
+/// cref="CreaturesModule.StrikeArc"/>), or, with a speed, flies a shot at that hero (<see cref="CreaturesModule.Rail"/>, the escort's gauss). Then it recovers, still clamped, unless its drive makes it on the move (<see cref="DriveRule.Afoot"/>, the escort's); never cut short by a blow; with an <c>Every</c>, begun no sooner after the last. One that leaves a patch (the capback's slime) is a lob, landing on the floor under its end as its lingering ends. However it ends, the drive
 /// that began it is told.
 /// </summary>
 internal sealed class ShootMove : MoveRule
@@ -16,12 +16,20 @@ internal sealed class ShootMove : MoveRule
 
     internal override Type Serves => typeof(Spec.Shoot);
 
+    /// <summary>Kept in its <c>Mem</c> by one with an <c>Every</c>: the creatures' clock its last shot began on, plus one; 0 for never.</summary>
+    internal const string Began = "shotAt";
+
     internal override bool Interruptible(Spec.Move mv) => false;
+
+    internal override bool Ready(CreaturesModule m, Creature c, Spec.Move mv) =>
+        ((Spec.Shoot)mv).Every is var every && (every == 0 || c.Recall(Began) == 0 || m.Clock - (c.Recall(Began) - 1) >= every);
 
     internal override void Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
     {
-        c.Act = new Act { Move = at, Phase = ActPhase.WindUp, Left = ((Spec.Shoot)spec.Moves[at]).WindUp };
+        var shoot = (Spec.Shoot)spec.Moves[at];
+        c.Act = new Act { Move = at, Phase = ActPhase.WindUp, Left = shoot.WindUp };
         c.Keep(Aim, 0);
+        if (shoot.Every > 0) c.Keep(Began, m.Clock + 1);
         m.Slow(c, spec);
     }
 

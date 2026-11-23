@@ -12,8 +12,9 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// The escort aboard a liner (derelict-enemies, G-3): woken in its stand by a hero walking into its hall or by a blow, let down to the floor,
-/// then hunting the crew on its deck: a lunge at a hero near on its deck, a gauss at one in line within its notice, up too; out of line, off
-/// through a door; prying doors, never a hatch nor the way in; never off its deck's rows.
+/// then hunting the crew on its deck: walking always to close in, a lunge at a hero near on its deck, a gauss on the way at one in line within
+/// its notice, up too, at most every so often and never while it lunges; out of line, off through a door; prying doors, never a hatch nor
+/// the way in; never off its deck's rows.
 /// </summary>
 public class EscortAboardTests
 {
@@ -134,12 +135,19 @@ public class EscortAboardTests
         Assert.True(Awake(a.Escort));
     }
 
+    private static readonly Spec.Lunge Claw = Spec.Escort.Moves.OfType<Spec.Lunge>().Single();
+
+    private static readonly int Pace = ((Spec.Walker)Spec.Escort.Body).Run;
+
+    private static bool Fired(Aboard a) => a.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile) || a.V.Creatures.Shots.Any(s => s.Projectile == Gauss.Projectile);
+
     [Fact]
-    public void AHeroInLineFarOnItsFloorIsShotWithAGaussThatHurtsHimAndNeverBursts()
+    public void AFarHeroInLineOnItsFloorIsShotAsItWalksAtHimAndThenLungedAt()
     {
         var a = new Aboard().Woken();
-        // Out of its claw's reach, on its floor, in line: it stands and fires once its charge is done.
-        a.Hero(a.Column - Patrol.Strike - 6, a.Body).Run();
+        // Out of its claw's reach, on its floor, in line: it charges its gun and walks on at him, firing on the way.
+        a.Hero(a.Room.Left + 1, a.Body).Run();
+        Assert.True(a.Column - (a.Room.Left + 1) > Patrol.Strike + 6, $"at {a.Column}");
         Assert.Equal(typeof(Spec.Shoot), a.Act);
         int air = a.Air, x = a.Escort.X;
         Assert.True(a.RunTill(() => a.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile), Gauss.WindUp + 2));
@@ -149,8 +157,58 @@ public class EscortAboardTests
         Assert.InRange(end.Cell / a.V.Grid.Width, a.Body - 1, a.Body + 1);
         Assert.Equal(-1, end.Burst);
         Assert.Equal(air - Content.Shots.Gauss.Damage, a.Air);
-        Assert.Equal(x, a.Escort.X);
+        Assert.True(a.Escort.X <= x - (Gauss.WindUp - 2) * Pace, $"it walked {x - a.Escort.X} as it charged");
         Assert.Empty(a.V.Creatures.Shots);
+        // On it walks till its claw reaches him.
+        Assert.True(a.RunTill(() => a.Act == typeof(Spec.Lunge), 40), $"at {a.Column}");
+        Assert.InRange(a.Column - (a.Room.Left + 1), 0, Patrol.Strike);
+    }
+
+    [Fact]
+    public void ItNeverFiresWhileItLungesAndALungeDropsAShotItWasCharging()
+    {
+        var a = new Aboard().Woken();
+        // Its gun ready, a hero in line within its claw: a lunge, and no shot through all of it.
+        a.Hero(a.Column - Patrol.Strike + 1, a.Body).Run();
+        Assert.Equal(typeof(Spec.Lunge), a.Act);
+        for (int t = 0; t < Claw.WindUp + Claw.Ticks && a.Act == typeof(Spec.Lunge); t++)
+        {
+            a.Run();
+            Assert.False(Fired(a), $"fired at tick {t} of its lunge");
+            Assert.NotEqual(typeof(Spec.Shoot), a.Act);
+        }
+
+        // Charging at a far hero when he comes within its claw: the shot is dropped for the lunge, never fired.
+        var b = new Aboard().Woken();
+        b.Hero(b.Room.Left + 1, b.Body).Run(2);
+        Assert.Equal(typeof(Spec.Shoot), b.Act);
+        b.Hero(b.Column - Patrol.Strike + 1, b.Body).Run();
+        Assert.Equal(typeof(Spec.Lunge), b.Act);
+        for (int t = 0; t < Gauss.WindUp + Claw.WindUp + Claw.Ticks; t++)
+        {
+            b.Run();
+            Assert.False(Fired(b), $"fired at tick {t} after its lunge began");
+        }
+    }
+
+    [Fact]
+    public void ItsShotsBeginAtLeastItsDelayApartAndItFiresAgainOnceReady()
+    {
+        var a = new Aboard().Woken();
+        Assert.True(Gauss.Every > Gauss.WindUp + Gauss.Recover);
+        var doors = a.Doors.Where(d => d.X == a.Room.Left - 2 || d.X == a.Room.Left + a.Room.Width).ToList();
+        foreach (var d in doors) a.W.Do(new SetDoor(a.Cell(d.X, d.Y), false));
+        // Up the well's ladder, off its deck and in line: shot at from below as it goes to its door and pries it, never clawed.
+        a.Hero(a.Room.Left, a.Room.Top + 3);
+        var shots = new List<int>();
+        for (int t = 0; t < 3 * Gauss.Every; t++)
+        {
+            a.Run();
+            Assert.NotEqual(typeof(Spec.Lunge), a.Act);
+            if (a.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile)) shots.Add(t);
+        }
+        Assert.True(shots.Count >= 2, $"shots at {string.Join(",", shots)}");
+        Assert.All(shots.Zip(shots.Skip(1)), p => Assert.Equal(Gauss.Every, p.Second - p.First));
     }
 
     [Fact]
@@ -165,9 +223,13 @@ public class EscortAboardTests
         var end = a.V.Creatures.Ended.Single(e => e.Projectile == Gauss.Projectile);
         Assert.True(end.Cell / a.V.Grid.Width < a.Feet - 2, $"ended at row {end.Cell / a.V.Grid.Width}");
         Assert.Equal(air - Content.Shots.Gauss.Damage, a.Air);
-        // Right over it, within its strike's columns but off its deck: still a shot, never a lunge.
-        a.Run(Gauss.Recover + 1).Hero(a.Column, a.Room.Top + 3).Run();
-        Assert.Equal(typeof(Spec.Shoot), a.Act);
+        // Right over it, within its strike's columns but off its deck: still a shot once its gun is ready, never a lunge.
+        a.Hero(a.Column, a.Room.Top + 3);
+        Assert.True(a.RunTill(() =>
+        {
+            Assert.NotEqual(typeof(Spec.Lunge), a.Act);
+            return a.Act == typeof(Spec.Shoot);
+        }, Gauss.Every), $"at {a.Column}");
     }
 
     [Fact]

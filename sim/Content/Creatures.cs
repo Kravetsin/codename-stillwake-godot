@@ -136,10 +136,11 @@ public static class Creatures
 
     /// <summary>
     /// Hunting the crew on its own deck (the escort, derelict-enemies), never off its floor rows: at the nearest awake hero aboard on its deck
-    /// within <paramref name="Strike"/> columns it lunges with its first move; within <paramref name="Notice"/> cells (box distance) and in line
-    /// with its middle, on any deck, it stands and shoots with its second. Else it walks: at a hero on its deck, toward him; else to the
-    /// nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. A shut door on its way (a hatch never, the
-    /// way in never) it pries <paramref name="Pry"/> ticks, then opens. With no hero aboard it stands.
+    /// within <paramref name="Strike"/> columns it lunges with its first move, dropping a shot it was charging. Else it walks: at a hero on its
+    /// deck, toward him; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
+    /// a hero within <paramref name="Notice"/> cells (box distance) and in line with its gun, on any deck, it shoots with its second move as
+    /// often as that is ready, walking on. A shut door on its way (a hatch never, the way in never) it pries <paramref name="Pry"/> ticks, then
+    /// opens. With no hero aboard it stands.
     /// </summary>
     public sealed record Patrol(int Strike, int Notice, int Pry) : Drive;
 
@@ -269,10 +270,11 @@ public static class Creatures
     /// on past that point, that many cells off in all, to the first wall, and hurts a hero touching any of it all its <paramref name="Lingers"/>.
     /// With a <paramref name="Speed"/> (the escort's gauss, derelict-enemies) it is no arc but a shot flown at that speed a tick on the longer
     /// axis, at the middle of the hero aimed at, <paramref name="Reach"/> cells' worth at most: stopped by the first solid cell or awake hero;
-    /// it leaves <paramref name="Muzzle"/> thousandths of a cell over its feet (its gun's height), 0 for its middle.
+    /// it leaves <paramref name="Muzzle"/> thousandths of a cell over its feet (its gun's height), 0 for its middle. With an <paramref name="Every"/>
+    /// it is not begun again till that many ticks after the last began.
     /// </summary>
     public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0,
-        int Speed = 0, int Muzzle = 0) : Move(Damage: 0);
+        int Speed = 0, int Muzzle = 0, int Every = 0) : Move(Damage: 0);
 
     /// <summary>
     /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
@@ -469,18 +471,19 @@ public static class Creatures
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-enemies), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
     /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
-    /// let go, its lamp lit. Then it hunts the crew on its deck at 7 cells a second: a hero within 6 columns on its deck it claws, a crouch
-    /// of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit; one in line within 40 cells, above it too, it shoots:
-    /// 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its rail gun's height, 4.85 cells up, across its reach in
-    /// a tick, then 1.5 s before it moves.
+    /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second always to close in: a hero within 6 columns on
+    /// its deck it claws, a crouch of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit. On its way, at one in line
+    /// within 40 cells, above it too, it shoots walking on: 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its
+    /// rail gun's height, 4.85 cells up, across its reach in a tick, its gun held up half a second after; a shot begun at most every 3 s, and
+    /// none while it claws.
     /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
     /// sentry. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 350, Run: 350, Jump: 0, JumpAcross: 0),
         Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,
         Brain: [new Dock(Wake: 40), new Patrol(Strike: 6, Notice: 40, Pry: 40)],
-        Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 30, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000,
-            Muzzle: 4_850)],
+        Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 10, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000,
+            Muzzle: 4_850, Every: 60)],
         Yields: [new("scrapChunk", 6, 9), new("circuit", 4, 6)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Breaker, Spider, Escort];

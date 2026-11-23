@@ -51,7 +51,7 @@ internal sealed class WalkerBody : BodyRule
         (c.X, c.Y) = Standing(spec, cell % m.GridWidth, cell / m.GridWidth);
 
     /// <summary>
-    /// On the ground, an act steers itself; a drive that walks or runs keeps its way, turning at a wall it cannot step up or a
+    /// On the ground, an act steers itself, but one made on the move its drive; a drive that walks or runs keeps its way, turning at a wall it cannot step up or a
     /// drop too deep unless it leaps, or its drive acts instead; one standing stops. Then its move.
     /// </summary>
     internal override void Step(CreaturesModule m, Creature c, Spec.Species spec, bool grounded)
@@ -59,9 +59,8 @@ internal sealed class WalkerBody : BodyRule
         var w = (Spec.Walker)spec.Body;
         var d = spec.Brain[c.Drive];
         var rule = RuleBook.Drive(d);
-        if (c.Act is { } act)
+        if (c.Act is { } act && spec.Moves[act.Move] is var mv && !rule.Afoot(mv))
         {
-            var mv = spec.Moves[act.Move];
             if (RuleBook.Move(mv).Flies(spec, act))
             {
                 Fly(m, c, spec, w);
@@ -127,7 +126,8 @@ internal sealed class WalkerBody : BodyRule
 
     /// <summary>Whether <paramref name="c"/> walks its way now: wandering, fleeing or charging, kept against a wall till its steering turns it.</summary>
     private static bool Walks(Creature c, Spec.Species spec) =>
-        c.Act is { } act ? RuleBook.Move(spec.Moves[act.Move]).Walks(act) : RuleBook.Drive(spec.Brain[c.Drive]).GaitOf(c) != Gait.Still;
+        c.Act is { } act && spec.Moves[act.Move] is var mv && !RuleBook.Drive(spec.Brain[c.Drive]).Afoot(mv) ? RuleBook.Move(mv).Walks(act)
+        : RuleBook.Drive(spec.Brain[c.Drive]).GaitOf(c) != Gait.Still;
 
     /// <summary>
     /// Whether a walker standing as <paramref name="c"/> stands must turn from <paramref name="way"/>: the grid's edge, a wall in the

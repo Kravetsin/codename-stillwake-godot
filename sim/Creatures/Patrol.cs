@@ -5,9 +5,10 @@ namespace Stillwake.Sim.Creatures;
 
 /// <summary>
 /// Hunting the crew on its deck (derelict-enemies), the escort's once awake: at its quarry (<see cref="CreaturesModule.Quarry"/>), bound to
-/// its dock's deck, never jumping. Its quarry on its deck within its strike, it lunges (its first move); within its notice and in line with
-/// its middle, on any deck, it stands and shoots (its second). Else it walks: toward its quarry on its deck; off it, to the nearest door of
-/// its deck (the lower column at a tie) and on that way, turning back at a wall. A shut door on its way it pries as a spider does
+/// its dock's deck, never jumping. Its quarry on its deck within its strike, it lunges (its first move), dropping a shot it was charging.
+/// Else it walks: toward its quarry on its deck; off it, to the nearest door of its deck (the lower column at a tie) and on that way,
+/// turning back at a wall; and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made
+/// on the move: <see cref="Afoot"/>) whenever that is ready. A shut door on its way it pries as a spider does
 /// (<see cref="ProwlDrive.Pry"/>), never a hatch, which lies under its feet or over its head, nor the way in. With no hero aboard it stands.
 /// </summary>
 internal sealed class PatrolDrive : DriveRule
@@ -44,22 +45,27 @@ internal sealed class PatrolDrive : DriveRule
         }
         int floor = m.DeckFloor(c);
         bool level = m.Level(q.Y) == m.Level(floor - 1);
-        if (level && Math.Abs(q.X - Down(c.X, Unit)) <= patrol.Strike && Begin(m, c, spec, 0)) return true;
+        // Its claw first: a lunge begun takes the place of a shot it was charging, so it never fires while it claws.
+        if (level && Math.Abs(q.X - Down(c.X, Unit)) <= patrol.Strike && Lunge(m, c, spec)) return true;
         int far = Math.Max(Math.Abs(q.X - Down(c.X, Unit)), Math.Abs(q.Y - feet));
-        if (far <= patrol.Notice && Sees(m, c, spec, q) && Begin(m, c, spec, 1)) return true;
+        if (c.Act == null && spec.Moves.Count > 1 && RuleBook.Move(spec.Moves[1]).Ready(m, c, spec.Moves[1]) && far <= patrol.Notice && Sees(m, c, spec, q))
+            RuleBook.Move(spec.Moves[1]).Begin(m, c, spec, 1);
         Walk(m, c, w, patrol, q, level, floor, top, feet);
         return true;
     }
 
-    /// <summary>Its move <paramref name="at"/> begun, if it has one there and it is ready: whether it did.</summary>
-    private static bool Begin(CreaturesModule m, Creature c, Spec.Species spec, int at)
+    /// <summary>Its lunge, its first move, begun where it stands, if it is ready: whether it was.</summary>
+    private static bool Lunge(CreaturesModule m, Creature c, Spec.Species spec)
     {
-        if (at >= spec.Moves.Count || !RuleBook.Move(spec.Moves[at]).Ready(m, c, spec.Moves[at])) return false;
+        if (!RuleBook.Move(spec.Moves[0]).Ready(m, c, spec.Moves[0])) return false;
         ProwlDrive.Forget(c);
         c.VX = 0;
-        RuleBook.Move(spec.Moves[at]).Begin(m, c, spec, at);
+        RuleBook.Move(spec.Moves[0]).Begin(m, c, spec, 0);
         return true;
     }
+
+    /// <summary>Its shot is made on the move: it walks on, steering, while it charges and fires.</summary>
+    internal override bool Afoot(Spec.Move mv) => mv is Spec.Shoot;
 
     /// <summary>
     /// Whether nothing solid lies between <paramref name="c"/>'s muzzle (<see cref="CreaturesModule.MuzzleY"/>, its middle with no shot) and

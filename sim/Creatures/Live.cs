@@ -224,7 +224,7 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// A tick of <paramref name="c"/>: freed by its body, else its act's clock, or the drives above the one in charge asked — one that
-    /// takes over starts its clock next tick — and its drive's clock; then its body's steering and move.
+    /// takes over starts its clock next tick — and its drive's clock, under an act made on the move too; then its body's steering and move.
     /// </summary>
     private void Behave(Creature c, Spec.Species spec)
     {
@@ -232,12 +232,15 @@ public sealed partial class CreaturesModule
         if (body.Unstick(this, c, spec.Body)) return;
         bool grounded = body.Grounded(this, c, spec.Body);
         for (int i = 0; i < spec.Brain.Count; i++) RuleBook.Drive(spec.Brain[i]).Reflex(this, c, spec, spec.Brain[i]);
+        bool drives = true;
         if (c.Act is { } act)
         {
             var mv = spec.Moves[act.Move];
             RuleBook.Move(mv).Count(this, c, spec, mv, grounded);
+            // A move made on the move leaves its drive steering, the tick it ends too.
+            drives = RuleBook.Drive(spec.Brain[c.Drive]).Afoot(mv) && (c.Act == null || c.Act == act);
         }
-        else
+        if (drives)
         {
             var now = spec.Brain[c.Drive];
             if (FirstWanting(c, spec, below: c.Drive) is int over and >= 0) TakeOver(c, spec, over);

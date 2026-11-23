@@ -35,7 +35,7 @@ internal abstract class DriveRule
     /// <summary>Takes charge of a creature just let out or spawned; never draws.</summary>
     internal virtual void Born(Creature c, Spec.Drive d) { }
 
-    /// <summary>The drive in charge, every tick before its clock, no act under way: false yields.</summary>
+    /// <summary>The drive in charge, every tick before its clock, no act under way but one made on the move (<see cref="Afoot"/>): false yields.</summary>
     internal virtual bool Run(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => true;
 
     /// <summary>A reflex: every tick, for every drive of the brain, whatever is in charge or under way.</summary>
@@ -55,6 +55,12 @@ internal abstract class DriveRule
 
     /// <summary>An act it began has ended, the creature to go <paramref name="way"/>, hopping back when <paramref name="hop"/>.</summary>
     internal virtual void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) { }
+
+    /// <summary>
+    /// Whether a move <paramref name="mv"/> it began is made on the move: it runs on under it, the tick it ends too, and steers the body
+    /// as with none under way (the escort's gauss).
+    /// </summary>
+    internal virtual bool Afoot(Spec.Move mv) => false;
 
     /// <summary>Whether a walker in its charge stands on an open hatch in its floor as on the floor: its way is not down through it.</summary>
     internal virtual bool Spans(CreaturesModule m, Creature c) => false;

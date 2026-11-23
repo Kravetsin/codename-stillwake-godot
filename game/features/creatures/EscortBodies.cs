@@ -245,11 +245,12 @@ public partial class EscortBodies : Node2D
             (fold, hung, lamp) = (StandWake.Folded(p), StandWake.Hung(p), StandWake.Lamp(p, p * DocksView.WakeOf(c) / World.TicksPerSecond));
         }
         var chest = CreatureFx.NearestOf(_heroes, feet + new Vector2(0, -Middle));
-        int face = c.VX != 0 ? Math.Sign(c.VX)
-            : c.Posture is not (Posture.Docked or Posture.Waking) && chest is { } h && Math.Abs(h.X - feet.X) > 2 ? (h.X > feet.X ? 1 : -1) : one.Face;
+        bool shooting = c.Act is { } act && spec.Moves[act.Move] is Spec.Creatures.Shoot, winding = c.Act is { Phase: ActPhase.WindUp };
+        // It shoots walking: faced to its aim then, though it walks away from it (to a door, its hero off its deck).
+        int? toHero = c.Posture is not (Posture.Docked or Posture.Waking) && chest is { } h && Math.Abs(h.X - feet.X) > 2 ? (h.X > feet.X ? 1 : -1) : null;
+        int face = toHero is int to && (shooting || c.VX == 0) ? to : c.VX != 0 ? Math.Sign(c.VX) : one.Face;
         Turned(one, face);
         one.Face = face;
-        bool shooting = c.Act is { } act && spec.Moves[act.Move] is Spec.Creatures.Shoot, winding = c.Act is { Phase: ActPhase.WindUp };
         bool lunging = c.Act is { } a2 && spec.Moves[a2.Move] is Spec.Creatures.Lunge;
         if (c.Act is { } a3 && spec.Moves[a3.Move] is Spec.Creatures.Shoot gauss) one.Reach = gauss.Reach;
         one.Firing = shooting && !winding && one.FiredAgo == double.PositiveInfinity;
