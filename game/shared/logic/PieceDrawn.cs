@@ -11,29 +11,49 @@ public readonly record struct PiecePose(double X, double Y, double Angle)
 {
     /// <summary>The angle in radians, clockwise as the screen shows it: what a picture is turned by.</summary>
     public double Radians => Angle / 65536 * 2 * Math.PI;
+
+    /// <summary>Where the point (<paramref name="lx"/>, <paramref name="ly"/>) of the piece's own frame, from its middle, is drawn, as <see cref="TurnedBox.At"/> turns it.</summary>
+    public (double X, double Y) At(double lx, double ly)
+    {
+        double cos = Math.Cos(Radians), sin = Math.Sin(Radians);
+        return (X + lx * cos - ly * sin, Y + lx * sin + ly * cos);
+    }
+
+    /// <summary>The way (<paramref name="lx"/>, <paramref name="ly"/>) of the piece's own frame as drawn: turned by its angle, not moved.</summary>
+    public (double X, double Y) Turned(double lx, double ly)
+    {
+        var (x, y) = At(lx, ly);
+        return (x - X, y - Y);
+    }
+
+    /// <summary>The drawn way (<paramref name="x"/>, <paramref name="y"/>) in the piece's own frame: <see cref="Turned"/> undone.</summary>
+    public (double X, double Y) Unturned(double x, double y) => Local(X + x, Y + y);
+
+    /// <summary>Where the drawn point (<paramref name="x"/>, <paramref name="y"/>) lies in the piece's own frame, from its middle: <see cref="At"/> undone.</summary>
+    public (double X, double Y) Local(double x, double y)
+    {
+        double cos = Math.Cos(Radians), sin = Math.Sin(Radians), dx = x - X, dy = y - Y;
+        return (dx * cos + dy * sin, -dx * sin + dy * cos);
+    }
 }
 
 /// <summary>
 /// Where a piece of debris is drawn between ticks, in thousandths of a cell: <paramref name="progress"/> ticks
-/// on from its last (<c>Session.Drift</c>, past 1 while the next tick is late), drifting left by its speed or,
-/// reeled in by a harpoon, its share of the way still to go to its reel's point (0044), never past it; turned by its
-/// angle and its spin on (debris-physics). The debris feature draws it there, and the crew's harpoon sticks its rod there.
+/// on from its last (<c>Session.Drift</c>, past 1 while the next tick is late), carried on by its motion and turned by
+/// its angle and its spin on (debris-physics); the host player's feed setting it anew snaps it there. The debris feature
+/// draws it there, and the crew's harpoon sticks its rod there.
 /// </summary>
 public static class PieceDrawn
 {
-    public static (double X, double Y) At(Piece piece, double progress)
-    {
-        if (piece.Reel is not { } reel) return (piece.X - piece.Speed * progress, piece.Y);
-        double share = Math.Min(progress, reel.Left) / reel.Left;
-        return (piece.X + (reel.ToX - piece.X) * share, piece.Y + (reel.ToY - piece.Y) * share);
-    }
+    public static (double X, double Y) At(Piece piece, double progress) =>
+        LiveDebris.Pose(piece.Id) is { } live ? (live.X, live.Y) : (piece.X + piece.Vx * progress, piece.Y + piece.Vy * progress);
 
-    /// <summary>Where <paramref name="piece"/> is drawn and how it is turned, <paramref name="progress"/> ticks on (<see cref="At"/>).</summary>
-    public static PiecePose Pose(Piece piece, double progress)
-    {
-        var (x, y) = At(piece, progress);
-        return new PiecePose(x, y, piece.Angle + piece.Spin * progress);
-    }
+    /// <summary>
+    /// Where <paramref name="piece"/> is drawn and how it is turned, <paramref name="progress"/> ticks on (<see cref="At"/>); on the host
+    /// player's client, where its body is (<see cref="LiveDebris"/>).
+    /// </summary>
+    public static PiecePose Pose(Piece piece, double progress) =>
+        LiveDebris.Pose(piece.Id) ?? new PiecePose(piece.X + piece.Vx * progress, piece.Y + piece.Vy * progress, piece.Angle + piece.Spin * progress);
 
     /// <summary>
     /// The box <paramref name="halfW"/> by <paramref name="halfH"/> (thousandths of a cell) of <paramref name="piece"/> as drawn

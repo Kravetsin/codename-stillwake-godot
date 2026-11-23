@@ -184,7 +184,7 @@ public partial class HeroView
         bool works = runs && edged != null && ToolEdges.CommandsOf(m, client.Id, running!, edged).Any;
         _ownWork = runs ? WorkOf(m, client.Id, _current, edged, running!, _figure) : null;
         HearDrill(drill, runs, works, elapsedMs);
-        // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
+        // The harpoon: aimed at the pointer out in space; a fresh click fires, and the button held on a hooked piece winds its line.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
         // A gun of the sim's shots, aimed at the pointer anywhere; its shot fires from the muzzle as last drawn.
@@ -201,10 +201,11 @@ public partial class HeroView
         Shoot(client, m, shooter, wieldsShooter, fresh && ready, held && ready, _hosts, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
-            (middle.X, middle.Y), _letsGo, Drops: rightClicked && wieldsGun);
+            (middle.X, middle.Y), _letsGo, Drops: rightClicked && wieldsGun, Holds: held);
         _letsGo = false;
         var shot = _harpoon.Step(elapsedMs, fresh && ready, hold, _grappling ? _grappleWorld : _harpoonWorld);
-        (_grappling ? _harpoonGun : _grappleGun).Step(elapsedMs, false, default, _harpoonWorld);
+        // The gun not in the hand keeps a line it holds, unwound.
+        if ((_grappling ? _harpoonGun : _grappleGun).Step(elapsedMs, false, default, _harpoonWorld).Send is { } away) client.Send(away);
         if (shot.Fired)
         {
             _shot.Play();
@@ -217,9 +218,9 @@ public partial class HeroView
             _bite.PlayAt(Pixels(_harpoon.Tip));
             RodLight.Bit(Pixels(_harpoon.Tip), Unit(_harpoon.Heading), metal: true);
         }
-        if (shot.Reel is { } reel) client.Send(reel);
+        if (shot.Send is { } send) client.Send(send);
         if (shot.Ready) _ready.Play();
-        // The drum turns from the press that reels till the piece is in, or while it pulls the hero, till the line comes free.
+        // The drum turns while the line winds a piece in, or while it pulls the hero, till the line comes free.
         if (HarpoonShot.Drums(_harpoon.Rod) != _drum.Playing)
         {
             if (_drum.Playing) _drum.Stop();

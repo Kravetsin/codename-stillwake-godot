@@ -11,7 +11,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0003](0003-character-rig.md) | Characters: modular cutout with keyframed animation | accepted | looks-are-printed (in part) |
 | [0004](0004-modules-and-tests.md) | Modules and tests | accepted |  |
 | [0005](0005-terraria-scale.md) | Terraria scale | accepted | 0104, 0105 (in part) |
-| [0006](0006-debris-in-the-simulation.md) | Debris drifts in the simulation | accepted |  |
+| [0006](0006-debris-in-the-simulation.md) | Debris drifts in the simulation | superseded | debris-host-physics |
 | [0007](0007-spacewalks-and-airlocks.md) | Spacewalks and airlocks | accepted | 0047 (in part) |
 | [0008](0008-items-inventories-and-crates.md) | Items, inventories and crates replace the shared stock | accepted |  |
 | [0009](0009-debris-around-the-ship.md) | Debris flies around the ship, each piece at its own speed | accepted | 0052 (in part) |
@@ -49,7 +49,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059, ship-music (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
-| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
+| [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs, debris-host-physics (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
 | [0046](0046-recipes-show-what-a-thing-is-made-of.md) | Recipes show what a thing is made of | accepted | 0068 (in part) |
 | [0047](0047-equipment-the-jetpack-and-the-slower-swim.md) | Equipment, the jetpack and the slower swim | accepted | 0058, 0068, jet-cruise (in part) |
@@ -434,6 +434,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [debris-host-physics](2026-11-23-debris-host-physics.md) | Debris moves by the host player's physics, and the harpoon tows it on a rope | accepted |  |
 | [debris-tumble](2026-11-23-debris-tumble.md) | Debris tumbles in the sim, and is hit by its turned shape | accepted |  |
 | [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
 | [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |

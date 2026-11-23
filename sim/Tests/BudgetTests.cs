@@ -391,6 +391,7 @@ public class BudgetTests(ITestOutputHelper output)
         {
             var (hx, hy) = heroes[i % heroes.Length];
             int x = (hx - around.Keep.X + (int)rng.Below((uint)(2 * around.Keep.X + 1))) * 1000 + 500, y = (hy - around.Keep.Y + (int)rng.Below((uint)(2 * around.Keep.Y + 1))) * 1000 + 500;
+            int speed = Content.Debris.DriftMin + (int)rng.Below(Content.Debris.DriftMax - Content.Debris.DriftMin + 1);
             debris.Pieces.Add(new Sim.Debris.Piece
             {
                 Id = debris.NextId++,
@@ -398,7 +399,8 @@ public class BudgetTests(ITestOutputHelper output)
                 Item = "scrapChunk",
                 X = x,
                 Y = y,
-                Speed = Content.Debris.DriftMin + (int)rng.Below(Content.Debris.DriftMax - Content.Debris.DriftMin + 1),
+                Speed = speed,
+                Vx = -speed,
                 Start = x,
                 End = 0,
                 SeenAt = debris.Clock,

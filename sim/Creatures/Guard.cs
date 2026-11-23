@@ -190,7 +190,7 @@ internal sealed class CutTetherDrive : DriveRule
 
     internal override void Reflex(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
-        if (m.Debris.PieceById(c.Recall(ClingerBody.Piece)) is not { Reel: not null } piece)
+        if (m.Debris.PieceById(c.Recall(ClingerBody.Piece)) is not { } piece || m.Debris.LineOn(piece.Id) == null)
         {
             c.Keep(CutsAt, 0);
             return;

@@ -77,7 +77,7 @@ public sealed partial class DebrisModule
     /// </summary>
     private bool CatchInNet(Piece piece)
     {
-        if (piece.Reel != null || !Content.Debris.NetCatches.Contains(piece.Item, StringComparer.Ordinal)) return false;
+        if (LineOn(piece.Id) != null || !Content.Debris.NetCatches.Contains(piece.Item, StringComparer.Ordinal)) return false;
         int cell = CellOf(piece.X, piece.Y, _grid.Width);
         if (_grid.MachineAt(cell) is not { } net || !Machines.Is(net.Kind, MachineTrait.Catches)) return false;
         int count = 0;

@@ -153,22 +153,22 @@ public class DebrisFoundTests
     }
 
     [Fact]
-    public void RecordsNothingForAGrabOrHitRefusedNorAReel()
+    public void RecordsNothingForAGrabOrHitRefusedNorAHook()
     {
         var w = new Scenario(Space).Run(DebrisSpec.Every);
         w.M.Debris.Pieces[0].Item = "supplyPod";
         // Aboard: refused, not outside.
         w.Do(new Grab(1)).Run();
         w.Do(new Enter(At(12, 1))).Run();
-        // Gone, never was; a wreck by hand, too big; a reel.
-        w.Do(new Grab(9)).Do(new Reel(1, 14_000, 3_000)).Run();
+        // Gone, never was; a wreck by hand, too big; a hook.
+        w.Do(new Grab(9)).Do(new Hook(1, 0, 0)).Run();
         int wreck = Next(w, "tankCluster");
         w.Do(new Grab(wreck)).Run();
         Assert.Equal(["debris.notOutside", "debris.gone", "debris.tooBig"], w.Refusals.Select(r => r.Reason));
         Assert.Empty(w.M.Debris.Found);
     }
 
-    // The record's invariants, whatever is caught, broken, reeled or refused.
+    // The record's invariants, whatever is caught, broken, hooked or refused.
 
     private sealed record Step(int Action, int Kind, int Times, int Ticks);
 
@@ -202,7 +202,7 @@ public class DebrisFoundTests
                 {
                     case 0: w.Do(new Grab(id)); break;
                     case 1: for (int i = 0; i < s.Times; i++) w.Do(HewTesting.Hit(w, id, Axe)); break;
-                    case 2: w.Do(new Reel(id, 14_000, 3_000)); break;
+                    case 2: w.Do(new Hook(id, 0, 0)); break;
                     case 3: w.Do(new Enter(At(12, 1))); break;
                     case 4: w.Do(new Enter(At(3, 3))); break;
                     default: w.Do(new Grab(id + 1)); break;

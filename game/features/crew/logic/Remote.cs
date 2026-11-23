@@ -19,7 +19,7 @@ public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPla
 /// A hero's harpoon rod out of the gun, as others see it (<see cref="HarpoonShot.Seen"/>): where it is,
 /// <see cref="Rod"/>, and <see cref="At"/>, in thousandths of a cell, a point that holds for the whole state, so
 /// a rod adds no sends of its own: flying, the end of the range it flies toward; stuck in a <see cref="Piece"/>,
-/// where it sticks from the piece's middle; stuck in the structure, where it sticks; none on the way back.
+/// where it sticks from the piece's middle in its own frame; stuck in the structure, where it sticks; none on the way back.
 /// Others play it out from these (<see cref="RemoteRod"/>, 0065).
 /// </summary>
 public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = null);
@@ -191,6 +191,26 @@ public sealed class RemoteHeroes
             shown.Add((id, Between(list[0], list.Count > 1 ? list[1] : null, then)));
         }
         return shown;
+    }
+
+    /// <summary>
+    /// Peer <paramref name="id"/>'s hero by its newest sample, not drawn behind: carried on along its velocity at most
+    /// <paramref name="aheadMs"/> past it, then held there, still (debris-physics: where the host player's rope anchors its line).
+    /// None unheard or gone.
+    /// </summary>
+    public Hero? Newest(int id, double now, double aheadMs)
+    {
+        foreach (var (heard, peer) in _peers)
+        {
+            if (heard != id) continue;
+            if (peer.Samples.Count == 0 || now - peer.Heard > GoneMs) return null;
+            var last = peer.Samples[^1];
+            var h = last.Seen.Hero;
+            double late = Math.Max(0, now - last.At), steps = Math.Min(late, aheadMs) / Hero.StepMs;
+            var moved = h with { X = (int)Math.Round(h.X + h.Vx * steps), Y = (int)Math.Round(h.Y + h.Vy * steps) };
+            return late > aheadMs ? moved with { Vx = 0, Vy = 0 } : moved;
+        }
+        return null;
     }
 
     private static Seen Between(Sample a, Sample? next, double then)

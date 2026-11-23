@@ -118,9 +118,9 @@ A living document: what is decided about the game and what is still open. Techni
   frees the hero from it, its thrust paid in the suit's air, and canisters breathed refill the suit
   ([0047](decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)).
 - **Catching:** by hand on the tether, within reach; farther out, a hand harpoon made at the Fabricator
-  shoots a rod on a line up to 20 cells into a piece, small or a wreck, and a second click reels it in to just before
-  the gun, to catch with E or chop with the axe; it fires again 5 s after its shot
-  ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md)). Shot into a wall it pulls the hero there, and hanging it
+  shoots a rod on a line up to 20 cells into a piece, small or a wreck, and the left button held winds the rope in,
+  the piece swinging and knocking others aside, to catch with E or chop with the axe; it fires again 5 s after its shot
+  ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md), [debris-host-physics](decisions/2026-11-23-debris-host-physics.md)). Shot into a wall it pulls the hero there, and hanging it
   fires on once reloaded; a grappling gun made of ship parts grips only walls, pulls at once and fast and reloads in a second,
   so a hero climbs out of a planet's deep shot by shot ([grapple-climbs](decisions/2026-11-07-grapple-climbs.md)); a net hung on the bow holds ten small pieces drifting into
   it till a hero empties it with E ([the-debris-net](decisions/2026-11-03-debris-net.md)).

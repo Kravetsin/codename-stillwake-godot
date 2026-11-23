@@ -361,8 +361,8 @@ public partial class HeroView : Node2D
         _harpoonWorld = new HarpoonWorld(
             Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _drift, _wreckPixels.Solid(_drift)),
             PieceAt: PieceDrawnAt,
-            Reelable: id => _m!.Debris.ReelProblem(_client!.Id, id) == null,
-            Reeled: id => ReelInFlight(id) || PieceOf(id)?.Reel?.By == _client!.Id,
+            HookOn: id => _m!.Debris.LineOf(_client!.Id) is { } line && line.Piece == id ? (line.HookX, line.HookY) : null,
+            HookSent: HookInFlight,
             Grips: at => Aiming.Grips(_ship!, at));
         _grappleWorld = _harpoonWorld with
         {
@@ -384,8 +384,8 @@ public partial class HeroView : Node2D
         return rod;
     }
 
-    /// <summary>Where piece <paramref name="id"/> is drawn this frame, between ticks; none once it is gone.</summary>
-    private (double X, double Y)? PieceDrawnAt(int id) => PieceOf(id) is { } piece ? PieceDrawn.At(piece, _drift) : null;
+    /// <summary>Where piece <paramref name="id"/> is drawn this frame, between ticks, and how it is turned; none once it is gone.</summary>
+    private PiecePose? PieceDrawnAt(int id) => PieceOf(id) is { } piece ? PieceDrawn.Pose(piece, _drift) : null;
 
     /// <summary>Piece <paramref name="id"/> as the sim has it this frame; none once it is gone.</summary>
     private Piece? PieceOf(int id)
@@ -396,17 +396,40 @@ public partial class HeroView : Node2D
         return null;
     }
 
-    /// <summary>Whether a <see cref="Reel"/> of piece <paramref name="id"/> this peer sent has yet to run.</summary>
-    private bool ReelInFlight(int id)
+    /// <summary>Whether a <see cref="LetGo"/> this peer sent has yet to run.</summary>
+    private bool LetGoInFlight()
     {
         var flying = _client!.InFlight;
         for (int i = 0; i < flying.Count; i++)
-            if (flying[i] is Reel reel && reel.Piece == id) return true;
+            if (flying[i] is LetGo) return true;
+        return false;
+    }
+
+    /// <summary>Whether a <see cref="Hook"/> of piece <paramref name="id"/> this peer sent has yet to run.</summary>
+    private bool HookInFlight(int id)
+    {
+        var flying = _client!.InFlight;
+        for (int i = 0; i < flying.Count; i++)
+            if (flying[i] is Hook hook && hook.Piece == id) return true;
         return false;
     }
 
     /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
     public Hero Current => _current;
+
+    /// <summary>
+    /// Where peer <paramref name="peer"/>'s body middle is now and how fast it moves, in thousandths of a cell and of a cell a second:
+    /// this machine's hero as it last stepped, another by its newest sample carried on at most <c>Debris.AnchorAhead</c>, then held
+    /// (debris-physics). None for a hero not heard from.
+    /// </summary>
+    public (double X, double Y, double Vx, double Vy)? AnchorOf(int peer)
+    {
+        var hero = peer == _client?.Id ? _current : _remote.Newest(peer, _clockMs, Content.Debris.AnchorAhead * 1000.0 / World.TicksPerSecond);
+        if (hero is not { } h) return null;
+        var middle = h.Middle;
+        double perSecond = 1000 / Hero.StepMs;
+        return (middle.X, middle.Y, h.Vx * perSecond, h.Vy * perSecond);
+    }
 
     /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
     public Func<Registry, int>? Start { get; set; }
@@ -687,6 +710,8 @@ public partial class HeroView : Node2D
         }
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut || _locked, pose, elapsedMs, handFree: !HoldsPlan);
+        // Come into a room, the hero lets its line go (debris-physics), once; the sim would drop it a tick later too.
+        if (!inSpace && m.Debris.LineOf(client.Id) != null && !LetGoInFlight()) client.Send(new LetGo());
         _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);

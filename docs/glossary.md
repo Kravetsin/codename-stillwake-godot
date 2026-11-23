@@ -113,7 +113,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - герой / hero → `Hero` (sim/Crew `State.cs`; client f/crew `Hero.cs`) → Crew
 - шлем / helmet → `Content.Helmet`, slot `head`: `helmet`, `heavyHelmet`, `heatedHelmet` (утеплённый, the ice belt), `heatHelmet` (жаростойкий); each adds degrees to `LowOf`, `HighOf` (gear-roles); drawn bolted still in f/crew `Figure`, `BodyFit` → Crew, Items
 - джетпак / jetpack → item `jetpack`, `Thrust`, `c/Jetpack.cs` → Crew
-- гарпун / harpoon → item `harpoon`, `c/Harpoon.cs`, f/crew `HarpoonShot`, `HarpoonLine`; `Reel` → Crew, Debris
+- гарпун / harpoon → item `harpoon`, `c/Harpoon.cs`, f/crew `HarpoonShot`, `HarpoonLine`; `Hook`, `Wind` → Debris
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - движение удара / swing motion **≠** → `SwingMotion` (keys `MotionKey`), a weapon's `Stroke.Motions`, played as `MotionPlay` with `Overhand`, `Jab` (f/crew `MotionPlay.cs`), its `MotionKind` in gc/`SwingMotions.cs`; the offset the hero carries `AxeSwing.Aim` → Crew
 - сектор удара / aim sector **≠** → `Sector`, `Sectors` (up, straight, down, under) in gc/`SwingMotions.cs` → Crew
@@ -145,7 +145,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 ## World
 
-- обломок / debris piece **≠** → `Piece`, `Hit`, `Reel` (sim/Debris); a wreck is debris of kind wreckage → Debris
+- обломок / debris piece **≠** → `Piece`, `Hit`, `Line` (sim/Debris); a wreck is debris of kind wreckage → Debris
 - сеть, сеть для обломков / debris net → machine `net`, trait `Catches`, `Collect`, `NetEntry`, `DebrisModule.Held` (sim/Debris `Nets.cs`) → Debris
 - метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
 - вспышка, магнитная буря / magnetic flare → `MagneticFlares.Flare`, `FlareNow`, `FlareComing` (sim/Hazards `Flares.cs`) → Hazards

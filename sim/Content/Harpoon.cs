@@ -1,9 +1,9 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// The hand harpoon (ADR 0044): distances in thousandths of a cell, speeds in thousandths of a cell a
-/// tick, times in ticks. The sim reads only <see cref="ReelSpeed"/>; the shot, its reach, its cooldown and
-/// the grapple that pulls the hero are the client's, among friends.
+/// The hand harpoon (ADR 0044, debris-physics): distances in thousandths of a cell, speeds in thousandths of a cell a
+/// tick, times in ticks. The sim reads only <see cref="Range"/>, a hooked line's longest; the shot, its cooldown, the grapple that
+/// pulls the hero and the rope that pulls a piece are the client's, the rope the host player's, among friends.
 /// </summary>
 public static class Harpoon
 {
@@ -20,20 +20,26 @@ public static class Harpoon
     /// <summary>How fast a rod come free snaps back to the gun, a miss or a line let go: 160 cells a second.</summary>
     public const int ReturnSpeed = 8_000;
 
-    /// <summary>How fast a reeled piece comes in along its longer axis: 16 cells a second (0068).</summary>
+    /// <summary>How fast the drum winds the line in while the left button is held: 16 cells a second (0068), the prototype's.</summary>
     public const int ReelSpeed = 800;
 
-    /// <summary>How far before the gun a reeled piece stops, inside the hands' reach: 3 cells.</summary>
+    /// <summary>How short the drum winds the line, the hook inside the hands' reach: 3 cells; there winding does nothing.</summary>
     public const int Stop = 3_000;
 
     /// <summary>
-    /// Reeling, the client sends the reel again to where the point before the gun is now once it has moved
-    /// this far from the last one sent, so the piece follows a hero that swims: 2 cells.
+    /// How much line the drum pays out past its wound length under load, a piece swinging wide or the hero jetting off: 10
+    /// cells, the prototype's (debris-physics).
     /// </summary>
-    public const int FollowBeyond = 2_000;
+    public const int PayOut = 10_000;
 
-    /// <summary>And at most once in this many ticks: 0.5 s.</summary>
-    public const int FollowTicks = 10;
+    /// <summary>
+    /// The pull the drum holds before it slips and pays out, in thousandths of a cell a second² times the piece's mass (a cell² of
+    /// box at <c>Debris.Density</c> 1000 weighs one): 375 cells/s², the prototype's 3000 px/s². A heavy piece slips it sooner.
+    /// </summary>
+    public const int Brake = 375_000;
+
+    /// <summary>The brake hardens to 1 + this times as the line paid out nears <see cref="PayOut"/>, by the square of the share: the prototype's 8.</summary>
+    public const int BrakeRamp = 8;
 
     /// <summary>How fast the grapple pulls the hero toward a rod stuck in the ship's structure: 20 cells a second.</summary>
     public const int PullSpeed = 1_000;

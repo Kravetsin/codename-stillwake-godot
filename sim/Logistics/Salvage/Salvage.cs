@@ -131,10 +131,10 @@ public sealed partial class LogisticsModule
         return best == null ? null : found;
     }
 
-    /// <summary>The cell of piece <paramref name="p"/>'s middle when a salvage drone may take it: a kind a net catches, not reeled, in space inside <paramref name="zone"/>; else null.</summary>
+    /// <summary>The cell of piece <paramref name="p"/>'s middle when a salvage drone may take it: a kind a net catches, on no line, in space inside <paramref name="zone"/>; else null.</summary>
     private int? Catchable(Piece p, Box zone)
     {
-        if (p.Reel != null || !Content.Debris.NetCatches.Contains(p.Item, StringComparer.Ordinal)) return null;
+        if (_debris.LineOn(p.Id) != null || !Content.Debris.NetCatches.Contains(p.Item, StringComparer.Ordinal)) return null;
         int cell = DebrisModule.CellOf(p.X, p.Y, _grid.Width);
         return _rooms.RoomAt(cell) == RoomsModule.Space && zone.Contains(cell % _grid.Width, cell / _grid.Width) ? cell : null;
     }

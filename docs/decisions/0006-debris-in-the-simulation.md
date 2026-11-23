@@ -1,6 +1,6 @@
 # 0006 — Debris drifts in the simulation
 
-- Status: accepted
+- Status: superseded by [debris-host-physics](2026-11-23-debris-host-physics.md)
 - Date: 2026-10-11
 - Supersedes: the "Physics: host-only" line of [0002](0002-coop-model.md), for debris; superseded in
   part by [0009](0009-debris-around-the-ship.md) (where pieces fly, and their speeds)

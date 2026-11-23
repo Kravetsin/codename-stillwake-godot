@@ -218,7 +218,7 @@ public class HewTests
             " #...#              ",
             " #####              ",
         ])).Run(DebrisSpec.Every);
-        foreach (var p in w.M.Debris.Pieces) p.Speed = 0;
+        foreach (var p in w.M.Debris.Pieces) (p.Speed, p.Vx) = (0, 0);
         return w.Do(new Enter(4 * 20 + 12)).Run();
     }
 

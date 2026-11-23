@@ -186,7 +186,7 @@ Client-authoritative (0002).
   piece; outlined green/red, `UsePrompt` why; plan in hand, E idle; armed, small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to walls, through wrecks; **sparks** the haze's
   (spark-rule). **Struck** (0038, swing-motions): by sector, as the blade crosses the aim.
-- **Harpoon, grapple** (0044, grapple-climbs): reel, pull to walls; hung, refire; Space/RMB let go.
+- **Harpoon, grapple** (0044, grapple-climbs): wind held, pull to walls; hung, refire; Space/RMB let go.
 - **Gun** (hold-to-fire): held fires each cooldown, `Charge` on release; kicks (body-answers).
 - **Drill, grinder, cutter** (0054, 0055): held runs (`Run`), hits a `Pace`, the cutter by beam (`ToolEdges`).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
