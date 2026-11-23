@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// lighting the wreck in its colour, red arcs jumping between its legs as it winds up, an amber burner trailing sparks and
 /// smoke while it flies, its feet's magnets glowing while it grips; struck a white flash and fine sparks; a harpoon line it
 /// cuts snipped in sparks at its claw; killed, cracks flashing over it till it bursts into sparks and its own pixels (2026-10-29-kill-feel). Heard on the
-/// Suit bus, as the wreck it guards is (<see cref="S.Ticks"/>). Drawn between ticks where the sim put it.
+/// Suit bus, as the wreck it guards is (<see cref="S.Ticks"/>), a spider's steps and pry on World. Drawn between ticks where the sim put it.
 /// </summary>
 public partial class TickBodies : Node2D
 {
@@ -47,6 +47,8 @@ public partial class TickBodies : Node2D
         public LoopEnvelope Burning;
         public TickArt.Anchors Anchors = null!;
         public S.TickCues? Cues;
+        public Footfalls Feet = null!;
+        public int? Prying;
         public Vector2 From, To, Drawn;
         public int Tick = -1, Damage, Cut, Piece;
         public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed, SawOwed, WhipLeft;
@@ -125,6 +127,7 @@ public partial class TickBodies : Node2D
             one.Drawn = feet;
             one.Show(feet);
             Moments(one, moments);
+            Walked(one, c, dt);
             Cut(one, c);
             Sawing(one, debris, dt, lights);
             Whip(one, dt);
@@ -172,6 +175,7 @@ public partial class TickBodies : Node2D
         (one.From, one.To, one.Tick, one.Damage, one.Species) = (at, at, tick, c.Damage, c.Species);
         (one.Cut, one.OwnAt, one.Piece) = (CreaturesModule.LastCut(c), double.NegativeInfinity, -1);
         one.Cues = S.Ticks.GetValueOrDefault(c.Species);
+        (one.Feet, one.Prying) = (new Footfalls(S.SpiderStepEvery, S.SpiderStepLeastS), CreaturesModule.PryingAt(c));
         one.Burning = default;
         (one.WhipLeft, one.LineWay) = (0, Vector2.Left);
         one.Visible = true;
@@ -265,6 +269,20 @@ public partial class TickBodies : Node2D
         double heading = Math.Atan2(to.Y, to.X);
         CreatureFx.Sparks(Stages.Of(Layers.Effects), at, heading, 1);
         if (one.Cues is { } cues) (own ? _suit : _world).Play(own ? S.Felt(cues.Hit) : cues.Hit, at, 1, GroundSounds.HitDbOf(tool));
+    }
+
+    /// <summary>
+    /// A walking one heard on World, aboard (derelict-enemies): its steps at its feet as its crawl passes them, on the floor or a wall;
+    /// its pry as it begins at a doorway.
+    /// </summary>
+    private void Walked(Shown one, Creature c, double dt)
+    {
+        if (one.Cues is not { } cues) return;
+        bool walks = cues.Step != null && c.Posture is not (Posture.Docked or Posture.Waking);
+        if (one.Feet.Step(one.Motion.Pose.Gait / TickMotion.GaitPerPixel, walks, dt)) _world.Play(cues.Step!, one.Drawn);
+        int? prying = CreaturesModule.PryingAt(c);
+        if (prying != null && prying != one.Prying && cues.Pry != null) _world.Play(cues.Pry, one.World(one.Anchors.Centre));
+        one.Prying = prying;
     }
 
     /// <summary>Its moments seen and heard: a start and a flash at its eye, the wind-up's servo, letting go and clamping on, a braking flight, a hero struck.</summary>

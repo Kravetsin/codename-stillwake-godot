@@ -166,8 +166,10 @@ public class SpiderAboardTests
     {
         var (a, spider, door, _) = BehindADoor();
         Assert.True(a.RunTill(() => spider.Recall(ProwlDrive.PryKey) != 0, 300), "it never pried");
+        Assert.NotNull(CreaturesModule.PryingAt(spider));
         int since = spider.Recall(ProwlDrive.PrySince);
         Assert.True(a.RunTill(() => !a.Shut(door.X, door.Y), Prowl.Pry + 1));
+        Assert.Null(CreaturesModule.PryingAt(spider));
         Assert.Equal(since + Prowl.Pry, a.V.Creatures.Clock);
         Assert.True(a.RunTill(() => spider.X / U < door.X, 100), "it never went through");
     }

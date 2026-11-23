@@ -117,7 +117,7 @@ public static class CreatureLooks
     /// </summary>
     public static readonly IReadOnlySet<string> Istukans = new HashSet<string> { Stillwake.Content.Creatures.Warden.Look };
 
-    /// <summary>The looks drawn as the escort A1 «Конвоир» (derelict-enemies, <c>EscortRig</c>): parts posed in code each frame; silent.</summary>
+    /// <summary>The looks drawn as the escort A1 «Конвоир» (derelict-enemies, <c>EscortRig</c>): parts posed in code each frame; heard by <c>Sound.Escorts</c>.</summary>
     public static readonly IReadOnlySet<string> Escorts = new HashSet<string> { Stillwake.Content.Creatures.Escort.Look };
 
     /// <summary>

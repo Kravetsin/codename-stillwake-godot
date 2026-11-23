@@ -231,7 +231,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
                 CreatureLooks.LightKeep, 1));
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
-        _escorts.Frame(creatures, grid.Width, _escorted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources);
+        _escorts.Frame(creatures, grid.Width, _escorted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }
@@ -283,7 +283,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (_flying.Contains(strike)) continue;
             if (!_shown.TryGetValue(strike.Creature, out var one))
             {
-                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)) _lurkers.OwnStrike(strike.Creature);
+                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool) && !_escorts.OwnStrike(strike.Creature, strike.Tool))
+                    _lurkers.OwnStrike(strike.Creature);
                 continue;
             }
             one.OwnAt = _clockMs;

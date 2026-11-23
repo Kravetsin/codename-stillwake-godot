@@ -452,7 +452,7 @@ public static class Creatures
     /// 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its rail gun's height, 4.85 cells up, across its reach in
     /// a tick, then 1.5 s before it moves.
     /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
-    /// sentry. Silent till its sounds are picked. Placeholder numbers, for a play pass.
+    /// sentry. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 350, Run: 350, Jump: 0, JumpAcross: 0),
         Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,

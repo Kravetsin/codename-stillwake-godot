@@ -4,9 +4,11 @@ using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
 using L = Stillwake.Game.Light;
+using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content.Creatures;
 
 namespace Stillwake.Game.Features.Creatures;
@@ -20,7 +22,8 @@ namespace Stillwake.Game.Features.Creatures;
 /// while its spider lives, dark once it is killed. The spider is drawn by <see cref="TickBodies"/> once the iris is open. A stand lets its
 /// escort go as it wakes (<see cref="StandWake"/>): its clamp swings up, its drum pays out the cable that lowers the yoke with the robot,
 /// the yoke's hooks open and it rises off its shoulders, its beacon flashing amber; after, it stands open and empty. The escort is drawn
-/// by <see cref="EscortBodies"/>, between the stand's back and its front.
+/// by <see cref="EscortBodies"/>, between the stand's back and its front. Each moment of a waking is heard on World where its part is: the
+/// capsule's alarm and iris; the stand's clamp, winch and yoke, and its robot powering up as its lamp lights.
 /// </summary>
 public partial class DocksView : Node2D, ILightSource
 {
@@ -46,6 +49,11 @@ public partial class DocksView : Node2D, ILightSource
     private readonly List<LightSource> _lights = [];
     private double _timeMs;
 
+    /// <summary>How far through its waking each dock was last heard: <see cref="DockWake.Asleep"/> asleep, NaN before its first frame or once awake.</summary>
+    private readonly double[] _heard;
+
+    private readonly Voices _voices = new(S.World, voices: 3);
+
     /// <summary>Where in the capsule's picture its hazard lamp is, and the shelf its spider sits folded on (guards.js).</summary>
     private static readonly Vector2 Pip = new(31.03f, 12.97f), OnShelf = new(20, 34);
 
@@ -69,6 +77,8 @@ public partial class DocksView : Node2D, ILightSource
         _docks = new (Vector2, bool)[docks.Count];
         _now = new (Shown, double)[docks.Count];
         _guards = new int[docks.Count];
+        _heard = new double[docks.Count];
+        Array.Fill(_heard, double.NaN);
         for (int i = 0; i < docks.Count; i++) _docks[i] = (Corner(docks[i]), docks[i].Rule == Content.Vessels.Aboard.Capsule);
         Lit.Set(_back);
         Lit.Set(_stands);
@@ -77,6 +87,7 @@ public partial class DocksView : Node2D, ILightSource
         AddChild(_stands);
         AddChild(_fronts);
         AddChild(_pips);
+        AddChild(_voices);
         _back.Paint = g => Paint(g, capsules: true);
         _stands.Paint = g => Paint(g, capsules: false);
         _fronts.Paint = PaintFronts;
@@ -150,8 +161,32 @@ public partial class DocksView : Node2D, ILightSource
             }
             changed |= now.State != _now[i].State || now.State == Shown.Waking;
             _now[i] = now;
+            Heard(i, now.State, now.P, _guards[i] >= 0 ? all[_guards[i]].Species : null);
         }
         return changed;
+    }
+
+    /// <summary>
+    /// Dock <paramref name="i"/>'s moments heard since its last frame, <paramref name="p"/> through its waking in <paramref name="state"/>,
+    /// its guard of <paramref name="species"/>: only while it wakes, so a dock first seen mid-wake, or emptied asleep, is silent.
+    /// </summary>
+    private void Heard(int i, Shown state, double p, string? species)
+    {
+        double was = _heard[i];
+        _heard[i] = state switch { Shown.Asleep => DockWake.Asleep, Shown.Waking => double.IsNaN(was) ? p : Math.Max(was, p), _ => double.NaN };
+        if (state != Shown.Waking) return;
+        double now = _heard[i];
+        var corner = _docks[i].Corner;
+        if (_docks[i].Capsule)
+        {
+            if (DockWake.Passed(was, now, 0)) _voices.Play(S.CapsuleAlarm, corner + Pip);
+            if (DockWake.Passed(was, now, DockWake.IrisFrom)) _voices.Play(S.CapsuleIris, corner + OnShelf);
+            return;
+        }
+        if (DockWake.Passed(was, now, 0)) _voices.Play(S.StandClamp, corner + Clamp);
+        if (DockWake.Passed(was, now, StandWake.LowerFrom)) _voices.Play(S.StandWinch, corner + Drum);
+        if (DockWake.Passed(was, now, StandWake.LampFrom) && species != null && S.Escorts.TryGetValue(species, out var cues)) _voices.Play(cues.Wake, YokeAt(corner, p));
+        if (DockWake.Passed(was, now, StandWake.HooksFrom)) _voices.Play(S.StandYoke, YokeAt(corner, p));
     }
 
     /// <summary>Capsule <paramref name="i"/>'s lamp as lit now, on this client's clock: none while dark.</summary>

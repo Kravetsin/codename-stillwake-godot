@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
+using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Creatures;
@@ -15,7 +17,9 @@ namespace Stillwake.Game.Features.Creatures;
 /// stand, hung its <see cref="StandWake.Hang"/> over the floor, then lowered and unfolding as it wakes (the stand's own parts are
 /// <see cref="DocksView"/>'s); awake striding, its rail gun turning to its aim as it charges and kicking back as it fires, its claw reaching
 /// out as it dashes. Its red head lamp shines and lights the hall; each gauss is a bright cyan-white trace to where it stopped, sparks
-/// there. Struck it flashes; killed it bursts into sparks and crumbles. Silent: its sounds are not picked yet.
+/// there. Struck it flashes; killed it bursts into sparks and crumbles. Heard on World (<see cref="S.Escorts"/>): each step, a servo as
+/// it turns round or swings its gun up, its gauss charging, fired and stopping, its dash, its pry, a blow on it and its death; its
+/// powering up in its stand is <see cref="DocksView"/>'s.
 /// </summary>
 public partial class EscortBodies : Node2D
 {
@@ -43,10 +47,14 @@ public partial class EscortBodies : Node2D
 
         public EscortRig.Pose Pose;
         public EscortRig.Anchors Anchors;
+        public S.EscortCues? Cues;
+        public Footfalls Feet = null!;
+        public int? Prying;
         public Vector2 From, To, Drawn;
         public int Tick = -1, Damage, Face = -1;
-        public double Reach, Phase, Move, AimMix, Coil, Claw, Open, Lamp, Flash, FiredAgo = double.PositiveInfinity;
-        public bool Firing;
+        public double Reach, Phase, Move, AimMix, Coil, Claw, Open, Lamp, Flash, FiredAgo = double.PositiveInfinity, ServoAgo,
+            OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity;
+        public bool Firing, Charging, Dashing;
 
         /// <summary>Its sprite in its pose, at its place, facing its way.</summary>
         public void Show(Vector2 feet)
@@ -68,6 +76,8 @@ public partial class EscortBodies : Node2D
     private readonly List<int> _gone = [];
     private readonly List<(Vector2 From, Vector2 To, double Age)> _traces = [];
     private readonly Dictionary<(int X, int Y), (byte R, byte G, byte B)> _pixels = [];
+    private readonly Voices _world = new(S.World, voices: 4);
+    private double _clockMs;
     private IReadOnlyList<(float X, float Y)> _heroes = [];
 
     /// <summary>What a killed one crumbles into, shared with the other creatures.</summary>
@@ -77,16 +87,21 @@ public partial class EscortBodies : Node2D
     {
         ZAsRelative = false;
         ZIndex = Layers.Escorts;
+        AddChild(_world);
     }
 
     /// <summary>
     /// A frame of the creatures in <paramref name="escorts"/> (those drawn as the escort), tick <paramref name="tick"/> drawn
     /// <paramref name="progress"/> of the way to the next, aiming at the heroes drawn at <paramref name="heroes"/> (their chests); what their
-    /// lamps light goes into <paramref name="lights"/>; the grid <paramref name="width"/> cells wide.
+    /// lamps light goes into <paramref name="lights"/>; the grid <paramref name="width"/> cells wide; <paramref name="shotByOwn"/> those this
+    /// player's own shots hit.
     /// </summary>
     public void Frame(CreaturesModule creatures, int width, IReadOnlyList<Creature> escorts, int tick, double progress, double elapsedMs,
-        IReadOnlyList<(float X, float Y)> heroes, List<LightSource> lights)
+        IReadOnlyList<(float X, float Y)> heroes, List<LightSource> lights, IReadOnlySet<int> shotByOwn)
     {
+        _clockMs += elapsedMs;
+        foreach (int id in shotByOwn)
+            if (_shown.TryGetValue(id, out var shot)) shot.ShotAt = _clockMs;
         _heroes = heroes;
         double dt = Math.Max(0, elapsedMs / 1000);
         _seen.Clear();
@@ -96,9 +111,15 @@ public partial class EscortBodies : Node2D
             if (!_shown.TryGetValue(c.Id, out var one)) _shown[c.Id] = one = Take(c, tick);
             Follow(one, c, tick);
             var feet = one.From.Lerp(one.To, (float)Math.Clamp(progress, 0, 1)) / Unit * Cell;
-            if (c.Damage > one.Damage) (one.Flash, one.Damage) = (1, c.Damage);
+            if (c.Damage > one.Damage)
+            {
+                // A friend's strike, or one of this player's own already heard as it was sent.
+                if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
+                one.Damage = c.Damage;
+            }
             Pose(one, c, feet, progress, dt);
             if (one.Firing) Fire(creatures, width, one);
+            Heard(one, c, dt);
             Glows(one, lights);
         }
         _alive.Clear();
@@ -116,6 +137,59 @@ public partial class EscortBodies : Node2D
         Traces(dt, lights);
     }
 
+    /// <summary>This player's own strike on <paramref name="id"/> with <paramref name="tool"/>, seen in flight for the first time: it reacts now, a round trip before the sim.</summary>
+    public bool OwnStrike(int id, string tool)
+    {
+        if (!_shown.TryGetValue(id, out var one)) return false;
+        one.OwnAt = _clockMs;
+        Struck(one, tool, own: true);
+        return true;
+    }
+
+    /// <summary>A blow on <paramref name="one"/> with <paramref name="tool"/>: it flashes, heard at its middle, this player's own as far as felt.</summary>
+    private void Struck(Shown one, string tool, bool own)
+    {
+        one.Flash = 1;
+        if (one.Cues is { } cues) _world.Play(own ? S.Felt(cues.Hit) : cues.Hit, one.Drawn + new Vector2(0, -Middle), 1, GroundSounds.HitDbOf(tool));
+    }
+
+    /// <summary>
+    /// Its sounds this frame, from what the sim says of it and its pose: a step as a foot comes down (each half stride, as the rig plants
+    /// it); a servo as it turns round, and as its gun swings up to aim with its charge; its dash's swing; a pry begun at a door.
+    /// </summary>
+    private void Heard(Shown one, Creature c, double dt)
+    {
+        if (one.Cues is not { } cues) return;
+        var spec = Spec.Creatures.Get(c.Species);
+        var middle = one.Drawn + new Vector2(0, -Middle);
+        bool awake = c.Posture is not (Posture.Docked or Posture.Waking);
+        // A foot comes down at the front of its stride: its phase at a quarter turn, the far foot half a turn on.
+        if (one.Feet.Step(one.Phase - Math.PI / 2, awake && one.Move > 0.5, dt)) _world.Play(cues.Step, one.Drawn);
+        one.ServoAgo += dt;
+        bool charging = c.Act is { Phase: ActPhase.WindUp } a && spec.Moves[a.Move] is Spec.Creatures.Shoot;
+        bool dashing = c.Act is { Phase: ActPhase.Active } d && spec.Moves[d.Move] is Spec.Creatures.Lunge;
+        if (charging && !one.Charging)
+        {
+            var muzzle = one.World(one.Anchors.Muzzle);
+            _world.Play(cues.Charge, muzzle);
+            _world.Play(cues.Servo, muzzle);
+            one.ServoAgo = 0;
+        }
+        if (dashing && !one.Dashing) _world.Play(cues.Lunge, middle);
+        (one.Charging, one.Dashing) = (charging, dashing);
+        int? prying = CreaturesModule.PryingAt(c);
+        if (prying != null && prying != one.Prying) _world.Play(cues.Pry, middle);
+        one.Prying = prying;
+    }
+
+    /// <summary>It turned round to face <paramref name="face"/>: a servo, unless one was heard a moment ago.</summary>
+    private void Turned(Shown one, int face)
+    {
+        if (one.Face != -face || one.Cues is not { } cues || one.ServoAgo < S.EscortServoLeastS) return;
+        _world.Play(cues.Servo, one.Drawn + new Vector2(0, -Middle));
+        one.ServoAgo = 0;
+    }
+
     /// <summary>Another surface, or a load: what was shown was another world's.</summary>
     public void Reset()
     {
@@ -130,6 +204,10 @@ public partial class EscortBodies : Node2D
         var at = new Vector2(c.X, c.Y);
         (one.From, one.To, one.Tick, one.Damage, one.Face) = (at, at, tick, c.Damage, -1);
         (one.Phase, one.Move, one.AimMix, one.Coil, one.Claw, one.Open, one.Lamp, one.Flash, one.FiredAgo, one.Firing) = (0, 0, 0, 0, 0, 0.3, 0, 0, double.PositiveInfinity, false);
+        // Its servo first heard a moment after it is seen: seen walking left, it has not turned.
+        (one.Cues, one.Feet, one.Prying, one.Charging, one.Dashing, one.ServoAgo) =
+            (S.Escorts.GetValueOrDefault(c.Species), new Footfalls(Math.PI, 0.12), CreaturesModule.PryingAt(c), false, false, 0);
+        (one.OwnAt, one.ShotAt) = (double.NegativeInfinity, double.NegativeInfinity);
         one.Drawn = at / Unit * Cell;
         one.Visible = true;
         return one;
@@ -167,8 +245,10 @@ public partial class EscortBodies : Node2D
             (fold, hung, lamp) = (StandWake.Folded(p), StandWake.Hung(p), StandWake.Lamp(p, p * DocksView.WakeOf(c) / World.TicksPerSecond));
         }
         var chest = CreatureFx.NearestOf(_heroes, feet + new Vector2(0, -Middle));
-        if (c.VX != 0) one.Face = Math.Sign(c.VX);
-        else if (c.Posture is not (Posture.Docked or Posture.Waking) && chest is { } h && Math.Abs(h.X - feet.X) > 2) one.Face = h.X > feet.X ? 1 : -1;
+        int face = c.VX != 0 ? Math.Sign(c.VX)
+            : c.Posture is not (Posture.Docked or Posture.Waking) && chest is { } h && Math.Abs(h.X - feet.X) > 2 ? (h.X > feet.X ? 1 : -1) : one.Face;
+        Turned(one, face);
+        one.Face = face;
         bool shooting = c.Act is { } act && spec.Moves[act.Move] is Spec.Creatures.Shoot, winding = c.Act is { Phase: ActPhase.WindUp };
         bool lunging = c.Act is { } a2 && spec.Moves[a2.Move] is Spec.Creatures.Lunge;
         if (c.Act is { } a3 && spec.Moves[a3.Move] is Spec.Creatures.Shoot gauss) one.Reach = gauss.Reach;
@@ -215,6 +295,11 @@ public partial class EscortBodies : Node2D
             end = new Vector2(x1, y1) / Unit * Cell;
         }
         _traces.Add((muzzle, end.Value, 0));
+        if (one.Cues is { } cues)
+        {
+            _world.Play(cues.Shot, muzzle);
+            _world.Play(cues.Stop, end.Value);
+        }
         var flares = Stages.Of(Layers.Effects).Flares;
         flares.Flash(muzzle.X, muzzle.Y, Edge, 0.9 * Fx.Glow, 8, CreatureLooks.LightKeep, 0.8);
         flares.Glint(muzzle.X, muzzle.Y, 3, Core);
@@ -255,10 +340,12 @@ public partial class EscortBodies : Node2D
             CreatureLooks.LightKeep, 1));
     }
 
-    /// <summary>Killed where it was drawn: a flash and sparks, and it crumbles.</summary>
+    /// <summary>Killed where it was drawn: a flash and sparks, heard shutting down, this player's own kill as far as felt; and it crumbles.</summary>
     private void Killed(Shown one)
     {
         var middle = one.Drawn + new Vector2(0, -Middle);
+        if (one.Cues is { } cues)
+            _world.Play(_clockMs - one.OwnAt < CreatureLooks.OwnMs * 2 || _clockMs - one.ShotAt < CreatureLooks.OwnMs ? S.Felt(cues.Killed) : cues.Killed, middle);
         CreatureFx.Sparks(Stages.Of(Layers.Effects), middle, -Math.PI / 2, 1.4);
         Stages.Of(Layers.Effects).Flares.Flash(middle.X, middle.Y, (255, 214, 150), 1.2 * Fx.Glow, 12, CreatureLooks.LightKeep, 0.86);
         if (Bursts == null) return;

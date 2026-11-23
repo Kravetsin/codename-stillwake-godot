@@ -49,10 +49,11 @@ public class CreatureLooksTests
     {
         Assert.True(HitLooks.Creatures.TryGetValue(species, out var impact), $"{species} has no hit look");
         Assert.NotEmpty(HitLooks.Of[impact].Throws);
-        // The escort is silent till its sounds are picked (derelict-enemies), but for its claw on a hero, the sentry's punch.
         if (CreatureLooks.Escorts.Contains(Spec.Creatures.Get(species).Look))
         {
-            Assert.False(Sound.Creatures.ContainsKey(species) || Sound.Istukans.ContainsKey(species), $"{species} is heard");
+            Assert.True(Sound.Escorts.TryGetValue(species, out var escort), $"{species} is drawn as the escort with no sounds of its own");
+            Assert.All(new[] { escort.Wake, escort.Step, escort.Servo, escort.Pry, escort.Charge, escort.Shot, escort.Stop, escort.Lunge, escort.Hit, escort.Killed },
+                cue => Assert.NotNull(cue.Heard));
             return;
         }
         if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(species).Look))
@@ -65,6 +66,9 @@ public class CreatureLooksTests
         {
             Assert.True(Sound.Ticks.TryGetValue(species, out var tick), $"{species} is drawn as the tick with no tick's sounds");
             Assert.All(new[] { tick.Alert, tick.WindUp, tick.Unclamp, tick.Clamp, tick.Snap, tick.Thrust, tick.Hit, tick.Death }, cue => Assert.NotNull(cue.Heard));
+            // One walking aboard (the spider) is heard stepping and prying too.
+            if (Spec.Creatures.Get(species).Body is Spec.Creatures.Walker)
+                Assert.All(new[] { tick.Step, tick.Pry }, cue => Assert.NotNull(cue?.Heard));
             return;
         }
         Assert.True(Sound.Creatures.TryGetValue(species, out var cues), $"{species} has no sounds");

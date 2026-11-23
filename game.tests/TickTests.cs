@@ -202,4 +202,33 @@ public class TickTests
         Assert.True(StandWake.Clamp(StandWake.LowerFrom) == StandWake.ClampSwing && StandWake.Hung(StandWake.HooksFrom) == 0);
         Assert.Equal((StandWake.ClampSwing, 0.0, 1.0, StandWake.YokeRise, 0.0, 1.0), (StandWake.Clamp(1), StandWake.Hung(1), StandWake.Hooks(1), StandWake.Risen(1), StandWake.Folded(1), StandWake.Lamp(1, 2)));
     }
+
+    [Fact]
+    public void ADocksMomentIsHeardOnceAsItsWakingPassesItAndNeverWhenFirstSeenPastIt()
+    {
+        // Asleep, a moment at its start is heard on the first frame it wakes; the iris once, on the frame that passes it.
+        Assert.True(DockWake.Passed(DockWake.Asleep, 0.02, 0));
+        Assert.False(DockWake.Passed(0.02, 0.05, 0));
+        Assert.Equal(1, new[] { (DockWake.Asleep, 0.02), (0.02, 0.07), (0.07, 0.12), (0.12, 0.3) }.Count(f => DockWake.Passed(f.Item1, f.Item2, DockWake.IrisFrom)));
+        // First seen mid-wake (unknown before), nothing is heard for what passed out of sight.
+        Assert.False(DockWake.Passed(double.NaN, 0.5, 0));
+        Assert.False(DockWake.Passed(double.NaN, 0.5, StandWake.LampFrom));
+    }
+
+    [Fact]
+    public void AGuardsFootIsHeardEachStepOfItsWayButNeverTwoTooCloseNorStandingNorAsItSetsOff()
+    {
+        var feet = new Footfalls(10, 0.1);
+        Assert.False(feet.Step(25, walks: true, 0.02));
+        Assert.False(feet.Step(29, walks: true, 0.05));
+        Assert.True(feet.Step(31, walks: true, 0.05));
+        // A step's way passed again too soon after the last: unheard, but counted.
+        Assert.False(feet.Step(41, walks: true, 0.05));
+        Assert.False(feet.Step(45, walks: true, 0.05));
+        Assert.True(feet.Step(51, walks: true, 0.1));
+        // Stopped, then off again: the first frame walking sets its count, unheard.
+        Assert.False(feet.Step(61, walks: false, 0.2));
+        Assert.False(feet.Step(75, walks: true, 0.2));
+        Assert.True(feet.Step(81, walks: true, 0.2));
+    }
 }

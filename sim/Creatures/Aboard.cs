@@ -43,6 +43,9 @@ public sealed partial class CreaturesModule
     /// <summary>The place in <see cref="Docks"/> of the dock <paramref name="c"/> was spawned at; null for a creature of no vessel.</summary>
     public static int? DockOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Aboard ? c.Recall(DockKey) : null;
 
+    /// <summary>The cell of the shut doorway <paramref name="c"/> pries, a guard aboard; null while it pries none.</summary>
+    public static int? PryingAt(Creature c) => c.Recall(ProwlDrive.PryKey) is int pried and > 0 ? pried - 1 : null;
+
     public override void Rebuild()
     {
         if (Rules is not VesselKind kind)

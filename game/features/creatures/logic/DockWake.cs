@@ -46,6 +46,15 @@ public static class DockWake
 
     /// <summary>Whether its hazard lamp shows red (else amber) <paramref name="seconds"/> into its waking.</summary>
     public static bool Red(double seconds) => (int)Math.Floor(seconds * FlashHz * 2) % 2 == 0;
+
+    /// <summary>
+    /// Whether a dock's moment at share <paramref name="at"/> of its waking came between frames heard at <paramref name="was"/> and
+    /// <paramref name="now"/>: <see cref="Asleep"/> before it began, so a moment at 0 is heard as it begins; NaN unknown, so none.
+    /// </summary>
+    public static bool Passed(double was, double now, double at) => was < at && at <= now;
+
+    /// <summary>How far through its waking a dock asleep is heard: before any moment of it.</summary>
+    public const double Asleep = -1;
 }
 
 /// <summary>
