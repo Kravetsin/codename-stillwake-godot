@@ -54,7 +54,7 @@ public class NetTests
     {
         var s = State(w);
         int x = cell % width * 1000 + 500 + speed;
-        var piece = new Piece { Id = s.NextId++, Zone = DebrisSpec.Ship.Id, Item = item, X = x, Y = cell / width * 1000 + 500, Speed = speed, Start = x, End = 0 };
+        var piece = new Piece { Id = s.NextId++, Zone = DebrisSpec.Ship.Id, Item = item, X = x, Y = cell / width * 1000 + 500, Speed = speed, Vx = -speed, Start = x, End = 0 };
         s.Pieces.Add(piece);
         return piece;
     }
@@ -165,12 +165,13 @@ public class NetTests
     }
 
     [Fact]
-    public void LetsAPieceBeingReeledPassThrough()
+    public void LetsAPieceOnALinePassThrough()
     {
-        var w = Quiet();
+        var w = Quiet().Do(new Enter(At(12, 4)) { From = 1 }).Run();
         var piece = Drift(w, "scrapChunk", Middle);
-        piece.Reel = new Reeling { By = 1, ToX = piece.X - 100, ToY = piece.Y, Left = 5 };
-        w.Run(2);
+        w.Do(new Hook(piece.Id, 0, 0) { From = 1 }).Run(2);
+        Assert.Empty(w.Refusals);
+        Assert.NotNull(w.M.Debris.LineOn(piece.Id));
         Assert.Single(w.M.Debris.Pieces);
         Assert.Empty(w.M.Debris.Held);
     }

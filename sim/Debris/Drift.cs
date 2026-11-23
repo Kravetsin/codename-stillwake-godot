@@ -36,6 +36,7 @@ public sealed partial class DebrisModule
         _hullAt = int.MinValue;
         _heldAt = int.MinValue;
         _caught.Clear();
+        RebuildLines();
     }
 
     internal (int Left, int Right, int Top, int Bottom)? Hull()
@@ -113,18 +114,6 @@ public sealed partial class DebrisModule
         throw new InvalidOperationException($"debris: a piece of zone '{id}', which is not in Debris.Zones");
     }
 
-    /// <summary>
-    /// Moves a reeled piece its share of the way still to go, truncated toward zero, so the last tick
-    /// lands it exactly; the line comes free on that tick.
-    /// </summary>
-    private static void Pull(Piece piece, Reeling reel)
-    {
-        piece.X += (reel.ToX - piece.X) / reel.Left;
-        piece.Y += (reel.ToY - piece.Y) / reel.Left;
-        reel.Left -= 1;
-        if (reel.Left == 0) piece.Reel = null;
-    }
-
     private void Drift()
     {
         var s = State;
@@ -138,25 +127,33 @@ public sealed partial class DebrisModule
         }
         s.Clock += 1;
         FindHeroes();
-        // Moved, then gone past its end where no hero sees it, or past the grid's edge, or, round the
-        // heroes, left behind by them all, or caught in a net, in id order; the rest kept in order.
+        // A holder gone, out or reported off into a room lets go before anything moves (debris-physics).
+        DropLetGo();
+        // Moved by its motion, then gone off the grid or past its end where no hero sees it, or, round the heroes, left behind by
+        // them all, or caught in a net, in id order; the line on one gone dropped with it.
         var pieces = s.Pieces;
         bool nets = _grid.MachinesWith(MachineTrait.Catches).Count > 0;
+        long width = (long)_grid.Width * Unit, height = (long)_grid.Height * Unit;
         int kept = 0;
         for (int i = 0; i < pieces.Count; i++)
         {
             var piece = pieces[i];
-            if (piece.Reel is { } reel) Pull(piece, reel);
-            else piece.X -= piece.Speed;
+            long x = (long)piece.X + piece.Vx, y = (long)piece.Y + piece.Vy;
             piece.Angle = (piece.Angle + piece.Spin) & 0xFFFF;
-            if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit))
+            if (x < 0 || y < 0 || x >= width || y >= height || x < piece.End && !InView((int)(x / Unit), (int)(y / Unit)))
             {
-                // Past the ship, a delivery is lost with its credits, and its good may be bought again (2026-11-08-mafia-deliveries).
+                // Past the ship or off the grid, a delivery is lost with its credits, and its good may be bought again (2026-11-08-mafia-deliveries).
                 if (piece.Delivery != 0) _knowledgeOps.Delivered(piece.Delivery, lost: true);
+                DropLineOn(piece.Id);
                 continue;
             }
-            if (piece.Zone != Content.Debris.DeliveryZone && ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)) continue;
-            if (nets && CatchInNet(piece)) continue;
+            (piece.X, piece.Y) = ((int)x, (int)y);
+            if (piece.Zone != Content.Debris.DeliveryZone && ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)
+                || nets && CatchInNet(piece))
+            {
+                DropLineOn(piece.Id);
+                continue;
+            }
             pieces[kept++] = piece;
         }
         pieces.RemoveRange(kept, pieces.Count - kept);
@@ -210,6 +207,12 @@ public sealed partial class DebrisModule
     /// </summary>
     private bool Kept(Piece piece, AroundHeroes around)
     {
+        // On a line it stays wherever it is towed (debris-physics).
+        if (LineOn(piece.Id) != null)
+        {
+            piece.SeenAt = State.Clock;
+            return true;
+        }
         int x = piece.X / Unit, y = piece.Y / Unit;
         bool near = false;
         foreach (var at in _heroes)
@@ -304,9 +307,10 @@ public sealed partial class DebrisModule
         return first.Cell / _grid.Width + Content.Machines.Get(first.Kind).Height / 2;
     }
 
-    /// <summary><paramref name="piece"/> put out, last in id order, turned and tumbling as its id says (<see cref="TumbleOf"/>).</summary>
+    /// <summary><paramref name="piece"/> put out, last in id order, moving at its own drift, turned and tumbling as its id says (<see cref="TumbleOf"/>).</summary>
     private void Spawned(Piece piece)
     {
+        (piece.Vx, piece.Vy) = (-piece.Speed, 0);
         (piece.Angle, piece.Spin) = TumbleOf(piece.Id, piece.Item);
         State.Pieces.Add(piece);
     }

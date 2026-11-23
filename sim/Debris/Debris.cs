@@ -32,16 +32,31 @@ public sealed record HewWrecks(string Tool, int X, int Y, int Heading) : Command
 public sealed record HewPieces(string Tool, IReadOnlyList<int> Pieces) : Command;
 
 /// <summary>
-/// Reels piece <c>Piece</c> by a harpoon to (<c>ToX</c>, <c>ToY</c>), in thousandths of a cell: the point
-/// the client puts before the gun, kept on the grid. The last reel of a piece wins (0044).
+/// The sender's harpoon rod stuck in piece <c>Piece</c> at (<c>HookX</c>, <c>HookY</c>), in thousandths of a cell from its middle
+/// in its own frame, clamped into its box (debris-physics): a <see cref="Line"/> as long as the way from its hero's reported cell to
+/// the hook, at most <c>Harpoon.Range</c>. It replaces the sender's own line, and the last hook on a piece wins.
 /// </summary>
-public sealed record Reel(int Piece, int ToX, int ToY) : Command;
+public sealed record Hook(int Piece, int HookX, int HookY) : Command;
+
+/// <summary>The sender's line wound in while <c>On</c>, the left button held; the host player's rope winds it.</summary>
+public sealed record Wind(bool On) : Command;
+
+/// <summary>The sender lets its line go: a right click, or its hero entering a room.</summary>
+public sealed record LetGo() : Command;
+
+/// <summary>A body's pose in <see cref="Moved"/>: piece <c>Id</c>'s middle, motion a tick, angle and spin, as <see cref="Piece"/> keeps them.</summary>
+public readonly record struct Body(int Id, int X, int Y, int Vx, int Vy, int Angle, int Spin);
+
+/// <summary>A line's length in <see cref="Moved"/>: hero <c>By</c>'s on piece <c>Piece</c>, in thousandths of a cell.</summary>
+public readonly record struct LineLength(int By, int Piece, int Length);
 
 /// <summary>
-/// The pieces of debris drifting by, catching them, reeling them in and breaking wreckage with
-/// weapons, in zones by the hull, in its asteroid band and round every hero (ADRs 0006, 0009, 0034, 0044, 0052 and 0054;
-/// packages/sim/src/modules/debris).
+/// The host player's feed (debris-physics): <c>Bodies</c> as its physics had them at the start of the debris tick <c>ForTick</c>
+/// (<see cref="IDebrisQueries.Clock"/>), before its drift, each carried on its own motion to the tick it applies on; and the
+/// <c>Lines</c>' lengths its ropes wound and paid out. A piece gone or a line no longer there is skipped. From the host player alone.
 /// </summary>
+public sealed record Moved(int ForTick, IReadOnlyList<Body> Bodies, IReadOnlyList<LineLength> Lines) : Command;
+
 /// <summary>What another module may read of the debris: the pieces, and one by its id.</summary>
 public interface IDebrisQueries
 {
@@ -59,6 +74,15 @@ public interface IDebrisQueries
 
     /// <summary>Whether a hit of <paramref name="damage"/> on wreck <paramref name="piece"/> breaks it: what <see cref="IDebrisOps.Hit"/> decides by.</summary>
     bool Breaks(int piece, int damage);
+
+    /// <summary>The harpoons' lines, in the order hooked; live and read-only.</summary>
+    IReadOnlyList<Line> Lines { get; }
+
+    /// <summary>The line on piece <paramref name="piece"/>; null for none.</summary>
+    Line? LineOn(int piece);
+
+    /// <summary>The line hero <paramref name="peer"/> holds; null for none.</summary>
+    Line? LineOf(int peer);
 }
 
 /// <summary>
@@ -140,7 +164,7 @@ public readonly record struct TurnedBox(int Piece, int X, int Y, int HalfW, int 
 /// <summary>How another module may change the debris.</summary>
 public interface IDebrisOps
 {
-    /// <summary>Piece <paramref name="id"/>'s reel let go, if it has one: it drifts on from where it is. A piece gone is let be.</summary>
+    /// <summary>The line on piece <paramref name="id"/> dropped, if it has one (a sentry cuts it): it moves on as it was. A piece gone is let be.</summary>
     void Unreel(int id);
 
     /// <summary>Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: true when it broke.</summary>
@@ -159,6 +183,10 @@ public interface IDebrisOps
     IReadOnlyList<(string Item, int Count)>? Catch(int id);
 }
 
+/// <summary>
+/// The pieces of debris drifting by, catching them, hooking them on lines and breaking wreckage with weapons, in zones by the hull,
+/// in its asteroid band and round every hero (ADRs 0006, 0009, 0034, 0044, 0052 and 0054; debris-physics).
+/// </summary>
 public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, IDebrisOps
 {
     /// <summary>Thousandths of a cell: a piece's position and speed are in these.</summary>
@@ -191,7 +219,10 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
         Handles<HewWrecks>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), Apply);
         Handles<HewPieces>(c => HewProblemOf(c.From, Listed(c.Pieces), c.Tool, running: true), Apply);
-        Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
+        Handles<Hook>(c => HookProblem(c.From, c.Piece), Apply);
+        Handles<Wind>(c => LineProblem(c.From), Apply);
+        Handles<LetGo>(c => LineProblem(c.From), Apply);
+        Handles<Moved>(c => c.From == HostPlayer ? null : "debris.notHost", Apply);
         Handles<Collect>(c => CollectProblem(c.From, c.Machine), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
@@ -220,10 +251,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
 
     // Operations.
 
-    public void Unreel(int id)
-    {
-        if (PieceById(id) is { } piece) piece.Reel = null;
-    }
+    public void Unreel(int id) => DropLineOn(id);
 
     /// <summary>
     /// Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: the blow stamped with the
@@ -246,7 +274,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         if (cuts) piece.Cut += damage;
         piece.Struck = new Blow { By = peer, At = State.Clock };
         if (!breaks) return false;
-        State.Pieces.RemoveAt(at);
+        RemoveAt(at);
         // The drone watches its player salvage (drone-lessons): a crate counts as wreckage; a burst by no hero, for no one.
         if (peer != FloorStack.Nobody) _knowledgeOps.Did(peer, Content.Lessons.WreckBroken);
         if (piece.Delivery != 0 && piece.Item != Content.Research.Confiscated)
@@ -309,7 +337,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         int at = IndexOf(id);
         if (at < 0) return null;
         var piece = State.Pieces[at];
-        State.Pieces.RemoveAt(at);
+        RemoveAt(at);
         var loot = LootOf(piece.Item, Random);
         Record(piece, loot);
         _items.Caught(loot);
@@ -455,12 +483,6 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         return struck.Count == 0 ? "debris.nothingToHit" : _held.WeaponProblem(peer, tool, running);
     }
 
-    /// <summary>
-    /// Why peer <paramref name="peer"/>'s reel of piece <paramref name="id"/> would be refused: it is gone,
-    /// or the hero or the piece is not in space, as for a grab. One reeled already is no reason: the last reel wins.
-    /// </summary>
-    public string? ReelProblem(int peer, int id) => Reachable(peer, id, out _);
-
     /// <summary>Why peer <paramref name="peer"/>'s hands cannot get at piece <paramref name="id"/>: it is gone, or the hero or the piece's middle is not in space.</summary>
     private string? Reachable(int peer, int id, out Piece? piece)
     {
@@ -495,7 +517,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         int at = IndexOf(c.Piece);
         if (at < 0) throw new InvalidOperationException("debris.grab: applied to a piece that is gone");
         var piece = State.Pieces[at];
-        State.Pieces.RemoveAt(at);
+        RemoveAt(at);
         var hero = _crew.HeroOf(c.From) ?? throw new InvalidOperationException("debris.grab: applied with no hero");
         if (piece.Delivery != 0)
         {
@@ -537,17 +559,5 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         if (!found.SeenLooks.Contains(look)) found.SeenLooks.Add(look);
         foreach (var (item, _) in loot)
             if (!found.Seen.Contains(item)) found.Seen.Add(item);
-    }
-
-    private void Apply(Reel c)
-    {
-        int at = IndexOf(c.Piece);
-        if (at < 0) throw new InvalidOperationException("debris.reel: applied to a piece that is gone");
-        var piece = State.Pieces[at];
-        int toX = Math.Clamp(c.ToX, 0, _grid.Width * Unit - 1), toY = Math.Clamp(c.ToY, 0, _grid.Height * Unit - 1);
-        int far = Math.Max(Math.Abs(toX - piece.X), Math.Abs(toY - piece.Y));
-        // Rounded up, so no tick moves it more than the reel's speed; at least one, so it lands on a tick.
-        int left = Math.Max(1, (far + Content.Harpoon.ReelSpeed - 1) / Content.Harpoon.ReelSpeed);
-        piece.Reel = new Reeling { By = c.From, ToX = toX, ToY = toY, Left = left };
     }
 }

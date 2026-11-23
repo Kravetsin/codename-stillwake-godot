@@ -52,6 +52,42 @@ public static class Debris
     public const int TumbleSide = 2;
 
     /// <summary>
+    /// The host player's body of a piece (debris-physics) is a box this many thousandths of its picture either way: the
+    /// prototype's 800, as a picture's corners are mostly empty.
+    /// </summary>
+    public const int ShapeShare = 800;
+
+    /// <summary>
+    /// A body's mass per cell² of its box, in thousandths: 1000, the prototype's, so a cell² weighs one, the unit
+    /// <c>Harpoon.Brake</c> is in. Every piece alike: only how much bigger one is than another matters.
+    /// </summary>
+    public const int Density = 1000;
+
+    /// <summary>
+    /// How fast a body eases back to its own drift and tumble, in thousandths of the difference a tick: 25, the prototype's
+    /// (0.506 a second), so a knocked or let-go piece settles back into the stream in some five seconds.
+    /// </summary>
+    public const int Drag = 25;
+
+    /// <summary>
+    /// The host player feeds a body's pose to the sim once a corner of its box strays this far from the sim's, in thousandths of a
+    /// cell: an eighth of a cell, a pixel, one threshold for place and turn; a guest sees no bigger snap.
+    /// </summary>
+    public const int FeedSlack = 125;
+
+    /// <summary>
+    /// At most this many bodies a tick in the feed, the farthest strayed first and the rest the next tick: some 1 KB a tick at
+    /// worst, the whole far field fed again in half a second after a stall.
+    /// </summary>
+    public const int FeedMost = 64;
+
+    /// <summary>
+    /// A guest's rope on the host player's client is anchored at its last heard place carried on its last velocity this many
+    /// ticks at most, then held: 0.5 s, past a lost packet or two.
+    /// </summary>
+    public const int AnchorAhead = 10;
+
+    /// <summary>
     /// The stream's kinds by weight: its one tier. A piece every 4 s, the more of them plain salvage, what a hero starts on
     /// (first-hour-pace); wrecks, racks and clods come about as often as when a piece came every 10 s.
     /// </summary>

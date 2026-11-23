@@ -12,5 +12,7 @@ public static partial class Ru
         ["debris.netEmpty"] = "Сеть пуста",
         ["debris.bagFull"] = "Нет места в сумке",
         ["debris.netHolds"] = "{held}/{of}",
+        ["debris.noLine"] = "Трос не выпущен",
+        ["debris.notHost"] = "Обломки двигает только хозяин",
     };
 }

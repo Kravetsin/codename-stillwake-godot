@@ -34,7 +34,7 @@ public class ToolEdgeTests
             " #...#              ",
             " #####              ",
         ])).Run(DebrisSpec.Every);
-        foreach (var p in w.M.Debris.Pieces) p.Speed = 0;
+        foreach (var p in w.M.Debris.Pieces) (p.Speed, p.Vx) = (0, 0);
         var a = w.M.Debris.Pieces[0];
         (a.Item, a.X, a.Y) = ("cableRack", 15_000, 2_000);
         var b = new Piece { Id = 99, Zone = a.Zone, Item = "cableRack", X = 17_000, Y = 6_000, End = 0 };

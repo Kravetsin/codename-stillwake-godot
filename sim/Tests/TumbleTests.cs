@@ -103,13 +103,12 @@ public class TumbleTests
     }
 
     [Fact]
-    public void AnOldReelOnATumblingWreckPullsItInTurningAndAHewLandsOnItsTurnedShape()
+    public void AFedPoseOnATumblingWreckKeepsItTurningAndAHewLandsOnItsTurnedShape()
     {
         var w = ShotsTests.Space();
         var hold = Wreck(w, 30, 10, "cargoHold", spin: 820);
-        // Eight cells at the reel's speed: ten ticks, an eighth of a turn and a little.
-        w.Do(new Reel(hold.Id, 38_500, 10_500)).Run(10);
-        Assert.Null(hold.Reel);
+        // The host's bodies set it eight cells on, upright and still but for its tumble: ten ticks turn it an eighth and a little.
+        w.Do(new Moved(w.M.Debris.Clock, [new Body(hold.Id, 38_500, 10_500, 0, 0, 0, 820)], [])).Run(10);
         Assert.Equal((38_500, 10_500, 8_200), (hold.X, hold.Y, hold.Angle));
         var shape = Shape(w, hold);
         var (x, y) = shape.At(shape.HalfW - 300, 0);

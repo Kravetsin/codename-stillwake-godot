@@ -222,6 +222,10 @@ public class DebrisZonesTests
 
     private static Piece? PieceOf(Scenario w, int id) => Pieces(w).FirstOrDefault(p => p.Id == id);
 
+    /// <summary>The host's feed setting <paramref name="piece"/> at (<paramref name="x"/>, <paramref name="y"/>), drifting as it spawned.</summary>
+    private static Moved Moved(Scenario w, Piece piece, int x, int y) =>
+        new(w.M.Debris.Clock, [new Body(piece.Id, x, y, -piece.Speed, 0, piece.Angle, piece.Spin)], []);
+
     /// <summary>A cell between its keep and hard boxes' heights above or below piece <paramref name="id"/>: out of its keep box, within its hard box however far it drifts the next 600 ticks.</summary>
     private static int Aside(Scenario w, int id)
     {
@@ -315,8 +319,7 @@ public class DebrisZonesTests
         var w = With(map, (400, 302)).Run();
         var piece = Pieces(w).Single(p => p.Zone == DebrisSpec.Ship.Id);
         Assert.Equal(472_000, piece.End);
-        w.Do(new Reel(piece.Id, 281_000, 303_000)).Run();
-        while (PieceOf(w, piece.Id)!.Reel != null) w.Run();
+        w.Do(Moved(w, piece, 281_000, 303_000)).Run();
         Assert.Empty(w.Refusals);
         // Past its end and seen: it drifts on to the view's edge, and is gone the tick it leaves it.
         int ticks = 0;
@@ -341,13 +344,13 @@ public class DebrisZonesTests
     public void DriftsAFarPieceToTheGridsLeftEdgeAndNoFurther()
     {
         // A hero by the left edge, above the stream's box: whatever it spawns stays in its keep box till the
-        // edge takes it. Its first piece is reeled to two cells from the edge, to be there soon.
+        // edge takes it. Its first piece is moved to two cells from the edge, to be there soon.
         var w = new Scenario(Wide).Do(new Enter(120 * 1280 + 60)).Run(DebrisSpec.Far.Every);
         // A beat whose draw falls off the grid spawns nothing, and the ring's left side is off it.
         for (int t = 0; t < 100 && !Far(w).Any(); t++) w.Run();
         var first = Far(w).First();
         Assert.Equal(0, first.End);
-        w.Do(new Reel(first.Id, 2_000, first.Y)).Run();
+        w.Do(Moved(w, first, 2_000, first.Y)).Run();
         Assert.Empty(w.Refusals);
         var last = new Dictionary<int, (int X, int Speed)>();
         (int X, int Speed) lastOfFirst = (first.X, first.Speed);
