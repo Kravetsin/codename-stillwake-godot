@@ -89,7 +89,8 @@ box, 0 inside (covering a cell is a gap of 0), and `At(local)`, a point of the p
 `WreckBox`. A hit changes no shape: a wreck takes damage whole and, broken, is gone with its body.
 - Debris: the `HewWrecks` fan and `HewPieces`.
 - Creatures: shots (`WreckIn`) and bursts by `Gap`; `WreckAt` in `Clinger.cs` loses its copy of the box. Clingers, sentries
-  and nests ride their perch point turned with the wreck (`At`).
+  and nests stand on their wreck, feet on its surface: their perch point turned with it (`At`), their body drawn turned by the
+  wreck's angle, and their box turned the same way for every hit (the same `Shape`).
 - Unchanged, judged by the middle cell: nets, grabs, salvage drones, the far field's despawn.
 - The far field keeps a piece on a line.
 
@@ -135,7 +136,8 @@ rebuilds its bodies from the save; contacts are not kept.
   elasticity; prediction is excluded by 0002.
 - **Guests see collisions as small snaps,** up to about an eighth of a cell (a pixel).
 - **A spawn on another piece** may pop apart once.
-- **A creature on a turning wreck** turns its perch point with it but is drawn upright, its body not tilted.
+- **A creature's own moves on a turning wreck** (a sentry's pounce, an arc) still start along the world's axes from its perch;
+  only its stance, drawing and box turn with the wreck.
 - **A delivery knocked off the grid is lost,** as one past its end is today; it takes a wreck swung on the trade station's row.
 - **The reported-cell check for dropping a line can be up to a second late;** the holder's own `LetGo` on entering a room
   covers what players hit.
@@ -145,7 +147,7 @@ rebuilds its bodies from the save; contacts are not kept.
 ## Tests
 - Scenarios: `Moved` sets a pose and carries it on from `ForTick`, a gone piece and a stale line skipped, a guest's refused,
   one from the host player on a planet applied; on a wreck turned 45° a fan through the old box's corner misses and one through
-  the turned tip hits; a burst's `Gap` to the turned box; a clinger on its turned perch; step 1: an old reel on a tumbling
+  the turned tip hits; a burst's `Gap` to the turned box; a clinger on its turned perch, a shot meeting its turned box; step 1: an old reel on a tumbling
   wreck, hit on its shape; one per refusal of `Hook`, `Wind`, `LetGo`; the hook point clamped into the box, the starting
   `Length`; one per drop reason (pass-out, room, grab, break, despawn, off the grid, a sentry's cut, another hook); the far
   field keeps a held piece, never netted; a piece leaving the grid gone; each save migration.
@@ -168,7 +170,7 @@ rebuilds its bodies from the save; contacts are not kept.
 
 ## Settled with the user
 - **Winding:** the left button held, as the gun's press today; E stays the grab (E came from the prototype only).
-- **Tumbling:** everything, wrecks too; so creatures ride their turned perch.
+- **Tumbling:** everything, wrecks too; so creatures stand on their wreck feet on its surface, turned with it.
 - **Bursts push pieces:** a small try right after co-op.
 - **Host away:** the physics always runs; the feed is addressed to the debris surface.
 - **Guest towing lag:** accepted, measured in the co-op step with `--lag 60/120` (prediction would go beyond 0002).
