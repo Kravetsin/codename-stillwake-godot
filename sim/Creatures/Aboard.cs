@@ -72,12 +72,14 @@ public sealed partial class CreaturesModule
         _doors = [.. v.Doors.Where(d => d != door).Select(d => (X: m + d.X, Y: m + d.Y)).OrderBy(d => d.Y).ThenBy(d => d.X)];
     }
 
-    /// <summary>The floor row of the deck <paramref name="c"/>'s dock stands on: its room's floor, in the world.</summary>
-    internal int DeckFloor(Creature c)
-    {
-        var dock = _docks[c.Recall(DockKey)];
-        return Vessels.Margin + dock.Y + dock.Height;
-    }
+    /// <summary>The place in <see cref="Docks"/> of <paramref name="c"/>'s dock; null for one past them (a save of another build): no dock.</summary>
+    private int? DockIndex(Creature c) => c.Recall(DockKey) is int i && i >= 0 && i < _docks.Count ? i : null;
+
+    /// <summary>Whether <paramref name="c"/> has a dock of this vessel: one without wakes at once and keeps to no deck.</summary>
+    internal bool Docked(Creature c) => DockIndex(c) != null;
+
+    /// <summary>The floor row of the deck <paramref name="c"/>'s dock stands on: its room's floor, in the world; null with no dock.</summary>
+    internal int? DeckFloor(Creature c) => DockIndex(c) is int i ? Vessels.Margin + _docks[i].Y + _docks[i].Height : null;
 
     /// <summary>
     /// The middle, in thousandths, of the door on the deck whose floor is row <paramref name="floor"/> nearest <paramref name="x"/>
@@ -110,7 +112,8 @@ public sealed partial class CreaturesModule
     /// <summary>Whether an awake hero's reported cell is in the room of <paramref name="c"/>'s dock: not seen through a doorway, nor in one.</summary>
     internal bool HeroInCabin(Creature c)
     {
-        var room = _cabins[c.Recall(DockKey)];
+        if (DockIndex(c) is not int dock) return false;
+        var room = _cabins[dock];
         for (int i = 0; i < _heroes.Count; i++)
             if (_awake[i] && room.Contains(_heroes[i].X, _heroes[i].Y)) return true;
         return false;
@@ -120,10 +123,13 @@ public sealed partial class CreaturesModule
     /// The reported cell of the awake hero aboard (in the hull box) nearest <paramref name="c"/> by squared distance in cells, the first in
     /// the crew's order at a tie, as <c>Shots</c>' homing finds one; null for none aboard.
     /// </summary>
-    internal (int X, int Y)? Quarry(Creature c)
+    internal (int X, int Y)? Quarry(Creature c) => QuarryOf(c)?.At;
+
+    /// <summary>The <see cref="Quarry"/> of <paramref name="c"/> with its hero's peer: what an escort's shot locks on.</summary>
+    internal (int Peer, (int X, int Y) At)? QuarryOf(Creature c)
     {
         int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
-        (int X, int Y)? best = null;
+        (int Peer, (int X, int Y) At)? best = null;
         long far = long.MaxValue;
         for (int i = 0; i < _heroes.Count; i++)
         {
@@ -131,7 +137,7 @@ public sealed partial class CreaturesModule
             if (!_awake[i] || !_hull.Contains(at.X, at.Y)) continue;
             long d = (long)(at.X - x) * (at.X - x) + (long)(at.Y - y) * (at.Y - y);
             if (d >= far) continue;
-            (far, best) = (d, at);
+            (far, best) = (d, (_peers[i], at));
         }
         return best;
     }

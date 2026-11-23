@@ -38,19 +38,23 @@ internal sealed class PatrolDrive : DriveRule
             c.VX = 0;
             return true;
         }
-        if (m.Quarry(c) is not { } q)
+        // No hero aboard, or no dock of this vessel (a save of another build) to keep its deck by: it stands.
+        if (m.QuarryOf(c) is not var (peer, q) || m.DeckFloor(c) is not int floor)
         {
             c.VX = 0;
             ProwlDrive.Forget(c);
             return true;
         }
-        int floor = m.DeckFloor(c);
         bool level = m.Level(q.Y) == m.Level(floor - 1);
         // Its claw first: a lunge begun takes the place of a shot it was charging, so it never fires while it claws.
         if (level && Math.Abs(q.X - Down(c.X, Unit)) <= patrol.Strike && Lunge(m, c, spec)) return true;
         int far = Math.Max(Math.Abs(q.X - Down(c.X, Unit)), Math.Abs(q.Y - feet));
         if (c.Act == null && spec.Moves.Count > 1 && RuleBook.Move(spec.Moves[1]).Ready(m, c, spec.Moves[1]) && far <= patrol.Notice && Sees(m, c, spec, q))
+        {
+            // Locked on the hero it saw: the shot's aim is taken at him (ShootMove's grudge), never at another nearer behind a floor.
+            c.Target = Ref.Hero(peer);
             RuleBook.Move(spec.Moves[1]).Begin(m, c, spec, 1);
+        }
         Walk(m, c, w, patrol, q, level, floor, top, feet);
         return true;
     }
@@ -77,7 +81,7 @@ internal sealed class PatrolDrive : DriveRule
         int y = c.Y - spec.Body.Height * Unit / 2;
         foreach (var mv in spec.Moves)
             if (mv is Spec.Shoot shoot) y = MuzzleY(c, spec, shoot);
-        return m.FirstSolid(c.X, y, m.Middle(at.X), m.Middle(at.Y)) == null;
+        return m.Sees(c.X, y, at);
     }
 
     /// <summary>A tick of its walk: toward its quarry on its deck, else its way along it; a shut door ahead pried; a wall, or the hull's end, turning it.</summary>
@@ -125,7 +129,8 @@ internal sealed class PatrolDrive : DriveRule
     internal override bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit) => true;
 
     /// <summary>A move over, it stands till its next tick's steering.</summary>
-    internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) => (c.VX, c.VY) = (0, 0);
+    internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) =>
+        (c.VX, c.VY, c.Target) = (0, 0, Ref.None);
 
     /// <summary>An open hatch in its deck's floor is floor to it: its feet span the hatch's two cells, and it never goes down one.</summary>
     internal override bool Spans(CreaturesModule m, Creature c) => true;

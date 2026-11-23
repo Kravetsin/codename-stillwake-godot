@@ -286,6 +286,85 @@ public class EscortAboardTests
         Assert.False(a.Shut(hatch.X, hatch.Y));
     }
 
+    /// <summary>Woken, its hero out past the way in, then peer 1's hero come aboard too, out past it as well.</summary>
+    private static Aboard WithTwo()
+    {
+        var a = new Aboard().Woken();
+        var door = Shipyard.WayIn(a.Built);
+        GuardsAboardTests.Board(a.W, 1, a.Cell(M + door.X - 4, M + door.Y + Content.Vessels.Open - 1));
+        return a;
+    }
+
+    /// <summary>How many hurts peer <paramref name="peer"/>'s hero has taken.</summary>
+    private static int HurtsOf(Aboard a, int peer) => a.V.Crew.HeroOf(peer)!.Hurts;
+
+    [Fact]
+    public void ItHuntsTheNearerOfTwoHeroesAndAtATieTheFirstInTheCrewsOrder()
+    {
+        var a = WithTwo();
+        int x = a.Column;
+        // Peer 0 ten columns left, peer 1 fourteen right, both out of its claw's reach: at peer 0; then the other way about.
+        a.Hero(x - 10, a.Body, 0).Hero(x + 14, a.Body, 1).Run();
+        Assert.Equal((x - 10, a.Body), a.V.Creatures.Quarry(a.Escort));
+        Assert.True(a.Escort.VX < 0, $"walking {a.Escort.VX}");
+        x = a.Column;
+        a.Hero(x + 14, a.Body, 0).Hero(x - 10, a.Body, 1).Run();
+        Assert.Equal((x - 10, a.Body), a.V.Creatures.Quarry(a.Escort));
+        Assert.True(a.Escort.VX < 0, $"walking {a.Escort.VX}");
+        // As near either way: the first in the crew's order, whichever side he is on.
+        x = a.Column;
+        a.Hero(x + 12, a.Body, 0).Hero(x - 12, a.Body, 1).Run();
+        Assert.Equal((x + 12, a.Body), a.V.Creatures.Quarry(a.Escort));
+        Assert.True(a.Escort.VX > 0, $"walking {a.Escort.VX}");
+        x = a.Column;
+        a.Hero(x - 12, a.Body, 0).Hero(x + 12, a.Body, 1).Run();
+        Assert.Equal((x - 12, a.Body), a.V.Creatures.Quarry(a.Escort));
+        Assert.True(a.Escort.VX < 0, $"walking {a.Escort.VX}");
+    }
+
+    [Fact]
+    public void ItsShotGoesAtTheHeroItSawNotOneNearerByTheBoxBehindTheFloor()
+    {
+        var a = WithTwo();
+        int x = a.Column;
+        var door = a.Doors.Single(d => d.X == a.Room.Left + a.Room.Width);
+        a.W.Do(new SetDoor(a.Cell(door.X, door.Y), true));
+        a.Run(Content.Doors.SwingTicks);
+        // Peer 1 in line through the open door 20 columns right, its quarry (400 cells squared); peer 0 on the deck over it, 13 columns
+        // left and 16 rows up (425), nearer by the box (16) all through its charge, and first at a tie.
+        int over = a.Room.Top - 1 - 3;
+        a.Hero(x - 13, over, 0).Hero(x + 20, a.Body, 1).Run();
+        Assert.Equal((x + 20, a.Body), a.V.Creatures.Quarry(a.Escort));
+        Assert.Equal(typeof(Spec.Shoot), a.Act);
+        var (one, two) = (HurtsOf(a, 0), HurtsOf(a, 1));
+        Assert.True(a.RunTill(() => a.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile), Gauss.WindUp + 2));
+        var end = a.V.Creatures.Ended.Single(e => e.Projectile == Gauss.Projectile);
+        Assert.InRange(end.Cell / a.V.Grid.Width, a.Body - 1, a.Body + 1);
+        Assert.Equal((one, two + 1), (HurtsOf(a, 0), HurtsOf(a, 1)));
+    }
+
+    [Fact]
+    public void TheGaussPassesAHeroPassedOutAndStopsInTheFirstAwakeOneInLine()
+    {
+        // Peer 0 passed out in line before peer 1: the shot passes him to peer 1.
+        var a = WithTwo();
+        int x = a.Column;
+        a.V.Crew.HeroOf(0)!.Out = 1000;
+        a.Hero(x - 12, a.Body, 0).Hero(x - 15, a.Body, 1).Run();
+        Assert.Equal(typeof(Spec.Shoot), a.Act);
+        var (one, two) = (HurtsOf(a, 0), HurtsOf(a, 1));
+        Assert.True(a.RunTill(() => a.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile), Gauss.WindUp + 2));
+        Assert.Equal((one, two + 1), (HurtsOf(a, 0), HurtsOf(a, 1)));
+        // Both awake, one behind the other in line: it stops in the first.
+        var b = WithTwo();
+        x = b.Column;
+        b.Hero(x - 12, b.Body, 0).Hero(x - 15, b.Body, 1).Run();
+        Assert.Equal(typeof(Spec.Shoot), b.Act);
+        (one, two) = (HurtsOf(b, 0), HurtsOf(b, 1));
+        Assert.True(b.RunTill(() => b.V.Creatures.Ended.Any(e => e.Projectile == Gauss.Projectile), Gauss.WindUp + 2));
+        Assert.Equal((one + 1, two), (HurtsOf(b, 0), HurtsOf(b, 1)));
+    }
+
     [Fact]
     public void TheGaussStopsAtAShutDoorBetweenWithNoBurst()
     {

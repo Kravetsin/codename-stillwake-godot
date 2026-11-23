@@ -204,6 +204,57 @@ public class GuardsAboardTests
         return (w, v, Shipyard.Build(Content.Vessels.Class(cls)!, contact.Seed, contact.Wreck));
     }
 
+    /// <summary>Peer <paramref name="peer"/>'s hero come aboard <paramref name="w"/>'s vessel at <paramref name="cell"/>: a peer joining, then crossing over.</summary>
+    internal static void Board(Scenario w, int peer, int cell)
+    {
+        w.Do(new Enter(w.M.Crew.Spawn) { From = peer }).Run();
+        w.Do(new Transfer(w.World.SurfaceOf(0), cell) { From = peer }).Run();
+        Assert.Equal(w.World.SurfaceOf(0), w.World.SurfaceOf(peer));
+    }
+
+    /// <summary>The box of <paramref name="b"/>'s hull and rooms in the world, read from its sections: what a guard keeps inside.</summary>
+    internal static Box HullOf(Built b)
+    {
+        int m = Content.Vessels.Margin;
+        var hull = Box.None;
+        foreach (var s in b.Vessel.Sections.Where(s => s.Kind is Vessel.SectionKind.Body or Vessel.SectionKind.Bow or Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier))
+            hull = hull.Union(new Box(m + s.Left, m + s.Top, m + s.Left + s.Width - 1, m + s.Bottom));
+        return hull;
+    }
+
+    [Fact]
+    public void AHeroPassedOutInItsRoomLeavesItAsleepAndOneComeToWakesIt()
+    {
+        var (w, v, built) = Boarded("freighter");
+        var guard = v.Creatures.Creatures[0];
+        var room = built.Vessel.Compartments[v.Creatures.Docks[CreaturesModule.DockOf(guard)!.Value].Room];
+        int m = Content.Vessels.Margin;
+        var hero = v.Crew.HeroOf(0)!;
+        hero.Out = 1000;
+        w.Do(new Enter((m + room.Floor - 3) * v.Grid.Width + m + room.Left + 1)).Run(60);
+        Assert.Equal(Posture.Docked, guard.Posture);
+        hero.Out = 0;
+        w.Run();
+        Assert.Equal(Posture.Waking, guard.Posture);
+    }
+
+    [Fact]
+    public void AGuardWithADockPastTheVesselsIsAwakeAtOnceAndAnEscortKeepsToNoDeck()
+    {
+        var (w, v, _) = Boarded("liner");
+        var escort = v.Creatures.Creatures.First(c => c.Species == Spec.Escort.Id);
+        var spider = v.Creatures.Creatures.First(c => c.Species == Spec.Spider.Id);
+        escort.Keep(CreaturesModule.DockKey, v.Creatures.Docks.Count);
+        spider.Keep(CreaturesModule.DockKey, -1);
+        w.Run(2);
+        Assert.Empty(w.Refusals);
+        Assert.All(new[] { escort, spider }, c => Assert.True(c.Posture is not (Posture.Docked or Posture.Waking) && c.Recall(DockDrive.Woke) == 1, $"{c.Species} {c.Posture}"));
+        // Its hero aboard, it stands: no deck to walk.
+        var (x, y) = (escort.X, escort.Y);
+        w.Run(60);
+        Assert.Equal((x, y), (escort.X, escort.Y));
+    }
+
     [Theory]
     [InlineData("freighter")]
     [InlineData("liner")]

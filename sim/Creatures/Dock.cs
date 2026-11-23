@@ -23,6 +23,12 @@ internal sealed class DockDrive : DriveRule
 
     internal override bool Run(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
+        // No dock of this vessel to sleep in (a save of another build): awake at once.
+        if (!m.Docked(c))
+        {
+            c.Keep(Woke, 1);
+            return false;
+        }
         if (c.Step == Asleep && m.HeroInCabin(c)) Wake(c, (Spec.Dock)d);
         return true;
     }
