@@ -27,7 +27,7 @@ public partial class EscortBodies : Node2D
     private const int Unit = CreaturesModule.Unit;
 
     /// <summary>The height over its feet it turns about, in pixels: its middle.</summary>
-    private const float Middle = 20;
+    private static readonly float Middle = Spec.Creatures.Escort.Body.Height * Cell / 2;
 
     /// <summary>How long a gauss's trace shows, and its first flash, in seconds; how far a shot kicks it back, fading over seconds.</summary>
     private const double TraceS = 0.45, FlashS = 0.08, RecoilS = 0.3;
@@ -206,7 +206,7 @@ public partial class EscortBodies : Node2D
         (one.Phase, one.Move, one.AimMix, one.Coil, one.Claw, one.Open, one.Lamp, one.Flash, one.FiredAgo, one.Firing) = (0, 0, 0, 0, 0, 0.3, 0, 0, double.PositiveInfinity, false);
         // Its servo first heard a moment after it is seen: seen walking left, it has not turned.
         (one.Cues, one.Feet, one.Prying, one.Charging, one.Dashing, one.ServoAgo) =
-            (S.Escorts.GetValueOrDefault(c.Species), new Footfalls(Math.PI, 0.12), CreaturesModule.PryingAt(c), false, false, 0);
+            (S.Escorts.GetValueOrDefault(c.Species), new Footfalls(S.EscortStepEvery, S.EscortStepLeastS), CreaturesModule.PryingAt(c), false, false, 0);
         (one.OwnAt, one.ShotAt) = (double.NegativeInfinity, double.NegativeInfinity);
         one.Drawn = at / Unit * Cell;
         one.Visible = true;

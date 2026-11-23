@@ -649,6 +649,12 @@ public static class Sound
     public const double EscortServoLeastS = 0.6;
 
     /// <summary>
+    /// How far an escort's stride turns between two of its steps heard, in radians of its walk's phase (a foot down each half turn), and
+    /// the least time between them in seconds.
+    /// </summary>
+    public const double EscortStepEvery = System.Math.PI, EscortStepLeastS = 0.12;
+
+    /// <summary>
     /// An Istukan's sounds (the warden, its audition page's picks): waking, taking the hero in, its crouch's hydraulics, its leap,
     /// coming to rest (a hero's landing on alloy), a blow on it (a tool on alloy), killed, and shut down with its relic or wall gone.
     /// All on the World bus: a planet has air.
