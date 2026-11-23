@@ -9,6 +9,9 @@ public sealed partial class DebrisModule
     /// <summary>The host player's peer (0002): the one whose client runs the bodies, the only one whose <see cref="Moved"/> is taken.</summary>
     public const int HostPlayer = 0;
 
+    /// <summary>The surface the host player's bodies run for and its <see cref="Moved"/> is addressed to: the ship's, the only one debris drifts by.</summary>
+    public const int BodiesOn = 0;
+
     /// <summary>The line of each hero and on each piece, kept with <c>Lines</c>: derived, rebuilt after a create and a load. Looked up only.</summary>
     private readonly Dictionary<int, Line> _lineOf = [], _lineOn = [];
 

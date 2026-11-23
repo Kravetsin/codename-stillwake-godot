@@ -19,7 +19,7 @@ registry of its own. Surface 0, the ship, is the registry a world is made or loa
 whose `Another()` makes the registry of a new surface, sharing the ship's globals (`Players`, `Knowledge`), which only
 the ship lists, first. `Registry.On(world, surface)` is the registry a surface runs. The core routes each command to
 the registry of its sender's surface (`World.SurfaceOf`), refusing one stamped on a surface its sender has left
-`world.elsewhere`; it runs every surface each tick in id order. `world.open` opens a surface of a kind in
+`world.elsewhere`, but a command marked `ISurfaceAddressed` to the surface it names (debris-coop); it runs every surface each tick in id order. `world.open` opens a surface of a kind in
 `Content.Surfaces` and `world.transfer` moves the sender there, carrying what `ICarries` modules hold of it (crew's
 hero, items' inventory and run). A system asks for a surface by `ISurfaces.OpenPlanet()` or `Open(kind, seed)`: opened once
 every surface ran, in the order asked, before the sends, so `Send` may name the id it returned; a planet's seed is drawn from

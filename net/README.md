@@ -39,7 +39,7 @@ simulation on them, and what lives outside the simulation (heroes) is passed alo
 Messages are records packed (`Packing`, 2026-10-26-compact-wire): each value by its declared type with no names,
 a message tagged by its place in `Protocol`'s list. Both ends run one build: the welcome checks it, with a fingerprint of
 how commands pack (`Wire.Fingerprint`) in the game's build string. The loopback
-copies through the same bytes, so in-process tests carry what the wire carries.
+copies the same bytes: in-process tests carry what the wire does.
 
 | To the host | To a peer |
 | --- | --- |
@@ -50,7 +50,7 @@ copies through the same bytes, so in-process tests carry what the wire carries.
 
 Commands travel packed by the sender's world (`Wire.Encode`, tagged by their place among `World.CommandTypes` in name
 order) and are unpacked by each peer's (`Wire.Decode`), `From` set from the stamp. The host runs no world and never decodes them. `Client.Send` stamps each with its peer's surface
-(`Surface`, 0076), so one whose hero has moved on by its tick is refused.
+(`Surface`, 0076), so one whose hero has moved on by its tick is refused; an `ISurfaceAddressed` one keeps its own.
 
 ## The session
 
@@ -65,8 +65,8 @@ order) and are unpacked by each peer's (`Wire.Decode`), `From` set from the stam
   late one (guest-draws-through).
 - **Commands in flight** (0014): `Client.InFlight` lists this peer's commands sent and not yet run; each of its own in a
   released tick is the oldest in flight, or it throws. The game shows them at once on top of the world; `RoundTrip`
-  times them. Those sent from a surface the peer has left (0076) are left out: they will be refused `world.elsewhere`.
-- **A channel** (`IChannel`) delivers in order and keeps what arrives before a receiver is set (`Inbox`) (no ADR).
+  times them. Those sent from a surface the peer has left (0076), not addressed, are left out: refused `world.elsewhere`.
+- **A channel** (`IChannel`) delivers in order and keeps what arrives before a receiver is set (`Inbox`).
 
 ## Joining mid-session
 

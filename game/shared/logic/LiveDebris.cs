@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Sim.Debris;
 
 namespace Stillwake.Game.Shared;
 
@@ -15,4 +16,10 @@ public static class LiveDebris
 
     /// <summary>How long the line of peer <c>by</c> on piece <c>piece</c> is now, in thousandths of a cell, or none.</summary>
     public static Func<int, int, double?> LineLength { get; set; } = (_, _) => null;
+
+    /// <summary>
+    /// Where a piece with no body here is drawn, given where the sim has it carried on: on a guest's client its corrections eased away
+    /// (<see cref="PieceEase"/>), else just there.
+    /// </summary>
+    public static Func<Piece, PiecePose, PiecePose> Eased { get; set; } = (_, sim) => sim;
 }

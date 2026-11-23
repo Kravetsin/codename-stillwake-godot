@@ -55,6 +55,7 @@ public sealed class Client
     /// The commands this peer sent that have not run yet, oldest first: what the game shows at once,
     /// before the host's tick confirms or refuses it (0014). A command leaves when its tick runs. Those sent from a
     /// surface this peer has left since are not here: they will be refused, and their cells are another grid's (0076).
+    /// One addressed to a surface (<see cref="ISurfaceAddressed"/>) stays: it applies there wherever this peer goes.
     /// </summary>
     public IReadOnlyList<Command> InFlight
     {
@@ -62,10 +63,14 @@ public sealed class Client
         {
             int here = World.SurfaceOf(Id);
             foreach (var c in _inFlight)
-                if (c.Surface is int sent && sent != here) return _inFlight.FindAll(f => f.Surface is not int s || s == here);
+                if (Elsewhere(c, here)) return _inFlight.FindAll(f => !Elsewhere(f, here));
             return _inFlight;
         }
     }
+
+    /// <summary>Whether <paramref name="command"/> was sent from a surface other than <paramref name="here"/>, and will be refused for it.</summary>
+    private static bool Elsewhere(Command command, int here) =>
+        command is not ISurfaceAddressed && command.Surface is int sent && sent != here;
 
     /// <summary>How many released ticks wait to run; a resync waiting among them is not counted.</summary>
     public int Queued => _queued;
@@ -73,11 +78,14 @@ public sealed class Client
     /// <summary>The hash this peer last told the host, for showing: hashing the world again is not free.</summary>
     public ulong? LastHash { get; private set; }
 
-    /// <summary>Asks the host to apply a command; it takes effect on the tick the host puts it in.</summary>
+    /// <summary>
+    /// Asks the host to apply a command; it takes effect on the tick the host puts it in. One addressed to a surface
+    /// (<see cref="ISurfaceAddressed"/>) keeps the surface it carries.
+    /// </summary>
     public void Send(Command command)
     {
         // Stamped with where this peer is now: should its hero leave before the tick, the command is refused (0076).
-        command = command with { Surface = World.SurfaceOf(Id) };
+        if (command is not ISurfaceAddressed || command.Surface == null) command = command with { Surface = World.SurfaceOf(Id) };
         _inFlight.Add(command);
         _channel.Send(new CommandMessage(World.Encode(command)));
     }

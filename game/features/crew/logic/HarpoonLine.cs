@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -45,6 +46,17 @@ public sealed class HarpoonLine
         double along = (gun.X - eye.X) * pointing.X + (gun.Y - eye.Y) * pointing.Y;
         double aside = Math.Abs((gun.X - eye.X) * pointing.Y - (gun.Y - eye.Y) * pointing.X);
         return along >= 0 && along <= rodLength && aside <= rodLength / 2 ? gun : eye;
+    }
+
+    /// <summary>
+    /// How slack a line <paramref name="length"/> long hangs, any hero's on any peer's screen (debris-physics), in thousandths of a cell:
+    /// its length less the way from its holder's body middle <paramref name="holder"/> to its <paramref name="hook"/>, in the piece's own
+    /// frame, on its piece drawn at <paramref name="piece"/>: the span the rope pulls along; below 0 stretched.
+    /// </summary>
+    public static double SlackOf(double length, PiecePose piece, (double X, double Y) hook, (double X, double Y) holder)
+    {
+        var (hx, hy) = piece.At(hook.X, hook.Y);
+        return length - Math.Sqrt((hx - holder.X) * (hx - holder.X) + (hy - holder.Y) * (hy - holder.Y));
     }
 
     /// <summary>How long the line is let out now.</summary>

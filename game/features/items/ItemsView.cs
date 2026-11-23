@@ -155,7 +155,7 @@ public partial class ItemsView : Node2D
         for (int i = 0; i < pieces.Count; i++)
         {
             if (pieces[i].Id != id) continue;
-            var (x, y) = PieceDrawn.At(pieces[i], progress);
+            var (x, y, _) = PieceDrawn.Pose(pieces[i], progress);
             return (x / DebrisModule.Unit * ShipCamera.Cell, y / DebrisModule.Unit * ShipCamera.Cell);
         }
         return null;

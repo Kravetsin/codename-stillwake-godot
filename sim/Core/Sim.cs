@@ -176,9 +176,13 @@ public sealed class World
         _applying = true;
         foreach (var c in commands)
         {
-            int at = SurfaceOf(c.From);
+            bool addressed = c is ISurfaceAddressed && c.Surface != null;
+            int at = addressed ? c.Surface!.Value : SurfaceOf(c.From);
+            // Its senders address only surfaces that stay open: one gone is our bug.
+            if (addressed && (at < 0 || at >= _surfaces.Count || _surfaces[at].Surface.Closed))
+                throw new InvalidOperationException($"{c.GetType().Name} is addressed to surface {at}, which is not open.");
             // Aimed at the cells of a surface its sender has left since: no module here may read them.
-            if (c.Surface is int sent && sent != at)
+            if (!addressed && c.Surface is int sent && sent != at)
             {
                 refused.Add(new Refused(c, Elsewhere));
                 continue;
