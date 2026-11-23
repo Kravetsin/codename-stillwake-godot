@@ -21,6 +21,12 @@ public enum Spoils
 }
 
 /// <summary>
+/// A burst Building was asked for (<see cref="BuildingModule.Bursts"/>): from <paramref name="Cell"/>, of <paramref name="Power"/>, within
+/// <paramref name="Reach"/> cells; <paramref name="Serial"/> counts every burst since the world was made or loaded, from 1.
+/// </summary>
+public sealed record RecentBurst(int Serial, int Cell, int Power, int Reach);
+
+/// <summary>
 /// Bursts (unified-damage, damage-scale): the one rule for what a charge or a meteor breaks, as a tool's or a shot's hit, in every
 /// direction through the shared <see cref="Wave"/>. A step costs <see cref="Damage.Step"/>, a cell what is left of its strength; a
 /// player's own burst aboard their ship that over <see cref="Damage.OwnShipTakes"/>, so a charge thrown aboard only cracks it.
@@ -33,10 +39,25 @@ public sealed partial class BuildingModule
     private readonly List<(string Item, int Count)> _burstSpoils = [];
     private int _burstPeer;
 
+    /// <summary>How many of the last bursts <see cref="Bursts"/> keeps: more than go off between two frames of any client.</summary>
+    public const int BurstsKept = 32;
+
+    private readonly List<RecentBurst> _recent = [];
+    private int _burstSerial;
+
+    /// <summary>
+    /// The last <see cref="BurstsKept"/> bursts asked for in the grid, oldest first, whatever stopped them (debris-bursts): what the host
+    /// player's bodies are pushed by. Derived, never saved or hashed: empty after a load, its serials begun again, so a reader seeing the
+    /// last serial go back starts over.
+    /// </summary>
+    public IReadOnlyList<RecentBurst> Bursts => _recent;
+
     /// <inheritdoc/>
     public bool Burst(int peer, int cell, int power, int reach, Spoils spoils)
     {
         if (cell < 0 || cell >= _grid.Width * _grid.Height) return false;
+        if (_recent.Count == BurstsKept) _recent.RemoveAt(0);
+        _recent.Add(new RecentBurst(++_burstSerial, cell, power, reach));
         // Cleared before the first cell is priced: what the last burst paid for must not make this one's first cell free.
         _burstBroken.Clear();
         _burstPaid.Clear();
