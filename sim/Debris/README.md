@@ -64,8 +64,8 @@ each stretch's (`ByHull`, stretches-of-space).
   look worn (`Content.Looks.Of`), each once.
 - **Lines** (debris-host-physics): `Hook(Piece, HookX, HookY)` hooks it there (clamped to its box), as long as the hero's
   span, at most `Harpoon.Range`; one a hero, one a piece, the last wins; refused `debris.gone`, `debris.notOutside`.
-  `Wind(On)`, `LetGo` refused `debris.noLine`. A piece gone takes its line (`Unreel` too). The sim pulls and collides nothing but a net.
-- **`Moved(ForTick, Bodies, Lines)`**, the host player's only (`debris.notHost`): bodies' poses and motions run on from
+  `Wind(On)`, `LetGo` refused `debris.noLine`. A piece gone takes its line (`Unreel` too). The sim pulls nothing.
+- **`Moved(ForTick, Bodies, Lines)`**, the host player's only (`debris.notHost`), addressed to `BodiesOn` (debris-coop): bodies' poses and motions run on from
   `ForTick` (off the grid, gone); lines' lengths where still on that piece.
 - **The catch:** a moved piece of a kind in `Debris.NetCatches`, on no line, is caught by a `Catches` machine at its middle
   with under `NetHolds` entries: an entry, a container's loot rolled then, `Found` recorded; no `CaughtFrom`. A salvage drone's `Catch(piece)`

@@ -435,6 +435,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [debris-coop](2026-11-23-debris-coop.md) | Debris physics in co-op: a feed addressed to the ship, guests ease corrections | accepted |  |
 | [debris-host-physics](2026-11-23-debris-host-physics.md) | Debris moves by the host player's physics, and the harpoon tows it on a rope | accepted |  |
 | [debris-tumble](2026-11-23-debris-tumble.md) | Debris tumbles in the sim, and is hit by its turned shape | accepted |  |
 | [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
