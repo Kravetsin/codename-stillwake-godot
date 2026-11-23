@@ -156,8 +156,8 @@ A living document: what is decided about the game and what is still open. Techni
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and adds 5° against the cold. Both are a
   planet's, so nothing needed before the first landing is made of them.
 - **Fighting:** the axe and the drill up close; the right button is the companion's ability with what is in hand, the axe, the
-  sledgehammer and the spear thrown and hauled back on its thread ([companion-fights](decisions/2026-11-22-companion-fights.md)); almost at the start, the nailer, made at the Fabricator, firing a nail of
-  two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
+  sledgehammer and the spear thrown and hauled back on its thread ([companion-fights](decisions/2026-11-22-companion-fights.md)); almost at the start, the nailer, made at the Fabricator, firing
+  nails of a scrap each, made ten at a time, a burst while held ([nailer-auto](decisions/2026-11-23-nailer-auto.md)), arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
   the gun's damage and its projectile's added, so guns to come fire the same nails their own way
   ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).
 - **Salvage tools,** made at the workbench past the axe and the drill: the angle grinder, three times the drill on wrecks and
