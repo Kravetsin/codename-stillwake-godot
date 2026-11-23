@@ -37,7 +37,8 @@ picked the look on a mockup drawn from real stamped vessels: https://claude.ai/a
 - **One builder:** `Shipyard.Build(cls, seed, forced)` returns `Built(Vessel, VesselWreck?, Parts)`: described, stamped, wrecked
   (`Hulk`, a port of the mockup's geometry on integers), every caller on it (`Places.Opened`, `World.Open`, the client's dress,
   lights, signs, beacons, looks and motion); `Stamp` internal. Draws are the vessel's own streams: 3 the wreck, 4 + i event i,
-  9 scavenging, so an intact vessel stamps as before.
+  9 scavenging, so an intact vessel stamps as before. A jump builds once: `World.Open` builds for the map and hands the same
+  `Built` to `Places.Opened` (`ISurfaces.Vessel`, set only while the surface opens); the jump tick's budget is a desk's 200 ms.
 - **Forced chains are data:** `Find(Class, Wreck?, Wrecked?)` (`Wrecked` a dev's ask for a wrecked or an intact vessel: the seed drawn again till `IsWreck` agrees) → `Contact.Wreck` → `ISurfaces.Visit`/`Open` and the shuttle's `Voyage` →
   `Surface.Wreck` (saved), each null for the seed's own; an empty chain is intact; a step not allowed at its turn is skipped.
   Every peer and a late joiner build the same. The dev flag `--vessel=<class> --wrecked=blast,fire,rock:old` forces one.

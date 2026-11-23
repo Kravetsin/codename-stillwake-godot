@@ -516,24 +516,27 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         }
     }
 
-    /// <summary>A jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it; a liner's and a tanker's too.</summary>
+    /// <summary>
+    /// A jump tick on the new game's world: its world opened, its vessel built once and written, Rooms and the rest after it; a
+    /// liner's and a tanker's too, each a wreck, the dearer build (vessel-wrecks).
+    /// </summary>
     [Theory]
     [InlineData("freighter")]
     [InlineData("liner")]
     [InlineData("tanker")]
     public void AJumpTickStaysUnderItsCeiling(string cls)
     {
-        // A hitch of a few frames once per visit, as a load is.
-        const int CeilingMs = 200;
+        // A hitch of a few frames once per visit, as a load is; a desk's bound, CI's slower runners by their slack.
+        double ceilingMs = 200 * BudgetTests.Slack;
         var (w, _) = Visited(cls);
         w.Do(new Transfer(0)).Run();
-        w.Do(new Find(cls)).Run();
+        w.Do(new Find(cls, null, true)).Run();
         w.Do(new Jump(w.M.Places.Contacts[^1].Id));
         var clock = Stopwatch.StartNew();
         w.Run();
         clock.Stop();
         Assert.Empty(w.Refusals);
         output.WriteLine($"{cls}: {clock.ElapsedMilliseconds} ms");
-        Assert.True(clock.ElapsedMilliseconds < CeilingMs, $"{clock.ElapsedMilliseconds} ms");
+        Assert.True(clock.ElapsedMilliseconds < ceilingMs, $"{clock.ElapsedMilliseconds} ms of {ceilingMs} ms");
     }
 }

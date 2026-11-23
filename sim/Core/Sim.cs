@@ -43,6 +43,9 @@ public sealed class World
     private readonly List<(string Kind, uint? Seed, int Opener, IReadOnlyList<string>? Ores, IReadOnlyList<Content.WreckStep>? Wreck)> _opening = [];
     // Whether the tick's commands are applying: the one moment a module may open a surface and move a hero at once (Visit).
     private bool _applying;
+    // The vessel a surface opening now was built with (vessel-wrecks), read by what fills it (ISurfaces.Vessel): one build a
+    // jump, not one for the map and one to write it. Set only while it opens; never saved.
+    private (int Surface, Built Vessel)? _built;
     private readonly RngState _rng;
     private readonly Rng _rngOver;
     // The world's own commands, which no surface's modules handle.
@@ -243,11 +246,12 @@ public sealed class World
         var kind = Content.Surfaces.Get(kindId);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = given ?? _rngOver.Below(1UL << 32);
+        var built = kind is Content.VesselKind vessel ? Shipyard.Build(Content.Vessels.Class(vessel.Class)!, seed, wreck) : null;
         var layout = kind switch
         {
             // Not calm: a planet's storms bring their lightning (docs/plans/surface-storms.md); it has no meteors or flares to start.
             Content.PlanetType type => Terrain.Generate(type, seed, ores) with { Meteors = true },
-            Content.VesselKind vessel => Shipyard.Space(Shipyard.Build(Content.Vessels.Class(vessel.Class)!, seed, wreck)),
+            Content.VesselKind => Shipyard.Space(built!),
             _ => Layout.Parse(kind.Rows).Doubled(),
         };
         var modules = ship.Another();
@@ -260,7 +264,9 @@ public sealed class World
         foreach (var m in modules) m.Rebuild();
         _surfaces.Add(surface);
         // Once every module stands: what fills it writes through the others' operations, as a command would.
+        _built = built is null ? null : (surface.Surface.Id, built);
         foreach (var m in modules) m.Opened();
+        _built = null;
         return surface.Surface.Id;
     }
 
@@ -434,6 +440,7 @@ public sealed class World
         public Content.Surfaces.Kind Kind => kind;
         public uint Seed => seed;
         public IReadOnlyList<Content.WreckStep>? Wreck => wreck;
+        public Built? Vessel => world._built is { } b && b.Surface == here ? b.Vessel : null;
 
         public void Send(int peer, int surface)
         {

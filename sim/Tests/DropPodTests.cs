@@ -101,6 +101,7 @@ public class DropPodTests
         public int Open(string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null) => throw new NotSupportedException();
         public uint Seed => 0;
         public IReadOnlyList<Content.WreckStep>? Wreck => null;
+        public Built? Vessel => null;
         public int Visit(int peer, string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null) => throw new NotSupportedException();
     }
 

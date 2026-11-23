@@ -38,6 +38,12 @@ public interface ISurfaces
     IReadOnlyList<Content.WreckStep>? Wreck { get; }
 
     /// <summary>
+    /// The vessel the surface this module runs on was opened with, built once (vessel-wrecks): set only while it opens, so its
+    /// <c>Opened</c> writes it without building it again; null otherwise, off a vessel world too.
+    /// </summary>
+    Built? Vessel { get; }
+
+    /// <summary>
     /// Moves peer <paramref name="peer"/>'s hero and what it carries to <paramref name="surface"/>, at its spawn, once
     /// every surface has run this tick, in the order asked: no module sees another surface change under it. Never to a
     /// closed surface: that is our bug.
