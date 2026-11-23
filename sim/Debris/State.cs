@@ -21,6 +21,10 @@ public sealed class Piece
     [JsonInclude] public int Y { get; internal set; }
     /// <summary>How far it drifts left a tick, in thousandths of a cell.</summary>
     [JsonInclude] public int Speed { get; internal set; }
+    /// <summary>How it is turned about its middle, in 65536ths of a turn, clockwise as the screen shows it; 0 upright.</summary>
+    [JsonInclude] public int Angle { get; internal set; }
+    /// <summary>How far it turns a tick, in 65536ths of a turn, clockwise positive: its own from its id as it spawns (<c>DebrisModule.TumbleOf</c>).</summary>
+    [JsonInclude] public int Spin { get; internal set; }
     /// <summary>Where its way begins: <see cref="X"/> at its first tick, but for a piece a world begins with.</summary>
     [JsonInclude] public int Start { get; internal set; }
     /// <summary>It is gone once <see cref="X"/> is below this.</summary>

@@ -454,6 +454,17 @@ public static class Migrations
                 worn!["colour"] = Colours72[worn["colour"]!.GetValue<int>()];
             return root;
         },
+        // 72 → 73 (debris-physics): every piece tumbles, its angle and spin from its id as a new one's are, on every surface.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]).OfType<JsonNode>()))
+                foreach (var piece in slices["debris"]?["pieces"]?.AsArray() ?? [])
+                {
+                    var (angle, spin) = Debris.DebrisModule.TumbleOf(piece!["id"]!.GetValue<int>(), piece["item"]!.GetValue<string>());
+                    (piece["angle"], piece["spin"]) = (angle, spin);
+                }
+            return root;
+        },
     ];
 
     /// <summary>Format 69's mount slot: the seventh equipment slot after 38 own ones, the cape and the trash after it.</summary>

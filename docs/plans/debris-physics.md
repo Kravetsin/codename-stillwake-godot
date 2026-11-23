@@ -183,9 +183,9 @@ rebuilds its bodies from the save; contacts are not kept.
   feed, nets as static bodies); the two-ended scoop net (a line between two anchors).
 
 ## Steps
-1. **Tumbling pieces.** Motion and angle in the sim, every piece tumbling, the turned shape for every reader, creatures on
-   their turned perch, the client drawing the sim's pose; the old reel stays; its save bump. Play: wrecks turn, hits land on
-   the picture.
+1. **Tumbling pieces.** Angle and spin in the sim, every piece tumbling, the turned shape for every reader, creatures on
+   their turned perch, the client drawing the sim's pose; the old reel stays; its save bump. `Vx`, `Vy` wait for step 2, their
+   first user (the feed), and its bump gives old pieces `(−Speed, 0)`. Play: wrecks turn, hits land on the picture.
 2. **Bodies and rope, single-player.** The bodies and the feed, the rope (`Hook`, `Wind`, `LetGo`; `Reel` removed); its save
    bump. Play: the prototype's feel, in the game.
 3. **Co-op.** Others' lines from `Lines`, the host player anchors guests' ropes, the surface-addressed feed, `FeedSlack`

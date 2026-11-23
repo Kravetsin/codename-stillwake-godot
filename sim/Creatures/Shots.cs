@@ -241,7 +241,7 @@ public sealed partial class CreaturesModule
     /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else a machine,
     /// once by its top-left, the lifepod stopping it whole (one-damage-rule), else the first wreck of <paramref name="wrecks"/> still out; null for none.
     /// </summary>
-    private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
+    private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<TurnedBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
         if (Solid(cell))
         {
@@ -345,10 +345,7 @@ public sealed partial class CreaturesModule
         _building.Burst(peer, cell, blast.Power, blast.Reach, Sim.Building.Spoils.Drop);
         long cx = cell % _grid.Width * Unit + Unit / 2, cy = cell / _grid.Width * Unit + Unit / 2, reach = (long)blast.Reach * Unit;
         foreach (var w in _wrecks)
-        {
-            long dx = Math.Max(0, Math.Max(w.Left - cx, cx - w.Right)), dy = Math.Max(0, Math.Max(w.Top - cy, cy - w.Bottom));
-            if (dx * dx + dy * dy <= reach * reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
-        }
+            if (w.Gap((int)cx, (int)cy) <= reach && _debris.PieceById(w.Piece) != null) _debrisOps.Hit(peer, w.Piece, blast.WreckDamage);
         int x = cell % _grid.Width, y = cell / _grid.Width;
         foreach (var hero in _crew.Heroes)
         {
@@ -362,9 +359,8 @@ public sealed partial class CreaturesModule
             var c = State.Creatures[i];
             if (c.Dead || c.Id == struck) continue;
             var spec = Spec.Get(c.Species);
-            long half = spec.Body.Width * Unit / 2, top = c.Y - (long)spec.Body.Height * Unit;
-            long dx = Math.Max(0, Math.Max(c.X - half - cx, cx - (c.X + half))), dy = Math.Max(0, Math.Max(top - cy, cy - c.Y));
-            if (dx * dx + dy * dy > reach * reach || FirstSolid((int)cx, (int)cy, c.X, c.Y - spec.Body.Height * Unit / 2) != null) continue;
+            var box = BoxOf(c);
+            if (box.Gap((int)cx, (int)cy) > reach || FirstSolid((int)cx, (int)cy, box.X, box.Y) != null) continue;
             // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
             Hurt(c, spec, blast.Body, new Hit(peer, AwayFrom(c, cell), 0, _debris.Clock, Shot: true));
         }
@@ -418,10 +414,10 @@ public sealed partial class CreaturesModule
         ShotFlight.Gravity(Rules, p, gun, _rooms.Afloat(y / Unit * _grid.Width + x / Unit));
 
     /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>
-    private IReadOnlyList<WreckBox> _wrecks = [];
+    private IReadOnlyList<TurnedBox> _wrecks = [];
 
     /// <summary>The first wreck of <paramref name="wrecks"/>, in spawn order, still out and not in <paramref name="passed"/>, whose box covers part of <paramref name="cell"/>; null for none.</summary>
-    private WreckBox? WreckIn(int cell, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
+    private TurnedBox? WreckIn(int cell, IReadOnlyList<TurnedBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
         foreach (var w in wrecks)
             if (w.Covers(cell, _grid.Width) && _debris.PieceById(w.Piece) != null && !passed.Contains(new ShotPass(ShotTarget.Wreck, w.Piece))) return w;
@@ -431,15 +427,8 @@ public sealed partial class CreaturesModule
     /// <summary>The lowest-id live creature not in <paramref name="passed"/> whose body's box overlaps <paramref name="cell"/>; null for none.</summary>
     private Creature? CreatureIn(int cell, IReadOnlyList<ShotPass> passed)
     {
-        int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
         foreach (var c in State.Creatures)
-        {
-            if (c.Dead) continue;
-            var body = Spec.Get(c.Species).Body;
-            int half = body.Width * Unit / 2;
-            if (c.X - half < left + Unit && c.X + half > left && c.Y - body.Height * Unit < top + Unit && c.Y > top
-                && !passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) return c;
-        }
+            if (!c.Dead && BoxOf(c).Covers(cell, _grid.Width) && !passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) return c;
         return null;
     }
 }

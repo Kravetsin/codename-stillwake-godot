@@ -148,6 +148,24 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public int? ClingsTo(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Piece) is int piece and > 0 ? piece : null;
 
     /// <summary>
+    /// How <paramref name="c"/> stands turned about its feet, in 65536ths of a turn (debris-physics): its wreck's angle while clamped on
+    /// it, feet on its surface; else upright, 0.
+    /// </summary>
+    public int StanceOf(Creature c) => Clamped(c) && _debris.PieceById(c.Recall(ClingerBody.Piece)) is { } piece ? piece.Angle : 0;
+
+    /// <summary>
+    /// The box <paramref name="c"/> is hit in, by every hit: its body over its feet, turned about them by its stance
+    /// (<see cref="StanceOf"/>), so a clinger's turns with its wreck.
+    /// </summary>
+    public TurnedBox BoxOf(Creature c)
+    {
+        var body = Spec.Get(c.Species).Body;
+        int angle = StanceOf(c);
+        var (dx, dy) = TurnedBox.Turn(angle, 0, -body.Height * Unit / 2);
+        return TurnedBox.Of(c.Id, c.X + dx, c.Y + dy, body.Width * Unit / 2, body.Height * Unit / 2, angle);
+    }
+
+    /// <summary>
     /// Whether peer <paramref name="peer"/>'s hero is threatened: within <c>Creatures.ThreatReach</c> cells of it (box distance, by its
     /// reported cell) a creature acts, retaliates, or is of a faction that hunts the crew. What its client asks to report where it
     /// is every tick it moves (2026-10-26-creatures-are-composed); false with no hero on the grid.
