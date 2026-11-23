@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Arcs.cs` | `Bolted`, `StrikeArc`, `Linger`; `Arcs`, `BeamStop`. |
+| `Arcs.cs` | The arc's hits. |
 | `Bounty.cs` | Catchers sent. |
 | `Clinger.cs` | The sentry's grip. |
 | `Creatures.cs` | Commands, queries, the hit path. |
@@ -31,7 +31,7 @@
 | `Walker.cs` | Steps, leaps. |
 
 Every creature composed (creatures-are-composed): a species names a body, life, faction, ranked
-drives, moves and yields, each a rule here. The dead are gone to all from the blow.
+drives, moves and yields, each a rule here. The dead are gone from the blow.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
   (queries, `Unreel`, `Hit`, `TakeBursting`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
@@ -52,7 +52,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   over, or the one in charge `Run`s (false yields), at none left `Next`. Its body moves. On the beat, spawns.
 - **The walker** (0102, 0106): under gravity; solid: walls, floors, shut doors, the edge, fog.
   It steps `StepUp`; at a higher wall or a `Drop` it tries a leap (`Lands`), else its drive may act (`Blocked`), else turns.
-- **The clinger:** clamped to its wreck's top, riding it; off it, it flies through walls.
+- **The clinger:** clamped to its wreck's top, riding and turning with it (`StanceOf`, `BoxOf`); off it, it flies through walls.
 - **Grazers:** `Graze` idles, wanders, past `Herd` from its kind toward it. `Flee` runs its ticks; cornered, may lunge.
   `Retaliate`, struck in `Reach`, draws `Chance`, flees a while, lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, a charge along the ground at the nearest awake hero till past it, a wall, a drop, `Ticks`.
