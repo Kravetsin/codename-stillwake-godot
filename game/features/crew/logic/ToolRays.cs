@@ -134,8 +134,7 @@ public static class ToolRays
         }
         foreach (var c in m.Creatures.Creatures)
         {
-            var (left, top, right, bottom) = Aiming.BoxOf(c);
-            if (!met.Touched.Contains(c) && Aiming.Entered((from.X, from.Y, endX, endY), left, top, right, bottom) != null) met.Touched.Add(c);
+            if (!met.Touched.Contains(c) && Aiming.Entered((from.X, from.Y, endX, endY), Aiming.BoxOf(m, c)) != null) met.Touched.Add(c);
         }
         return (first, (endX, endY));
     }

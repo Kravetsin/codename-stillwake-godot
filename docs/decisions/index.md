@@ -434,5 +434,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [debris-tumble](2026-11-23-debris-tumble.md) | Debris tumbles in the sim, and is hit by its turned shape | accepted |  |
 | [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
 | [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |

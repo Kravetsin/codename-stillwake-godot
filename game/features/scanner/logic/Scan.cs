@@ -11,8 +11,8 @@ namespace Stillwake.Game.Features.Scanner;
 public readonly record struct Readout(int Id, double X, double Y, int Left, int Max);
 
 /// <summary>
-/// What the worn scanner reads (2026-11-07-the-scanner): the hit points left of the wreck under the pointer, held up at the
-/// middle of its picture's top edge where it is drawn. Nothing while it is not worn, nor over a small piece or empty space.
+/// What the worn scanner reads (2026-11-07-the-scanner): the hit points left of the wreck under the pointer, held up over the
+/// middle of its picture's top as it is drawn and turned. Nothing while it is not worn, nor over a small piece or empty space.
 /// </summary>
 public static class Scan
 {
@@ -23,9 +23,11 @@ public static class Scan
     public static Readout? Of(IReadOnlyList<Piece> pieces, (double X, double Y) pointer, bool worn, double progress)
     {
         if (!worn || WreckAim.Under(pieces, pointer) is not { } wreck || Content.Wreckage.HpOf(wreck.Item) is not int hp) return null;
-        var (x, y) = PieceDrawn.At(wreck, progress);
-        int top = WreckAim.HalfOf(wreck.Item)!.Value.HalfH - WreckAim.Margin;
-        return new Readout(wreck.Id, x / DebrisModule.Unit, (y - top) / DebrisModule.Unit, Math.Max(0, hp - wreck.Damage), hp);
+        var (halfW, halfH) = WreckAim.HalfOf(wreck.Item)!.Value;
+        var shape = PieceDrawn.Shape(wreck, progress, halfW - WreckAim.Margin, halfH - WreckAim.Margin);
+        // Over the top of its picture as it is turned (debris-physics): the sim's turned box's highest reach.
+        long rise = ((long)shape.HalfW * Math.Abs(shape.Sin) + (long)shape.HalfH * Math.Abs(shape.Cos)) / DebrisModule.Unit;
+        return new Readout(wreck.Id, shape.X / (double)DebrisModule.Unit, (shape.Y - rise) / (double)DebrisModule.Unit, Math.Max(0, hp - wreck.Damage), hp);
     }
 
     /// <summary>

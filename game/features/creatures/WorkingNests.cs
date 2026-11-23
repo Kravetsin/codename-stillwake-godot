@@ -10,7 +10,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The nests (companion-fights, breakers-look): a pair of each at work on its piece in view, rocking with its picture, the rest unseen
+/// The nests (companion-fights, breakers-look): a pair of each at work on its piece in view, turning with its picture, the rest unseen
 /// under it (<see cref="BreakerPack"/>). One gone is kept a moment for the bodies of its pack to fly out of. Drawn from a pool that never frees.
 /// </summary>
 public partial class WorkingNests : Node2D
@@ -46,8 +46,8 @@ public partial class WorkingNests : Node2D
 
     public double Seconds => _seconds;
 
-    /// <summary>Shows the nests of <paramref name="creatures"/> on their pieces within <paramref name="view"/> (cells), drawn <paramref name="drift"/> ticks on and turned by <paramref name="turns"/>.</summary>
-    public void Frame(CreaturesModule creatures, IDebrisQueries debris, IReadOnlyDictionary<int, double> turns, Rect2 view, double drift, double elapsedMs)
+    /// <summary>Shows the nests of <paramref name="creatures"/> on their pieces within <paramref name="view"/> (cells), drawn <paramref name="drift"/> ticks on, turned with them (debris-physics).</summary>
+    public void Frame(CreaturesModule creatures, IDebrisQueries debris, Rect2 view, double drift, double elapsedMs)
     {
         _seconds += Math.Max(0, elapsedMs / 1000);
         int shown = 0;
@@ -56,18 +56,18 @@ public partial class WorkingNests : Node2D
         for (int i = 0; i < nests.Count; i++)
         {
             if (debris.PieceById(nests[i].Piece) is not { } piece) continue;
-            var (x, y) = PieceDrawn.At(piece, drift);
-            var at = new Vector2((float)(x / Unit), (float)(y / Unit));
+            var pose = PieceDrawn.Pose(piece, drift);
+            var at = new Vector2((float)(pose.X / Unit), (float)(pose.Y / Unit));
             if (!near.HasPoint(at) || Spec.Wreckage.SizeOf(piece.Item) is not var (w, h)) continue;
             if (creatures.SleeperOn(piece) is not { } species || !CreatureLooks.Breakers.TryGetValue(Spec.Creatures.Get(species).Look, out var kind)) continue;
             if (!_packs.TryGetValue(piece.Id, out var pack)) _packs[piece.Id] = pack = new Pack { Piece = piece.Id };
             (pack.Species, pack.Middle, pack.Half, pack.Seen) = (species, at * Cell, new Vector2(w, h) * Cell / 2, _seconds);
             pack.Count = Math.Min(BreakerPack.AtWork, nests[i].Size);
-            float rock = (float)turns.GetValueOrDefault(piece.Id);
+            float turn = (float)pose.Radians;
             for (int k = 0; k < pack.Count; k++)
             {
                 var worker = BreakerPack.WorkerOf(piece.Id, k, pack.Half.X, pack.Half.Y);
-                var seen = new AtWork(pack.Middle + new Vector2((float)worker.X, (float)worker.Y).Rotated(rock), rock + (float)worker.Angle, worker.At(_seconds));
+                var seen = new AtWork(pack.Middle + new Vector2((float)worker.X, (float)worker.Y).Rotated(turn), turn + (float)worker.Angle, worker.At(_seconds));
                 pack.Workers[k] = seen;
                 var one = Working(shown++, kind);
                 one.Show(new BreakerPose(seen.Clock, Work: 1, Lamp: 0.8 + 0.2 * Math.Sin(seen.Clock * 3), Tint: BreakerMotion.Calm), 0);

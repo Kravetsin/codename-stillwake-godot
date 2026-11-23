@@ -37,6 +37,21 @@ public static class Debris
     public const int AimRadius = 3000;
 
     /// <summary>
+    /// How fast a piece may tumble, in 65536ths of a turn a tick (debris-physics): 160 is 0.31 rad/s, the prototype's fastest
+    /// (0.3); a small piece turns between half of it and it, a turn in 20 to 40 s, round the 0.25 rad/s the client once drew.
+    /// </summary>
+    public const int TumbleMax = 160;
+
+    /// <summary>The slowest any piece tumbles, in 65536ths of a turn a tick: 0.046 rad/s, the prototype's slowest (0.05), a turn in 2.3 minutes.</summary>
+    public const int TumbleMin = 24;
+
+    /// <summary>
+    /// A piece up to this many cells along its longer side may tumble at <see cref="TumbleMax"/>; a longer one's fastest falls as
+    /// one over its side, so a big wreck turns slowly as it did rocking: a 4-cell wreck at most 80, a 12-cell derelict 26.
+    /// </summary>
+    public const int TumbleSide = 2;
+
+    /// <summary>
     /// The stream's kinds by weight: its one tier. A piece every 4 s, the more of them plain salvage, what a hero starts on
     /// (first-hour-pace); wrecks, racks and clods come about as often as when a piece came every 10 s.
     /// </summary>

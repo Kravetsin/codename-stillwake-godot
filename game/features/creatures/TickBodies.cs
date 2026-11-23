@@ -48,6 +48,8 @@ public partial class TickBodies : Node2D
         public TickArt.Anchors Anchors = null!;
         public S.TickCues? Cues;
         public Vector2 From, To, Drawn;
+        /// <summary>How it was last drawn turned with its wreck, in radians: kept as it dies.</summary>
+        public double Stance;
         public int Tick = -1, Damage, Cut, Piece;
         public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed, SawOwed, WhipLeft;
         /// <summary>The way the line it saws runs off, from its claw: what its snap whips along.</summary>
@@ -55,12 +57,16 @@ public partial class TickBodies : Node2D
         public string Species = "";
         public CreatureLooks.TickLook Look = null!;
 
-        /// <summary>Its sprite drawn in its motion's pose, at its place, turned and facing as it flies.</summary>
-        public void Show(Vector2 feet)
+        /// <summary>
+        /// Its sprite drawn in its motion's pose, at its place, turned and facing as it flies; clamped on, turned about its feet by its
+        /// wreck's <paramref name="stance"/>, in radians (debris-physics).
+        /// </summary>
+        public void Show(Vector2 feet, double stance)
         {
+            Stance = stance;
             Anchors = _rig.Place(Motion.Pose);
             _ink.Show(_rig.Slots, Motion.Flash, 0);
-            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Look.Size);
+            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Look.Size, stance);
         }
 
         /// <summary>Where a point of its sprite (<see cref="TickArt.Anchors"/>) is in the world this frame.</summary>
@@ -115,7 +121,8 @@ public partial class TickBodies : Node2D
             }
             var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress) with { Blown = blown }, dt);
             one.Drawn = feet;
-            one.Show(feet);
+            // Clamped on, it stands on its wreck as the wreck is drawn turned (debris-physics).
+            one.Show(feet, CreaturesModule.Clamped(c) && debris.PieceById(one.Piece) is { } on ? PieceDrawn.Pose(on, progress).Radians : 0);
             Moments(one, moments);
             Cut(one, c);
             Sawing(one, debris, dt, lights);
@@ -196,7 +203,8 @@ public partial class TickBodies : Node2D
     {
         var at = new Vector2(c.X, c.Y);
         int piece = creatures.ClingsTo(c) ?? -1;
-        double along = debris.PieceById(piece) is { } p ? c.X - p.X : 0;
+        // Along its wreck's own top, however the wreck is turned (debris-physics).
+        double along = debris.PieceById(piece) is { } p && debris.Shape(p) is { } shape ? shape.Local(c.X, c.Y).X : 0;
         if (one.Tick < 0 || tick - one.Tick > 1 || piece != one.Piece) (one.From, one.To, one.AlongFrom, one.AlongTo) = (at, at, along, along);
         else if (tick != one.Tick) (one.From, one.To, one.AlongFrom, one.AlongTo) = (one.To, at, one.AlongTo, along);
         (one.Tick, one.Piece) = (tick, piece);
@@ -476,7 +484,7 @@ public partial class TickBodies : Node2D
         {
             var one = _dying[i];
             one.Motion.Step(default, dt);
-            one.Show(one.Drawn);
+            one.Show(one.Drawn, one.Stance);
             var middle = one.World(one.Anchors.Centre);
             var glims = Stages.Of(Layers.Effects).Glims;
             for (int k = Due(ref one.SpitOwed, 30 * Fx.Count, dt); k > 0; k--)

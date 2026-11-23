@@ -94,7 +94,9 @@ public sealed partial class CreaturesModule
         foreach (var place in HatchPlaces)
         {
             if (_hatch.Count == most) return;
-            int x = piece.X + place.X * offX / Unit, y = piece.Y + place.Y * offY / Unit + spec.Body.Height * Unit / 2;
+            // Round the wreck as it is turned (debris-physics); the body itself hatches upright.
+            var (dx, dy) = TurnedBox.Turn(piece.Angle, place.X * offX / Unit, place.Y * offY / Unit);
+            int x = piece.X + dx, y = piece.Y + dy + spec.Body.Height * Unit / 2;
             // A platform out there is space to the rooms, and solid to a body (as a lair is asked).
             if (InSpace(spec.Body, x, y) && !Overlaps(spec.Body, x, y)) _hatch.Add((x, y));
         }

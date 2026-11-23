@@ -52,23 +52,88 @@ public interface IDebrisQueries
 
     Piece? PieceById(int id);
 
-    IReadOnlyList<WreckBox> Wrecks();
+    IReadOnlyList<TurnedBox> Wrecks();
+
+    /// <summary>The turned box <paramref name="piece"/> is hit in (<see cref="DebrisModule.ShapeOf"/>); none for a piece caught by hand.</summary>
+    TurnedBox? Shape(Piece piece);
 
     /// <summary>Whether a hit of <paramref name="damage"/> on wreck <paramref name="piece"/> breaks it: what <see cref="IDebrisOps.Hit"/> decides by.</summary>
     bool Breaks(int piece, int damage);
 }
 
 /// <summary>
-/// A wreck a hit may strike, its middle in space: piece <paramref name="Piece"/>'s box (<see cref="Content.Wreckage.SizeOf"/>),
-/// its edges in thousandths of a cell, the right and bottom ones past it.
+/// A box turned about its middle (debris-physics): thing <paramref name="Piece"/>'s (a wreck's id, or a creature's for its body),
+/// its middle at (<paramref name="X"/>, <paramref name="Y"/>), <paramref name="HalfW"/> by <paramref name="HalfH"/> either way along
+/// its own axes, all in thousandths of a cell, turned so its own x runs along (<paramref name="Cos"/>, <paramref name="Sin"/>), in
+/// thousandths (Core's sine table). Every product is a <c>long</c>, truncated toward zero: the sim's and the client's hit tests alike.
 /// </summary>
-public readonly record struct WreckBox(int Piece, int Left, int Top, int Right, int Bottom)
+public readonly record struct TurnedBox(int Piece, int X, int Y, int HalfW, int HalfH, int Cos, int Sin)
 {
-    /// <summary>Whether the box covers part of <paramref name="cell"/> of a grid <paramref name="width"/> cells wide.</summary>
+    private const int Unit = Rays.Cell;
+
+    /// <summary>The box of <paramref name="piece"/> at (<paramref name="x"/>, <paramref name="y"/>) turned by <paramref name="angle"/>, in 65536ths of a turn.</summary>
+    public static TurnedBox Of(int piece, int x, int y, int halfW, int halfH, int angle)
+    {
+        var (cos, sin) = Direction(angle);
+        return new TurnedBox(piece, x, y, halfW, halfH, cos, sin);
+    }
+
+    /// <summary>The way an angle in 65536ths of a turn points, in thousandths: Core's fine table, 4096 headings to the turn.</summary>
+    public static (int Cos, int Sin) Direction(int angle) => Rays.FineDirection((angle & 0xFFFF) >> 4);
+
+    /// <summary>The point (<paramref name="localX"/>, <paramref name="localY"/>) of a frame turned by <paramref name="angle"/> as an offset in the world's.</summary>
+    public static (int X, int Y) Turn(int angle, int localX, int localY)
+    {
+        var (cos, sin) = Direction(angle);
+        return Turned(cos, sin, localX, localY);
+    }
+
+    private static (int X, int Y) Turned(int cos, int sin, long x, long y) => ((int)((x * cos - y * sin) / Unit), (int)((x * sin + y * cos) / Unit));
+
+    /// <summary>The point (<paramref name="localX"/>, <paramref name="localY"/>) of the box's own frame, from its middle, in the world.</summary>
+    public (int X, int Y) At(int localX, int localY)
+    {
+        var (dx, dy) = Turned(Cos, Sin, localX, localY);
+        return (X + dx, Y + dy);
+    }
+
+    /// <summary>The world's point (<paramref name="x"/>, <paramref name="y"/>) in the box's own frame, from its middle: <see cref="At"/> turned back.</summary>
+    public (int X, int Y) Local(int x, int y)
+    {
+        long dx = (long)x - X, dy = (long)y - Y;
+        return ((int)((dx * Cos + dy * Sin) / Unit), (int)((dy * Cos - dx * Sin) / Unit));
+    }
+
+    /// <summary>How far the point (<paramref name="x"/>, <paramref name="y"/>) is from the box, in thousandths of a cell, rounded down: 0 inside, on an edge too.</summary>
+    public int Gap(int x, int y)
+    {
+        var (u, v) = Local(x, y);
+        long ex = Math.Max(0, Math.Abs((long)u) - HalfW), ey = Math.Max(0, Math.Abs((long)v) - HalfH);
+        return (int)Root(ex * ex + ey * ey);
+    }
+
+    /// <summary>
+    /// Whether the box covers part of <paramref name="cell"/> of a grid <paramref name="width"/> cells wide: no axis of either
+    /// separates them, a box only touching the cell's edge not covering it. Exact, every term a whole <c>long</c>.
+    /// </summary>
     public bool Covers(int cell, int width)
     {
-        int left = cell % width * DebrisModule.Unit, top = cell / width * DebrisModule.Unit;
-        return Left < left + DebrisModule.Unit && Right > left && Top < top + DebrisModule.Unit && Bottom > top;
+        const long half = Unit / 2;
+        long dx = X - (cell % width * (long)Unit + half), dy = Y - (cell / width * (long)Unit + half);
+        long c = Math.Abs((long)Cos), s = Math.Abs((long)Sin);
+        return Math.Abs(dx) * Unit < half * Unit + HalfW * c + HalfH * s
+            && Math.Abs(dy) * Unit < half * Unit + HalfW * s + HalfH * c
+            && Math.Abs(dx * Cos + dy * Sin) < HalfW * (long)Unit + half * (c + s)
+            && Math.Abs(dy * Cos - dx * Sin) < HalfH * (long)Unit + half * (c + s);
+    }
+
+    /// <summary>The whole square root of <paramref name="n"/>, rounded down; 0 for none.</summary>
+    public static long Root(long n)
+    {
+        if (n <= 0) return 0;
+        long x = 1L << (System.Numerics.BitOperations.Log2((ulong)n) / 2 + 1), y = (x + n / x) / 2;
+        while (y < x) (x, y) = (y, (y + n / y) / 2);
+        return x;
     }
 }
 
@@ -324,16 +389,41 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     /// The wrecks a hit may strike now, in spawn order, with their boxes: wreckage whose middle is in space, as for
     /// <see cref="Struck"/>. A new list a call: a shot's flight takes it once a tick and asks it of each cell it crosses.
     /// </summary>
-    public IReadOnlyList<WreckBox> Wrecks()
+    public IReadOnlyList<TurnedBox> Wrecks()
     {
-        var wrecks = new List<WreckBox>();
+        var wrecks = new List<TurnedBox>();
         foreach (var p in State.Pieces)
-        {
-            if (Content.Wreckage.SizeOf(p.Item) is not { } size || !Outside(CellOf(p.X, p.Y, _grid.Width))) continue;
-            var (w, h) = size;
-            wrecks.Add(new WreckBox(p.Id, p.X - w * Unit / 2, p.Y - h * Unit / 2, p.X + w * Unit / 2, p.Y + h * Unit / 2));
-        }
+            if (ShapeOf(p) is { } shape && Outside(CellOf(p.X, p.Y, _grid.Width))) wrecks.Add(shape);
         return wrecks;
+    }
+
+    public TurnedBox? Shape(Piece piece) => ShapeOf(piece);
+
+    /// <summary>
+    /// The box <paramref name="piece"/> is hit in (debris-physics): its kind's size (<see cref="Content.Wreckage.SizeOf"/>) about
+    /// its middle, turned by its <see cref="Piece.Angle"/>; none for a piece caught by hand, which has no box.
+    /// </summary>
+    public static TurnedBox? ShapeOf(Piece piece) => Content.Wreckage.SizeOf(piece.Item) is var (w, h)
+        ? TurnedBox.Of(piece.Id, piece.X, piece.Y, w * Unit / 2, h * Unit / 2, piece.Angle)
+        : null;
+
+    /// <summary>
+    /// How a new piece <paramref name="id"/> of <paramref name="item"/> starts turned and tumbles (debris-physics): from its id alone, a
+    /// splitmix64 step, so every peer and every migration gives it the same. Its angle any; its spin either way, from half its fastest
+    /// to it, never under <c>TumbleMin</c>; its fastest <c>TumbleMax</c> up to <c>TumbleSide</c> cells, falling as one over its longer side.
+    /// </summary>
+    public static (int Angle, int Spin) TumbleOf(int id, string item)
+    {
+        ulong z = unchecked((ulong)id + 0x9E3779B97F4A7C15UL);
+        z = unchecked((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL);
+        z = unchecked((z ^ (z >> 27)) * 0x94D049BB133111EBUL);
+        z ^= z >> 31;
+        const int fastest = Content.Debris.TumbleMax, slowest = Content.Debris.TumbleMin, small = Content.Debris.TumbleSide;
+        int side = Content.Wreckage.SizeOf(item) is var (w, h) ? Math.Max(w, h) : 0;
+        int most = Math.Max(slowest, side <= small ? fastest : fastest * small / side);
+        int least = Math.Max(slowest, most / 2);
+        int spin = least + (int)((z >> 16) % (ulong)(most - least + 1));
+        return ((int)(z & 0xFFFF), (z >> 48 & 1) == 0 ? spin : -spin);
     }
 
     /// <summary>

@@ -17,21 +17,17 @@ public sealed class WreckPixels
     private readonly Dictionary<string, Image?> _pictures = new();
 
     /// <summary>
-    /// The test for wrecks drawn <paramref name="progress"/> of the way to their next tick and turned by <paramref name="turns"/>
-    /// (radians by id, none unturned), a point in thousandths of a cell.
+    /// The test for wrecks drawn <paramref name="progress"/> of the way to their next tick and turned as drawn (<see cref="PieceDrawn.Pose"/>),
+    /// a point in thousandths of a cell.
     /// </summary>
-    public Func<Piece, double, double, bool> Solid(double progress, IReadOnlyDictionary<int, double> turns) => (piece, x, y) =>
+    public Func<Piece, double, double, bool> Solid(double progress) => (piece, x, y) =>
     {
-        var (cx, cy) = PieceDrawn.At(piece, progress);
-        double turn = turns.TryGetValue(piece.Id, out double t) ? t : 0, cos = Math.Cos(turn), sin = Math.Sin(turn);
-        // Into the picture's own frame: the offset turned back by the picture's turn.
-        double dx = (x - cx) * cos + (y - cy) * sin, dy = -(x - cx) * sin + (y - cy) * cos;
+        var (halfW, halfH) = Aiming.PictureOf(piece.Item);
+        // Into the picture's own frame by the sim's turned box (debris-physics), never a turn of the client's own.
+        var shape = PieceDrawn.Shape(piece, progress, halfW, halfH);
+        var (dx, dy) = PieceDrawn.Local(shape, x, y);
         var image = DebrisLooks.NameOf(piece.Item, piece.Id) is { } name ? PictureOf(name) : null;
-        if (image == null)
-        {
-            var (halfW, halfH) = Aiming.PictureOf(piece.Item);
-            return Math.Abs(dx) <= halfW && Math.Abs(dy) <= halfH;
-        }
+        if (image == null) return Math.Abs(dx) <= halfW && Math.Abs(dy) <= halfH;
         double perPixel = Hero.Unit / Rig.Cell;
         int ix = (int)Math.Floor((dx / perPixel + image.GetWidth() / (2.0 * HiRes.Scale)) * HiRes.Scale);
         int iy = (int)Math.Floor((dy / perPixel + image.GetHeight() / (2.0 * HiRes.Scale)) * HiRes.Scale);
