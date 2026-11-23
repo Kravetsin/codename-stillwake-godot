@@ -67,7 +67,8 @@ internal sealed class WalkerBody : BodyRule
                 return;
             }
             if (grounded) RuleBook.Move(mv).Steer(m, c, spec, mv);
-            Move(m, c, w, grounded, Walks(c, spec), rule.Spans(m, c));
+            // Its steering may have ended the act and its drive's Ended handed it to another: walked as the drive in charge now walks.
+            Move(m, c, w, grounded, Walks(c, spec, RuleBook.Drive(spec.Brain[c.Drive])), rule.Spans(m, c));
             return;
         }
         var gait = rule.GaitOf(c);
@@ -85,12 +86,12 @@ internal sealed class WalkerBody : BodyRule
                 if (JumpFor(m, c, w, way, speed, fleeing: gait == Gait.Run) is int jump)
                 {
                     (c.VX, c.VY) = (way * Math.Min(speed, w.JumpAcross), -jump);
-                    Move(m, c, w, grounded: false, Walks(c, spec));
+                    Move(m, c, w, grounded: false, Walks(c, spec, rule));
                     return;
                 }
                 if (rule.Blocked(m, c, spec, d, way))
                 {
-                    Move(m, c, w, grounded, Walks(c, spec));
+                    Move(m, c, w, grounded, Walks(c, spec, rule));
                     return;
                 }
                 way = -way;
@@ -98,7 +99,7 @@ internal sealed class WalkerBody : BodyRule
             c.VX = way * speed;
         }
         else if (grounded) c.VX = 0;
-        Move(m, c, w, grounded, Walks(c, spec));
+        Move(m, c, w, grounded, Walks(c, spec, rule));
     }
 
     /// <summary>
@@ -124,10 +125,12 @@ internal sealed class WalkerBody : BodyRule
         Move(m, c, w, grounded && c.VY >= 0, walks: c.VX != 0, spans);
     }
 
-    /// <summary>Whether <paramref name="c"/> walks its way now: wandering, fleeing or charging, kept against a wall till its steering turns it.</summary>
-    private static bool Walks(Creature c, Spec.Species spec) =>
-        c.Act is { } act && spec.Moves[act.Move] is var mv && !RuleBook.Drive(spec.Brain[c.Drive]).Afoot(mv) ? RuleBook.Move(mv).Walks(act)
-        : RuleBook.Drive(spec.Brain[c.Drive]).GaitOf(c) != Gait.Still;
+    /// <summary>
+    /// Whether <paramref name="c"/> walks its way now, <paramref name="rule"/> its drive's: wandering, fleeing or charging, kept against a
+    /// wall till its steering turns it.
+    /// </summary>
+    private static bool Walks(Creature c, Spec.Species spec, DriveRule rule) =>
+        c.Act is { } act && spec.Moves[act.Move] is var mv && !rule.Afoot(mv) ? RuleBook.Move(mv).Walks(act) : rule.GaitOf(c) != Gait.Still;
 
     /// <summary>
     /// Whether a walker standing as <paramref name="c"/> stands must turn from <paramref name="way"/>: the grid's edge, a wall in the
