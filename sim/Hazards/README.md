@@ -35,7 +35,7 @@ Magnetic flares break machines ([magnetic-flare](../../docs/decisions/2026-10-30
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
   met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on.
 - **`Warning` ticks later it strikes** (3 s), if a breakable wall still stands there: Building's `Burst` from it of
-  `Charge(power)` (`PerPower` 170 a point: 340 to 1190), within the shower's `Reach` (4), `Spoils.Lost`. The one burst rule
+  `Charge(power)` (`PerPower` 170 a point: 340 to 1190), within the shower's `Reach` (4), `Spoils.Lost`, pushing ×`PushPerReach`. The one burst rule
   (sim/Building README): a cell costs `Damage.Step` and its strength left, in full (no player's
   share); what it pays for breaks and is lost, what it reaches unpaid cracks, the wall struck first. A scrap hull two
   thick (400 a cell): 2 cracks it, 3–4 hole its outer cell, 5 and up breach it; iron holes at 3, breaches at 6; a second within the heal time on a cracked
@@ -76,7 +76,7 @@ Magnetic flares break machines ([magnetic-flare](../../docs/decisions/2026-10-30
 
 ## Invariants
 
-- A meteor only ever turns what it breaks, a wall, piece, machine or back wall, into an empty cell; it adds nothing but what
+- A meteor only turns what it breaks into an empty cell; it adds nothing but what
   a machine held and a net's cost on the floor, a plan neither.
 - A strike breaks between `ceil(n × PercentMin / 100)` and `ceil(n × PercentMax / 100)` of its `n` candidates.
 

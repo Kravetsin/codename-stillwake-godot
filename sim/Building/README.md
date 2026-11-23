@@ -58,7 +58,8 @@
   `Cost` and held growths, a piece whole; `Carries`% of the surplus to the next cell on the line from the hand (`HewCells`: the
   hero's), the larger, once. `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes a cell
   `ShotTakes` allows, returning its surplus if it broke, the yield the shooter's here, else anyone's. No tool hits back walls.
-- **`Burst(peer, cell, power, reach, Spoils)`** (damage-scale): a `Wave`, steps `Damage.Step`; a cell costs its
+- **`Burst(peer, cell, power, reach, push, Spoils)`** (damage-scale): logged in `Bursts` (unsaved,
+  debris-bursts); a `Wave`, steps `Damage.Step`; a cell costs its
   strength left (a pile's read as tenths), a piece or machine once, by the one rule; bedrock, lava, fog, the lifepod stop
   it. Paid ones break, unpaid crack at their head by what was left.
   `Drop` (a charge): `Spray`ed from `cell`, `Crushed` if set (loot-pieces); `Lost` (a meteor): costs gone, and back walls entered where what is
@@ -96,9 +97,8 @@
 ## Deliberately not handled
 
 - A load brings back no drawn map's growths.
-- Reach, a fan's hand, a muzzle, the plan: the client's.
+- Reach, aim, the plan: the client's.
 - A blueprint finished on its hero holds it.
 - A machine whose floor a burst breaks stands on.
-- Taking apart needs no knowledge.
-- A part-built blueprint is nothing in the grid till done.
+- A part-built blueprint is nothing in the grid.
 - An old save's plan past what was paid: each later tick pays an item.

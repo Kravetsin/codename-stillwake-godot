@@ -80,7 +80,7 @@ drives, moves and yields, each a rule here. The dead are gone from the blow.
 - **Shots:** `Fire` takes ammo and `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id creature,
   machine (the lifepod stops it), wreck (not `Passed`), through bodies it `Pierces`, broken cells while it `Carries` some; falls
   (`ShotFlight`). One that `Homes` turns `Turn` a tick at the nearest awake hero, bursting in `Reach`. One that `Bursts` bursts
-  at the first it meets (`Spoils.Drop`; a relic shocks the thrower). **A burst** (fuel-drums; drums' first): wrecks in `Reach`
+  at the first it meets (`Spoils.Drop`; a relic shocks the thrower). **A burst** (fuel-drums, debris-bursts): wrecks in `Wave`
   take `WreckDamage`, awake heroes and live creatures it sees `Body`, its setter too, a target once.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as a hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
@@ -106,7 +106,7 @@ drives, moves and yields, each a rule here. The dead are gone from the blow.
 
 ## Deliberately not handled
 
-- **No collisions** (0006); a clinger senses through rock; despawn loses damage; no stun.
+- **No collisions**; a clinger senses through rock; despawn loses damage; no stun.
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing. **Lifetime:** the keep box's.
 - **A catcher:** none on a planet under twice `RingFrom` wide.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow breaking its wreck: unanswered.
