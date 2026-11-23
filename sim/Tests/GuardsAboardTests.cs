@@ -20,14 +20,18 @@ public class GuardsAboardTests
     private static Arbitrary<(VesselClass Class, uint Seed)> Vessels() =>
         Gen.Zip(Gen.Elements(Content.Vessels.Classes.ToArray()), ArbMap.Default.GeneratorFor<uint>()).ToArbitrary();
 
+    /// <summary>A vessel of <paramref name="cls"/> from <paramref name="seed"/> built intact, its chain forced empty: the one guards dock aboard.</summary>
+    private static Built Intact(VesselClass cls, uint seed) => Shipyard.Build(cls, seed, []);
+
     /// <summary>The rooms of <paramref name="rule"/>'s size in <paramref name="v"/>, by index.</summary>
     private static List<int> RoomsOf(Vessel v, Aboard.Rule rule) =>
         [.. Enumerable.Range(0, v.Compartments.Count).Where(i => v.Compartments[i].Decks > 1 == rule.Big)];
 
     /// <summary>The arrival room's index: the one a hero's feet stand in, just inside the way in.</summary>
-    private static int Arrival(Vessel v)
+    private static int Arrival(Built b)
     {
-        var (x, y) = Shipyard.Door(v);
+        var (x, y) = Shipyard.Door(b);
+        var v = b.Vessel;
         return Enumerable.Range(0, v.Compartments.Count).Single(i => v.Compartments[i].Holds(x, y));
     }
 
@@ -67,8 +71,9 @@ public class GuardsAboardTests
     [Property]
     public Property EachKindIsOnePerItsRoomsRoundedUpEachInARoomOfItsOwnNeverTheArrivalRoomACapsuleInFurnituresPlace() => Prop.ForAll(Vessels(), cv =>
     {
-        var v = Shipyard.Describe(cv.Class, cv.Seed);
-        var docks = Shipyard.Guards(v);
+        var b = Intact(cv.Class, cv.Seed);
+        var v = b.Vessel;
+        var docks = Shipyard.Guards(b);
         var whole = Shipyard.Stamp(v);
         var laid = Shipyard.Docked(whole, docks);
         var (before, after) = (Stamped(whole), Stamped(laid));
@@ -77,7 +82,7 @@ public class GuardsAboardTests
             .Concat(whole.Where(p => p.Kind == Builds.Hatch).SelectMany(p => new[] { (p.X, p.Y - 1), (p.X + 1, p.Y - 1) })).ToHashSet();
         // What was there before, the way counted as taken: where a clear stretch would have stood.
         var free = (before.Covered.Union(ladders).ToHashSet(), before.Backed);
-        int arrival = Arrival(v);
+        int arrival = Arrival(b);
         Assert.Equal(docks, docks.OrderBy(d => Aboard.Rules.ToList().IndexOf(d.Rule)).ThenBy(d => d.Room));
         Assert.Equal(docks.Count, docks.Select(d => d.Room).Distinct().Count());
         Assert.InRange(docks.Count, 0, Spec.Max - 1);
@@ -110,10 +115,11 @@ public class GuardsAboardTests
     public void ACapsuleWithNoClearStretchTakesFurnituresPlaceTheRestOfItsRoomLaid()
     {
         var freighter = Content.Vessels.Class("freighter")!;
-        var (v, d) = Enumerable.Range(1, 50).Select(s => Shipyard.Describe(freighter, (uint)s))
-            .SelectMany(v => Shipyard.Guards(v).Select(d => (v, d))).First(t => !FitsSomewhere(Stamped(Shipyard.Stamp(t.v)), t.v.Compartments[t.d.Room], t.d.Rule));
+        var (b, d) = Enumerable.Range(1, 50).Select(s => Intact(freighter, (uint)s))
+            .SelectMany(b => Shipyard.Guards(b).Select(d => (b, d))).First(t => !FitsSomewhere(Stamped(t.b.Parts), t.b.Vessel.Compartments[t.d.Room], t.d.Rule));
+        var v = b.Vessel;
         var whole = Shipyard.Stamp(v);
-        var laid = Shipyard.Docked(whole, Shipyard.Guards(v));
+        var laid = Shipyard.Docked(whole, Shipyard.Guards(b));
         var room = v.Compartments[d.Room];
         bool InRoom(VesselPart p) => p.Layer != "back" && p.Kind != "wall" && Shipyard.Covers(p).Any(c => room.Holds(c.X, c.Y));
         var gone = whole.Where(InRoom).Except(laid).ToList();
@@ -126,21 +132,22 @@ public class GuardsAboardTests
     public void AStandWithNoClearFloorStandsOverTheFurnitureWhichIsAllLaid()
     {
         var liner = Content.Vessels.Class("liner")!;
-        var (v, d) = Enumerable.Range(1, 50).Select(s => Shipyard.Describe(liner, (uint)s))
-            .SelectMany(v => Shipyard.Guards(v).Where(d => d.Rule == Aboard.Stand).Select(d => (v, d)))
-            .First(t => !FitsSomewhere(Stamped(Shipyard.Stamp(t.v)), t.v.Compartments[t.d.Room], t.d.Rule));
+        var (b, d) = Enumerable.Range(1, 50).Select(s => Intact(liner, (uint)s))
+            .SelectMany(b => Shipyard.Guards(b).Where(d => d.Rule == Aboard.Stand).Select(d => (b, d)))
+            .First(t => !FitsSomewhere(Stamped(t.b.Parts), t.b.Vessel.Compartments[t.d.Room], t.d.Rule));
+        var v = b.Vessel;
         var whole = Shipyard.Stamp(v);
         var under = whole.Where(p => p.Layer == "machine" && In(p, d)).ToList();
         Assert.NotEmpty(under);
-        Assert.All(under, p => Assert.Contains(p, Shipyard.Docked(whole, Shipyard.Guards(v))));
+        Assert.All(under, p => Assert.Contains(p, Shipyard.Docked(whole, Shipyard.Guards(b))));
     }
 
     [Fact]
     public void TheSameVesselDocksItsGuardsAlikeAndSeedsDockThemApart()
     {
         var freighter = Content.Vessels.Class("freighter")!;
-        Assert.Equal(Shipyard.Guards(Shipyard.Describe(freighter, 5)), Shipyard.Guards(Shipyard.Describe(freighter, 5)));
-        var placed = Enumerable.Range(1, 12).Select(s => string.Join(';', Shipyard.Guards(Shipyard.Describe(freighter, (uint)s)))).Distinct().Count();
+        Assert.Equal(Shipyard.Guards(Intact(freighter, 5)), Shipyard.Guards(Intact(freighter, 5)));
+        var placed = Enumerable.Range(1, 12).Select(s => string.Join(';', Shipyard.Guards(Intact(freighter, (uint)s)))).Distinct().Count();
         Assert.True(placed > 6, $"{placed} placings of 12");
     }
 
@@ -148,22 +155,53 @@ public class GuardsAboardTests
     [Fact]
     public void TheLargestClassesGuardsFitUnderTheCreaturesCap()
     {
-        var most = Content.Vessels.Classes.ToDictionary(c => c.Id, c => Enumerable.Range(1, 200).Max(s => Shipyard.Guards(Shipyard.Describe(c, (uint)s)).Count));
+        var most = Content.Vessels.Classes.ToDictionary(c => c.Id, c => Enumerable.Range(1, 200).Max(s => Shipyard.Guards(Intact(c, (uint)s)).Count));
         Assert.All(most, kv => Assert.True(kv.Value < Spec.Max, $"{kv.Key}: {kv.Value} guards"));
         Assert.True(most["liner"] >= most["freighter"], $"a liner {most["liner"]}, a freighter {most["freighter"]}");
     }
 
-    /// <summary>A vessel of <paramref name="cls"/> found and jumped to by the new game's hero: the scenario, the vessel world and its vessel.</summary>
-    internal static (Scenario W, Registry V, Vessel Vessel) Boarded(string cls, uint index = 0)
+    /// <summary>
+    /// A wreck docks no guard (derelict-enemies): built from its seed's own chain or a forced one, no dock, no creature as its world
+    /// opens, and every machine it was built with laid where it stands, none left out under a capsule.
+    /// </summary>
+    [Theory]
+    [InlineData("freighter", false)]
+    [InlineData("liner", false)]
+    [InlineData("freighter", true)]
+    public void AWreckedVesselHasNoGuardsAndItsFurnitureIsAllLaid(string cls, bool forced)
     {
+        var c = Content.Vessels.Class(cls)!;
+        var wrecks = Enumerable.Range(1, 200).Select(s => Shipyard.Build(c, (uint)s)).Where(b => b.Wreck != null).ToList();
+        Assert.NotEmpty(wrecks);
+        Assert.All(wrecks, b => Assert.Empty(Shipyard.Guards(b)));
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        for (uint i = 0; i <= index; i++) w.Do(new Find(cls)).Run();
+        w.Do(forced ? new Find(cls, [new(WreckKind.Icing, false)]) : new Find(cls, Wrecked: true)).Run();
         var contact = w.M.Places.Contacts[^1];
         w.Do(new Jump(contact.Id)).Run();
         Assert.Empty(w.Refusals);
         var v = w.On(w.World.SurfaceOf(0));
-        return (w, v, Shipyard.Describe(Content.Vessels.Class(cls)!, contact.Seed));
+        var built = Shipyard.Build(c, contact.Seed, contact.Wreck);
+        Assert.NotNull(built.Wreck);
+        Assert.Empty(v.Creatures.Docks);
+        Assert.Empty(v.Creatures.Creatures);
+        int m = Content.Vessels.Margin;
+        var machines = built.Parts.Where(p => p.Layer == "machine").ToList();
+        Assert.NotEmpty(machines);
+        Assert.All(machines, p => Assert.Equal(p.Kind, v.Grid.MachineAt((m + p.Y) * v.Grid.Width + m + p.X)?.Kind));
+    }
+
+    /// <summary>A vessel of <paramref name="cls"/> found and jumped to by the new game's hero: the scenario, the vessel world and its vessel.</summary>
+    internal static (Scenario W, Registry V, Built Built) Boarded(string cls, uint index = 0)
+    {
+        var w = new Scenario(Registry.Wreck);
+        w.Do(new Enter(w.M.Crew.Spawn)).Run();
+        for (uint i = 0; i <= index; i++) w.Do(new Find(cls, Wrecked: false)).Run();
+        var contact = w.M.Places.Contacts[^1];
+        w.Do(new Jump(contact.Id)).Run();
+        Assert.Empty(w.Refusals);
+        var v = w.On(w.World.SurfaceOf(0));
+        return (w, v, Shipyard.Build(Content.Vessels.Class(cls)!, contact.Seed, contact.Wreck));
     }
 
     [Theory]

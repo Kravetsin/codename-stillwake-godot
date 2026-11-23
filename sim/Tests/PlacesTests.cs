@@ -60,8 +60,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal(before.Back, after.Back);
         Assert.Equal(before.Machine, after.Machine);
         var v = w.On(id);
-        var vessel = Shipyard.Describe(Vessels.Class("freighter")!, contact.Seed);
-        var (dx, dy) = Shipyard.Door(vessel);
+        var (dx, dy) = Shipyard.Door(Shipyard.Build(Vessels.Class("freighter")!, contact.Seed));
         Assert.Equal(InFrame(v, dx, dy), v.Crew.Spawn);
         Assert.Equal(v.Crew.Spawn, v.Crew.HeroOf(0)!.Cell);
         Assert.Null(w.M.Crew.HeroOf(0));
@@ -90,13 +89,14 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new Find("shuttle")).Run();
+        w.Do(new Find("shuttle", [])).Run();
         uint seed = w.M.Places.Contacts[^1].Seed;
         var (_, id) = Visited("shuttle", w);
         var v = w.On(id);
         var vessel = Shipyard.Describe(Vessels.Class("shuttle")!, seed);
         Assert.Equal((vessel.Width + 2 * Vessels.Margin, vessel.Height + 2 * Vessels.Margin), (v.Grid.Width, v.Grid.Height));
-        foreach (var part in Shipyard.Docked(Shipyard.Stamp(vessel), Shipyard.Guards(vessel)))
+        var built = Shipyard.Build(Vessels.Class("shuttle")!, seed, []);
+        foreach (var part in Shipyard.Docked(built.Parts, Shipyard.Guards(built)))
         {
             int cell = InFrame(v, part.X, part.Y);
             switch (part.Layer)
@@ -124,7 +124,7 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new Find("freighter")).Run();
+        w.Do(new Find("freighter", [])).Run();
         uint seed = w.M.Places.Contacts[^1].Seed;
         var (_, id) = Visited(w: w);
         var v = w.On(id);
@@ -194,8 +194,8 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         var w = new Scenario(Registry.Wreck);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         w.GiveItems(0, (Weapons.Sledgehammer.Item, 1));
-        // A part only some vessels of the class carry (a tanker's spheres): contacts found till the last carries it.
-        bool Carries(Contact k) => Shipyard.Describe(Vessels.Class(cls)!, k.Seed).Outside.Any(f => Vessels.FirstLook(f.Kind) == kind);
+        // A part only some vessels of the class carry (a tanker's spheres), or a wreck kept: contacts found till the last carries it.
+        bool Carries(Contact k) => Shipyard.Build(Vessels.Class(cls)!, k.Seed, k.Wreck).Vessel.Outside.Any(f => Vessels.FirstLook(f.Kind) == kind);
         for (int i = 0; i < Vessels.MaxContacts && !w.M.Places.Contacts.Any(k => k.Class == cls && Carries(k)); i++) w.Do(new Find(cls)).Run();
         Assert.True(Carries(w.M.Places.Contacts.Last(k => k.Class == cls)));
         var (_, id) = Visited(cls, w);
@@ -254,7 +254,8 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal([("glass", 3), ("wire", 2), ("copper", 1)], Machines.Get(Vessels.Chandelier).Cost);
         Assert.Equal([("plate", 2), ("coil", 1), ("wire", 1)], Machines.Get(Vessels.Stove).Cost);
         Assert.Equal([("plate", 2)], Machines.Get(Vessels.Counter).Cost);
-        Assert.Equal([("plate", 10), ("tube", 4)], Machines.Get(Vessels.Capsule).Cost);
+        // A fuel tank broken gives fuel too (vessel-wrecks): the capsule's first look, the fuel columns.
+        Assert.Equal([("plate", 10), ("tube", 4), ("biofuel", 10)], Machines.Get(Vessels.Capsule).Cost);
         Assert.Equal([("plate", 14), ("wire", 6), ("glass", 2), ("tube", 3)], Machines.Get(Vessels.ShuttleGull).Cost);
         Assert.Equal([("plate", 20), ("frame", 4), ("tube", 4)], Machines.Get(Vessels.ShuttleMule).Cost);
         Assert.Equal([("plate", 12), ("gear", 4), ("rotor", 1)], Machines.Get(Vessels.ShuttleBeetle).Cost);
@@ -264,8 +265,8 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal([("gear", 2), ("tube", 3), ("rotor", 1)], Machines.Get(Vessels.Pump).Cost);
         Assert.Equal([("tube", 3), ("gear", 1)], Machines.Get(Vessels.Valves).Cost);
         Assert.Equal([("plate", 6), ("tube", 2)], Machines.Get(Vessels.TankTall).Cost);
-        Assert.Equal([("plate", 14), ("tube", 4)], Machines.Get(Vessels.FuelColumn(3)).Cost);
-        Assert.Equal([("plate", 18), ("tube", 4)], Machines.Get(Vessels.FuelColumn(4)).Cost);
+        Assert.Equal([("plate", 14), ("tube", 4), ("biofuel", 30)], Machines.Get(Vessels.FuelColumn(3)).Cost);
+        Assert.Equal([("plate", 18), ("tube", 4), ("biofuel", 30)], Machines.Get(Vessels.FuelColumn(4)).Cost);
         Assert.All(Vessels.Furniture, r => Assert.Contains(r.Kind, Vessels.Machines));
         Assert.All(Vessels.Furniture, r => Assert.Null(r.Menu));
         Assert.All(Vessels.Furniture, r => Assert.All(r.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item)));
@@ -516,24 +517,27 @@ public class PlacesTests(Xunit.Abstractions.ITestOutputHelper output)
         }
     }
 
-    /// <summary>A jump tick on the new game's world: its world opened, its vessel written, Rooms and the rest after it; a liner's and a tanker's too.</summary>
+    /// <summary>
+    /// A jump tick on the new game's world: its world opened, its vessel built once and written, Rooms and the rest after it; a
+    /// liner's and a tanker's too, each a wreck, the dearer build (vessel-wrecks).
+    /// </summary>
     [Theory]
     [InlineData("freighter")]
     [InlineData("liner")]
     [InlineData("tanker")]
     public void AJumpTickStaysUnderItsCeiling(string cls)
     {
-        // A hitch of a few frames once per visit, as a load is.
-        const int CeilingMs = 200;
+        // A hitch of a few frames once per visit, as a load is; a desk's bound, CI's slower runners by their slack.
+        double ceilingMs = 200 * BudgetTests.Slack;
         var (w, _) = Visited(cls);
         w.Do(new Transfer(0)).Run();
-        w.Do(new Find(cls)).Run();
+        w.Do(new Find(cls, null, true)).Run();
         w.Do(new Jump(w.M.Places.Contacts[^1].Id));
         var clock = Stopwatch.StartNew();
         w.Run();
         clock.Stop();
         Assert.Empty(w.Refusals);
         output.WriteLine($"{cls}: {clock.ElapsedMilliseconds} ms");
-        Assert.True(clock.ElapsedMilliseconds < CeilingMs, $"{clock.ElapsedMilliseconds} ms");
+        Assert.True(clock.ElapsedMilliseconds < ceilingMs, $"{clock.ElapsedMilliseconds} ms of {ceilingMs} ms");
     }
 }

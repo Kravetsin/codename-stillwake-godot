@@ -215,7 +215,7 @@ public class ModulesTests
             second.Step([c]);
         }
         Both(new Crew.Enter(a.Crew.Spawn));
-        Both(new Places.Find("freighter"));
+        Both(new Places.Find("freighter", Wrecked: false));
         Both(new Places.Jump(a.Places.Contacts[^1].Id));
         var aboard = Registry.On(first, first.SurfaceOf(0));
         Assert.NotEmpty(aboard.Creatures.Docks);

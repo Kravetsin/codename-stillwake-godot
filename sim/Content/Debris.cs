@@ -71,9 +71,10 @@ public static class Debris
 
     /// <summary>
     /// The host player feeds a body's pose to the sim once a corner of its box strays this far from the sim's, in thousandths of a
-    /// cell: an eighth of a cell, a pixel, one threshold for place and turn; a guest sees no bigger snap.
+    /// cell: a sixteenth of a cell, half a pixel, one threshold for place and turn; a guest eases each correction away. Only bodies
+    /// knocked or towed off their drift stray at all, so the wire stays near empty.
     /// </summary>
-    public const int FeedSlack = 125;
+    public const int FeedSlack = 60;
 
     /// <summary>
     /// At most this many bodies a tick in the feed, the farthest strayed first and the rest the next tick: some 1 KB a tick at

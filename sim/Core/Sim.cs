@@ -40,9 +40,12 @@ public sealed class World
     private readonly List<(int Peer, int Surface)> _sends = [];
     // Surfaces asked for this tick (ISurfaces.Open, OpenPlanet), opened after the phases in the order asked, before the sends: a
     // null seed drawn from the world's Rng as it opens. Never saved, empty between steps.
-    private readonly List<(string Kind, uint? Seed, int Opener, IReadOnlyList<string>? Ores)> _opening = [];
+    private readonly List<(string Kind, uint? Seed, int Opener, IReadOnlyList<string>? Ores, IReadOnlyList<Content.WreckStep>? Wreck)> _opening = [];
     // Whether the tick's commands are applying: the one moment a module may open a surface and move a hero at once (Visit).
     private bool _applying;
+    // The vessel a surface opening now was built with (vessel-wrecks), read by what fills it (ISurfaces.Vessel): one build a
+    // jump, not one for the map and one to write it. Set only while it opens; never saved.
+    private (int Surface, Built Vessel)? _built;
     private readonly RngState _rng;
     private readonly Rng _rngOver;
     // The world's own commands, which no surface's modules handle.
@@ -122,6 +125,9 @@ public sealed class World
                 var surface = new Surface(saved.GetProperty("id").GetInt32(), saved.GetProperty("kind").GetString()!, saved.GetProperty("seed").GetUInt32())
                 {
                     Ores = saved.TryGetProperty("ores", out var ores) ? [.. ores.EnumerateArray().Select(o => o.GetString()!)] : null,
+                    Wreck = saved.TryGetProperty("wreck", out var wreck)
+                        ? [.. wreck.EnumerateArray().Select(e => new Content.WreckStep(Enum.Parse<Content.WreckKind>(e.GetProperty("kind").GetString()!), e.GetProperty("old").GetBoolean()))]
+                        : null,
                 };
                 if (surface.Id != world._surfaces.Count) throw new InvalidDataException($"Surface {surface.Id} saved out of order.");
                 // A closed one keeps its id and nothing else (vessel-worlds).
@@ -170,9 +176,13 @@ public sealed class World
         _applying = true;
         foreach (var c in commands)
         {
-            int at = SurfaceOf(c.From);
+            bool addressed = c is ISurfaceAddressed && c.Surface != null;
+            int at = addressed ? c.Surface!.Value : SurfaceOf(c.From);
+            // Its senders address only surfaces that stay open: one gone is our bug.
+            if (addressed && (at < 0 || at >= _surfaces.Count || _surfaces[at].Surface.Closed))
+                throw new InvalidOperationException($"{c.GetType().Name} is addressed to surface {at}, which is not open.");
             // Aimed at the cells of a surface its sender has left since: no module here may read them.
-            if (c.Surface is int sent && sent != at)
+            if (!addressed && c.Surface is int sent && sent != at)
             {
                 refused.Add(new Refused(c, Elsewhere));
                 continue;
@@ -192,7 +202,7 @@ public sealed class World
                     foreach (var (p, run) in m.Systems)
                         if (p == phase) run();
         // After every surface ran this tick, in the order asked: each runs from the next.
-        foreach (var (kind, seed, opener, ores) in _opening) Open(kind, opener, seed, ores);
+        foreach (var (kind, seed, opener, ores, wreck) in _opening) Open(kind, opener, seed, ores, wreck);
         _opening.Clear();
         foreach (var (peer, surface) in _sends) Move(peer, surface, null);
         _sends.Clear();
@@ -234,20 +244,22 @@ public sealed class World
     /// creative flag), then filled (<see cref="Module.Opened"/>). Returns its id.
     /// </summary>
     /// <param name="ores">A planet's ores (<see cref="Surface.Ores"/>), null for all.</param>
-    private int Open(string kindId, int opener, uint? given, IReadOnlyList<string>? ores = null)
+    /// <param name="wreck">A vessel's forced chain (<see cref="Surface.Wreck"/>), null for its seed's own.</param>
+    private int Open(string kindId, int opener, uint? given, IReadOnlyList<string>? ores = null, IReadOnlyList<Content.WreckStep>? wreck = null)
     {
         var kind = Content.Surfaces.Get(kindId);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = given ?? _rngOver.Below(1UL << 32);
+        var built = kind is Content.VesselKind vessel ? Shipyard.Build(Content.Vessels.Class(vessel.Class)!, seed, wreck) : null;
         var layout = kind switch
         {
             // Not calm: a planet's storms bring their lightning (docs/plans/surface-storms.md); it has no meteors or flares to start.
             Content.PlanetType type => Terrain.Generate(type, seed, ores) with { Meteors = true },
-            Content.VesselKind vessel => Shipyard.Space(Shipyard.Describe(Content.Vessels.Class(vessel.Class)!, seed)),
+            Content.VesselKind => Shipyard.Space(built!),
             _ => Layout.Parse(kind.Rows).Doubled(),
         };
         var modules = ship.Another();
-        var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed) { Ores = kind is Content.PlanetType ? ores : null }, modules);
+        var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed) { Ores = kind is Content.PlanetType ? ores : null, Wreck = kind is Content.VesselKind ? wreck : null }, modules);
         foreach (var m in modules) m.Create(layout);
         // What the opener's surface keeps for the new one: its twin of each module.
         var from = _surfaces[opener].Modules;
@@ -256,7 +268,9 @@ public sealed class World
         foreach (var m in modules) m.Rebuild();
         _surfaces.Add(surface);
         // Once every module stands: what fills it writes through the others' operations, as a command would.
+        _built = built is null ? null : (surface.Surface.Id, built);
         foreach (var m in modules) m.Opened();
+        _built = null;
         return surface.Surface.Id;
     }
 
@@ -304,7 +318,7 @@ public sealed class World
 
     private Running Attach(Surface surface, IReadOnlyList<Module> modules)
     {
-        var where = new Where(this, surface.Id, Content.Surfaces.Get(surface.Kind), surface.Seed);
+        var where = new Where(this, surface.Id, Content.Surfaces.Get(surface.Kind), surface.Seed, surface.Wreck);
         foreach (var m in modules)
         {
             m.Rng = _rngOver;
@@ -365,6 +379,18 @@ public sealed class World
                     foreach (var ore in ores) w.WriteStringValue(ore);
                     w.WriteEndArray();
                 }
+                if (s.Surface.Wreck is { } wreck)
+                {
+                    w.WriteStartArray("wreck");
+                    foreach (var step in wreck)
+                    {
+                        w.WriteStartObject();
+                        w.WriteString("kind", step.Kind.ToString());
+                        w.WriteBoolean("old", step.Old);
+                        w.WriteEndObject();
+                    }
+                    w.WriteEndArray();
+                }
                 if (s.Surface.Closed) w.WriteBoolean("closed", true);
                 else WriteSlices(w, s.Modules);
                 w.WriteEndObject();
@@ -412,11 +438,13 @@ public sealed class World
     }
 
     /// <summary>The surfaces as the modules of surface <c>here</c> see them.</summary>
-    private sealed class Where(World world, int here, Content.Surfaces.Kind kind, uint seed) : ISurfaces
+    private sealed class Where(World world, int here, Content.Surfaces.Kind kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck) : ISurfaces
     {
         public int Here => here;
         public Content.Surfaces.Kind Kind => kind;
         public uint Seed => seed;
+        public IReadOnlyList<Content.WreckStep>? Wreck => wreck;
+        public Built? Vessel => world._built is { } b && b.Surface == here ? b.Vessel : null;
 
         public void Send(int peer, int surface)
         {
@@ -428,10 +456,10 @@ public sealed class World
             world._sends.Add((peer, surface));
         }
 
-        public int Visit(int peer, string kindId, uint seed)
+        public int Visit(int peer, string kindId, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null)
         {
             if (!world._applying) throw new InvalidOperationException("A visit is made only as a command applies.");
-            int id = world.Open(kindId, world.SurfaceOf(peer), seed);
+            int id = world.Open(kindId, world.SurfaceOf(peer), seed, wreck: wreck);
             world.Move(peer, id, null);
             return id;
         }
@@ -472,13 +500,13 @@ public sealed class World
             return Ask(kind, null, 0, ores);
         }
 
-        public int Open(string kind, uint seed) => Ask(kind, seed, here);
+        public int Open(string kind, uint seed, IReadOnlyList<Content.WreckStep>? wreck = null) => Ask(kind, seed, here, wreck: wreck);
 
         /// <summary>A surface of <paramref name="kind"/> asked for, opened after the phases by <paramref name="opener"/>; returns the id it will take.</summary>
-        private int Ask(string kind, uint? seed, int opener, IReadOnlyList<string>? ores = null)
+        private int Ask(string kind, uint? seed, int opener, IReadOnlyList<string>? ores = null, IReadOnlyList<Content.WreckStep>? wreck = null)
         {
             if (!world.CanOpen) throw new InvalidOperationException("This world cannot open a surface.");
-            world._opening.Add((kind, seed, opener, ores));
+            world._opening.Add((kind, seed, opener, ores, wreck));
             return world._surfaces.Count + world._opening.Count - 1;
         }
     }

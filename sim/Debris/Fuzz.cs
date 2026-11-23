@@ -55,7 +55,7 @@ public sealed partial class DebrisModule
 
     /// <summary>
     /// A feed of <c>Debris.FeedMost</c> bodies, out and gone, each moved up to a cell and turned, most at a drift's pace, one in eight
-    /// flung off the grid; for some tick up to a second back; with every line's length changed and a stale one.
+    /// flung off the grid; for some tick up to a second back; with every line's length changed and a stale one; addressed to the ship.
     /// </summary>
     private Moved FuzzMoved(Rng rng, int from)
     {
@@ -75,6 +75,7 @@ public sealed partial class DebrisModule
         }
         var lines = State.Lines.Select(l => new LineLength(l.By, l.Piece, (int)rng.Below(Content.Harpoon.Range + Content.Harpoon.PayOut + 1))).ToList();
         lines.Add(new LineLength((int)rng.Below(4), AnyPiece(rng), (int)rng.Below(Content.Harpoon.Range)));
-        return new Moved(State.Clock - (int)rng.Below(World.TicksPerSecond + 1), bodies, lines) { From = from };
+        // Addressed as the host player's client addresses it: drawn on a planet too, it goes to the ship's pieces.
+        return new Moved(State.Clock - (int)rng.Below(World.TicksPerSecond + 1), bodies, lines) { From = from, Surface = BodiesOn };
     }
 }

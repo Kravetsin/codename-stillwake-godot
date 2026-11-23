@@ -251,18 +251,16 @@ public partial class HeroView
         muzzle ?? (holding is { } hero ? new Vector2(Chest(hero).X, Chest(hero).Y) : null);
 
     /// <summary>
-    /// How slack peer <paramref name="peer"/>'s line on <paramref name="piece"/> is, in thousandths of a cell: its length (the host player's
-    /// drum now, else the sim's) less the way from the holder's body middle to the hook point, the span the rope pulls along; below 0
-    /// stretched. None for a rod on no piece, a line not there yet or a holder unheard. The line is drawn from the gun to the rod's eye, a
+    /// How slack peer <paramref name="peer"/>'s line on <paramref name="piece"/> is (<see cref="HarpoonLine.SlackOf"/>), every peer's alike:
+    /// the sim's line, as long as the host player's drum has it there, else as the sim does; its holder anchored where the host player's rope
+    /// anchors it. None for a rod on no piece, a line not there yet or a holder unheard. The line is drawn from the gun to the rod's eye, a
     /// shorter way, so given its whole length it would curl up the difference.
     /// </summary>
     private double? HeldSlack(int peer, int? piece)
     {
         if (piece is not int on || _m?.Debris.LineOf(peer) is not { } line || line.Piece != on || PieceDrawnAt(on) is not { } pose
             || AnchorOf(peer) is not { } anchor) return null;
-        var (hx, hy) = pose.At(line.HookX, line.HookY);
-        double length = LiveDebris.LineLength(peer, on) ?? line.Length;
-        return length - Math.Sqrt((hx - anchor.X) * (hx - anchor.X) + (hy - anchor.Y) * (hy - anchor.Y));
+        return HarpoonLine.SlackOf(LiveDebris.LineLength(peer, on) ?? line.Length, pose, (line.HookX, line.HookY), (anchor.X, anchor.Y));
     }
 
     /// <summary>Every ping shown, this player's and its friends' here, drawn in their colours and listed for the markers (gesture-pings).</summary>

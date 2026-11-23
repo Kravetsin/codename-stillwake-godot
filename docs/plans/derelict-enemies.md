@@ -45,8 +45,8 @@ README). Lengths in cells (8 px), times in ticks (20 a second); every number nam
 
 ## Design
 
-### Placement: `Shipyard.Guards(Vessel)` (sim/Core `Vessels/`)
-A pure function of the vessel, drawing from Shipyard's stream **3** (`Draws(cls, seed, 3)`; 0–2 are taken), never the
+### Placement: `Shipyard.Guards(Built)` (sim/Core `Vessels/`)
+A pure function of the vessel as built (`Shipyard.Build`): none on a wreck (`Wreck != null`); an intact one's drawn from Shipyard's stream **16** (`Draws(cls, seed, 16)`; 0–9 are taken, 3 and on by the wreck), never the
 world's Rng. Candidates: small and big compartments (`Decks == 1` / `> 1`) in compartment index order, the arrival room left
 out, and only rooms where the dock fits: a capsule (4¾ cells wide) on a stretch of back wall no furniture covers, a stand on
 floor columns no fitting covers. Count = `min((n + per - 1) / per, candidates)`, `per` 5 for spiders and 3 for robots, `n`
@@ -57,7 +57,7 @@ result is in a fixed order: spiders then robots, each by compartment index. The 
 
 ### Guards in Creatures (sim/Creatures)
 - **Spawn:** in `Opened()`, before any other spawn on that surface, one sleeping guard per dock in `Guards` order, so
-  creature ids follow it. It reads only `Shipyard.Guards` (re-derived from `Surfaces.Kind` and `Surfaces.Seed`), never the
+  creature ids follow it. It reads only `Shipyard.Guards` (re-derived from `Surfaces.Kind`, `Surfaces.Seed` and `Surfaces.Wreck`), never the
   grid: Places writes the vessel after Creatures runs. Guards count toward `Creatures.Max`; a liner's largest count is
   pinned under it by a test. A guard remembers only its dock's index (`Mem("dock")`); the dock list, the rooms and the
   way-in door are `[JsonIgnore]`, rebuilt in `Rebuild()`.

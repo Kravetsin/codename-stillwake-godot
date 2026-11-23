@@ -4,53 +4,52 @@ namespace Stillwake.Sim;
 
 /// <summary>
 /// Generated vessels (generated-vessels): a class and a seed described as a <see cref="Vessel"/>, stamped into the things its box
-/// holds, then damaged by what wrecked it. Pure: the same class, seed and cause give the same parts on every peer. Draws come from
-/// a local <see cref="Rng"/> of the seed mixed with the class's place in <see cref="Vessels.Classes"/>, never the world's.
+/// holds, then wrecked by its chain of events (vessel-wrecks, <see cref="Build"/>). Pure: the same class, seed and forced chain give
+/// the same parts on every peer. Draws come from a local <see cref="Rng"/> of the seed mixed with the class's place in
+/// <see cref="Vessels.Classes"/>, never the world's.
 /// </summary>
 public static partial class Shipyard
 {
-    /// <summary>The parts of a vessel of <paramref name="cls"/> from <paramref name="seed"/>, wrecked by <paramref name="cause"/>.</summary>
-    public static IReadOnlyList<VesselPart> Make(VesselClass cls, uint seed, VesselCause cause)
-    {
-        var vessel = Describe(cls, seed);
-        return Damage(Stamp(vessel), vessel, cause);
-    }
-
     /// <summary>
-    /// The cell, in <paramref name="v"/>'s frame, a hero's feet stand in just inside its first door in reading order: on the deck
-    /// past the door, its room's first two columns kept open, the deck's last open row.
+    /// The cell, in <paramref name="b"/>'s frame, a hero's feet stand in just inside its way in (<see cref="Built.Entry"/>): the
+    /// intact vessel's first door in reading order, moved with its half; on the deck past the door, its room's first two columns kept
+    /// open, the deck's last open row.
     /// </summary>
-    public static (int X, int Y) Door(Vessel v)
+    public static (int X, int Y) Door(Built b)
     {
-        var door = WayIn(v);
+        var door = WayIn(b);
         return (door.X + 2, door.Y + Vessels.Open - 1);
     }
 
-    /// <summary>The way in through <paramref name="v"/>'s armour: its first door in reading order, always shut, which no guard opens (derelict-enemies).</summary>
-    public static Vessel.Door WayIn(Vessel v) => v.Doors.OrderBy(d => d.Y).ThenBy(d => d.X).First();
+    /// <summary>The way in through <paramref name="b"/>'s armour (<see cref="Built.Entry"/>): always shut, which no guard opens (derelict-enemies).</summary>
+    public static Vessel.Door WayIn(Built b) => b.Vessel.Doors[b.Entry];
 
     /// <summary>
-    /// The map of a vessel world (vessel-worlds): space, <paramref name="v"/>'s frame and <see cref="Vessels.Margin"/> round it,
+    /// The map of a vessel world (vessel-worlds): space, <paramref name="b"/>'s frame and <see cref="Vessels.Margin"/> round it,
     /// its spawn just inside the door (<see cref="Door"/>) with the frame's top-left at (<c>Margin</c>, <c>Margin</c>). The vessel
     /// itself is written once the surface stands (<c>Places</c>).
     /// </summary>
-    public static Layout Space(Vessel v)
+    public static Layout Space(Built b)
     {
+        var v = b.Vessel;
         int m = Vessels.Margin, width = v.Width + 2 * m, height = v.Height + 2 * m;
         var blank = new string(' ', width);
         var rows = Enumerable.Repeat(blank, height).ToArray();
-        var (x, y) = Door(v);
+        var (x, y) = Door(b);
         var spawn = blank.ToCharArray();
         spawn[m + x] = 'S';
         rows[m + y] = new string(spawn);
         return new Layout(width, height, rows);
     }
 
-    /// <summary>A local draw of stream <paramref name="stream"/>: describing is 0, damage 1, the shape 2, the guards 3.</summary>
+    /// <summary>
+    /// A local draw of stream <paramref name="stream"/>: describing is 0 (1, the old damage, retired), the shape 2, a wreck's from 3
+    /// (<see cref="Build"/>), the guards 16 (<see cref="Guards"/>).
+    /// </summary>
     private static Rng Draws(VesselClass cls, uint seed, uint stream) =>
         new(new RngState { S = unchecked(seed ^ ((uint)Vessels.IndexOf(cls.Id) + 1) * 0x9E3779B9u ^ (stream + 1) * 0x85EBCA6Bu) });
 
-    private static int Between(Rng rng, (int Min, int Max) range) => range.Min + (int)rng.Below((uint)(range.Max - range.Min + 1));
+    internal static int Between(Rng rng, (int Min, int Max) range) => range.Min + (int)rng.Below((uint)(range.Max - range.Min + 1));
 
     /// <summary>
     /// A vessel of <paramref name="cls"/> from <paramref name="seed"/>: a liner's or a tanker's by its own layout (<see cref="Liner"/>, <see cref="Tanker"/>). A vessel of rooms: its decks drawn, then its rooms, each
@@ -406,7 +405,7 @@ public static partial class Shipyard
     /// hull, ladders down its shafts, its doors shut or open, its interiors' floors and machines; its modules, ribs and housing solid
     /// hull round the rooms, never into them; and what stands outside the hull.
     /// </summary>
-    public static IReadOnlyList<VesselPart> Stamp(Vessel v)
+    internal static IReadOnlyList<VesselPart> Stamp(Vessel v)
     {
         var cls = Vessels.Class(v.Class)!;
         int w = v.Width, h = v.Height, a = cls.ArmourDepth;
@@ -563,86 +562,8 @@ public static partial class Shipyard
     private static int Rank(string layer) => layer switch { "back" => 0, "structure" => 1, _ => 2 };
 
     /// <summary>Parts by their top-left cells in reading order, back walls, then structures, then machines in a cell: how they are laid.</summary>
-    private static int InReadingOrder(VesselPart p, VesselPart q) =>
+    internal static int InReadingOrder(VesselPart p, VesselPart q) =>
         p.Y != q.Y ? p.Y.CompareTo(q.Y) : p.X != q.X ? p.X.CompareTo(q.X) : Rank(p.Layer).CompareTo(Rank(q.Layer));
-
-    /// <summary>
-    /// <paramref name="parts"/> of <paramref name="v"/> after <paramref name="cause"/>: as they are for none. A breach is a crater of
-    /// the class's radius, from above, below or the bow: every thing with a cell in it gone whole, a crate with what it held; what
-    /// tore the hull left on a deck by it (<see cref="LeaveDebris"/>).
-    /// </summary>
-    public static IReadOnlyList<VesselPart> Damage(IReadOnlyList<VesselPart> parts, Vessel v, VesselCause cause)
-    {
-        if (cause == VesselCause.None) return parts;
-        var cls = Vessels.Class(v.Class)!;
-        var rng = Draws(cls, v.Seed, 1);
-        var body = v.Sections.First(s => s.Kind == Vessel.SectionKind.Body);
-        int hull = body.Left, bow = v.Sections.First(s => s.Kind == Vessel.SectionKind.Bow).Left;
-        int side = (int)rng.Below(3);
-        int x0 = hull + (int)rng.Below((uint)(bow - hull));
-        var (cx, cy) = side switch
-        {
-            0 => (x0, body.Top),
-            1 => (x0, body.Bottom),
-            _ => (v.Width - 1, (body.Top + body.Bottom) / 2),
-        };
-        int r2 = cls.Crater * cls.Crater;
-        var left = parts.Where(p => !Covers(p).Any(c => (c.X - cx) * (c.X - cx) + (c.Y - cy) * (c.Y - cy) <= r2)).ToList();
-        LeaveDebris(left, v, rng, cx, cy, cls.Crater);
-        left.Sort(InReadingOrder);
-        return left;
-    }
-
-    /// <summary>How far past a crater's edge what tore the hull may lie, in cells.</summary>
-    private const int DebrisReach = 12;
-
-    /// <summary>
-    /// What tore the hull, left by a breach (plan V-1b): one or two <c>Torn</c> salvage objects (a hull section, a shield slab), each
-    /// on a deck's floor the nearest it fits to the crater: inside the hull (a back wall in every cell), clear of every structure
-    /// and machine, a wall under each column, within <see cref="DebrisReach"/> of its edge. None where none fits.
-    /// </summary>
-    private static void LeaveDebris(List<VesselPart> parts, Vessel v, Rng rng, int cx, int cy, int crater)
-    {
-        var taken = new HashSet<(int, int)>();
-        var walls = new HashSet<(int, int)>();
-        var backs = new HashSet<(int, int)>();
-        foreach (var p in parts)
-        {
-            if (p.Layer == "back") backs.Add((p.X, p.Y));
-            else foreach (var c in Covers(p)) taken.Add(c);
-            if (p.Kind == "wall") walls.Add((p.X, p.Y));
-        }
-        var debris = Vessels.Salvage.Where(s => s.Torn).ToList();
-        int reach = (crater + DebrisReach) * (crater + DebrisReach);
-        for (int n = 1 + (int)rng.Below(2); n > 0; n--)
-        {
-            var spec = Machines.Get(debris[(int)rng.Below((uint)debris.Count)].Kind);
-            (int X, int Y, int D)? best = null;
-            foreach (var deck in v.Decks)
-                for (int x = 0, y = deck.Floor - spec.Height; x + spec.Width <= v.Width; x++)
-                {
-                    int dx = x + spec.Width / 2 - cx, dy = y + spec.Height / 2 - cy, d = dx * dx + dy * dy;
-                    if (d > reach || best is { } b && b.D <= d) continue;
-                    if (Lies(x, y, spec.Width, spec.Height, deck.Floor, taken, walls, backs)) best = (x, y, d);
-                }
-            if (best is not { } at) continue;
-            parts.Add(new(at.X, at.Y, "machine", spec.Kind));
-            for (int dy = 0; dy < spec.Height; dy++)
-                for (int dx = 0; dx < spec.Width; dx++) taken.Add((at.X + dx, at.Y + dy));
-        }
-    }
-
-    /// <summary>Whether a thing <paramref name="w"/> by <paramref name="h"/> from (<paramref name="x"/>, <paramref name="y"/>) lies free inside the hull on the floor at <paramref name="floor"/>.</summary>
-    private static bool Lies(int x, int y, int w, int h, int floor, HashSet<(int, int)> taken, HashSet<(int, int)> walls, HashSet<(int, int)> backs)
-    {
-        for (int dx = 0; dx < w; dx++)
-        {
-            if (!walls.Contains((x + dx, floor))) return false;
-            for (int dy = 0; dy < h; dy++)
-                if (taken.Contains((x + dx, y + dy)) || !backs.Contains((x + dx, y + dy))) return false;
-        }
-        return true;
-    }
 
     /// <summary>The cells <paramref name="p"/> covers: a machine's footprint, a piece's (a ladder's, a door's), else its own.</summary>
     public static IEnumerable<(int X, int Y)> Covers(VesselPart p)

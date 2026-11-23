@@ -326,6 +326,18 @@ public class HarpoonTests
     }
 
     [Fact]
+    public void ALinesSlackIsItsLengthLessTheWayFromItsHolderToItsHookTurnedWithItsPiece()
+    {
+        // Hooked half a cell right of the middle of a piece turned a quarter (down): the hook 500 below it, 6 cells from the holder.
+        var piece = new PiecePose(10_000, 4_500, 0x4000);
+        var holder = (10_000.0, -1_000.0);
+        // As long as the sim holds it, as a guest draws it: it sags.
+        Assert.Equal(3_000, HarpoonLine.SlackOf(9_000, piece, (500, 0), holder), 6);
+        // Shorter than the way, as the host player's drum may have it wound: stretched, straight.
+        Assert.Equal(-500, HarpoonLine.SlackOf(5_500, piece, (500, 0), holder), 6);
+    }
+
+    [Fact]
     public void TheStreakHomeRunsOutWithTheRodSeatedAndNeverWaitsForTheNextShot()
     {
         const double Frame = 1000.0 / 60;

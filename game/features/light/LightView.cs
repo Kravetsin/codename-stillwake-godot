@@ -106,14 +106,16 @@ public partial class LightView : Node2D
 
     /// <param name="sky">The light through the open sky of its surface, by <see cref="L.SkyOf"/> its kind: the stars' when not given.</param>
     /// <param name="ground">Whether it is a planet's ground, where light reaches past solid rock, fading (<see cref="Lightmap.SoakThrough"/>).</param>
-    public LightView(IGridQueries grid, (float R, float G, float B)? sky = null, bool ground = false)
+    /// <param name="bright">Everything lit whole, a dev's (<c>--bright</c>): to look at what is drawn where no light reaches.</param>
+    public LightView(IGridQueries grid, (float R, float G, float B)? sky = null, bool ground = false, bool bright = false)
     {
         _grid = grid;
         _lightmap.SoakThrough = ground;
         _starlight = new Starlight(sky);
         // Under a planet's sky no ambient light: what no light reaches is black (0077).
-        Lit.Ambient(sky == null ? L.Ambient : (0f, 0f, 0f));
-        AddChild(new CanvasModulate { Color = new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
+        var ambient = bright ? (1f, 1f, 1f) : sky == null ? L.Ambient : (0f, 0f, 0f);
+        Lit.Ambient(ambient);
+        AddChild(new CanvasModulate { Color = bright ? Colors.White : new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
         AddChild(_lightmap);
         AddChild(_starlight);
         AddChild(_lamps);

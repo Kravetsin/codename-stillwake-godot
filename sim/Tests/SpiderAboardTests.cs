@@ -27,11 +27,13 @@ public class SpiderAboardTests
     {
         public readonly Scenario W;
         public readonly Registry V;
-        public readonly Vessel Vessel;
+        public readonly Built Built;
+
+        public Vessel Vessel => Built.Vessel;
 
         public Aboard()
         {
-            (W, V, Vessel) = GuardsAboardTests.Boarded("freighter");
+            (W, V, Built) = GuardsAboardTests.Boarded("freighter");
             Assert.True(Spiders.Count >= 2, $"{Spiders.Count} spiders");
         }
 
@@ -75,7 +77,7 @@ public class SpiderAboardTests
 
         /// <summary>The door between room <paramref name="r"/> and the room on its left, in the world: its left column and top row.</summary>
         public (int X, int Y)? LeftDoor(Vessel.Compartment r) =>
-            Vessel.Doors.FirstOrDefault(d => M + d.X == r.Left - 2 && M + d.Y == r.Top && d != Shipyard.WayIn(Vessel)) is { } d ? (M + d.X, M + d.Y) : null;
+            Vessel.Doors.FirstOrDefault(d => M + d.X == r.Left - 2 && M + d.Y == r.Top && d != Shipyard.WayIn(Built)) is { } d ? (M + d.X, M + d.Y) : null;
     }
 
     private static bool Awake(Creature c) => c.Posture is not (Posture.Docked or Posture.Waking);
@@ -198,12 +200,12 @@ public class SpiderAboardTests
     public void ItNeverPriesTheWayIn()
     {
         var a = new Aboard();
-        var door = Shipyard.WayIn(a.Vessel);
+        var door = Shipyard.WayIn(a.Built);
         var (x, y) = (M + door.X, M + door.Y);
         Assert.True(a.Shut(x, y));
         Assert.Null(a.V.Creatures.ShutDoorway(x, y, x + 1, y + Content.Vessels.Open - 1));
         // Its hero just inside the way in, then out past it: the spider comes, then stands, the way in shut.
-        var (fx, fy) = Shipyard.Door(a.Vessel);
+        var (fx, fy) = Shipyard.Door(a.Built);
         var spider = a.Spiders[0];
         a.W.Do(new Strike(spider.Id, Content.Weapons.Axe.Item));
         a.Hero(M + fx, M + fy).Run(600);
@@ -239,11 +241,11 @@ public class SpiderAboardTests
         // A hatch right of an inner door, in the floor of that door's deck, and a spider docked on that deck right of it.
         var (hatch, door) = (from h in a.Vessel.Hatches
                              from d in a.Vessel.Doors
-                             where d.X + 2 == h.X && d.Y + Content.Vessels.Open == h.Y && d != Shipyard.WayIn(a.Vessel)
+                             where d.X + 2 == h.X && d.Y + Content.Vessels.Open == h.Y && d != Shipyard.WayIn(a.Built)
                              select ((X: M + h.X, Y: M + h.Y), (X: M + d.X, Y: M + d.Y))).First();
         var spider = a.Spiders.First(s => a.Room(s).Floor == hatch.Y && a.Room(s).Left > hatch.X);
         var room = a.Room(spider);
-        foreach (var d in a.Vessel.Doors.Where(d => M + d.Y == door.Y && M + d.X > door.X && d != Shipyard.WayIn(a.Vessel)))
+        foreach (var d in a.Vessel.Doors.Where(d => M + d.Y == door.Y && M + d.X > door.X && d != Shipyard.WayIn(a.Built)))
             a.W.Do(new SetDoor(a.Cell(M + d.X, M + d.Y), true));
         if (!a.Shut(door.X, door.Y)) a.W.Do(new SetDoor(a.Cell(door.X, door.Y), false));
         a.W.Do(new SetDoor(a.Cell(hatch.X, hatch.Y), true));
@@ -298,7 +300,7 @@ public class SpiderAboardTests
         var room = a.Room(spider);
         a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1).Hero(room.Left + room.Width + 12, Body(room.Floor)).Run(20);
         // Out past the way in, into space: aboard no more.
-        var door = Shipyard.WayIn(a.Vessel);
+        var door = Shipyard.WayIn(a.Built);
         a.Hero(M + door.X - 4, M + door.Y + Content.Vessels.Open - 1).Run(40);
         var (x, y) = (spider.X, spider.Y);
         a.Run(200);
@@ -347,7 +349,8 @@ public class SpiderAboardTests
     [Property(MaxTest = 12)]
     public Property ASpiderIsNeverOnABackWallACeilingOrOutsideTheHullBox() => Prop.ForAll(Plays(), play =>
     {
-        var (w, v, vessel) = GuardsAboardTests.Boarded(play.Class, play.Index);
+        var (w, v, built) = GuardsAboardTests.Boarded(play.Class, play.Index);
+        var vessel = built.Vessel;
         var rng = new Rng(new RngState { S = play.Seed | 1 });
         var rooms = vessel.Compartments;
         var aloft = new Dictionary<int, int>();
@@ -401,12 +404,12 @@ public class SpiderAboardTests
             for (int i = 0; i < ticks; i++) Both();
         }
         Both(new Enter(a.Crew.Spawn));
-        Both(new Find("freighter"));
+        Both(new Find("freighter", Wrecked: false));
         var contact = a.Places.Contacts[^1];
         Both(new Jump(contact.Id));
         int surface = first.SurfaceOf(0);
         var v = Registry.On(first, surface);
-        var vessel = Shipyard.Describe(Content.Vessels.Class("freighter")!, contact.Seed);
+        var vessel = Shipyard.Build(Content.Vessels.Class("freighter")!, contact.Seed, contact.Wreck).Vessel;
         int width = v.Grid.Width;
         var spider = v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id).MaxBy(c => c.Y)!;
         var dock = v.Creatures.Docks[CreaturesModule.DockOf(spider)!.Value];

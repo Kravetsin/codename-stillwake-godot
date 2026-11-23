@@ -134,13 +134,17 @@ public static partial class Shipyard
                 Put(c.Decks > 2 ? Vessels.FuelColumn(c.Decks) : Vessels.Capsule);
                 break;
             case VesselRole.TankBay:
-                // Two tall tanks alike, or one capsule; never fuel, the capsule's first look.
+                // Two tall tanks alike, or one capsule: fuel FuelCapsulePercent in a hundred, else water or oxygen alike.
                 if (rng.Below(100) < F.TallTanksPercent)
                 {
                     string tall = Look(Vessels.TankTall);
                     if (Put(tall) != null) Put(tall);
                 }
-                else Put(Vessels.LookKind(Vessels.Capsule, 1 + (int)rng.Below(Vessels.CapsuleContents - 1)));
+                else
+                {
+                    int roll = (int)rng.Below(100);
+                    Put(Vessels.LookKind(Vessels.Capsule, roll < F.FuelCapsulePercent ? 0 : 1 + roll % (Vessels.CapsuleContents - 1)));
+                }
                 break;
             case VesselRole.PumpRoom:
                 _ = Put(Vessels.Pump) != null && Put(Vessels.Valves) != null;
@@ -176,7 +180,8 @@ public static partial class Shipyard
             var f = inside[i];
             if (Vessels.ContentsOf(f.Kind) is not int contents) continue;
             var room = rooms.First(c => c.Holds(f.X, f.Y));
-            var size = Vessels.FirstLook(f.Kind) == Vessels.TankTall ? F.SmallTank : room.Role == VesselRole.FuelBay ? F.LargeTank : F.MediumTank;
+            var size = Vessels.FirstLook(f.Kind) == Vessels.TankTall ? F.SmallTank
+                : f.Kind is Vessels.FuelColumn3 or Vessels.FuelColumn4 ? F.ColumnTank : room.Role == VesselRole.FuelBay ? F.LargeTank : F.MediumTank;
             inside[i] = f with { Loot = [(Vessels.Liquids[contents], Between(rng, size))] };
         }
         int w = Machines.Get(Vessels.Sphere).Width;
@@ -185,7 +190,8 @@ public static partial class Shipyard
             var f = outside[i];
             if (f.Kind != Vessels.Sphere) continue;
             var bay = rooms.Where(c => c.Role == VesselRole.TankBay && c.Left <= f.X && f.X + w <= c.Left + c.Width).MaxBy(c => c.Top)!;
-            int contents = inside.Select(t => bay.Holds(t.X, t.Y) ? Vessels.ContentsOf(t.Kind) : null).First(k => k != null)!.Value;
+            // A sphere under a fuel bay holds water: no sphere is drawn holding fuel.
+            int contents = Math.Max(1, inside.Select(t => bay.Holds(t.X, t.Y) ? Vessels.ContentsOf(t.Kind) : null).First(k => k != null)!.Value);
             outside[i] = f with { Kind = Vessels.LookKind(Vessels.Sphere, contents - 1), Loot = [(Vessels.Liquids[contents], Between(rng, F.SmallTank))] };
         }
     }

@@ -11,10 +11,13 @@ namespace Stillwake.Game.Dev;
 /// The new game's world with the host on a generated vessel's world (vessel-worlds): <c>--vessel=class</c> finds one of that class
 /// as the world is made and jumps to it once the hero is in, as built; <c>--vessel</c> alone a freighter. The hero arrives just
 /// inside its door; "to ship" on the dev panel brings it home, and the vessel's world closes. <c>--breakers</c> hands it what
-/// breaks hulls, creative, to try the damage scale on the vessel and the ship alike (damage-scale).
+/// breaks hulls, creative, to try the damage scale on the vessel and the ship alike (damage-scale). <c>--wrecked=blast,fire,rock:old</c>
+/// forces the vessel's chain of events (vessel-wrecks), each fresh but one marked <c>:old</c>; a step not allowed at its turn is skipped and
+/// said so; <c>--wrecked=none</c> an intact one, <c>--wrecked</c> alone the chain its seed draws.
 /// </summary>
 [Dev("--vessel", "the new game's world with the hero on a vessel's world: =class, a freighter by default (VesselScenario)", Shape = DevShape.Either)]
-[Dev("--dock", "with --vessel, the hero arrives beside its first guard's dock: =spider (by default) or =escort (derelict-enemies)", Shape = DevShape.Either)]
+[Dev("--dock", "with --vessel, the hero arrives beside its first guard's dock, on an intact vessel: =spider (by default) or =escort (derelict-enemies)", Shape = DevShape.Either)]
+[Dev("--wrecked", "with --vessel, its chain of events: =blast,fire,ice,rock,break each, :old to age one; =none intact; alone the seed's (vessel-wrecks)", Shape = DevShape.Either)]
 [Dev("--breakers", "with --vessel, the pickaxe, sledgehammer, fire axe, fifty blasting charges and the railgun with nails on 1-6, a battery on the belt, creative (damage-scale)")]
 public sealed class VesselScenario : DevScenario
 {
@@ -28,9 +31,9 @@ public sealed class VesselScenario : DevScenario
 
     private static string Species(string given) => given.Length == 0 ? Content.Vessels.Aboard.Capsule.Species : given;
 
-    /// <summary>Whether contact <paramref name="k"/>'s vessel has a dock of <paramref name="species"/>'s guard.</summary>
+    /// <summary>Whether contact <paramref name="k"/>'s vessel as built has a dock of <paramref name="species"/>'s guard: an intact one only.</summary>
     private static bool Docks(Contact k, string species) =>
-        Shipyard.Guards(Shipyard.Describe(Content.Vessels.Class(k.Class)!, k.Seed)).Any(d => d.Species == species);
+        Shipyard.Guards(Shipyard.Build(Content.Vessels.Class(k.Class)!, k.Seed, k.Wreck)).Any(d => d.Species == species);
 
     /// <summary>
     /// The cell a hero's feet stand on beside the first dock of <paramref name="species"/>'s guard, on its floor: two columns past its right
@@ -51,7 +54,8 @@ public sealed class VesselScenario : DevScenario
     public override World Seed(World world, DevSeed seed)
     {
         // With --dock, every contact the radar holds, so one whose vessel has that guard's dock is jumped to.
-        for (int i = Args.Given("--dock") == null ? 1 : Content.Vessels.MaxContacts; i > 0; i--) world.Step([new Find(Args.Given("--vessel") ?? "freighter")]);
+        for (int i = Args.Given("--dock") == null ? 1 : Content.Vessels.MaxContacts; i > 0; i--)
+            world.Step([new Find(Args.Given("--vessel") ?? "freighter", Args.Given("--wrecked") is { } chain ? WreckChain.Parse(chain) : null)]);
         if (!Breakers) return world;
         (string Item, int Count)[] hotbar =
         [
@@ -78,6 +82,14 @@ public sealed class VesselScenario : DevScenario
         }
         if (_jumped || client.World.SurfaceOf(client.Id) != 0) return;
         _jumped = true;
-        client.Send(new Jump(Args.Given("--dock") is { } species && m.Places.Contacts.FirstOrDefault(k => Docks(k, Species(species))) is { } docked ? docked.Id : 1));
+        int to = Args.Given("--dock") is { } species && m.Places.Contacts.FirstOrDefault(k => Docks(k, Species(species))) is { } docked ? docked.Id : 1;
+        if (m.Places.Contacts.FirstOrDefault(k => k.Id == to) is { } contact)
+        {
+            var built = Shipyard.Build(Content.Vessels.Class(contact.Class)!, contact.Seed, contact.Wreck);
+            var made = built.Wreck?.Events.Select(e => new Content.WreckStep(e.Kind, e.Old)).ToList() ?? [];
+            log($"wreck: {contact.Class} seed {contact.Seed}, {(made.Count == 0 ? "intact" : WreckChain.Write(made))}"
+                + (contact.Wreck is { } asked && asked.Count != made.Count ? $" (asked {WreckChain.Write(asked)}: a step not allowed at its turn skipped)" : ""));
+        }
+        client.Send(new Jump(to));
     }
 }

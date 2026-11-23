@@ -9,8 +9,11 @@ using Looks = Stillwake.Game.VesselLooks;
 
 namespace Stillwake.Game.Features.Light;
 
-/// <summary>How a derelict's lamp burns (derelict-looks): red on its battery, dead, or the vessel's one dying lamp.</summary>
-public enum LampState { Red, Dead, Dying }
+/// <summary>
+/// How a derelict's lamp burns (derelict-looks, vessel-wrecks): dead, the vessel's one flickering, or lit: a wreck's red on its battery,
+/// an abandoned vessel's white, its own light.
+/// </summary>
+public enum LampState { Red, Dead, Dying, Warm }
 
 /// <summary>A lamp the vessel was stamped with: its top-left in the vessel's frame, its kind, how it burns, where its phase starts.</summary>
 public readonly record struct VesselLamp(int X, int Y, string Kind, LampState State, double PhaseMs);
@@ -45,21 +48,24 @@ public sealed class VesselLights
     /// <summary>What a bridge's consoles are, by their first look: the salvage's and the mockup's.</summary>
     public static readonly IReadOnlyList<string> ConsoleKinds = ["salvageConsole", Vessels.Console];
 
-    public VesselLights(Vessel vessel)
+    public VesselLights(Built built)
     {
+        var vessel = built.Vessel;
         Seed = vessel.Seed;
-        var parts = Shipyard.Stamp(vessel);
-        // The airlock: the room a hero first steps into, just inside the first door, as tall as it is.
-        var (sx, sy) = Shipyard.Door(vessel);
+        var parts = built.Parts;
+        // The airlock: the room a hero first steps into, just inside the way in, as tall as it is.
+        var (sx, sy) = Shipyard.Door(built);
         var airlock = vessel.Compartments.First(c => c.Holds(sx, sy));
         bool InAirlock(VesselPart p) => airlock.Holds(p.X, p.Y);
 
+        // A lamp an event carved is simply gone with its part; the rest burn as an abandoned vessel's do, a wreck's lit ones red.
+        var lit = built.Wreck != null ? LampState.Red : LampState.Warm;
         var lamps = parts.Where(p => p.Layer == "machine" && LampKinds.Contains(p.Kind)).ToList();
         var others = lamps.Where(p => !InAirlock(p)).ToList();
         var dying = others.Count == 0 ? null : others[Looks.Below(Seed, Looks.Salt.Dying, 0, others.Count)];
         Lamps = lamps.Select(p => new VesselLamp(p.X, p.Y, p.Kind,
-            InAirlock(p) ? LampState.Red : p == dying ? LampState.Dying
-            : Looks.Below(Seed, Looks.Salt.Lamp, Cell(p), 100) < Looks.LampRedPercent ? LampState.Red : LampState.Dead,
+            InAirlock(p) ? lit : p == dying ? LampState.Dying
+            : Looks.Below(Seed, Looks.Salt.Lamp, Cell(p), 100) < Looks.LampRedPercent ? lit : LampState.Dead,
             Phase(p))).ToList();
         Dying = dying == null ? null : lamps.IndexOf(dying);
 
@@ -83,9 +89,12 @@ public sealed class VesselLights
         double Phase(VesselPart p) => Looks.Below(Seed, Looks.Salt.Phase, Cell(p), 6000);
     }
 
-    /// <summary>The light inside the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/>; none off a vessel.</summary>
-    public static VesselLights? For(Surfaces.Kind rules, uint seed) =>
-        rules is VesselKind kind ? new VesselLights(Shipyard.Describe(Vessels.Class(kind.Class)!, seed)) : null;
+    /// <summary>
+    /// The light inside the vessel a surface of <paramref name="rules"/> holds from <paramref name="seed"/> and its forced chain
+    /// <paramref name="wreck"/> (vessel-wrecks); none off a vessel.
+    /// </summary>
+    public static VesselLights? For(Surfaces.Kind rules, uint seed, IReadOnlyList<WreckStep>? wreck = null) =>
+        rules is VesselKind kind ? new VesselLights(Shipyard.Build(Vessels.Class(kind.Class)!, seed, wreck)) : null;
 
     /// <summary>The grid cell of the frame's (<paramref name="x"/>, <paramref name="y"/>), the frame's top-left at <c>Vessels.Margin</c> every way.</summary>
     public static int CellOf(int x, int y, int gridWidth) => (y + Vessels.Margin) * gridWidth + x + Vessels.Margin;
@@ -110,8 +119,12 @@ public sealed class VesselLights
     {
         LampState.Red => Breathes(L.EmergencyBreathe, L.EmergencyRate, ms, phaseMs),
         LampState.Dying => DyingAt(ms, phaseMs),
+        LampState.Warm => 1,
         _ => 0,
     };
+
+    /// <summary>Whether a lamp in <paramref name="state"/> burns its battery's red, not its own colour.</summary>
+    public static bool Emergency(LampState state) => state is LampState.Red;
 
     /// <summary>How bright a lit screen is, glitching or not.</summary>
     public static float Screen(bool glitching, double ms, double phaseMs) =>

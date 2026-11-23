@@ -10,12 +10,18 @@ namespace Stillwake.Sim.Places;
 /// <summary>
 /// A vessel the radar found that nobody has gone to (generated-vessels): its class and the seed it grows from; <c>Offset</c>
 /// radar units along the ship's orbit, minus left of the ship, and the ticks <c>Left</c> before it goes
-/// (2026-11-08-radar-contacts).
+/// (2026-11-08-radar-contacts). <c>Wreck</c> the chain a dev forced on it (vessel-wrecks), null for its seed's own.
 /// </summary>
-public sealed record Contact(int Id, string Class, uint Seed, int Offset, int Left);
+public sealed record Contact(int Id, string Class, uint Seed, int Offset, int Left,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<WreckStep>? Wreck = null);
 
-/// <summary>Finds a vessel of <c>Class</c> at once: a contact as the radar's own come, its seed and place drawn from the world's Rng. Dev tools'.</summary>
-public sealed record Find(string Class) : Command;
+/// <summary>
+/// Finds a vessel of <c>Class</c> at once: a contact as the radar's own come, its seed and place drawn from the world's Rng. Dev
+/// tools'. <c>Wreck</c> forces its chain of events (vessel-wrecks): an empty one an intact vessel, null the seed's own; a step not
+/// allowed at its turn is skipped as it is built. <c>Wrecked</c>, with no chain forced, the state its vessel must arrive in: its seed
+/// drawn again till <c>Shipyard.IsWreck</c> says so; null takes the first seed.
+/// </summary>
+public sealed record Find(string Class, IReadOnlyList<WreckStep>? Wreck = null, bool? Wrecked = null) : Command;
 
 /// <summary>
 /// Goes to contact <c>Contact</c> (vessel-worlds): a surface of its own opened with the vessel written in its middle, as built,
@@ -137,7 +143,7 @@ public sealed class PlacesModule : Module<PlacesState>
         var contact = Course!;
         State.Contacts.Remove(contact);
         State.Course = null;
-        _landingOps.SetOff(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed, Burnt(contact));
+        _landingOps.SetOff(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed, Burnt(contact), contact.Wreck);
     }
 
     protected override PlacesState Init(Layout layout) => new();
@@ -153,18 +159,24 @@ public sealed class PlacesModule : Module<PlacesState>
         : Vessels.Class(c.Class) == null ? "places.noClass"
         : State.Contacts.Count >= Vessels.MaxContacts ? "places.full" : null;
 
-    private void ApplyFind(Find c) => Add(c.Class);
+    private void ApplyFind(Find c) => Add(c.Class, c.Wreck, c.Wrecked);
+
+    /// <summary>Seeds drawn at most for a <c>Find</c> that asks a wrecked or an intact vessel: each comes out right 60 or 40 in 100.</summary>
+    private const int SeedTries = 64;
 
     /// <summary>
-    /// A contact of <paramref name="cls"/>: its seed drawn first, then its side and distance on the orbit, each evenly; seen
-    /// <c>Contacts.Lasts</c> ticks.
+    /// A contact of <paramref name="cls"/>: its seed drawn first (again, up to <see cref="SeedTries"/>, till its vessel is
+    /// <paramref name="wrecked"/> when that is asked and no chain is forced), then its side and distance on the orbit, each evenly;
+    /// seen <c>Contacts.Lasts</c> ticks.
     /// </summary>
-    private void Add(string cls)
+    private void Add(string cls, IReadOnlyList<WreckStep>? wreck = null, bool? wrecked = null)
     {
         uint seed = (uint)Random.Below(1UL << 32);
+        if (wreck == null && wrecked is bool want)
+            for (int i = 1; i < SeedTries && Shipyard.IsWreck(Vessels.Class(cls)!, seed) != want; i++) seed = (uint)Random.Below(1UL << 32);
         int side = Random.Below(2) == 0 ? -1 : 1;
         int distance = Content.Contacts.Nearest + (int)Random.Below((uint)(Content.Contacts.Reach - Content.Contacts.Nearest + 1));
-        State.Contacts.Add(new(State.NextContactId++, cls, seed, side * distance, Content.Contacts.Lasts));
+        State.Contacts.Add(new(State.NextContactId++, cls, seed, side * distance, Content.Contacts.Lasts, wreck));
     }
 
     /// <summary>
@@ -207,21 +219,21 @@ public sealed class PlacesModule : Module<PlacesState>
     {
         var contact = State.Contacts.Find(k => k.Id == c.Contact)!;
         State.Contacts.Remove(contact);
-        Surfaces.Visit(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed);
+        Surfaces.Visit(c.From, Vessels.Kinds[Vessels.IndexOf(contact.Class)].Id, contact.Seed, contact.Wreck);
     }
 
     /// <summary>
-    /// On a vessel world as it opens: the vessel described from its class and the surface's seed, its parts laid in reading order
-    /// with its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>), so its machines' ids follow it; its crates filled, the doors
-    /// it left open opened.
+    /// On a vessel world as it opens: the vessel built from its class, the surface's seed and its forced chain (vessel-wrecks), its
+    /// parts laid in reading order with its frame's top-left at (<c>Vessels.Margin</c>, <c>Margin</c>), so its machines' ids follow it;
+    /// its crates and bodies filled, the doors it left open opened.
     /// </summary>
     protected override void Opened()
     {
         if (Rules is not VesselKind kind) return;
-        var vessel = Shipyard.Describe(Vessels.Class(kind.Class)!, Surfaces.Seed);
         int width = _grid.Width, m = Vessels.Margin;
-        // Furniture where a guard's capsule took its place is left out (derelict-enemies).
-        var parts = Shipyard.Docked(Shipyard.Stamp(vessel), Shipyard.Guards(vessel));
+        var built = Surfaces.Vessel ?? Shipyard.Build(Vessels.Class(kind.Class)!, Surfaces.Seed, Surfaces.Wreck);
+        // Furniture where a guard's capsule took its place is left out (derelict-enemies); a wreck has no guards.
+        var parts = Shipyard.Docked(built.Parts, Shipyard.Guards(built));
         foreach (var part in parts)
         {
             int cell = (m + part.Y) * width + m + part.X;
@@ -241,8 +253,9 @@ public sealed class PlacesModule : Module<PlacesState>
     }
 
     /// <summary>
-    /// Now and then, as a jump opens a whole surface: a contact found, of a class or none; a jump to one, a course set to one or one
-    /// forgotten, held or not; the course cleared; a set off, mostly refused but from a shuttle's rider.
+    /// Now and then, as a jump opens a whole surface: a contact found, of a class or none, now and then with a forced chain of up to
+    /// four steps, allowed or not (vessel-wrecks), or asked wrecked or intact; a jump to one, a course set to one or one forgotten, held or not; the course cleared; a
+    /// set off, mostly refused but from a shuttle's rider.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -251,7 +264,10 @@ public sealed class PlacesModule : Module<PlacesState>
         if (what == 0)
         {
             string cls = rng.Below(5) == 0 ? "nothing" : Vessels.Classes[(int)rng.Below((uint)Vessels.Classes.Count)].Id;
-            return new Find(cls) { From = from };
+            if (rng.Below(2) == 0) return new Find(cls, null, rng.Below(3) switch { 0 => null, 1 => true, _ => false }) { From = from };
+            var chain = new List<WreckStep>();
+            for (int n = (int)rng.Below(5); n > 0; n--) chain.Add(new((WreckKind)rng.Below(5), rng.Below(2) == 0));
+            return new Find(cls, chain) { From = from };
         }
         if (what == 3) return new SetOff { From = from };
         if (what == 4) return new ClearCourse { From = from };

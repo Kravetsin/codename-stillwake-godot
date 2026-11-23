@@ -34,13 +34,15 @@ public class EscortAboardTests
     {
         public readonly Scenario W;
         public readonly Registry V;
-        public readonly Vessel Vessel;
+        public readonly Built Built;
+
+        public Vessel Vessel => Built.Vessel;
         public readonly Creature Escort;
         public readonly Vessel.Compartment Room;
 
         public Aboard()
         {
-            (W, V, Vessel) = GuardsAboardTests.Boarded("liner");
+            (W, V, Built) = GuardsAboardTests.Boarded("liner");
             Escort = V.Creatures.Creatures.Where(c => c.Species == Spec.Escort.Id).Single(c => Of(c).Left == M + 34 && Of(c).Decks == 2);
             Room = Of(Escort);
         }
@@ -82,7 +84,7 @@ public class EscortAboardTests
         /// <summary>Woken by a blow, its hero out past the way in, and let go: awake on its floor, standing, no hero aboard.</summary>
         public Aboard Woken()
         {
-            var door = Shipyard.WayIn(Vessel);
+            var door = Shipyard.WayIn(Built);
             Hero(M + door.X - 4, M + door.Y + Content.Vessels.Open - 1);
             W.Do(new Strike(Escort.Id, Content.Weapons.Axe.Item));
             Run(Wake + 2);
@@ -95,7 +97,7 @@ public class EscortAboardTests
         public int Air => V.Crew.HeroOf(0)!.Air;
 
         /// <summary>The doors of its deck in the world, the way in left out: each its left column and top row.</summary>
-        public IEnumerable<(int X, int Y)> Doors => Vessel.Doors.Where(d => d != Shipyard.WayIn(Vessel) && M + d.Y == Room.Floor - Content.Vessels.Open)
+        public IEnumerable<(int X, int Y)> Doors => Vessel.Doors.Where(d => d != Shipyard.WayIn(Built) && M + d.Y == Room.Floor - Content.Vessels.Open)
             .Select(d => (M + d.X, M + d.Y));
 
         /// <summary>Its act's move, by its record's type; null for none.</summary>
@@ -303,7 +305,7 @@ public class EscortAboardTests
     public void WithNoHeroAboardItStandsWhereItIs()
     {
         var a = new Aboard().Woken();
-        var door = Shipyard.WayIn(a.Vessel);
+        var door = Shipyard.WayIn(a.Built);
         a.Hero(M + door.X - 4, M + door.Y + Content.Vessels.Open - 1).Run(40);
         var (x, y) = (a.Escort.X, a.Escort.Y);
         a.Run(200);
@@ -338,12 +340,13 @@ public class EscortAboardTests
     [Property(MaxTest = 10)]
     public Property AnEscortNeverLeavesItsDecksRowsNorOpensAHatchOrTheWayIn() => Prop.ForAll(Plays(), play =>
     {
-        var (w, v, vessel) = GuardsAboardTests.Boarded("liner", play.Index);
+        var (w, v, built) = GuardsAboardTests.Boarded("liner", play.Index);
+        var vessel = built.Vessel;
         var rng = new Rng(new RngState { S = play.Seed | 1 });
         var rooms = vessel.Compartments;
         int surface = w.World.SurfaceOf(0), width = v.Grid.Width;
         // What it may never pry: a hatch's cells, the way in's. A spider opens hatches, so the hatches themselves tell nothing.
-        var wayIn = Shipyard.WayIn(vessel);
+        var wayIn = Shipyard.WayIn(built);
         var never = vessel.Hatches.SelectMany(h => new[] { (M + h.Y) * width + M + h.X, (M + h.Y) * width + M + h.X + 1 })
             .Concat(Enumerable.Range(0, Content.Vessels.Open).SelectMany(y => new[] { (M + wayIn.Y + y) * width + M + wayIn.X, (M + wayIn.Y + y) * width + M + wayIn.X + 1 }))
             .ToHashSet();
@@ -359,7 +362,7 @@ public class EscortAboardTests
                 if (rng.Below(2) == 0)
                 {
                     var d = vessel.Doors[(int)rng.Below((uint)vessel.Doors.Count)];
-                    if (d != Shipyard.WayIn(vessel)) w.Do(new SetDoor((M + d.Y) * width + M + d.X, rng.Below(2) == 0));
+                    if (d != Shipyard.WayIn(built)) w.Do(new SetDoor((M + d.Y) * width + M + d.X, rng.Below(2) == 0));
                 }
             }
             w.Run();
@@ -398,12 +401,12 @@ public class EscortAboardTests
             for (int i = 0; i < ticks; i++) Both();
         }
         Both(new Enter(a.Crew.Spawn));
-        Both(new Find("liner"));
+        Both(new Find("liner", Wrecked: false));
         var contact = a.Places.Contacts[^1];
         Both(new Jump(contact.Id));
         int surface = first.SurfaceOf(0);
         var v = Registry.On(first, surface);
-        var vessel = Shipyard.Describe(Content.Vessels.Class("liner")!, contact.Seed);
+        var vessel = Shipyard.Build(Content.Vessels.Class("liner")!, contact.Seed, contact.Wreck).Vessel;
         int width = v.Grid.Width;
         var escort = v.Creatures.Creatures.Where(c => c.Species == Spec.Escort.Id).MaxBy(c => c.Y)!;
         var room = vessel.Compartments[v.Creatures.Docks[CreaturesModule.DockOf(escort)!.Value].Room];

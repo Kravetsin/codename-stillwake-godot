@@ -11,6 +11,8 @@ public static partial class Ru
         ["computer.program.radar"] = "Радар",
         ["computer.radar.ship"] = "Мой корабль",
         ["computer.radar.vessel"] = "Заброшенный корабль",
+        ["computer.radar.wreck"] = "Разрушенный корабль",
+        ["computer.radar.wreckTag"] = "Разрушен",
         ["computer.radar.km"] = "{n} км",
         ["computer.close"] = "Закрыть",
         ["computer.closeHow"] = "E или Esc",

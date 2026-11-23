@@ -26,7 +26,7 @@
 | `logic/Debris.En.cs` | Its player text (`En`) |
 | `logic/Debris.Ru.cs` | Russian |
 
-The debris drifting past the ship, drawn only: the sim (`sim/Debris`) spawns, moves and hands out what a catch gives.
+The debris drifting past the ship, drawn: the sim (`sim/Debris`) spawns and hands out what a catch gives.
 Catching is the hero's hands, aimed as everything E works is (`features/crew`, `Aiming.AimAt`), sending `Grab`;
 breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 
@@ -37,15 +37,16 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 
 - **Only what the camera sees** (0052): a piece gets a picture only while its middle is within `ShipCamera.View` and
   8 cells round it. Pictures come from two pools, wrecks' and small pieces', that grow to the most ever on screen and
-  never free, warmed in `_Ready` with every debris texture, so a cloud drifting in makes
+  never free, warmed in `_Ready`, so a cloud drifting in makes
   none. Only wrecks take the cracking material; a small piece is `Lit` plain. A piece leaving the view goes back to its pool.
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull. Each piece wears one of
   its kind's pictures (`Content/DebrisLooks`, `art/debris`), the one its id picks (`Content.Looks.Of(kind, id)`), so
   every peer sees it alike (0066); a wreck's is drawn of what it breaks into and is the box it is aimed at and struck
   by (`DebrisLooks.Wrecks`). A kind with none is its item's icon at 0.8 of a cell. Lit by the stars and lamps; drawn
-  where `Shared.PieceDrawn` says: the host player's body (`LiveDebris`), else the sim's pose run on.
-- **Bodies** (debris-host-physics): on the host player's client a rigid body a piece, meeting only pieces, eased to its
-  drift and tumble; lines pull by `PieceRope`; strays past `FeedSlack` go to the sim as `Moved`.
+  where `Shared.PieceDrawn` says: the host player's body (`LiveDebris`), else the sim's pose run on, a guest easing
+  each correction away (`PieceEase`, debris-coop).
+- **Bodies** (debris-host-physics): on the host player's client a body a ship's piece wherever its hero is, meeting only pieces,
+  eased to its drift and tumble; guests' lines too; lines pull by `PieceRope`; strays past `FeedSlack` go to the sim as `Moved`.
 - **Damage** (cracks-to-end): a dent per blow seen, one within 3 px deepening it, and one network out of the first
   (`game/shared`'s `WreckCracks`, `WreckInk` on the picture, lit, clipped) run on with the share lost to cover it by 0.92; one first
   seen damaged is struck in its middle. Kept out of view; blows there go unseen.
@@ -77,7 +78,7 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 
 - `HandbookPage` on `features/handbook`'s tablet: every kind in rows by where to look (`Content/Handbook.DebrisRows`). A found kind
   shows its first look found; one not found its first look black.
-- **Tally** at the tab strip's right: looks found of all there are, with a bar; its tooltip gives kinds and looks.
+- **Tally** at the tab strip's right: looks found of all there are, with a bar.
 - **Entry** of the chosen kind (the first found until one is clicked): the look big, a strip of every look (not found
   black, a click shows a found one big, "2/5"; none for a one-look kind); name, hit points (`Wreckage.HpOf`) or
   "Caught by hand"; loot slot by slot (`Loot.Of`): a seen item with its range, an unseen one a black silhouette, a pie
@@ -101,5 +102,4 @@ in exactly one row).
 - Other peers' grabs in flight: a piece another player is catching stays until the host's tick says so.
 - Own hits before their tick (0014): a chop jolts and is heard a round trip after the swing; its pace hides it.
 - Which hero struck: the jolt faces the nearest.
-- Off the view: a hit on a piece not drawn jolts nothing; a wreck broken there bursts unseen. Pooled pictures draw
-  over or under one another in no set order.
+- Off the view: a hit on a piece not drawn jolts nothing; a wreck broken there bursts unseen.

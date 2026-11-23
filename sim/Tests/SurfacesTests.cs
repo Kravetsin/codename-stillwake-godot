@@ -109,6 +109,24 @@ public class SurfacesTests
     }
 
     [Fact]
+    public void ACommandAddressedToASurfaceIsAppliedThereWhereverItsSenderStands()
+    {
+        var w = Opened();
+        var strip = w.On(1).Debris;
+        var debris = (Debris.DebrisState)strip.Slice;
+        var piece = new Debris.Piece { Id = debris.NextId++, Zone = Content.Debris.Ship.Id, Item = "scrapChunk", X = 10_500, Y = 5_500 };
+        debris.Pieces.Add(piece);
+        // Sent from the ship, addressed to the strip: the strip's debris takes it, and nothing calls it elsewhere.
+        w.Do(new Debris.Moved(strip.Clock, [new Debris.Body(piece.Id, 12_000, 6_000, 0, 0, 0, 0)], []) { Surface = 1 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((12_000, 6_000), (piece.X, piece.Y));
+        // A command of any other type stamped with the strip is still refused while its sender is aboard.
+        w.Do(new SetDoor(w.At(4, 2), true) { Surface = 1 }).Run();
+        Assert.Equal([World.Elsewhere], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(w.At(4, 2)));
+    }
+
+    [Fact]
     public void ASaveLoadsAndSavesByteForByteAndAShipAloneHasNoKeyForSurfaces()
     {
         // The fixture of this format, with two strips opened, loads and saves byte for byte; a hash is of those bytes. A ship

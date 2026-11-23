@@ -48,14 +48,17 @@ public sealed partial class CreaturesModule
 
     public override void Rebuild()
     {
-        if (Rules is not VesselKind kind)
+        // Only an intact vessel has guards (Shipyard.Guards), built as Places writes it; a drawn wreck needs no build to know it.
+        var cls = Rules is VesselKind kind ? Vessels.Class(kind.Class)! : null;
+        bool drawnWreck = cls != null && Surfaces.Wreck == null && Shipyard.IsWreck(cls, Surfaces.Seed);
+        if (cls == null || drawnWreck || (Surfaces.Vessel ?? Shipyard.Build(cls, Surfaces.Seed, Surfaces.Wreck)) is not { Wreck: null } built)
         {
             (_docks, _cabins, _hull, _floors, _hatches, _wayIn, _doors) = ([], [], Box.None, [], [], Box.None, []);
             return;
         }
-        var v = Shipyard.Describe(Vessels.Class(kind.Class)!, Surfaces.Seed);
+        var v = built.Vessel;
         int m = Vessels.Margin;
-        _docks = Shipyard.Guards(v);
+        _docks = Shipyard.Guards(built);
         _cabins = [.. _docks.Select(d => v.Compartments[d.Room]).Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
         // The hull and its rooms, its bow's open rows past the last room too; never a module, rib or housing bulged onto it.
         _hull = Box.None;
@@ -64,7 +67,7 @@ public sealed partial class CreaturesModule
                 _hull = _hull.Union(new Box(m + h.Left, m + h.Top, m + h.Left + h.Width - 1, m + h.Bottom));
         _floors = [.. v.Decks.Select(d => m + d.Floor).Concat(v.Hatches.Select(h => m + h.Y)).Distinct().Order()];
         _hatches = [.. v.Hatches.Select(h => (X: m + h.X, Y: m + h.Y)).OrderBy(h => h.Y).ThenBy(h => h.X)];
-        var door = Shipyard.WayIn(v);
+        var door = Shipyard.WayIn(built);
         _wayIn = new Box(m + door.X, m + door.Y, m + door.X + Doorways.Thick - 1, m + door.Y + Vessels.Open - 1);
         _doors = [.. v.Doors.Where(d => d != door).Select(d => (X: m + d.X, Y: m + d.Y)).OrderBy(d => d.Y).ThenBy(d => d.X)];
     }

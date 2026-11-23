@@ -409,6 +409,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hud-dials](2026-11-18-hud-dials.md) | The vitals as a row of dials over a long air bar | accepted |  |
 | [mild-surface](2026-11-18-mild-surface.md) | The first planet's surface is mild; its storms are the threat | accepted |  |
 | [moving-sun](2026-11-18-moving-sun.md) | The sun moves by the hour, and what is far stays behind | accepted |  |
+| [vessel-wrecks](2026-11-18-vessel-wrecks.md) | Vessel wrecks | accepted |  |
 | [drone-companion](2026-11-21-drone-companion.md) | Each hero pairs once with a shard of the alien core; the bag comes with it | accepted | drone-windows (in part) |
 | [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted | drone-threads, drone-windows (in part) |
 | [drone-lessons](2026-11-21-drone-lessons.md) | The drone learns its forms from what its player does | accepted | drone-thoughts, form-vision (in part) |
@@ -434,6 +435,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
 | [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
 | [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [debris-coop](2026-11-23-debris-coop.md) | Debris physics in co-op: a feed addressed to the ship, guests ease corrections | accepted |  |
 | [debris-host-physics](2026-11-23-debris-host-physics.md) | Debris moves by the host player's physics, and the harpoon tows it on a rope | accepted |  |
 | [debris-tumble](2026-11-23-debris-tumble.md) | Debris tumbles in the sim, and is hit by its turned shape | accepted |  |
 | [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |

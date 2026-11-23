@@ -72,6 +72,7 @@ public partial class Main : Node2D, ITogether
 
     /// <summary>The seed of the surface drawn, 0 aboard.</summary>
     private uint _seed;
+    private IReadOnlyList<Content.WreckStep>? _wreck;
     /// <summary>The ship's registry, surface 0's, made with the world: a load or a resync brings a new one.</summary>
     private Registry _ship = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
@@ -115,6 +116,8 @@ public partial class Main : Node2D, ITogether
     private DebrisView _debris = null!;
     /// <summary>The pieces as rigid bodies on the host player's client, fed to the sim (debris-physics).</summary>
     private DebrisBodies _pieceBodies = null!;
+    /// <summary>The pieces on a guest's client, the feed's corrections eased away in the drawing (debris-physics).</summary>
+    private readonly Shared.PieceEase _pieceEase = new();
     private Features.Creatures.CreaturesView _creatures = null!;
     private readonly Features.Scanner.ScannerView _scanner = new();
     private Hands _hands = null!;
@@ -283,6 +286,7 @@ public partial class Main : Node2D, ITogether
         AddChild(new Features.Backdrop.FocusView(() => _stars.OnPlanet && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look) ? look.Far : 0));
         AddChild(_debris);
         AddChild(_pieceBodies = new DebrisBodies { AnchorOf = peer => _hero?.AnchorOf(peer) });
+        Shared.LiveDebris.Eased = _pieceEase.Drawn;
         AddChild(_scanner);
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
@@ -571,6 +575,7 @@ public partial class Main : Node2D, ITogether
         _m = here;
         // What its creatures' looks grow from, with their ids (0102): the same individuals on every peer.
         _seed = surface == 0 ? 0 : client.World.Surfaces.First(s => s.Id == surface).Seed;
+        _wreck = surface == 0 ? null : client.World.Surfaces.First(s => s.Id == surface).Wreck;
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.OpenComputer.Set(null);
@@ -592,9 +597,16 @@ public partial class Main : Node2D, ITogether
         _faded.Clear();
         _light?.QueueFree();
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
-            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
+            Homes: !Has("--no-homes"), Seen: Has("--seen"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
-            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet);
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals, Seed: _seed, Heroes: HeroFeet, Wreck: _wreck);
+        // --frame: a vessel world framed whole, the camera held there (a frame sheet of a wreck).
+        if (Has("--frame") && context.Built is { } framed)
+        {
+            int m = Content.Vessels.Margin;
+            _camera.Fit(new Rect2(m, m, framed.Vessel.Width, framed.Vessel.Height));
+        }
+        if (_hero != null) _hero.HoldsCamera = Has("--frame") && context.Built != null;
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -609,7 +621,7 @@ public partial class Main : Node2D, ITogether
         Func<Sim.Grid.Machine, bool> own = View<Features.Light.VesselLamps>() is { } inside ? inside.Claims : _ => false;
         _hands.Unmarked = own;
         _hands.Unseen = View<Features.Unseen.UnseenView>() is { } unseen ? unseen.Hides : _ => false;
-        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
+        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType, bright: Has("--bright"))
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
             // A flare coming makes them falter as one short of power does (magnetic-flare).
@@ -702,6 +714,8 @@ public partial class Main : Node2D, ITogether
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
         Follow(client);
+        // Before anything draws a piece: a guest's pieces ease the feed's corrections away; the host player's draws its bodies.
+        _pieceEase.Frame(client.Id != Sim.Debris.DebrisModule.HostPlayer, client.World.Tick, session.Drift, delta * 1000);
         Snap(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
         _stars.Warp = Features.Landing.Warp.Depth(_m.Landing.Course?.TicksLeft, Content.Landing.FlightTicks, session.Progress);
@@ -739,7 +753,8 @@ public partial class Main : Node2D, ITogether
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
-        _pieceBodies.Frame(client, _m.Debris, session.Drift);
+        // The ship's pieces wherever this hero is, a planet too: the physics always runs (debris-physics).
+        _pieceBodies.Frame(client, _ship.Debris, session.Drift);
         _frameLog?.Mark("debris");
         _scanner.Frame(_hero?.Scanning == true && _hero.Pointer() is { } pointer
             ? Features.Scanner.Scan.Of(_m.Debris.Pieces, pointer, true, session.Drift) ?? Features.Scanner.Scan.OfPile(_m.Grid, _m.Building.Cracks, pointer) : null,

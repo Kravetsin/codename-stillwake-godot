@@ -249,6 +249,45 @@ public class RemoteTests
         Assert.Equal(10_000 - BehindMs, heroes.At(10_000)[0].Seen.Hero.X);
     }
 
+    // Where the host player's rope anchors a guest's line (debris-physics): its newest sample, not drawn behind.
+
+    /// <summary>How far past its newest sample a guest's anchor is carried, as the hero view asks: <c>Debris.AnchorAhead</c> ticks, half a second.</summary>
+    private static readonly double AnchorAheadMs = Stillwake.Content.Debris.AnchorAhead * 1000.0 / Stillwake.Sim.World.TicksPerSecond;
+
+    [Fact]
+    public void AGuestsAnchorIsItsNewestSampleCarriedOnAlongItsVelocity()
+    {
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, Sent(HeroAt(0) with { Vx = 30, Vy = -6 }), 1000);
+        heroes.Add(2, Sent(HeroAt(1_000) with { Vx = 30, Vy = -6 }), 1050);
+        Assert.Equal(500, AnchorAheadMs);
+        // Not 150 ms behind as drawn: from the newest, three steps on.
+        var anchor = heroes.Newest(2, 1050 + 3 * Hero.StepMs, AnchorAheadMs)!.Value;
+        Assert.Equal((1_090, -18, 30, -6), (anchor.X, anchor.Y, anchor.Vx, anchor.Vy));
+    }
+
+    [Fact]
+    public void AGuestsAnchorIsHeldStillOnceItsSamplesStopForLongerThanItIsCarried()
+    {
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, Sent(HeroAt(1_000) with { Vx = 30 }), 1000);
+        double steps = AnchorAheadMs / Hero.StepMs;
+        foreach (double late in new[] { AnchorAheadMs + 1, 2_000 })
+        {
+            var held = heroes.Newest(2, 1000 + late, AnchorAheadMs)!.Value;
+            Assert.Equal((1_000 + (int)Math.Round(30 * steps), 0, 0), (held.X, held.Vx, held.Vy));
+        }
+    }
+
+    [Fact]
+    public void NoAnchorForAGuestUnheardOrGone()
+    {
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, Sent(HeroAt(1_000)), 1000);
+        Assert.Null(heroes.Newest(3, 1000, AnchorAheadMs));
+        Assert.Null(heroes.Newest(2, 1000 + GoneMs + 1, AnchorAheadMs));
+    }
+
     // Sending the hero.
 
     [Fact]
