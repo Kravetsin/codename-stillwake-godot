@@ -295,7 +295,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
                 if (first.FromInputs && queue.Progress == 0) _itemsOps.TakeInputs(m.Id, craft.Cost);
                 queue.Progress = Math.Min(work, queue.Progress + gain);
             }
-            Cost unit = [(craft.Item, 1)];
+            Cost unit = [(craft.Item, craft.Makes)];
             if (queue.Progress >= work && _items.OutputFull(m.Id, unit) == null)
             {
                 _itemsOps.Output(m.Id, unit);

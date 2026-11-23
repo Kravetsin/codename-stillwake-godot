@@ -243,7 +243,7 @@ public partial class Main : Node2D, ITogether
         // The volumes as kept, before the title's music begins.
         Settings.ApplyVolumes();
         // Before everything else, so every button made after it clicks.
-        var sound = new SoundView(Floats, () => _title != null, Fogged);
+        var sound = new SoundView(Floats, () => _title != null, OffPlanet, Fogged);
         AddChild(sound);
         // What is heard, counted into the log now and then: a sound bug of co-op's second descent (heard-every-other).
         AddChild(new Features.Sound.AudioCensus(Log, sound, () => _session is Session s ? s.Client.World.SurfaceOf(s.Client.Id) : null));
@@ -542,6 +542,9 @@ public partial class Main : Node2D, ITogether
     // In a drop pod the hero hears as in air, the vacuum outside or not: the pod holds its own.
     private bool Floats() => _session != null && _hero is { Placed: true, Floats: true, InPod: false };
 
+    /// <summary>Whether this player's placed hero is off a planet, aboard or out in space by any vessel: the ship's music is heard (ship-music).</summary>
+    private bool OffPlanet() => _session != null && _hero is { Placed: true } && Features.Sound.ShipMusic.HeardOn(_m.Rules);
+
     /// <summary>How deep in a planet's fog this player's placed hero is, 0 to 1 (fog-edges): the world dulls in it as in space.</summary>
     private double Fogged() => _session != null && _hero is { Placed: true } hero && Shared.FogEdges.Of(_m.Grid, _m.Rules) is { } fog
         ? Shared.FogShare.Column(fog, hero.Current.X / (double)Hero.Unit) : 0;
@@ -748,7 +751,7 @@ public partial class Main : Node2D, ITogether
             _hero?.DroneScan, delta * 1000);
         _hero?.DroneGauge(_scanner.Reads, _scanner.Away);
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);
+        _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, session.Drift, delta * 1000, _seed);
         _frameLog?.Mark("creatures");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");

@@ -114,13 +114,13 @@ public static class ThreadIcon
         float h = MathF.Min(1, 0.5f + 0.5f * lv) * (look.Held ? 0.6f : 1) * (look.Rim ? 0.6f : 1) * SparkFade(look, s);
         if (h <= 0.004f) return;
         Tail(into, path, x, y, r, s, look.Rim ? 0.12f : 0.22f, 1.3f * u, h);
-        var (qx, qy, dx, dy) = path.At(MathF.Min(0.9999f, s));
+        var (qx, qy, _, _) = path.At(MathF.Min(0.9999f, s));
         float px = x + qx * r, py = y + qy * r;
-        if (!look.Rim) into.Add(new EmberMarks.Halo(px, py, 3.2f * u, 0.4f, 0.45f * h));
-        // The pick's spark: three squares nearly on one another, its heat in twentieths so a fade stays smooth.
+        float burn = Salts.RunBurn(s, 1);
+        if (!look.Rim) into.Add(new EmberMarks.Halo(px, py, 3.2f * u, 0.4f, 0.45f * h, burn, Run: true));
+        // The salts' pick: one square, or the colour piles up into white; its heat in twentieths so a fade stays smooth.
         float heat = Math.Clamp(MathF.Round(h * 20), 1, 20) / 20;
-        for (int m = 0; m < 3; m++)
-            into.Add(new EmberMarks.Square(px - dx * m * 0.01f, py - dy * m * 0.01f, 1.3f * u, 0.35f * (1 - m / 3f), (0.95f - m * 0.3f) * heat));
+        into.Add(new EmberMarks.Square(px, py, 1.3f * u, 0.35f, heat, Burn: burn, Run: true));
     }
 
     /// <summary>How a waiting one pulses now: 0.7..1, or 1.</summary>
@@ -223,7 +223,7 @@ public static class ThreadIcon
             if (s0 < 0 || s1 <= s0) continue;
             var a = path.At(s0);
             var b = path.At(s1);
-            into.Segment(x + a.X * r, y + a.Y * r, x + b.X * r, y + b.Y * r, width, 0.3f + 0.4f * i / N, h * (i + 1) / N);
+            into.Segment(x + a.X * r, y + a.Y * r, x + b.X * r, y + b.Y * r, width, 0.3f + 0.4f * i / N, h * (i + 1) / N, Salts.RunBurn(s, i / (float)N), run: true);
         }
     }
 

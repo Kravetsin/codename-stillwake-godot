@@ -95,7 +95,7 @@ public partial class ContentTests
             // Every weapon but the sledgehammer takes more than a hit; its blow bursts the light ones (salvage tools).
             Assert.All(Weapons.All.Where(w => w != Weapons.Sledgehammer), weapon => Assert.True(hp > weapon.Damage, item));
         }
-        Assert.Equal(["cargoContainer", "cableRack", "tankCluster", "soilClod"], Wreckage.All.Where(w => w.Hp <= Weapons.Sledgehammer.Damage).Select(w => w.Item));
+        Assert.Equal(["cargoContainer", "cableRack", "tankCluster", "soilClod", "fuelDrum"], Wreckage.All.Where(w => w.Hp <= Weapons.Sledgehammer.Damage).Select(w => w.Item));
     }
 
     [Fact]

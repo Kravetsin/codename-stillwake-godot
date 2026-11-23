@@ -71,6 +71,8 @@ public static class ToolEdges
                     wrecks.Add((piece, x, y, (double)halfW * halfW + (double)halfH * halfH));
                 }
         var creatures = m.Creatures.Creatures;
+        // Each creature's box once, turned with the wreck it stands on (debris-physics).
+        var boxes = creatures.Select(c => Aiming.BoxOf(m, c)).ToList();
         var cells = new List<int>();
         var struck = new List<Piece>();
         var touched = new List<Creature>();
@@ -110,11 +112,8 @@ public static class ToolEdges
                     }
                     stops = true;
                 }
-                foreach (var c in creatures)
-                {
-                    var (left, top, right, bottom) = Aiming.BoxOf(c);
-                    if (px >= left && px <= right && py >= top && py <= bottom && !touched.Contains(c)) touched.Add(c);
-                }
+                for (int i = 0; i < creatures.Count; i++)
+                    if (!touched.Contains(creatures[i]) && Aiming.Inside(boxes[i], px, py)) touched.Add(creatures[i]);
             }
             if (edge.Beam && stops)
             {

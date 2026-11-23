@@ -7,13 +7,16 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// Shots pierce (2026-10-27-shots-pierce): a hit that breaks or kills what it meets lets the shot fly on, both its damages kept by
-/// its gun, half for the nailer's, rounded down: 6, 3, 1, then nothing.
+/// its gun, half for the nailer's, rounded down: 2, 1, then nothing.
 /// </summary>
 public class PierceTests
 {
     private const int Unit = CreaturesModule.Unit;
     private static readonly string Nailer = Spec.Shots.Nailer.Item;
     private const int Right = 0, Down = 64;
+
+    /// <summary>What the nailer's nail takes first, and from the next thing after it broke one.</summary>
+    private static readonly int First = Spec.Shots.DamageOf(Nailer, Spec.Shots.Nail.Id), Second = Spec.Shots.DamageOf(Nailer, Spec.Shots.Nail.Id, 1);
 
     /// <summary>An engine block at <paramref name="column"/> of row 10 of <see cref="ShotsTests.Space"/>, <paramref name="left"/> hit points left of its 180.</summary>
     internal static Piece Wreck(Scenario w, int column, int left)
@@ -35,11 +38,11 @@ public class PierceTests
         return piece;
     }
 
-    /// <summary>Four wrecks along row 10, 6, 3, 1 and 50 hit points left: what the nailer's chain breaks and where it stops.</summary>
+    /// <summary>Three wrecks along row 10, with what the nailer's chain takes from each and 50 hit points left: what it breaks and where it stops.</summary>
     private static (Scenario W, Piece[] Wrecks) Chain()
     {
         var w = ShotsTests.Space();
-        return (w, [Wreck(w, 40, 6), Wreck(w, 60, 3), Wreck(w, 80, 1), Wreck(w, 100, 50)]);
+        return (w, [Wreck(w, 40, First), Wreck(w, 60, Second), Wreck(w, 80, 50)]);
     }
 
     private static Fire Along(int row) => new(Nailer, 10 * Unit + Unit / 2, row * Unit + Unit / 2, Right);
@@ -59,15 +62,16 @@ public class PierceTests
     }
 
     [Fact]
-    public void ANailBreaksThreeWrecksOnItsHalvedDamageAndStopsAtTheFourthWithNothingLeftHittingNothing()
+    public void ANailBreaksTwoWrecksOnItsHalvedDamageAndStopsAtTheThirdWithNothingLeftHittingNothing()
     {
         var (w, wrecks) = Chain();
-        int fourth = wrecks[3].Damage;
+        Assert.Equal(0, Spec.Shots.DamageOf(Nailer, Spec.Shots.Nail.Id, 2));
+        int third = wrecks[2].Damage;
         var (hits, end) = Flown(w, Along(10));
-        Assert.Equal([(ShotTarget.Wreck, true), (ShotTarget.Wreck, true), (ShotTarget.Wreck, true), (ShotTarget.Wreck, false)], hits.Select(h => (h.What, h.Broke)));
-        Assert.All(wrecks[..3], piece => Assert.DoesNotContain(piece, w.M.Debris.Pieces));
+        Assert.Equal([(ShotTarget.Wreck, true), (ShotTarget.Wreck, true), (ShotTarget.Wreck, false)], hits.Select(h => (h.What, h.Broke)));
+        Assert.All(wrecks[..2], piece => Assert.DoesNotContain(piece, w.M.Debris.Pieces));
         Assert.True(end.Met);
-        Assert.Equal((fourth, null), (wrecks[3].Damage, wrecks[3].Struck));
+        Assert.Equal((third, null), (wrecks[2].Damage, wrecks[2].Struck));
         Assert.Equal(10, end.Cell / w.M.Grid.Width);
     }
 
@@ -78,13 +82,13 @@ public class PierceTests
             .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var first = w.Let(Spec.Creatures.Loper, 40, 19);
         var second = w.Let(Spec.Creatures.Loper, 47, 19);
-        first.Damage = Spec.Creatures.Loper.Life.Hp - 6;
+        first.Damage = Spec.Creatures.Loper.Life.Hp - First;
         var (hits, _) = Flown(w, new Fire(Nailer, 36 * Unit, 17 * Unit, Right));
         Assert.Equal([(ShotTarget.Creature, true), (ShotTarget.Creature, false)], hits.Select(h => (h.What, h.Broke)));
         // Each hit names what it met and who shot: what a shooter's client hears its own hits by.
         Assert.Equal([(first.Id, Ref.Hero(0)), (second.Id, Ref.Hero(0))], hits.Select(h => (h.Id, h.By)));
         Assert.DoesNotContain(first, w.M.Creatures.Creatures);
-        Assert.Equal(3, second.Damage);
+        Assert.Equal(Second, second.Damage);
     }
 
     [Fact]
@@ -94,10 +98,10 @@ public class PierceTests
         var wreck = Wreck(w, 60, 180);
         w.Do(new Release(Spec.Creatures.Sentry.Id, 8 * 320 + 60)).Run();
         var sentry = w.M.Creatures.Creatures.Single();
-        sentry.Damage = Spec.Creatures.Sentry.Life.Hp - 6;
+        sentry.Damage = Spec.Creatures.Sentry.Life.Hp - First;
         var (hits, _) = Flown(w, new Fire(Nailer, sentry.X, sentry.Y - 4 * Unit, Down));
         Assert.Equal([(ShotTarget.Creature, true), (ShotTarget.Wreck, false)], hits.Select(h => (h.What, h.Broke)));
-        Assert.Equal(3, wreck.Damage);
+        Assert.Equal(Second, wreck.Damage);
     }
 
     [Fact]
@@ -124,12 +128,12 @@ public class PierceTests
             .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Wields(Nailer).Run();
         var first = w.Let(Spec.Creatures.Loper, 40, 19);
         var second = w.Let(Spec.Creatures.Loper, 40, 19);
-        first.Damage = Spec.Creatures.Loper.Life.Hp - 6;
+        first.Damage = Spec.Creatures.Loper.Life.Hp - First;
         // From beside them, so the nail meets them on the tick it flies.
         w.Do(new Fire(Nailer, first.X - 3 * Unit, first.Y - 2 * Unit, Right)).Run();
         Assert.Equal([(ShotTarget.Creature, true), (ShotTarget.Creature, false)], w.M.Creatures.Hits.Select(h => (h.What, h.Broke)));
         Assert.Single(w.M.Creatures.Hits.Select(h => h.Cell).Distinct());
-        Assert.Equal(3, second.Damage);
+        Assert.Equal(Second, second.Damage);
         w.Run();
         Assert.Empty(w.M.Creatures.Hits);
     }
@@ -138,7 +142,7 @@ public class PierceTests
     public void AShotThatPiercedFliesOnFromWhereAnUnhinderedOneWould()
     {
         var pierced = ShotsTests.Space();
-        Wreck(pierced, 40, 6);
+        Wreck(pierced, 40, First);
         var open = ShotsTests.Space();
         pierced.Do(Along(10)).Run(15);
         open.Do(Along(10)).Run(15);
@@ -197,7 +201,7 @@ public class PierceTests
             if (w.M.Creatures.Ended.Count > 0) simEnd = w.M.Creatures.Ended.Single().Cell;
         }
         Assert.Equal(simHits, predicted);
-        Assert.Equal(3, passed.Count);
+        Assert.Equal(2, passed.Count);
         Assert.Equal(simEnd, copyEnd);
     }
 }

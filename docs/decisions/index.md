@@ -47,7 +47,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge, swing-motions (in part) |
 | [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
-| [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
+| [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059, ship-music (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
 | [0044](0044-the-harpoon-reels-a-piece-to-a-point.md) | The harpoon reels a piece to a point | accepted | 0046, 0065, 0068, grapple-climbs (in part) |
 | [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) | A burner generator shares the furnace's fire | accepted | 0046, 0057 (in part) |
@@ -112,10 +112,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
-| [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
+| [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays, no-see-through (in part) |
 | [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes, right-lets-go (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
-| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear (in part) |
+| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes, back-focus-clear, no-see-through (in part) |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
 | [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
@@ -131,7 +131,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
-| [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce (in part) |
+| [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce, nailer-auto (in part) |
 | [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted | fuel-liquid (in part) |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
@@ -189,7 +189,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
-| [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
+| [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes, drone-colour |
 | [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted | board-islands (in part) |
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted | board-islands (in part) |
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted | board-islands (in part) |
@@ -297,7 +297,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted | light-drone (in part) |
 | [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
-| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw (in part) |
+| [blasting-charge](2026-11-08-blasting-charge.md) | The blasting charge and the deep caches | accepted | unified-damage, builders-raw, fuel-drums (in part) |
 | [board-names](2026-11-08-board-names.md) | The board names what was never had | accepted | board-islands (in part) |
 | [composed-backdrops](2026-11-08-composed-backdrops.md) | Composed backdrops | accepted |  |
 | [computer-after-planet](2026-11-08-computer-after-planet.md) | The computer and the radar after a planet | accepted | planet-variety (in part) |
@@ -414,17 +414,27 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [drone-frame](2026-11-21-drone-frame.md) | Personal windows are the drone's holograms | accepted | drone-threads, drone-windows (in part) |
 | [drone-lessons](2026-11-21-drone-lessons.md) | The drone learns its forms from what its player does | accepted | drone-thoughts, form-vision (in part) |
 | [drone-meeting](2026-11-21-drone-meeting.md) | The drone's meeting is a vision, and the sim spares the hero meanwhile | accepted | drone-threads (in part) |
-| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted | drone-thoughts (in part) |
-| [drone-threads](2026-11-21-drone-threads.md) | The drone of threads: a coal core and sparks, no plates and no holograms | accepted | drone-windows, scan-form (in part) |
-| [drone-windows](2026-11-21-drone-windows.md) | The drone's windows open in four ember corners; before the pairing only the gear and the stations open | accepted |  |
+| [drone-motion](2026-11-21-drone-motion.md) | The drone's motion and alarms: its own will, trailing its hero | accepted | drone-spring, drone-thoughts (in part) |
+| [drone-threads](2026-11-21-drone-threads.md) | The drone of threads: a coal core and sparks, no plates and no holograms | accepted | drone-windows, scan-form, drone-colour (in part) |
+| [drone-windows](2026-11-21-drone-windows.md) | The drone's windows open in four ember corners; before the pairing only the gear and the stations open | accepted | drone-colour (in part) |
 | [find-scan](2026-11-21-find-scan.md) | The drone scans each find over the hero's head | accepted | form-vision (in part) |
 | [game-title](2026-11-21-game-title.md) | The game is called Castoff | accepted |  |
 | [gear-roles](2026-11-21-gear-roles.md) | Helmets and suits each add their degrees; the heated and heat helmets | accepted |  |
-| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted | drone-lessons, drone-threads, thread-icons (in part) |
+| [light-drone](2026-11-21-light-drone.md) | The light drone: the hero's companion in place of the helmet lamp and the scanner | accepted | drone-lessons, drone-threads, thread-icons, drone-spring (in part) |
 | [own-knowledge](2026-11-21-own-knowledge.md) | Each player learns for themself; purchases are the crew's | accepted |  |
 | [scan-form](2026-11-21-scan-form.md) | The drone's scan form is a reticle, its marks the gauge's dots | accepted |  |
 | [tether-title](2026-11-21-tether-title.md) | The title is a hero on a tether against a sun | accepted |  |
-| [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted |  |
+| [thread-icons](2026-11-21-thread-icons.md) | The wheels and the edge keys are single ember threads | accepted | drone-colour (in part) |
 | [title-name](2026-11-21-title-name.md) | The title's name turns to dust and back | accepted |  |
+| [breakers-look](2026-11-22-breakers-look.md) | Breakers are robots of painted pieces, a pack all of one kind | accepted |  |
+| [companion-fights](2026-11-22-companion-fights.md) | Breakers to mow down, and the weapon thrown on the drone's thread | accepted | breakers-look, fuel-drums (in part) |
+| [drone-colour](2026-11-22-drone-colour.md) | The drone burns in its player's colour; eight suit colours, none amber | accepted |  |
+| [drone-spring](2026-11-22-drone-spring.md) | The drone catches up on a spring and shines from open air | accepted |  |
 | [drone-thoughts](2026-11-22-drone-thoughts.md) | The drone shows what it senses and feels | accepted |  |
+| [drone-tow](2026-11-22-drone-tow.md) | In a long flight the drone plays the tug | accepted |  |
 | [form-vision](2026-11-22-form-vision.md) | A form learned is shown in a vision | accepted |  |
+| [no-see-through](2026-11-22-no-see-through.md) | The right button held fades nothing | accepted |  |
+| [ship-music](2026-11-22-ship-music.md) | The ship's music plays now and then | accepted |  |
+| [debris-tumble](2026-11-23-debris-tumble.md) | Debris tumbles in the sim, and is hit by its turned shape | accepted |  |
+| [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
+| [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |

@@ -1,6 +1,6 @@
 # crew (client): the heroes
 
-This hero and others', client-authoritative (0002).
+Client-authoritative (0002).
 
 ## Files
 
@@ -8,141 +8,145 @@ This hero and others', client-authoritative (0002).
 | --- | --- |
 | `logic/Hero.cs` | |
 | `logic/Rig.cs` | |
-| `logic/Pose.cs` | poses |
-| `logic/Motion.cs` | lean |
-| `logic/Splashes.cs` | water |
-| `logic/LookTint.cs` | tints |
-| `logic/Aim.cs` | aim |
-| `logic/AxeSwing.cs` | clock |
+| `logic/Pose.cs` | |
+| `logic/Motion.cs` | |
+| `logic/Splashes.cs` | |
+| `logic/LookTint.cs` | |
+| `logic/Aim.cs` | |
+| `logic/AxeSwing.cs` | |
 | `logic/Strokes.cs` | |
-| `logic/MotionPlay.cs` | motion |
+| `logic/MotionPlay.cs` | |
 | `ReachAir.cs` | grinder |
 | `logic/AirCuts.cs` | dust |
-| `logic/BladeTrail.cs` | blade |
-| `SpearLight.cs` | spear's |
+| `logic/BladeTrail.cs` | |
+| `SpearLight.cs` | |
 | `logic/SpearFx.cs` | when |
-| `logic/SwingArc.cs` | angle |
-| `logic/SwingArm.cs` | arm |
-| `logic/HandOver.cs` | with it |
+| `logic/SwingArc.cs` | |
+| `logic/SwingArm.cs` | |
+| `logic/HandOver.cs` | |
 | `logic/BodyPlay.cs` | answers |
-| `logic/HaftGrip.cs` | grip |
-| `logic/ArmUp.cs` | up |
-| `logic/HarpoonShot.cs` | harpoon |
-| `logic/HarpoonLine.cs` | line |
+| `logic/HaftGrip.cs` | |
+| `logic/ArmUp.cs` | |
+| `logic/HarpoonShot.cs` | |
+| `logic/HarpoonLine.cs` | |
 | `logic/Prompt.cs` | E |
-| `logic/Seating.cs` | seats |
-| `logic/FogMove.cs` | fog |
+| `logic/Seating.cs` | |
+| `logic/FogMove.cs` | |
 | `logic/Fittings.cs` | modules |
 | `SeatedHeroes.cs` | porthole |
-| `UsePrompt.cs` | shown |
+| `UsePrompt.cs` | |
 | `logic/Tether.cs` | |
 | `logic/DrillPace.cs` | |
-| `logic/RunSounds.cs` | sounds |
+| `logic/RunSounds.cs` | |
 | `logic/ToolEdge.cs` | beam |
 | `logic/ToolRays.cs` | hits |
+| `logic/WeaponThrow.cs` | throw |
+| `logic/ThrownDrawing.cs` | catch |
 | `WreckPixels.cs` | |
-| `ToolWork.cs` | tools |
+| `ToolWork.cs` | |
 | `logic/ToolHaze.cs` | |
-| `logic/CutterJet.cs` | jet |
+| `logic/CutterJet.cs` | |
 | `logic/Motor.cs` | |
 | `logic/Remote.cs` | sent |
-| `logic/RemoteRod.cs` | rods |
+| `logic/RemoteRod.cs` | |
 | `logic/RodFlourish.cs` | lights |
 | `logic/Suits.cs` | |
 | `logic/Skins.cs` | |
 | `logic/Appearance.cs` | tab |
-| `AppearanceView.cs` | shown |
+| `AppearanceView.cs` | |
 | `SkinSlot.cs` | |
 | `HeroDoll.cs` | |
-| `logic/BladeFx.cs` | effects |
-| `logic/FireFx.cs` | fire |
-| `logic/RiftFx.cs` | rift |
-| `BladeFxView.cs` | drawn |
+| `logic/BladeFx.cs` | |
+| `logic/FireFx.cs` | |
+| `logic/RiftFx.cs` | |
+| `BladeFxView.cs` | |
 | `logic/Gestures.cs` | |
 | `logic/Wheel.cs` | keys |
-| `WheelView.cs` | drawn |
+| `WheelView.cs` | |
 | `logic/Pings.cs` | |
-| `PingView.cs` | drawn |
-| `logic/SuitGlow.cs` | lights |
-| `logic/TrackerBlink.cs` | tracker |
+| `PingView.cs` | |
+| `logic/SuitGlow.cs` | |
+| `logic/TrackerBlink.cs` | |
 | `Figure.cs` | |
 | `logic/BodyFit.cs` | |
-| `LightDrone.cs` | drone |
+| `LightDrone.cs` | |
 | `logic/DroneFlight.cs` | body |
 | `logic/DroneWill.cs` | mind |
+| `logic/DroneTow.cs` | tug |
 | `logic/DroneThoughts.cs` | moods |
 | `logic/FormsOpen.cs` | opens |
 | `logic/DroneModes.cs` | |
 | `logic/DroneSign.cs` | |
 | `logic/DroneSwarm.cs` | |
 | `logic/DroneFlurry.cs` | |
-| `logic/WheelFade.cs` | fade |
-| `logic/SheetHoloLook.cs` | projects |
-| `logic/PlanPoint.cs` | points |
+| `logic/WheelFade.cs` | |
+| `logic/SheetHoloLook.cs` | |
+| `logic/PlanPoint.cs` | |
 | `CoreGlow.cs` | |
 | `logic/Meeting.cs` | vision |
-| `MeetingView.cs` | drawn |
+| `MeetingView.cs` | |
 | `HeroView.Meeting.cs` | |
 | `CutsceneView.cs` | grade |
 | `logic/FormVision.cs` | lesson |
-| `FormVisionView.cs` | drawn |
-| `HeroView.Vision.cs` | held |
+| `FormVisionView.cs` | |
+| `HeroView.Vision.cs` | |
 | `logic/Cape.cs` | |
 | `logic/Spring.cs` | |
-| `CapeView.cs` | drawn |
-| `HeroView.cs` | hero |
+| `CapeView.cs` | |
+| `HeroView.cs` | |
 | `HeroView.Hands.cs` | |
-| `HeroView.Guns.cs` | gun |
+| `HeroView.Guns.cs` | |
 | `HeroView.Feel.cs` | |
 | `logic/GunHand.cs` | cooldown |
 | `HeroView.Others.cs` | |
-| `logic/CameraFollow.cs` | camera |
+| `logic/CameraFollow.cs` | |
 | `JetPlume.cs` | |
-| `logic/PlumeWay.cs` | way |
-| `RodLight.cs` | rod |
+| `logic/PlumeWay.cs` | drawn from nozzle |
+| `RodLight.cs` | |
 | `AimOutline.cs` | |
-| `ModeGlyph.cs` | mark |
-| `logic/DriverMode.cs` | dots |
+| `ModeGlyph.cs` | |
+| `logic/DriverMode.cs` | |
 | `HeroAutopilot.cs` | |
 | `logic/Report.cs` | |
 | `Frost.cs` | cold |
 | `Haze.cs` | heat |
-| `logic/BodyHeat.cs` | body |
-| `SuitFxView.cs` | fx |
+| `logic/BodyHeat.cs` | |
+| `SuitFxView.cs` | |
 | `logic/SuitFx.cs` | sums |
-| `logic/ScreenEase.cs` | eased |
+| `logic/ScreenEase.cs` | |
 | `logic/Danger.cs` | gauge |
-| `logic/AirCues.cs` | cues |
+| `logic/AirCues.cs` | |
 | `logic/CanistersSeen.cs` | tanks |
-| `AirSwirl.cs` | swirls |
+| `AirSwirl.cs` | |
 | `SuitGauge.cs` | air |
-| `MealSlots.cs` | meals |
+| `MealSlots.cs` | |
 | `logic/Retching.cs` | |
 | `logic/RetchSpray.cs` | bile |
-| `InkLayer.cs` | ink |
+| `InkLayer.cs` | |
 | `logic/MealTips.cs` | cards |
 | `Thermometer.cs` | degrees |
 | `logic/Thermometers.cs` | |
+| `logic/CrustFill.cs` | |
 | `logic/Tunnel.cs` | |
-| `TunnelView.cs` | drawn |
-| `logic/VisorFog.cs` | fog |
-| `VisorFogView.cs` | drawn |
-| `logic/HurtSeen.cs` | hurt |
-| `HurtView.cs` | shown |
+| `TunnelView.cs` | |
+| `logic/VisorFog.cs` | |
+| `VisorFogView.cs` | |
+| `logic/HurtSeen.cs` | |
+| `HurtView.cs` | |
 | `SuitColours.cs` | |
 | `LookEditor.cs` | |
 | `logic/Markers.cs` | |
 | `MarkerLayer.cs` | arrows |
 | `logic/Bodies.cs` | |
-| `BodyView.cs` | drawn |
+| `BodyView.cs` | |
 | `logic/Rams.cs` | |
 | `HunterView.cs` | catchers |
 | `CatcherFxView.cs` | light |
 | `Glitch.cs` | bands |
 | `logic/CatcherFx.cs` | fight |
 | `logic/CatcherMotion.cs` | moves |
-| `logic/Crew.En.cs` | text |
-| `logic/Crew.Ru.cs` | Russian |
+| `logic/Crew.En.cs` | |
+| `logic/Crew.Ru.cs` | |
 
 ## Guarantees
 
@@ -176,7 +180,8 @@ This hero and others', client-authoritative (0002).
 
 - **Held item shows** (`HeldLook`); plans, motors twist (`Twist`, `Driven`).
 - **Aimed in use** (aim-on-use): up, `LingerMs` after, at the pointer; shots, hits wait.
-- **Left front, right back** (0107, 0108): left, screwdriver works plans, repairs; plan, wiring, lays cables.
+- **Left** (0107, 0108): screwdriver works plans, repairs; plan, wiring, lays cables.
+- **Right, a throw** (companion-fights): `WeaponThrow` hits, the drone hauls; caught in the hand held out.
 - **One aim** (`Aiming.AimAt`): plan (back walls first), machine (0099), tank, door, valve, wreck, else nearest small
   piece; outlined green/red, `UsePrompt` why; plan in hand, E idle; armed, small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to walls, through wrecks; **sparks** the haze's
@@ -187,8 +192,9 @@ This hero and others', client-authoritative (0002).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
 - **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
   (light-drone, drone-threads, drone-lessons): E on the core pairs (drone-companion, drone-meeting); F next form, held a wheel
-  (thread-icons); window corners, flurry (drone-windows); trails, warns (drone-motion), feels (drone-thoughts);
-  a lesson held in a vision (form-vision).
+  (thread-icons); window corners, flurry (drone-windows); in its player's colour (drone-colour); springs after it,
+  perches, shines in open air (drone-spring); flown one way, tugs (drone-tow); warns (drone-motion), feels
+  (drone-thoughts); a lesson held in a vision (form-vision).
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
   climbed, short jumps mantle.
 

@@ -415,6 +415,40 @@ public class BudgetTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// Forty breakers, the surface's cap, round four heroes far apart and sixty nests asleep past them (companion-fights): each
+    /// breaker tests the heroes and the pack's gate, each nest the heroes, every tick.
+    /// </summary>
+    [Fact]
+    public void KeepsATickWithFortyBreakersAndSixtyNestsRoundFourHeroesUnderBudget()
+    {
+        var w = new Scenario(Registry.Wreck).Breathing();
+        (int X, int Y)[] heroes = [(500, 250), (1550, 250), (500, 800), (1550, 800)];
+        for (int i = 0; i < heroes.Length; i++) w.Do(new Sim.Crew.Enter(heroes[i].Y * w.M.Grid.Width + heroes[i].X) { From = i });
+        w.Run();
+        var creatures = (Sim.Creatures.CreaturesState)w.M.Creatures.Slice;
+        var debris = (Sim.Debris.DebrisState)w.M.Debris.Slice;
+        creatures.Watermark = int.MaxValue;
+        for (int i = 0; i < Content.Creatures.Max; i++)
+        {
+            var (x, y) = heroes[i % heroes.Length];
+            creatures.Creatures.Add(new Sim.Creatures.Creature { Id = creatures.NextId++, Species = Content.Creatures.Breaker.Id, X = (x + 20 + i % 5 * 4) * 1000, Y = (y + i / 5 * 3) * 1000, SeenAt = creatures.Clock });
+        }
+        for (int i = 0; i < 60; i++)
+        {
+            var (x, y) = heroes[i % heroes.Length];
+            var piece = new Sim.Debris.Piece { Id = debris.NextId++, Zone = Content.Debris.Far.Id, Item = "hullSection", X = (x + 80 + i / 4 * 2) * 1000, Y = (y + 40) * 1000, Start = (x + 80 + i / 4 * 2) * 1000, SeenAt = debris.Clock };
+            debris.Pieces.Add(piece);
+            creatures.Nests.Add(new Sim.Creatures.Nest { Piece = piece.Id, Size = 6 });
+        }
+        Time(w.World, 50, _ => []);
+        var with = Time(w.World, 300, _ => []);
+        output.WriteLine($"with {w.M.Creatures.Creatures.Count} breakers and {w.M.Creatures.Nests.Count} nests: {with.Mean:F3} ms mean, {with.Max:F3} ms max");
+        Assert.Equal(Content.Creatures.Max, w.M.Creatures.Creatures.Count);
+        Assert.NotEmpty(w.M.Creatures.Nests);
+        Assert.True(with.Mean < Within(2), "a tick is over its budget");
+    }
+
+    /// <summary>
     /// A thousand furnaces and a thousand trade stations at work, in aired rooms of their own: each finds its
     /// machine, slots and records at once, so the tick grows with the machines, not with their square.
     /// </summary>

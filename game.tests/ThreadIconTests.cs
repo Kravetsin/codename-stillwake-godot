@@ -28,9 +28,9 @@ public class ThreadIconTests
         return marks;
     }
 
-    /// <summary>The spark's three squares, where the first stands; none without one.</summary>
+    /// <summary>The spark's square, where it stands; none without one.</summary>
     private static (float X, float Y)? Spark(EmberMarks marks) =>
-        marks.Squares.Count == 3 ? (marks.Squares[0].X, marks.Squares[0].Y) : marks.Squares.Count == 0 ? null : throw new Xunit.Sdk.XunitException("not one spark");
+        marks.Squares.Count == 1 ? (marks.Squares[0].X, marks.Squares[0].Y) : marks.Squares.Count == 0 ? null : throw new Xunit.Sdk.XunitException("not one spark");
 
     [Theory]
     [MemberData(nameof(Icons))]
@@ -140,7 +140,7 @@ public class ThreadIconTests
             Assert.Empty(marks.Squares);
             marks.Clear();
             ThreadIcon.Draw(marks, rim, new IconLook(0.5f, Hover: 1, Rim: true, Time: 0.4f), 0, 0, 20, 1);
-            Assert.Equal(3, marks.Squares.Count);
+            Assert.Single(marks.Squares);
             Assert.Empty(marks.Halos);
         }
     }

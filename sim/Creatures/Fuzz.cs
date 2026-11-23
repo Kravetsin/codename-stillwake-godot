@@ -69,14 +69,14 @@ public sealed partial class CreaturesModule
         return new Fire(tool, x, y, heading) { From = from };
     }
 
-    /// <summary>A cell inside the box of a wreck out, drawn: the wreck, then the cell; null with none out.</summary>
+    /// <summary>A cell under a point of the turned box of a wreck out, drawn: the wreck, then the point; null with none out.</summary>
     private int? WreckCell(Rng rng)
     {
         var wrecks = _debris.Pieces.Where(p => Content.Wreckage.SizeOf(p.Item) != null).ToList();
         if (wrecks.Count == 0) return null;
-        var piece = wrecks[(int)rng.Below((uint)wrecks.Count)];
-        var (w, h) = Content.Wreckage.SizeOf(piece.Item)!.Value;
-        int x = piece.X / Unit - w / 2 + (int)rng.Below((uint)w), y = piece.Y / Unit - h / 2 + (int)rng.Below((uint)h);
-        return x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height ? null : y * _grid.Width + x;
+        var shape = _debris.Shape(wrecks[(int)rng.Below((uint)wrecks.Count)])!.Value;
+        var (px, py) = shape.At((int)rng.Below((uint)(2 * shape.HalfW)) - shape.HalfW, (int)rng.Below((uint)(2 * shape.HalfH)) - shape.HalfH);
+        int x = px / Unit, y = py / Unit;
+        return px < 0 || py < 0 || x >= _grid.Width || y >= _grid.Height ? null : y * _grid.Width + x;
     }
 }

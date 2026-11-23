@@ -46,7 +46,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   focused layer's cards. A card in hand, the right (or Esc) lets it go (right-lets-go); with none it marks or
   cancels in the focused layer (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else
   marks all of that layer built there, each piece once. The other at 35%; round the pointer the back's clears the front, unlit (back-focus-faint). Off the ship
-  (`PlanHand.Aboard`) nothing fades, no see-through (`SeesThrough`). No removal card; no grid drawn.
+  (`PlanHand.Aboard`) nothing fades. No removal card; no grid drawn.
 - **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or the left wing's keys; kept
   while the plan is away. Wiring and piping show their cards alone, no search, layers or pipette (`CardsOf`); the card picked
   (`ToolCard`) is what the left lays. Leaving building puts the card in hand aside till return. Off the ship the plan

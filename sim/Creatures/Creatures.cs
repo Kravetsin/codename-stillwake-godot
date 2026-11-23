@@ -148,6 +148,24 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public int? ClingsTo(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Piece) is int piece and > 0 ? piece : null;
 
     /// <summary>
+    /// How <paramref name="c"/> stands turned about its feet, in 65536ths of a turn (debris-physics): its wreck's angle while clamped on
+    /// it, feet on its surface; else upright, 0.
+    /// </summary>
+    public int StanceOf(Creature c) => Clamped(c) && _debris.PieceById(c.Recall(ClingerBody.Piece)) is { } piece ? piece.Angle : 0;
+
+    /// <summary>
+    /// The box <paramref name="c"/> is hit in, by every hit: its body over its feet, turned about them by its stance
+    /// (<see cref="StanceOf"/>), so a clinger's turns with its wreck.
+    /// </summary>
+    public TurnedBox BoxOf(Creature c)
+    {
+        var body = Spec.Get(c.Species).Body;
+        int angle = StanceOf(c);
+        var (dx, dy) = TurnedBox.Turn(angle, 0, -body.Height * Unit / 2);
+        return TurnedBox.Of(c.Id, c.X + dx, c.Y + dy, body.Width * Unit / 2, body.Height * Unit / 2, angle);
+    }
+
+    /// <summary>
     /// Whether peer <paramref name="peer"/>'s hero is threatened: within <c>Creatures.ThreatReach</c> cells of it (box distance, by its
     /// reported cell) a creature acts, retaliates, or is of a faction that hunts the crew. What its client asks to report where it
     /// is every tick it moves (2026-10-26-creatures-are-composed); false with no hero on the grid.
@@ -196,8 +214,9 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         var creature = State.Creatures[at];
         var spec = Spec.Get(creature.Species);
         // A tool's pace is its weapon's (0098): the drill's quick hits each knock a share, rounded toward none.
-        Hurt(creature, spec, _held.Damage(c.From, c.Tool), new Hit(c.From, AwayFrom(creature, _crew.HeroOf(c.From)?.Cell),
-            Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace), _debris.Clock + 1));
+        int? from = _crew.HeroOf(c.From)?.Cell;
+        Hurt(creature, spec, _held.Damage(c.From, c.Tool), new Hit(c.From, AwayFrom(creature, from),
+            Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace), _debris.Clock + 1, Line: LineFrom(creature, spec, from)));
     }
 
     /// <summary>
@@ -218,7 +237,11 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
         // A body never knocked (no knock, no hop) keeps its way: a sentry in flight flies on.
         int knock = spec.Life.Knock * hit.Pace / Spec.KnockPace;
-        if (spec.Life.Knock > 0) c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
+        if (spec.Life.Knock > 0)
+        {
+            if (Drifts(spec) && hit.Line != default) Fling(c, hit.Line, knock);
+            else c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
+        }
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
         if (spec.Life.Hop > 0 && c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
         if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible(spec.Moves[act.Move])) c.Act = null;
@@ -226,6 +249,24 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
             if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) break;
         return false;
     }
+
+    /// <summary>
+    /// <paramref name="c"/>, afloat, knocked along <paramref name="line"/> (companion-fights): <paramref name="knock"/> on its longer
+    /// axis, the other its share, toward zero; one going faster that way already keeps its speed.
+    /// </summary>
+    private static void Fling(Creature c, (int X, int Y) line, int knock)
+    {
+        long far = Math.Max(Math.Abs((long)line.X), Math.Abs((long)line.Y));
+        int vx = (int)(knock * (long)line.X / far), vy = (int)(knock * (long)line.Y / far);
+        bool along = (long)c.VX * vx + (long)c.VY * vy > 0;
+        if (along && Math.Max(Math.Abs(c.VX), Math.Abs(c.VY)) >= knock) return;
+        (c.VX, c.VY) = (vx, vy);
+    }
+
+    /// <summary>The line of a blow from a hero reported at <paramref name="cell"/> to the middle of <paramref name="c"/>; none with no hero on the grid.</summary>
+    private (int X, int Y) LineFrom(Creature c, Spec.Species spec, int? cell) =>
+        cell is int at && at >= 0 && at < _grid.Width * _grid.Height
+            ? (c.X - Middle(at % _grid.Width), c.Y - spec.Body.Height * Unit / 2 - Middle(at / _grid.Width)) : default;
 
     /// <summary>Whether <paramref name="damage"/> more kills <paramref name="c"/>: what <see cref="Hurt"/> decides by.</summary>
     private static bool Dies(Creature c, int damage) => c.Damage + damage >= Spec.Get(c.Species).Life.Hp;

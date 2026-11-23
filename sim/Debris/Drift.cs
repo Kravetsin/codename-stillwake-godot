@@ -148,6 +148,7 @@ public sealed partial class DebrisModule
             var piece = pieces[i];
             if (piece.Reel is { } reel) Pull(piece, reel);
             else piece.X -= piece.Speed;
+            piece.Angle = (piece.Angle + piece.Spin) & 0xFFFF;
             if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit))
             {
                 // Past the ship, a delivery is lost with its credits, and its good may be bought again (2026-11-08-mafia-deliveries).
@@ -272,7 +273,7 @@ public sealed partial class DebrisModule
         // A handful at most: the scan is cheaper than an index kept in step.
         var next = deliveries.FirstOrDefault(d => !s.Pieces.Exists(p => p.Delivery == d.Id));
         if (next == null) return;
-        s.Pieces.Add(new Piece
+        Spawned(new Piece
         {
             Id = s.NextId,
             Zone = Content.Debris.DeliveryZone,
@@ -303,6 +304,13 @@ public sealed partial class DebrisModule
         return first.Cell / _grid.Width + Content.Machines.Get(first.Kind).Height / 2;
     }
 
+    /// <summary><paramref name="piece"/> put out, last in id order, turned and tumbling as its id says (<see cref="TumbleOf"/>).</summary>
+    private void Spawned(Piece piece)
+    {
+        (piece.Angle, piece.Spin) = TumbleOf(piece.Id, piece.Item);
+        State.Pieces.Add(piece);
+    }
+
     private int CountOf(DebrisZone zone)
     {
         int n = 0;
@@ -329,7 +337,7 @@ public sealed partial class DebrisModule
         // Those a world begins with are out already, seen or not.
         int start = (along ? column : Upstream(column, row)) * Unit + Unit / 2;
         int end = Math.Max(0, left - byHull.Lead) * Unit;
-        s.Pieces.Add(new Piece
+        Spawned(new Piece
         {
             Id = s.NextId,
             Zone = zone.Id,
@@ -360,7 +368,7 @@ public sealed partial class DebrisModule
         int speed = zone.DriftMin + (int)Random.Below((uint)(zone.DriftMax - zone.DriftMin + 1));
         if (row < 0 || row >= height) return;
         int start = Upstream(column, row) * Unit + Unit / 2;
-        s.Pieces.Add(new Piece
+        Spawned(new Piece
         {
             Id = s.NextId,
             Zone = zone.Id,
@@ -408,7 +416,7 @@ public sealed partial class DebrisModule
             int speed = zone.DriftMin + (int)Random.Below((uint)(zone.DriftMax - zone.DriftMin + 1));
             if (x < 0 || x >= width || y < 0 || y >= height || InStream(x, y, hull) || InView(x, y)) continue;
             int start = x * Unit + Unit / 2;
-            s.Pieces.Add(new Piece
+            Spawned(new Piece
             {
                 Id = s.NextId,
                 Zone = zone.Id,
@@ -471,7 +479,7 @@ public sealed partial class DebrisModule
 
     /// <summary>
     /// The zone's tier for a piece at (<paramref name="x"/>, <paramref name="y"/>): the last that starts at
-    /// or within <c>max(dx, 2·dy)</c> cells of the hull's box, <c>dx</c> and <c>dy</c> the cells past it.
+    /// or within <c>max(dx, 2В·dy)</c> cells of the hull's box, <c>dx</c> and <c>dy</c> the cells past it.
     /// </summary>
     internal static DebrisTier TierOf(DebrisZone zone, int x, int y, (int Left, int Right, int Top, int Bottom) hull)
     {

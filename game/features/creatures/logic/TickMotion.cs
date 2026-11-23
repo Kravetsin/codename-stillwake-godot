@@ -18,12 +18,12 @@ public sealed class TickMotion(Func<double> random)
     /// the way to the hero nearest it from its middle (none for no hero); cutting a harpoon line on its wreck,
     /// <paramref name="CutDone"/> of the way through it, the line going off toward <paramref name="Line"/> from its middle; aiming an
     /// arc (<paramref name="Aiming"/>, 2026-10-27-sentry-arc), its eye flickering the arc's cyan, held bright once its aim is taken
-    /// (<paramref name="Locked"/>).
+    /// (<paramref name="Locked"/>); a blow landed on it since the last frame (<paramref name="Blown"/>).
     /// </summary>
     public readonly record struct Seen(
         bool Clamped, bool Alerted, bool WindingUp, double WindUpS, bool Pouncing, int FlightLeft,
         double Vx, double Vy, double Crawl, (double X, double Y)? Hero, bool Cutting = false, double CutDone = 0,
-        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false);
+        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false, bool Blown = false);
 
     /// <summary>Its moments, seen and heard once each as it comes.</summary>
     [Flags]
@@ -130,7 +130,10 @@ public sealed class TickMotion(Func<double> random)
         bool flying = !s.Clamped, sawing = s.Cutting && s.Clamped;
         double speed = Math.Sqrt(s.Vx * s.Vx + s.Vy * s.Vy);
 
-        if (flying && Math.Abs(s.Vx) > 1) Face = Math.Sign(s.Vx);
+        // Winding up afloat it noses at the hero, however it still drifts.
+        (double X, double Y)? at = flying && s.WindingUp ? s.Hero : null;
+        if (at is { } aimed && Math.Abs(aimed.X) > 2) Face = Math.Sign(aimed.X);
+        else if (flying && at == null && Math.Abs(s.Vx) > 1) Face = Math.Sign(s.Vx);
         else if (!flying && sawing)
         {
             // At a line it cuts, it faces the line.
@@ -157,7 +160,8 @@ public sealed class TickMotion(Func<double> random)
         Mags = flying ? 0 : Math.Clamp(_sinceClamp / 0.05, 0, 1);
 
         double angle = 0;
-        if (flying && speed > 1) angle = Math.Atan2(Face * s.Vy, Face * s.Vx);
+        if (at is { } noses) angle = Math.Atan2(Face * noses.Y, Math.Max(1, Face * noses.X));
+        else if (flying && speed > 1) angle = Math.Atan2(Face * s.Vy, Face * s.Vx);
         else if (flying) angle = _angle;
         // Reared at the line, its head up; as the line snaps, thrown back a moment.
         else if (sawing) angle = -0.14 * Face * Ease(_sinceCut / 0.15);
@@ -226,8 +230,8 @@ public sealed class TickMotion(Func<double> random)
         if (_was.Pouncing && !s.Pouncing)
         {
             m |= Moment.Brake;
-            // A flight ends on its last tick; one that stopped with ticks to go struck a hero (HitBy ends it).
-            if (_flightLeft > 1) m |= Moment.HeroHit;
+            // A flight ends on its last tick; one that stopped with ticks to go struck a hero (HitBy ends it), unless a blow cut it.
+            if (_flightLeft > 1 && !s.Blown) m |= Moment.HeroHit;
         }
         return m;
     }

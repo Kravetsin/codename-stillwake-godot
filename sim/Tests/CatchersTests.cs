@@ -642,7 +642,7 @@ public class CatchersTests
         });
 
     [Fact]
-    public void WalledInByBedrockTheHeroOutlastsItAndItLeavesTheMeterEmptied()
+    public void WalledInByBedrockTheHeroOutlastsItTillItsOwnChargesKillItTheMeterEmptied()
     {
         var w = Arrive(Field(), 40);
         // A box of bedrock round the hero and under it: nothing breaks it.
@@ -669,10 +669,9 @@ public class CatchersTests
         }
         Assert.Equal(hurts, HeroOf(w).Hurts);
         Assert.All(Enumerable.Range(Ground - 7, 7), y => Assert.NotNull(w.M.Grid.WallAt(Cell(43, y))));
-        Assert.Null(CreaturesModule.Hunting(c));
+        // Its charges thrown at the wall from close by hurt it too (fuel-drums): they kill it before its hunt runs out, its meter emptied.
+        Assert.True(c.Dead);
         Assert.Equal((0, 0), (w.M.Crew.HeroOf(0)!.Wanted, w.M.Crew.HeroOf(0)!.Need));
-        // It flies off up and is gone once out of view.
-        w.Run(200);
         Assert.DoesNotContain(w.M.Creatures.Creatures, k => k.Id == c.Id);
     }
 

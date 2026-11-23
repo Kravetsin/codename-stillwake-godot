@@ -4,38 +4,40 @@
 
 | File | Purpose |
 | --- | --- |
-| `Arcs.cs` | `Bolted`, `StrikeArc`, `Linger`; `Arcs`, `BeamStop`. |
-| `Bounty.cs` | Catchers for hunted heroes. |
-| `Clinger.cs` | The sentry clinging to its wreck. |
+| `Arcs.cs` | The arc's hits. |
+| `Bounty.cs` | Catchers sent. |
+| `Clinger.cs` | The sentry's grip. |
 | `Creatures.cs` | Commands, queries, the hit path. |
-| `Drives.cs` | Grazers: `Graze`, `Flee`, `Retaliate`, `Escape`. |
-| `Flyer.cs` | The catcher's body: stops at solid. |
-| `Fuzz.cs` | Commands the desync suite draws. |
-| `Guard.cs` | `Guard` (sentry, lurkers), `Return`, `CutTether`. |
+| `Drives.cs` | Grazers' drives. |
+| `Flyer.cs` | A flying body. |
+| `Fuzz.cs` | For the desync suite. |
+| `Guard.cs` | `Guard`, `Return`, `CutTether`. |
 | `Hunt.cs` | The catcher's hunt. |
-| `Live.cs` | Dead swept, patches aged, ticks. |
+| `Live.cs` | The tick. |
 | `Lunge.cs` | A ram along the ground. |
+| `Nests.cs` | Packs on wrecks. |
 | `Paths.cs` | A*: runs, flights. |
-| `Patches.cs` | Gas, slime: laid, aged, paid by heroes. |
-| `Pounce.cs` | A flight at a hero, never cut. |
-| `Rules.cs` | Rule contracts; `RuleBook` finds them. |
-| `Shell.cs` | The snail's shell: open near a hero, shut it shields. |
-| `Shoot.cs` | The arc: aimed, struck, recovered. |
-| `Shots.cs` | Shots: `Fire`, flight, homing, hits, pierces, bursts. |
-| `Spawn.cs` | Spawning: posts, herds, guards. |
-| `State.cs` | The saved slice: `Creature`, `Shot`. |
+| `Patches.cs` | Gas, slime. |
+| `Pounce.cs` | A flight at a hero. |
+| `Rules.cs` | Contracts, `RuleBook`. |
+| `Shell.cs` | The snail's shell. |
+| `Shoot.cs` | The arc. |
+| `Shots.cs` | Shots, bursts. |
+| `Spawn.cs` | Posts, herds, guards. |
+| `State.cs` | The saved slice. |
+| `Swarm.cs` | A pack's drive. |
 | `Ward.cs` | The spire guards' drive. |
-| `Vent.cs` | The capback's vent: its gas, a cooldown. |
-| `Walker.cs` | Steering, stepping, leaping (0102, 0106). |
+| `Vent.cs` | The capback's vent. |
+| `Walker.cs` | Steps, leaps. |
 
 Every creature composed (creatures-are-composed): a species names a body, life, faction, ranked
-drives, moves and yields, each a rule here. The dead are gone to all from the blow.
+drives, moves and yields, each a rule here. The dead are gone from the blow.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
+  (queries, `Unreel`, `Hit`, `TakeBursting`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
-  `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
+  `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Nests`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
 - **Runs** after `Crew` and `Debris`; shots fly after.
 
 ## Adding a species or a rule
@@ -50,7 +52,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   over, or the one in charge `Run`s (false yields), at none left `Next`. Its body moves. On the beat, spawns.
 - **The walker** (0102, 0106): under gravity; solid: walls, floors, shut doors, the edge, fog.
   It steps `StepUp`; at a higher wall or a `Drop` it tries a leap (`Lands`), else its drive may act (`Blocked`), else turns.
-- **The clinger:** clamped to its wreck's top, riding it; off it, it flies through walls.
+- **The clinger:** clamped to its wreck's top, riding and turning with it (`StanceOf`, `BoxOf`); off it, it flies through walls.
 - **Grazers:** `Graze` idles, wanders, past `Herd` from its kind toward it. `Flee` runs its ticks; cornered, may lunge.
   `Retaliate`, struck in `Reach`, draws `Chance`, flees a while, lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, a charge along the ground at the nearest awake hero till past it, a wall, a drop, `Ticks`.
@@ -67,6 +69,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
   ahead or near; a `Salvo`; shut out, lobs a charge (`Lob`), held `Tell`. Pounces in `Strike`, answers blows. Out of `Ticks`,
   killed or quarryless: `CallOff`, up. Afloat, all in `Space`, no salvo: it keeps its `Range` at `Accel`, round a flown path,
   leads its beam, fires a `Barrage` and a `Missile`; its quarry in a room, thrown `Standoff` off.
+- **Packs** (companion-fights): a far piece may draw a `Nest`, which wakes struck or neared, all out or waits, gone with it.
+  `Swarm` rings the nearest hero out; one `Every` pounces (`AtTarget`, `Cuttable`). A flyer afloat is knocked along a blow.
 - **Patches** (`PatchKind`) last `Lasts`; each breath an awake hero in one seen from its middle pays `Damage` (`Shock`, `Stings`).
 - **The warden** (`Posted`, `Ward`): on the beat at a standing post with a standing relic in its arena, a hero in its keep box,
   none tied to it. Woken by an awake hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`: to the first
@@ -76,7 +80,8 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 - **Shots:** `Fire` takes ammo and `Energy`; each tick, in id order, one steps, hitting a cell's solid, lowest-id creature,
   machine (the lifepod stops it), wreck (not `Passed`), through bodies it `Pierces`, broken cells while it `Carries` some; falls
   (`ShotFlight`). One that `Homes` turns `Turn` a tick at the nearest awake hero, bursting in `Reach`. One that `Bursts` bursts
-  at the first it meets (`Spoils.Drop`; a relic shocks the thrower); wrecks in `Reach` take `WreckDamage`, a creature's heroes it sees its `Damage`.
+  at the first it meets (`Spoils.Drop`; a relic shocks the thrower). **A burst** (fuel-drums; drums' first): wrecks in `Reach`
+  take `WreckDamage`, awake heroes and live creatures it sees `Body`, its setter too, a target once.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as a hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
@@ -94,7 +99,7 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 
 ## Guarantees
 
-- Every creature on the grid, walker or catcher out of solid, one afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
+- Every creature on the grid, walker or flyer out of solid, a catcher afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
   ticks never past a length; a charge, or an arc a hero, hurts once at most; suits in range; a shut
   shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, in reach, never through solid (`ShotsInvariantTests`).
 - Nothing to spawn: nothing drawn; only `Watermark` moves.
@@ -103,7 +108,6 @@ drives, moves and yields, each a rule here. The dead are gone to all from the bl
 
 - **No collisions** (0006); a clinger senses through rock; despawn loses damage; no stun.
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing. **Lifetime:** the keep box's.
-- **A burst hurts no creature; a hero's, no hero.**
 - **A catcher:** none on a planet under twice `RingFrom` wide.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow breaking its wreck: unanswered.
 - **Shots** (0034): muzzle, pace, charge the client's; a guest's copy stops at blocks the nailer breaks.

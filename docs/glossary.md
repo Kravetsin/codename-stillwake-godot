@@ -130,6 +130,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - скин, внешний вид (вкладка) / skin, Appearance (tab) → `Skin`, `Skins` (kinds `head`, `suit`, `cape`, `effect`; sets such as `brassHelmet` + `brassSuit`), `Dressed`, `Suits.DressedAs`, `AppearanceView`, `SkinSlot` (f/crew), `GearTabs` (f/items); кукла (снаряжения) / doll → `HeroDoll` (f/crew), `DollLayout`, `DollSpot`, `DollLeads` (game/shared); `ChooseSkins`, `SkinsOf`, `PeerSkins`; `Owned` (game/platform) → Players, Crew; эффект оружия, «Пламя», «Разлом» / weapon effect, Fire, Rift → `BladeFx`, `FireFx`, `RiftFx` (f/crew), `SkinEffects` (gc)
 - плащ / cape → `cape` (`Content.Cape`, slot `cape`, `Guard`, `Warmth`), `Hero.Spared`, `ICrewOps.Blow`; `Figure.CapeWorn`, `Cape`, `CapeView` (f/crew); skins `tarpCape`, `blanketCape`, `woolCape` → Crew, Items
 - световой дрон, спутник, связать дрона / light drone, Companion, pair → item `lightDrone` («Спутник»), f/crew `LightDrone`, `DroneSwarm` (drone-threads); E on the core sends `PairDrone(Core)` (`PairProblem`; `CoreLost` pairs all), `Drones`, `HasDrone`, `Pair` (Players): the bag rows open once paired (drone-companion) → Crew, Players, Items
+- цвет спутника, соли; буксир спутника / drone colour, salts; the tug → `Salts` (game/shared), `Suits.All` (drone-colour); `DroneTow`, `DroneIntent.Free` (f/crew, drone-tow) → Crew
 - ядро, инопланетное ядро / alien core → `Wreck.CorePath`, `Hero.CoreTouch`, f/crew `CoreGlow`, f/grid `CoreScorch`, `CoreScorchView` (drone-companion) → Crew, Grid
 - встреча, видение / the meeting, vision → `Hero.Meets`, `Crew.MeetingTicks`, `Spared`; f/crew `Meeting`, `MeetingView`, `HeroView.Meeting`, `CutsceneView` (drone-meeting) → Crew
 - проекция дрона, голограмма / drone projection, hologram window → `HoloWindow`, `HoloPen`, `HoloSway` (game/shared), `DroneFrame` (its ember corners: `DroneWindows`, `CornerClock`, drone-windows), `DroneFlurry`, `SheetHoloLook`, `PlanPoint` (f/crew), sent as `Seen.Projects` (drone-frame) → Crew, Items
@@ -176,6 +177,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
 - лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
 - сентри / sentry → `Creatures.Sentry` = `"sentry"`: a `Clinger` on a wreck, `Guard`, `Return`, `CutTether`, `Pounce`; dev `--sentry` (`=fight`: a line sawn, struck, its wreck broken; `=crawl`) → Creatures
+- разборщик, болванчик, стая, гнездо / breaker, pack, nest → `Creatures.Breaker` = `"breaker"` (`Flyer`, `Swarm`, `Pounce`), c/`Nest`, `Nests.cs`, f/creatures `WorkingNests`, `BreakerBodies` (companion-fights, breakers-look) → Creatures
+- клубок / knot (a breaker's kind) → `KnotMoves`, `CreatureArt.BreakerKnot`, `CreatureLooks.Breakers` (breakers-look) → Creatures
+- бросок оружия, умение спутника / throw, the companion's ability → c/`Abilities` (`Throw`, `ThrowOf`), f/crew `WeaponThrow`, `ThrownDrawing` (the catch), sent as `Handwork.Throw`, `Haul` (companion-fights) → Crew
 - страж шпиля / spire guard → `Creatures.Warden` = `"warden"`: a `Walker` at a `Post`, `Ward`, `Pounce`; dev `--ground=spire-guards`
 - истукан / Istukan → the warden's look: `CreatureLooks.Istukans`, f/creatures `IstukanBodies`, `IstukanArt`, `IstukanMotion`; sounds `Sound.Istukans`
 - клещ / tick → the sentry's look (its pick page's «Клещ»): `CreatureLooks.Ticks`, f/creatures `TickBodies`, `TickArt`, `TickMotion`; sounds `Sound.Ticks`

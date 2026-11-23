@@ -18,8 +18,8 @@ namespace Stillwake.Game.Shared;
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
 /// for these features): the plan and its menu, cables, the pipes and air, the air overlay's key, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
-/// buttons, but while the plan is wiring, when the cables take them (0108), or piping, the pipes (0109), by the card of its menu (0110). With the plan away, while the
-/// right button digs, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
+/// buttons, but while the plan is wiring, when the cables take them (0108), or piping, the pipes (0109), by the card of its menu (0110). With the back walls
+/// focused, the walls round the pointer clear (<see cref="Lit.SeeThrough"/>).
 /// </summary>
 public partial class Hands : Node2D
 {
@@ -92,14 +92,10 @@ public partial class Hands : Node2D
         IReadOnlyList<ButtonEvent> laid = piping ? buttons.TakeLeft() : [];
         if (wiring || piping) _building.Frame(client, m, [], [], false, pointer);
         else _building.Frame(client, m, buttons.TakeLeft(), buttons.TakeRight(), buttons.HoldsRight, pointer);
-        // With the plan put away, aboard, the front fades round the pointer while the right button digs back walls; with the back
-        // walls focused it clears there, the back walls drawn as painted (back-focus-faint). Never away from the ship (0110): the
-        // ground would show what is in it. Nor with the power driver in hand, whose right click switches its square (power-driver).
-        bool driver = Content.Screwdrivers.Of(Ui.Wielded.Get()) is { Area: > 1 };
-        bool seeThrough = Plan.SeesThrough(!wiring && !piping && !driver && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
-        Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null,
-            Plan.Clears ? Tools.ClearedRound : Lit.SeeLeast, bare: Plan.Clears,
-            radius: Plan.Clears ? Tools.ClearedCells * ShipCamera.Cell : Lit.SeeRadius);
+        // With the back walls focused the front clears round the pointer, the back walls drawn as painted (back-focus-faint).
+        // Never away from the ship (0110): the ground would show what is in it.
+        Lit.SeeThrough(pointer is { } at && Plan.Clears ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null,
+            Tools.ClearedRound, Tools.ClearedCells * ShipCamera.Cell);
         // Cables and pipes are the front's: faint with the back walls focused (back-focus-faint).
         var front = new Color(1, 1, 1, Tools.AlphasOf(Plan.Shown).Front);
         _power.Modulate = _pipesBuilt.Modulate = front;

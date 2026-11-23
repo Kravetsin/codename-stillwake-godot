@@ -16,7 +16,7 @@ public static class Handbook
     public static readonly IReadOnlyList<DebrisRow> DebrisRows =
     [
         new("salvage", ["scrapChunk", "hullPlate", "cargoCrate", "supplyPod", "fridge"]),
-        new("wrecks", ["hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod"]),
+        new("wrecks", ["hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "fuelDrum"]),
         new("asteroids", ["asteroidSmall", "asteroid", "asteroidLarge", "asteroidRich"]),
         new("derelicts", ["engineBlock", "cargoHold", "podCluster"]),
         // Found only while a stretch of space runs (docs/decisions/2026-11-15-stretches-of-space.md).

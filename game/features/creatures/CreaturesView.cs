@@ -91,6 +91,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         ZIndex = Layers.Creatures;
         AddChild(_ownHits);
         AddChild(_worldHits);
+        AddChild(_nests);
+        AddChild(_breakers);
         AddChild(_ticks);
         AddChild(_istukans);
         AddChild(_lurkers);
@@ -108,6 +110,14 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     private readonly List<Creature> _ticked = [];
 
+    /// <summary>The packs asleep on their wrecks (companion-fights), drawn from the sim's nests.</summary>
+    private readonly WorkingNests _nests = new();
+
+    /// <summary>The creatures drawn as breakers (<see cref="CreatureLooks.Breakers"/>): painted pieces, out of their nests.</summary>
+    private readonly BreakerBodies _breakers = new();
+
+    private readonly List<Creature> _packed = [];
+
     /// <summary>The creatures drawn as the Istukan (<see cref="CreatureLooks.Istukans"/>): posed and drawn anew as the tick is.</summary>
     private readonly IstukanBodies _istukans = new();
 
@@ -124,10 +134,10 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     /// <summary>
     /// Shows <paramref name="creatures"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
     /// <paramref name="progress"/> of the way from the last tick to the next, each creature its own individual by its id and the
-    /// surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
+    /// surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>); the nests with their pieces, <paramref name="drift"/> ticks on.
     /// </summary>
     public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, IBuildingQueries built, IGridQueries grid, IRoomsQueries rooms, Spec.Surfaces.Kind rules,
-        Rect2 view, double progress, double elapsedMs, uint seed)
+        Rect2 view, double progress, double drift, double elapsedMs, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
@@ -139,10 +149,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _held.Clear();
             _bursts.Clear();
             _ticks.Reset();
+            _nests.Reset();
+            _breakers.Reset();
             _istukans.Reset();
             _lurkers.Reset();
             _of = creatures;
-            if (rules is Spec.PlanetType { Creatures.Count: > 0 }) CreatureParts.Warm();
+            if (rules is Spec.PlanetType { Creatures.Count: > 0 } || rules.Nests.Count > 0) CreatureParts.Warm();
         }
         _seed = seed;
         _bursts.On(grid, rooms, rules);
@@ -155,6 +167,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _out.Clear();
         _drawn.Clear();
         _ticked.Clear();
+        _packed.Clear();
         _posted.Clear();
         _lurked.Clear();
         for (int i = 0; i < all.Count; i++)
@@ -163,7 +176,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _out.Add(c.Id);
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
-            else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
+            else if (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
+            else if (CreatureLooks.Breakers.ContainsKey(Spec.Creatures.Get(c.Species).Look)) _packed.Add(c);
             else if (CreatureLooks.Istukans.Contains(Spec.Creatures.Get(c.Species).Look)) _posted.Add(c);
             else if (CreatureLooks.Lurkers.Contains(Spec.Creatures.Get(c.Species).Look)) _lurked.Add(c);
         }
@@ -213,6 +227,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
+        _nests.Frame(creatures, debris, view, drift, elapsedMs);
+        _breakers.Frame(creatures, _packed, _nests, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
@@ -266,7 +282,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (_flying.Contains(strike)) continue;
             if (!_shown.TryGetValue(strike.Creature, out var one))
             {
-                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)) _lurkers.OwnStrike(strike.Creature);
+                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_breakers.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)) _lurkers.OwnStrike(strike.Creature);
                 continue;
             }
             one.OwnAt = _clockMs;

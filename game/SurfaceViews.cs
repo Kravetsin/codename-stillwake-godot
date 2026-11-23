@@ -25,7 +25,7 @@ namespace Stillwake.Game;
 /// <param name="Seen">Whether a vessel's rooms are all seen from the start (<c>--seen</c>): no dark over what no hero looked at.</param>
 /// <param name="Heroes">Every hero on this surface: its feet, in pixels of the world, and how fast it goes across, in pixels a second: what stirs the plants (plant-stirs).</param>
 public sealed record SurfaceContext(
-    Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps,
+    Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps,
     Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool Seen, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
     Features.Landing.Arrivals Arrivals, uint Seed, Func<IReadOnlyList<(Vector2 Feet, float Vx)>> Heroes,
     IReadOnlyList<Content.WreckStep>? Wreck = null)

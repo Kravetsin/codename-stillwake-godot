@@ -62,6 +62,9 @@ public static class Surfaces
         /// <summary>The creatures that come with its debris, clamped on (<see cref="Creatures.OnDebris"/>).</summary>
         public IReadOnlyList<Creatures.OnDebris> Guards { get; init; } = [];
 
+        /// <summary>The packs asleep on its debris (<see cref="Creatures.Nest"/>).</summary>
+        public IReadOnlyList<Creatures.Nest> Nests { get; init; } = [];
+
         /// <summary>The meteors that strike its hull (2026-10-28-hull-meteors) once a hero has landed on a planet; none on a planet.</summary>
         public Meteors.Shower? Meteors { get; init; }
 
@@ -100,6 +103,7 @@ public static class Surfaces
     public static readonly Kind Ship = new("ship", [])
     {
         Guards = [Creatures.Derelicts],
+        Nests = [Creatures.Dismantlers],
         Meteors = Content.Meteors.StartingSpace,
         MeteorsBeforeLanding = Content.Meteors.BeforeLanding,
         Flares = MagneticFlares.StartingSpace,
