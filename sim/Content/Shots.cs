@@ -43,11 +43,12 @@ public static class Shots
     public static readonly Projectile Nail = new("nail", Damage: 2, BlockDamage: 0, Weight: 7, HitsBodies: true);
 
     /// <summary>
-    /// The nailer: 4 and its nail's 2, 6 a hit; 10 off a block, nothing carried past a cell it breaks; a full knock; 60 cells a second, a nail at 45° on the first planet
-    /// landing about 30 cells out; gone at 288 cells, a screen's half and a whole screen past it at the farthest zoom (192 cells
-    /// across); a shot every 3 s; half kept through what a nail breaks: 6, 3, 1; in space a kick of 60, about a cell.
+    /// The nailer, a gun for a pack (nailer-auto): its nail's 2 a hit, a shot every 0.3 s held, 6.7 a second as the sledgehammer's, a
+    /// breaker at two nails; 10 off a block, nothing carried past a cell it breaks; a full knock; 60 cells a second, a nail at 45° on the
+    /// first planet landing about 30 cells out; gone at 288 cells, a screen's half and a whole screen past it at the farthest zoom (192
+    /// cells across); half kept through what a nail breaks: 2, 1; in space a kick of 60 a shot, a burst pushing the hero back.
     /// </summary>
-    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 10, Knock: 10, Speed: 3000, Reach: 288, Pace: 60, PierceKeep: 500,
+    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 0, BlockDamage: 10, Knock: 10, Speed: 3000, Reach: 288, Pace: 6, PierceKeep: 500,
         Recoil: 60);
 
     /// <summary>

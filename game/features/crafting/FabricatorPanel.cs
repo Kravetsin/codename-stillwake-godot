@@ -404,6 +404,7 @@ public partial class FabricatorPanel : CanvasLayer
         var icon = Icon(craft);
         icon.Material = look switch { Look.Short => Greyed, Look.Locked => Silhouette, _ => null };
         box.AddChild(icon);
+        box.AddChild(CountOf(Content.Crafts.Get(craft).Makes));
         if (look == Look.Fed) box.AddChild(InletMark());
         Add(look == Look.Locked ? new Cell(box, Dark, DarkHover, craft)
             // A tool's recipe amber, a worn item's green, as their slots are everywhere (0058).
