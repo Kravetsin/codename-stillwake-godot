@@ -35,6 +35,8 @@ public static class Wreckage
         // The stretches' (docs/decisions/2026-11-15-stretches-of-space.md): as hard as the small asteroid and the mafia crate whose looks they wear for now.
         ("iceBlock", 50),
         ("contrabandCrate", 15),
+        // A fuel drum (barrels): two axe hits, a shot or two; it bursts as it breaks (Bursts).
+        ("fuelDrum", 4),
     ];
 
     /// <summary>The hit points of <paramref name="item"/>, or null when it is no wreckage but caught by hand.</summary>
@@ -70,7 +72,26 @@ public static class Wreckage
         ("podCluster", 8, 8),
         ("iceBlock", 3, 3),
         ("contrabandCrate", 3, 3),
+        // The size of the oxygen tanks it wears for now.
+        ("fuelDrum", 4, 4),
     ];
+
+    /// <summary>
+    /// The kinds that burst as they break (barrels), by item, and their burst: where the piece's middle was, by whoever broke it,
+    /// with no fuse.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Item, Blast Blast)> Bursts =
+    [
+        ("fuelDrum", Blasting.Drum),
+    ];
+
+    /// <summary>The burst wreckage <paramref name="item"/> goes off with as it breaks (<see cref="Bursts"/>), or null for one that does not.</summary>
+    public static Blast? BurstOf(string item)
+    {
+        for (int i = 0; i < Bursts.Count; i++)
+            if (Bursts[i].Item == item) return Bursts[i].Blast;
+        return null;
+    }
 
     /// <summary>The size in cells of wreckage <paramref name="item"/> (<see cref="Sizes"/>), or null when it is no wreckage.</summary>
     public static (int W, int H)? SizeOf(string item)

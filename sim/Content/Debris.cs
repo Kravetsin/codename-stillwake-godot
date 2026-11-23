@@ -48,16 +48,17 @@ public static class Debris
         ("supplyPod", 15),
         // A galley's fridge torn loose (food-and-the-body): rations and canned meat.
         ("fridge", 10),
-        // Wreckage (Wreckage): 25 of 310, a wreck about every 50 s; the cable rack a third as common as the rest, circuits found
-        // being rare (economy rework).
+        // Wreckage (Wreckage): 29 of 314, a wreck about every 45 s; the cable rack a third as common as the rest, circuits found
+        // being rare (economy rework); a fuel drum a little more common than the tanks (barrels).
         ("hullSection", 9),
         ("cargoContainer", 6),
         ("machineBlock", 3),
         ("cableRack", 1),
         ("tankCluster", 3),
         ("shieldSlab", 3),
-        // Seeds' second source beside supply pods (0060): 2 of 310 of some 900 spawns an hour, one every 10 minutes or so.
+        // Seeds' second source beside supply pods (0060): 2 of 314 of some 900 spawns an hour, one every 10 minutes or so.
         ("soilClod", 2),
+        ("fuelDrum", 4),
     ];
 
     /// <summary>
@@ -104,18 +105,18 @@ public static class Debris
             new(0,
             [
                 ("scrapChunk", 48), ("hullPlate", 32), ("cargoCrate", 24), ("supplyPod", 16), ("fridge", 12), ("hullSection", 16),
-                ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 1), ("tankCluster", 8), ("shieldSlab", 4),
+                ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 1), ("tankCluster", 8), ("shieldSlab", 4), ("fuelDrum", 4),
             ]),
             new(256,
             [
                 ("scrapChunk", 24), ("hullPlate", 24), ("cargoCrate", 20), ("supplyPod", 20), ("fridge", 12), ("hullSection", 16),
-                ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 1), ("tankCluster", 12), ("shieldSlab", 8),
+                ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 1), ("tankCluster", 12), ("shieldSlab", 8), ("fuelDrum", 6),
                 ("engineBlock", 1), ("cargoHold", 1),
             ]),
             new(512,
             [
                 ("scrapChunk", 8), ("hullPlate", 12), ("cargoCrate", 12), ("supplyPod", 20), ("fridge", 12), ("hullSection", 12),
-                ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 1), ("tankCluster", 16), ("shieldSlab", 12),
+                ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 1), ("tankCluster", 16), ("shieldSlab", 12), ("fuelDrum", 8),
                 ("engineBlock", 2), ("cargoHold", 1), ("podCluster", 2), ("asteroidLarge", 2), ("asteroidRich", 2),
             ]),
         ]);
@@ -201,7 +202,7 @@ public static class Looks
     public static readonly IReadOnlyList<(string Kind, int Count)> All =
     [
         ("scrapChunk", 12), ("hullPlate", 12), ("cargoCrate", 8), ("supplyPod", 4), ("fridge", 2),
-        ("hullSection", 1), ("cargoContainer", 1), ("machineBlock", 1), ("cableRack", 1), ("tankCluster", 1), ("shieldSlab", 1),
+        ("hullSection", 1), ("cargoContainer", 1), ("machineBlock", 1), ("cableRack", 1), ("tankCluster", 1), ("shieldSlab", 1), ("fuelDrum", 1),
         ("soilClod", 3),
         ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
         ("engineBlock", 4), ("cargoHold", 4), ("podCluster", 4),
@@ -289,6 +290,11 @@ public static class Loot
         ("tankCluster",
         [
             new("canister", 2, 3),
+            new("scrapChunk", 1, 1),
+        ]),
+        // What is left of a fuel drum once it burst (barrels).
+        ("fuelDrum",
+        [
             new("scrapChunk", 1, 1),
         ]),
         ("shieldSlab",
