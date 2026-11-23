@@ -250,9 +250,12 @@ public partial class HeroView
     private static Vector2? HolderOf(Vector2? muzzle, Hero? holding) =>
         muzzle ?? (holding is { } hero ? new Vector2(Chest(hero).X, Chest(hero).Y) : null);
 
-    /// <summary>How long peer <paramref name="peer"/>'s line on <paramref name="piece"/> is, as the sim holds it; none for a rod on no piece or a line not there yet.</summary>
+    /// <summary>
+    /// How long peer <paramref name="peer"/>'s line on <paramref name="piece"/> is: as the host player's drum has it now, else as the sim
+    /// holds it; none for a rod on no piece or a line not there yet.
+    /// </summary>
     private double? HeldLength(int peer, int? piece) =>
-        piece is int on && _m?.Debris.LineOf(peer) is { } line && line.Piece == on ? line.Length : null;
+        piece is int on && _m?.Debris.LineOf(peer) is { } line && line.Piece == on ? LiveDebris.LineLength(peer, on) ?? line.Length : null;
 
     /// <summary>Every ping shown, this player's and its friends' here, drawn in their colours and listed for the markers (gesture-pings).</summary>
     private void ShowPings(Registry m)

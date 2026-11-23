@@ -60,10 +60,11 @@ public sealed class HarpoonLine
     public void Update((double X, double Y) gun, (double X, double Y) eye, bool taut, double elapsedMs, double? held = null) =>
         _rope.Update(gun, eye, elapsedMs, span =>
         {
+            // On a piece, exactly as long as its line: eased, a wound line drawn longer than it is curls into a loop.
             if (held is double length)
             {
-                _length = Math.Max(span, _length + (length - _length) * PayOut);
-                return span >= length ? span * Stretch : _length;
+                _length = Math.Max(span, length);
+                return span >= length ? span * Stretch : length;
             }
             _length = taut ? Math.Max(span, _length - WindIn) : Math.Max(span, _length + (span * Slack - _length) * PayOut);
             return taut && _length <= span ? span * Stretch : _length;

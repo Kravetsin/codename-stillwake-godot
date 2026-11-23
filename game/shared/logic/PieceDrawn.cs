@@ -45,14 +45,15 @@ public readonly record struct PiecePose(double X, double Y, double Angle)
 /// </summary>
 public static class PieceDrawn
 {
-    public static (double X, double Y) At(Piece piece, double progress) => (piece.X + piece.Vx * progress, piece.Y + piece.Vy * progress);
+    public static (double X, double Y) At(Piece piece, double progress) =>
+        LiveDebris.Pose(piece.Id) is { } live ? (live.X, live.Y) : (piece.X + piece.Vx * progress, piece.Y + piece.Vy * progress);
 
-    /// <summary>Where <paramref name="piece"/> is drawn and how it is turned, <paramref name="progress"/> ticks on (<see cref="At"/>).</summary>
-    public static PiecePose Pose(Piece piece, double progress)
-    {
-        var (x, y) = At(piece, progress);
-        return new PiecePose(x, y, piece.Angle + piece.Spin * progress);
-    }
+    /// <summary>
+    /// Where <paramref name="piece"/> is drawn and how it is turned, <paramref name="progress"/> ticks on (<see cref="At"/>); on the host
+    /// player's client, where its body is (<see cref="LiveDebris"/>).
+    /// </summary>
+    public static PiecePose Pose(Piece piece, double progress) =>
+        LiveDebris.Pose(piece.Id) ?? new PiecePose(piece.X + piece.Vx * progress, piece.Y + piece.Vy * progress, piece.Angle + piece.Spin * progress);
 
     /// <summary>
     /// The box <paramref name="halfW"/> by <paramref name="halfH"/> (thousandths of a cell) of <paramref name="piece"/> as drawn

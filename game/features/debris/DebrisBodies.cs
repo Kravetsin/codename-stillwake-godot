@@ -30,6 +30,8 @@ public sealed partial class DebrisBodies : Node
         public readonly Rid Rid = rid, Box = box;
         public readonly PieceShape Shape = shape;
         public Piece Piece = piece;
+        /// <summary>Its pose after the physics step before last and after the last, mc and radians: what a frame between them draws.</summary>
+        public (double X, double Y, double Angle) Was, Now;
     }
 
     private Rid _space;
@@ -68,9 +70,36 @@ public sealed partial class DebrisBodies : Node
         Feed(client, debris, drift);
     }
 
+    public override void _EnterTree()
+    {
+        LiveDebris.Pose = Drawn;
+        LiveDebris.LineLength = RopeLength;
+    }
+
+    /// <summary>
+    /// Where piece <paramref name="id"/>'s body is drawn this frame: between its last two physics steps by the frame's place between them,
+    /// so a screen faster than the physics still sees it glide; none without a body.
+    /// </summary>
+    private PiecePose? Drawn(int id)
+    {
+        if (!_bodies.TryGetValue(id, out var body)) return null;
+        double f = Engine.GetPhysicsInterpolationFraction(), turn = Math.IEEERemainder(body.Now.Angle - body.Was.Angle, 2 * Math.PI);
+        return new PiecePose(body.Was.X + (body.Now.X - body.Was.X) * f, body.Was.Y + (body.Now.Y - body.Was.Y) * f,
+            (body.Was.Angle + turn * f) * TurnsPerRadian);
+    }
+
+    /// <summary>How long peer <paramref name="by"/>'s rope on <paramref name="piece"/> is now, wound and paid out; none without one.</summary>
+    private double? RopeLength(int by, int piece)
+    {
+        foreach (var (line, rope) in _ropes)
+            if (line.By == by && line.Piece == piece) return rope.Length;
+        return null;
+    }
+
     public override void _PhysicsProcess(double delta)
     {
         if (_debris is not { } debris || _bodies.Count == 0) return;
+        foreach (var body in _bodies.Values) (body.Was, body.Now) = (body.Now, PoseOf(body));
         var lines = debris.Lines;
         for (int i = 0; i < lines.Count; i++)
         {
@@ -91,6 +120,8 @@ public sealed partial class DebrisBodies : Node
     {
         Clear();
         if (_space.IsValid) PhysicsServer2D.FreeRid(_space);
+        LiveDebris.Pose = _ => null;
+        LiveDebris.LineLength = (_, _) => null;
     }
 
     /// <summary>Bodies made for pieces come and freed for pieces gone; ropes of lines the sim no longer holds dropped.</summary>
@@ -158,6 +189,7 @@ public sealed partial class DebrisBodies : Node
     private static void Set(Body body, PiecePose pose, double vx, double vy, double spin)
     {
         PhysicsServer2D.BodySetState(body.Rid, PhysicsServer2D.BodyState.Transform, new Transform2D((float)pose.Radians, Pixels(pose.X, pose.Y)));
+        body.Was = body.Now = (pose.X, pose.Y, pose.Radians);
         PhysicsServer2D.BodySetState(body.Rid, PhysicsServer2D.BodyState.LinearVelocity, Pixels(vx * World.TicksPerSecond, vy * World.TicksPerSecond));
         PhysicsServer2D.BodySetState(body.Rid, PhysicsServer2D.BodyState.AngularVelocity, (float)(spin * World.TicksPerSecond / TurnsPerRadian));
     }
