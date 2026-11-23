@@ -15,11 +15,11 @@ Pieces drifting by in zones and the mafia's deliveries; caught by hand or net, r
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (heroes;
   `Loot` of what one breaks), `Knowledge` (deliveries, `Did`), `Rooms` (what is space), `Items` (weapons and bags;
   `GiveOrDrop`, `GiveWhatFits`, `DropAt`), `Sky` (the stretch running). Runs after `Hazards`, before `Furnace`. Creatures reads it
-  (`Breaks`) and changes it (`Unreel`, `Hit`).
+  (`Breaks`) and changes it (`Unreel`, `Hit`, `TakeBursting`).
 - **State** (`DebrisState`, saved): `Pieces` in id order, each `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage,
   Cut, Reel, Struck, SeenAt, Delivery }`, in thousandths of a cell; `NextId`, never reused; `Clock`; `Beats`, each zone's next due
   clock; `AtStart`; `Found` (0066), `FoundKind { Kind, Items, Looks }` in the order first found; `Held`, every net's
-  entries `{ Net, Id, Kind, Cell, Items }` in catch order. **Unsaved:** the last `CaughtKept` (64) grabs and collected
+  entries `{ Net, Id, Kind, Cell, Items }` in catch order; `Bursting`. **Unsaved:** the last `CaughtKept` (64) grabs and collected
   entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the grid version nets were checked at.
 
 ## Zones
@@ -48,15 +48,16 @@ farther ones bigger, 0050, 0056); **`asteroids`** (`HullBand`, 0054: rows above 
 - **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while in a `Hard` box,
   seen under `Linger` ago.
 - **First tick:** `Layout.DebrisAtStart` of the stream goes out (at most `Max`), spread along its way. Nothing collides (0006) but a net.
-- **`Grab(Piece)`** (0034): the sender gets the item, or a container's (crate, pod, fridge) `Loot`, the rest at the
+- **`Grab(Piece)`** (0034): the sender gets the item, or a container's `Loot`, the rest at the
   hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (either not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; every weapon breaks every kind.
   `HewWrecks(Tool, X, Y, Heading)`: each fan ray strikes the first wreck whose box covers a cell
   it crosses, stopping there or at a wall; `HewPieces(Tool, Pieces)` (tool-edge) each listed, reach unchecked.
   One whose middle is not in space is passed. Each takes `Damage` once (0098) through `Hit`; at its hit points its `Loot` falls
-  under its middle, anyone's. Salvaging hits add to `Cut`; broken with some, `Below(hp) < Cut` wins each line half again.
+  under its middle, anyone's; a `Bursts` kind queues its burst for Creatures. Salvaging hits add to `Cut`; broken with some,
+  `Below(hp) < Cut` wins each line half again.
   Refused `debris.notOutside`, `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055).
-- **Deliveries** ([mafia-deliveries](../../docs/decisions/2026-11-08-mafia-deliveries.md)): on the ship, before the beats, the first queued one with
+- **Deliveries** (mafia-deliveries): on the ship, before the beats, the first queued one with
   no piece out spawns at the stream's start on a trade station's row, spaced by `DeliveryGap`, zone `delivery`, never netted. A
   `parcel` is grabbed, a `deliveryCrate` or the container broken, only the container found; past its `End`, lost.
 - **Found** (0066): every catch (grab, break, net, drone) records the kind, the items `LootOf` drew (the same roll) and the

@@ -52,7 +52,7 @@ public static class ItemIcons
     public static Texture2D Silhouette(string item)
     {
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
-        var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Fine($"items/{item}");
+        var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : ItemPicture(item);
         int lowest = -1;
         // Each row's outermost solid pixels, their corners: the outline a stack on the floor lies on.
         var edge = new List<(float X, float Y)>();
@@ -99,9 +99,17 @@ public static class ItemIcons
 
     private static Texture2D Drawn(string item)
     {
-        if (!Icons.TryGetValue(item, out var icon)) Icons[item] = icon = HiRes.Texture(Fine($"items/{item}"));
+        if (!Icons.TryGetValue(item, out var icon)) Icons[item] = icon = HiRes.Texture(ItemPicture(item));
         return icon;
     }
+
+    /// <summary>
+    /// <paramref name="item"/>'s icon picture; a wreck never in a bag may have none and shows its first debris picture
+    /// (ToolIconTests).
+    /// </summary>
+    private static Image ItemPicture(string item) =>
+        HiRes.Load($"items/{item}") ?? (DebrisLooks.NameOf(item, 0) is { } debris ? HiRes.Load(debris) : null)
+        ?? throw new System.InvalidOperationException($"No picture items/{item}");
 
     /// <summary>
     /// A held tool's picture for its card (2026-11-14-tool-card-pictures): its fine icon picture, unturned, mipmapped so it fits down

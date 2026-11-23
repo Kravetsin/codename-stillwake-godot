@@ -82,6 +82,12 @@ public interface IDebrisOps
     bool Hit(int peer, int id, int damage);
 
     /// <summary>
+    /// The wrecks broken that burst and have not gone off (fuel-drums), in the order broken, taken to go off now: those broken while
+    /// they do wait for the next call.
+    /// </summary>
+    IReadOnlyList<PendingBurst> TakeBursting();
+
+    /// <summary>
     /// Piece <paramref name="id"/> taken by a salvage drone (salvage-drones): gone, what it gives rolled as a net's catch is,
     /// recorded as found and counted obtained, with no popup; null for one gone.
     /// </summary>
@@ -189,7 +195,17 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may; its worth is the breaker's (catcher-loot).
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
         _crewOps.Loot(peer, loot);
+        // A drum goes off where it was, by whoever broke it, when Creatures next takes the list (fuel-drums).
+        if (Content.Wreckage.BurstOf(piece.Item) != null) State.Bursting.Add(new PendingBurst(CellOf(piece.X, piece.Y, _grid.Width), peer, piece.Item));
         return true;
+    }
+
+    public IReadOnlyList<PendingBurst> TakeBursting()
+    {
+        var taken = State.Bursting;
+        if (taken.Count == 0) return [];
+        State.Bursting = [];
+        return taken;
     }
 
     /// <summary>
