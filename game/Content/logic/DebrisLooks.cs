@@ -22,6 +22,8 @@ public static class DebrisLooks
         ("parcel", "parcel"), ("deliveryCrate", "deliverycrate"), ("confiscated", "seized"),
         // The stretches of space (docs/decisions/2026-11-15-stretches-of-space.md): the ice belt's druses, the contraband drift's hard-cases.
         ("iceBlock", "iceblock"), ("contrabandCrate", "contrabandcrate"),
+        // A fuel drum (barrels): for now the oxygen tanks' picture tinted the colour of fuel, a stand-in till its look is picked.
+        ("fuelDrum", "fueldrum"),
     ];
 
     /// <summary>The pictures of each kind of salvage that drifts: their name, and how many there are.</summary>
