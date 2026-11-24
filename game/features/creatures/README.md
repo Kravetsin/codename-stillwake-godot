@@ -57,12 +57,12 @@ spawns, moves, knocks, kills them and drops their loot. Striking one is `feature
 
 ## Rules
 
-- **Only what the camera sees** (no ADR): bodies within the view and a margin, pooled. One gone while drawn was killed,
+- **Only what the camera sees**: bodies within the view and a margin, pooled. One gone while drawn was killed,
   or a guard calmed.
 - **Drawn between ticks**: kept at the last two ticks, `Progress` of the way, a tick behind the sim. Upright (0106) but for
   `CreatureMotion.Tilt`. Steps eased (`StepEase`). Faces the way it moves; still, a near hero, else the way it last moved.
 - **The body** (`CreatureBody`, 0102): the design its species' `Look` names, in `InkDesigns`: finished pictures, with a white
-  copy for the flash (`CreatureParts`, 2026-11-01-creatures-in-ink). A sprite a part in rig order, turned about its
+  copy for the flash (`CreatureParts`, creatures-in-ink). A sprite a part in rig order, turned about its
   pivot (`CreaturePose`), lit as the world (`Lit`), on `Layers.Creatures` under the heroes. Its eye
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Bending parts** (creatures-bend): a part with a `Bend` is one picture bent
@@ -82,7 +82,7 @@ spawns, moves, knocks, kills them and drops their loot. Striking one is `feature
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
   no blood), thrown from the side facing the hero; `Sound.Creatures` its hit, thump and death, an own on Suit
   (`Sound.Felt`), a friend's on World.
-- **Death** (2026-10-29-kills-crumble): a glint, shock ring and death sound (`Sound.CreatureDeath`); held white `KillLooks.PopMs`, then it
+- **Death** (kills-crumble): a glint, shock ring and death sound (`Sound.CreatureDeath`); held white `KillLooks.PopMs`, then it
   stands as its pixels, crumbling top down (`shared/PixelBursts`), loot sprayed (`features/items`).
 - **The tick**: `TickRig` places its pictures from its pose (`TickArt`), lit; eye, cracks and a blow's white over it unlit. `TickMotion` reads the sim: `Clamped` grips,
   else legs folded, nose along its flight. Eye teal, yellow `Alerted` or homing, red crouched, cyan aiming. Winding up: red arcs. Flying: a burner.
@@ -92,13 +92,13 @@ spawns, moves, knocks, kills them and drops their loot. Striking one is `feature
   teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World. `--ground=spire-guards`.
 - **Guards and lurkers in ink** (guards-in-ink, cave-hostiles): `TickRig`, `IstukanRig`, `LurkerRig` place `InkRig`s.
   A capback dims noticing, flares crouched, puffs venting; a snail shuts. Killed, they sag or crack. Its gas, glob and puddle are
-  `LurkerFx`, the user's picks (lurker-attacks); the puddle waits for its glob.
-- **Vessel guards** (derelict-guards): `DocksView` lists the `Docks` as the world opens: a capsule G1
-  with the back-wall objects, a stand S1 before the machines (over furniture), under the unseen fog. A capsule blinks its amber
-  pip; waking (`DockWake`), its lamp flashes, its iris opens and the spider (`TickBodies`) unfolds and drops; a stand lowers its
-  escort (`StandWake`). The escort (`EscortRig`): a red lamp, its gun to its aim, a cyan gauss trace. Heard on World (`Footfalls`,
-  `Sound.Escorts`); a claw or pounce lands the sentry's punch. `--vessel=<class> --dock[=escort]`.
-- **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
+  `LurkerFx` (lurker-attacks); the puddle waits for its glob.
+- **Vessel guards** (derelict-guards): `DocksView` lists the `Docks` as the world opens: a capsule G1 with the back-wall objects,
+  a stand S1 before the machines (over furniture), under the unseen fog. A capsule blinks its amber pip; waking (`DockWake`), its
+  lamp flashes, its iris opens, the spider (`TickBodies`) unfolds and drops; a stand lowers its escort (`StandWake`). A wreck's:
+  awake, docks open, unheard (wreck-guards). The escort (`EscortRig`): a red lamp, its gun to its aim, a cyan gauss trace.
+  Heard on World (`Footfalls`, `Sound.Escorts`); a claw or pounce lands the sentry's punch. `--vessel=<class> --dock[=escort]`, `--wrecked`.
+- **A surface left or a world loaded**: every body put away at once, no puff.
 
 ## Dev
 
