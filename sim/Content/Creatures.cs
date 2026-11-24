@@ -137,7 +137,8 @@ public static class Creatures
     /// <summary>
     /// Hunting the crew on its own deck (the escort, derelict-guards), never off its floor rows: at the nearest awake hero aboard on its deck
     /// within <paramref name="Strike"/> columns it lunges with its first move, dropping a shot it was charging. Else it walks: at a hero on its
-    /// deck, toward him; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
+    /// deck, toward him; at one off it but in its sight within <paramref name="Notice"/>, under him along its deck, never prying a door
+    /// for it; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
     /// a hero within <paramref name="Notice"/> cells (box distance) and in line with its gun, on any deck, it shoots with its second move as
     /// often as that is ready, walking on. A shut door on its way (a hatch never, the way in never) it pries <paramref name="Pry"/> ticks, then
     /// opens. With no hero aboard it stands.
