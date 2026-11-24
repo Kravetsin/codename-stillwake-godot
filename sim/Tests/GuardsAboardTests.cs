@@ -160,37 +160,6 @@ public class GuardsAboardTests
         Assert.True(most["liner"] >= most["freighter"], $"a liner {most["liner"]}, a freighter {most["freighter"]}");
     }
 
-    /// <summary>
-    /// A wreck docks no guard (derelict-guards): built from its seed's own chain or a forced one, no dock, no creature as its world
-    /// opens, and every machine it was built with laid where it stands, none left out under a capsule.
-    /// </summary>
-    [Theory]
-    [InlineData("freighter", false)]
-    [InlineData("liner", false)]
-    [InlineData("freighter", true)]
-    public void AWreckedVesselHasNoGuardsAndItsFurnitureIsAllLaid(string cls, bool forced)
-    {
-        var c = Content.Vessels.Class(cls)!;
-        var wrecks = Enumerable.Range(1, 200).Select(s => Shipyard.Build(c, (uint)s)).Where(b => b.Wreck != null).ToList();
-        Assert.NotEmpty(wrecks);
-        Assert.All(wrecks, b => Assert.Empty(Shipyard.Guards(b)));
-        var w = new Scenario(Registry.Wreck);
-        w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(forced ? new Find(cls, [new(WreckKind.Icing, false)]) : new Find(cls, Wrecked: true)).Run();
-        var contact = w.M.Places.Contacts[^1];
-        w.Do(new Jump(contact.Id)).Run();
-        Assert.Empty(w.Refusals);
-        var v = w.On(w.World.SurfaceOf(0));
-        var built = Shipyard.Build(c, contact.Seed, contact.Wreck);
-        Assert.NotNull(built.Wreck);
-        Assert.Empty(v.Creatures.Docks);
-        Assert.Empty(v.Creatures.Creatures);
-        int m = Content.Vessels.Margin;
-        var machines = built.Parts.Where(p => p.Layer == "machine").ToList();
-        Assert.NotEmpty(machines);
-        Assert.All(machines, p => Assert.Equal(p.Kind, v.Grid.MachineAt((m + p.Y) * v.Grid.Width + m + p.X)?.Kind));
-    }
-
     /// <summary>A vessel of <paramref name="cls"/> found and jumped to by the new game's hero: the scenario, the vessel world and its vessel.</summary>
     internal static (Scenario W, Registry V, Built Built) Boarded(string cls, uint index = 0)
     {

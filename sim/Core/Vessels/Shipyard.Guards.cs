@@ -20,19 +20,20 @@ public static partial class Shipyard
     }
 
     /// <summary>
-    /// The guards' docks aboard vessel <paramref name="b"/> as built (<see cref="Vessels.Aboard"/>): none on a wreck, an intact one's drawn
-    /// from a stream of their own (16) so the vessel stays as it was: for each kind in turn, its rooms (a deck tall, or more) counted, the arrival room among them; the
-    /// candidates, those rooms in index order but the arrival room, where the dock's box fits clear of the way (a ladder, a hatch in its
-    /// floor); <c>min(ceil(rooms / Per), candidates)</c> of them drawn by a partial Fisher–Yates; then in index order one draw each of a
-    /// column where the box fits, clear of every fitting and shelf where it can be, else over them. Spiders, then robots, each by room
-    /// index. What a capsule covers is left out as the vessel is written (<see cref="Docked"/>); a stand stands over what it covers.
+    /// The guards' docks aboard vessel <paramref name="b"/> as built (<see cref="Vessels.Aboard"/>), drawn from a stream of their own (16)
+    /// so the vessel stays as it was: for each kind in turn, its rooms (a deck tall, or more) counted, the arrival room among them, a
+    /// wreck's bow half of a cut room not; the candidates, every room in index order but the arrival room, where the dock's box fits clear
+    /// of the way (a ladder, a hatch in its floor) and, on a wreck, of what it lost (<see cref="Lost"/>);
+    /// <c>min(ceil(rooms / Per), candidates)</c> of them drawn by a partial Fisher–Yates; then in index order one draw each of a column
+    /// where the box fits, clear of every fitting and shelf still standing where it can be, else over them. Spiders, then robots, each by
+    /// room index. What a capsule covers is left out as the vessel is written (<see cref="Docked"/>); a stand stands over what it covers.
     /// </summary>
     public static IReadOnlyList<Dock> Guards(Built b)
     {
-        if (b.Wreck != null) return [];
         var v = b.Vessel;
         var rng = Draws(Vessels.Class(v.Class)!, v.Seed, 16);
         var (ladders, furniture) = Taken(v);
+        if (b.Wreck != null) (ladders, furniture) = (Lost(b, ladders), Standing(b, furniture));
         var (ax, ay) = Door(b);
         var docks = new List<Dock>();
         foreach (var rule in Aboard.Rules)
@@ -43,7 +44,7 @@ public static partial class Shipyard
             {
                 var c = v.Compartments[i];
                 if (c.Decks > 1 != rule.Big) continue;
-                rooms++;
+                if (c.Of < 0) rooms++;
                 if (!c.Holds(ax, ay) && Fits(c, rule, ladders, furniture).Count > 0) candidates.Add(i);
             }
             int count = Math.Min((rooms + rule.Per - 1) / rule.Per, candidates.Count);
@@ -62,6 +63,38 @@ public static partial class Shipyard
             }
         }
         return docks;
+    }
+
+    /// <summary>
+    /// <paramref name="ladders"/>, every piece of a ladder left standing (a shaft cut short too), and every cell of a room of wreck
+    /// <paramref name="b"/> its chain took (derelict-guards): one an event carved (<see cref="WreckEvent.Carved"/>), or with no back wall
+    /// left, open to space (a break's gap).
+    /// </summary>
+    private static HashSet<(int, int)> Lost(Built b, HashSet<(int, int)> ladders)
+    {
+        var v = b.Vessel;
+        var backed = new HashSet<(int, int)>();
+        var lost = new HashSet<(int, int)>(ladders);
+        foreach (var p in b.Parts)
+            if (p.Layer == "back") backed.Add((p.X, p.Y));
+            else if (p.Kind == "ladder") lost.UnionWith(Covers(p));
+        var carved = new HashSet<int>();
+        foreach (var e in b.Wreck!.Events) carved.UnionWith(e.Carved);
+        foreach (var c in v.Compartments)
+            for (int y = c.Top; y < c.Floor; y++)
+                for (int x = c.Left; x < c.Left + c.Width; x++)
+                    if (!backed.Contains((x, y)) || carved.Contains(y * v.Width + x)) lost.Add((x, y));
+        return lost;
+    }
+
+    /// <summary>The cells of <paramref name="furniture"/> something of wreck <paramref name="b"/> still covers: what its chain left standing.</summary>
+    private static HashSet<(int, int)> Standing(Built b, HashSet<(int, int)> furniture)
+    {
+        var covered = new HashSet<(int, int)>();
+        foreach (var p in b.Parts)
+            if (p.Layer != "back") covered.UnionWith(Covers(p));
+        covered.IntersectWith(furniture);
+        return covered;
     }
 
     /// <summary>
