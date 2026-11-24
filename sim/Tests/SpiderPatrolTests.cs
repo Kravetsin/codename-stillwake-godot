@@ -345,6 +345,29 @@ public class SpiderPatrolTests
     }
 
     /// <summary>
+    /// A long patrol aboard a wrecked freighter, its hero passed out: a goal in a room on a deck no well rises to from its floor (the bridge
+    /// over its hall) is dropped at once, not stood under till <c>Roam</c> runs out. No spider stands still longer than a cling or a pry.
+    /// </summary>
+    [Fact]
+    public void APatrolGoalOnADeckWithNoWayUpIsDroppedAtOnce()
+    {
+        var (w, v, _) = Boarded("freighter", wrecked: true, 1);
+        var still = new Dictionary<int, (int X, int Y, int Ticks)>();
+        int most = Math.Max(Prowl.Cling.Max, Prowl.Pry) + 20;
+        for (int t = 0; t < 3000; t++)
+        {
+            v.Crew.HeroOf(0)!.Out = 1000;
+            w.Run();
+            foreach (var s in v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id))
+            {
+                var was = still.GetValueOrDefault(s.Id);
+                still[s.Id] = was.X == s.X && was.Y == s.Y ? (s.X, s.Y, was.Ticks + 1) : (s.X, s.Y, 0);
+                Assert.True(still[s.Id].Ticks <= most, $"spider {s.Id} still at {s.X},{s.Y} at tick {t}, its goal {s.Recall(ProwlDrive.RoamX) - 1},{s.Recall(ProwlDrive.RoamY)}");
+            }
+        }
+    }
+
+    /// <summary>
     /// A long patrol aboard a wrecked tanker, its hero passed out: no spider hangs still in a hatch's well longer than a pry, as one did
     /// climbed through a hatch and on up the well of the next hatch over it, a floor between them.
     /// </summary>

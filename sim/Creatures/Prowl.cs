@@ -242,6 +242,12 @@ internal sealed class ProwlDrive : DriveRule
         // Up by a well rising from its floor, else by the hatch in the floor next up; down by a hatch in its floor.
         int? floor = mine == its ? null : m.FloorBy(mine > its ? feet : feet + 1, up: mine > its), hatch = floor is int f ? m.HatchIn(f, c.X) : null;
         if (mine > its && m.WayUp(feet + 1, c.X) is { } rise) (hatch, floor) = (rise.X, rise.Row);
+        // A patrol to a deck no hatch leads to from its floor: it draws another, not standing under its cell till Roam runs out.
+        if (mine != its && hatch == null && c.Recall(HuntKey) != 1)
+        {
+            Balked(c);
+            return;
+        }
         // A patrol up a wall on its deck: to stand flush against it.
         int wall = mine == its && c.Recall(HuntKey) != 1 ? c.Recall(RoamWall) : 0;
         int goal = hatch ?? (wall < 0 ? q.X * Unit + half : wall > 0 ? (q.X + 1) * Unit - half : m.Middle(q.X)), dx = goal - c.X;
