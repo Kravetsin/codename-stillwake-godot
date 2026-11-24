@@ -152,11 +152,14 @@ public class WreckGuardsTests
         }
     }
 
-    /// <summary>Its hero aboard but out of its room, a wreck's guard hunts him at once; passed out, none is aboard to hunt, and it stands.</summary>
+    /// <summary>
+    /// Its hero aboard but out of its room, a wreck's guard goes at once: the escort hunts him, the spider hunts or patrols; passed out,
+    /// none is aboard to hunt, and the escort stands while the spider patrols.
+    /// </summary>
     [Theory]
-    [InlineData("freighter", "spider")]
-    [InlineData("liner", "escort")]
-    public void AWrecksGuardStandsWithNoHeroAboardAndHuntsOneOutOfItsRoom(string cls, string species)
+    [InlineData("freighter", "spider", true)]
+    [InlineData("liner", "escort", false)]
+    public void AWrecksGuardWithNoHeroAboardStandsOrPatrolsAndGoesOutOfItsRoomForOne(string cls, string species, bool patrols)
     {
         var (w, v, _) = Boarded(cls, species);
         var guard = v.Creatures.Creatures.First(c => c.Species == species);
@@ -166,7 +169,8 @@ public class WreckGuardsTests
         w.Run(20);
         var (x, y) = (guard.X, guard.Y);
         w.Run(60);
-        Assert.Equal((x, y), (guard.X, guard.Y));
+        Assert.Equal(patrols, (x, y) != (guard.X, guard.Y));
+        (x, y) = (guard.X, guard.Y);
         hero.Out = 0;
         w.Run(60);
         Assert.False(v.Creatures.HeroInCabin(guard));

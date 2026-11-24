@@ -22,6 +22,9 @@ public sealed partial class CreaturesModule
     /// <summary>Each dock's room's open cells in the world, in <see cref="Docks"/>' order. Derived.</summary>
     private Box[] _cabins = [];
 
+    /// <summary>Every room's open cells in the world, in the vessel's order: where a spider patrols to. Derived.</summary>
+    private Box[] _compartments = [];
+
     /// <summary>The box of the vessel's hull and rooms in the world, its armour in it: aboard. <see cref="Box.None"/> off a vessel world. Derived.</summary>
     private Box _hull = Box.None;
 
@@ -54,7 +57,7 @@ public sealed partial class CreaturesModule
         // The vessel built as Places writes it, intact or a wreck (Shipyard.Guards).
         if (Rules is not VesselKind kind)
         {
-            (_docks, _cabins, _hull, _floors, _hatches, _wayIn, _doors, _wrecked) = ([], [], Box.None, [], [], Box.None, [], false);
+            (_docks, _cabins, _compartments, _hull, _floors, _hatches, _wayIn, _doors, _wrecked) = ([], [], [], Box.None, [], [], Box.None, [], false);
             return;
         }
         var built = Surfaces.Vessel ?? Shipyard.Build(Vessels.Class(kind.Class)!, Surfaces.Seed, Surfaces.Wreck);
@@ -62,7 +65,8 @@ public sealed partial class CreaturesModule
         _wrecked = built.Wreck != null;
         int m = Vessels.Margin;
         _docks = Shipyard.Guards(built);
-        _cabins = [.. _docks.Select(d => v.Compartments[d.Room]).Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
+        _compartments = [.. v.Compartments.Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
+        _cabins = [.. _docks.Select(d => _compartments[d.Room])];
         // The hull and its rooms, its bow's open rows past the last room too; never a module, rib or housing bulged onto it.
         _hull = Box.None;
         foreach (var h in v.Sections)
@@ -138,18 +142,49 @@ public sealed partial class CreaturesModule
     /// <summary>The <see cref="Quarry"/> of <paramref name="c"/> with its hero's peer: what an escort's shot locks on.</summary>
     internal (int Peer, (int X, int Y) At)? QuarryOf(Creature c)
     {
-        int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
         (int Peer, (int X, int Y) At)? best = null;
         long far = long.MaxValue;
         for (int i = 0; i < _heroes.Count; i++)
         {
             var at = _heroes[i];
             if (!_awake[i] || !_hull.Contains(at.X, at.Y)) continue;
-            long d = (long)(at.X - x) * (at.X - x) + (long)(at.Y - y) * (at.Y - y);
+            long d = Far(c, at);
             if (d >= far) continue;
             (far, best) = (d, (_peers[i], at));
         }
         return best;
+    }
+
+    /// <summary>The squared distance in cells from <paramref name="c"/>'s cell to cell <paramref name="at"/>: how a guard ranks its quarry.</summary>
+    internal static long Far(Creature c, (int X, int Y) at)
+    {
+        long dx = at.X - Down(c.X, Unit), dy = at.Y - Down(c.Y - 1, Unit);
+        return dx * dx + dy * dy;
+    }
+
+    /// <summary>
+    /// A random cell of a random room of the vessel, in the world, from the world's numbers: its floor's open row, a column clear of its
+    /// side walls; null off a vessel world. Where a patrolling spider goes next.
+    /// </summary>
+    internal (int X, int Y)? RoomCell()
+    {
+        if (_compartments.Length == 0) return null;
+        var r = _compartments[(int)Rand.Below((uint)_compartments.Length)];
+        int inner = Math.Max(1, r.Right - r.Left - 1);
+        return (Math.Min(r.Right, r.Left + 1 + (int)Rand.Below((uint)inner)), r.Bottom);
+    }
+
+    /// <summary>
+    /// Whether something solid lies under a body of <paramref name="s"/> at (<paramref name="x"/>, <paramref name="y"/>) before the hull
+    /// box's bottom: what it stands or falls onto aboard; none is a hole down into space.
+    /// </summary>
+    internal bool Floored(Spec.Shape s, int x, int y)
+    {
+        int half = s.Width * Unit / 2;
+        for (int row = Down(y - 1, Unit) + 1; row <= _hull.Bottom; row++)
+            for (int column = Down(x - half, Unit); column <= Down(x + half - 1, Unit); column++)
+                if (Solid(column, row)) return true;
+        return false;
     }
 
     /// <summary>Whether a body of <paramref name="s"/> at (<paramref name="x"/>, <paramref name="y"/>) lies wholly in the hull box.</summary>
