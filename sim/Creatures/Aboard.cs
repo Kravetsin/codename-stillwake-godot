@@ -229,7 +229,9 @@ public sealed partial class CreaturesModule
             {
                 int column = side < 0 ? b.Left - 1 : b.Right + 1;
                 bool solid = true;
-                for (int row = b.Top; row <= b.Bottom && solid; row++) solid = Solid(column, row);
+                // A shut door is solid but no wall: opened, it would leave the spider clinging to nothing.
+                for (int row = b.Top; row <= b.Bottom && solid; row++)
+                    solid = Solid(column, row) && !Doorways.IsDoorway(_grid.StructureAt(row * _grid.Width + column));
                 if (solid) walls.Add((i, side));
             }
         }

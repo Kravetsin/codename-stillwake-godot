@@ -590,6 +590,13 @@ public class SpiderAboardTests
     });
 
     /// <summary>
+    /// A play whose spider, its hero lost, patrolled up the side of its room a shut door stood in, then clung on there to nothing once the
+    /// door swung open: a door is no wall to patrol up.
+    /// </summary>
+    [Fact]
+    public void APatrolNeverClimbsADoorThatMayOpenUnderIt() => Play("freighter", 2, 16);
+
+    /// <summary>
     /// The property's plays reach side-wall climbs, a shelf in the spider's way, a vessel's only inner wall: half of these six do (5 of 12 at
     /// random), the hero put by a shelf every other time; on rooms' floors at random alone, a third did. A vessel with no shelf has none.
     /// </summary>
