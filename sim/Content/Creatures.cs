@@ -465,18 +465,18 @@ public static class Creatures
     /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
     /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
     /// cells a second, jumping some three and a half cells, climbing a wall at 6 cells a second; a shut doorway it pries two seconds
-    /// before it opens it. No hero within 40 cells, it patrols the vessel, a room at random, another once there or 20 seconds on; one
+    /// before it opens it. No hero within 40 cells, it patrols the vessel at 6 cells a second (climbing at 2), a room at random, another once there or 20 seconds on; one
     /// within 30, it hunts again. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Spider = new("spider", Look: Sentry.Look,
-        Body: new Walker(Width: 2, Height: 3, Walk: 900, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
+        Body: new Walker(Width: 2, Height: 3, Walk: 300, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
         Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard,
         Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40, Lose: 40, Chase: 30, Roam: 400)], Moves: Sentry.Moves, Yields: Sentry.Yields);
 
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-guards), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
     /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
-    /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second always to close in: a hero within 6 columns on
+    /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second to close in, 3.5 to a door or along its deck with no hero in sight: a hero within 6 columns on
     /// its deck it claws, a crouch of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit. On its way, at one in line
     /// within 40 cells, above it too, it shoots walking on: 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its
     /// rail gun's height, 4.85 cells up, across its reach in a tick, its gun held up half a second after; a shot begun at most every 3 s, and
@@ -484,7 +484,7 @@ public static class Creatures
     /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
     /// sentry. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 350, Run: 350, Jump: 0, JumpAcross: 0),
+    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 175, Run: 350, Jump: 0, JumpAcross: 0),
         Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,
         Brain: [new Dock(Wake: 40), new Patrol(Strike: 6, Notice: 40, Pry: 40)],
         Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 10, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000,

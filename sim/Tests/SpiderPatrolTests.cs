@@ -141,6 +141,43 @@ public class SpiderPatrolTests
         Assert.True(drawn.Count >= 3, $"it drew {drawn.Count} cells");
     }
 
+    private static readonly Spec.Walker Body = (Spec.Walker)Spec.Spider.Body;
+
+    /// <summary>
+    /// Patrolling it walks: never more than its <c>Walk</c> across a tick, nor up a wall more than its climb cut to the same share; it
+    /// does walk that fast. Hunting it runs, past its walk, up to its <c>Run</c>.
+    /// </summary>
+    [Fact]
+    public void ItPatrolsAtItsWalkAndHuntsAtItsRun()
+    {
+        Assert.True(Body.Walk < Body.Run);
+        int up = Body.Climb * Body.Walk / Body.Run;
+        var (a, spider) = Hunting();
+        int fastest = 0;
+        for (int t = 0; t < 200 && Hunts(spider); t++)
+        {
+            int x = spider.X;
+            a.Run();
+            if (spider.Act == null && Hunts(spider)) fastest = Math.Max(fastest, Math.Abs(spider.X - x));
+        }
+        Assert.True(fastest > Body.Walk && fastest <= Body.Run, $"hunting at most {fastest} a tick");
+        var hero = FarRoom(a, spider);
+        a.Hero(hero.X, hero.Y).Run();
+        Assert.False(Hunts(spider));
+        int walked = 0;
+        for (int t = 0; t < 1500 && !Hunts(spider); t++)
+        {
+            int x = spider.X;
+            bool free = spider.Act == null;
+            a.Run();
+            if (!free || spider.Act != null || Hunts(spider)) continue;
+            Assert.True(Math.Abs(spider.X - x) <= Body.Walk && Math.Abs(spider.VX) <= Body.Walk, $"{spider.X - x} across, v {spider.VX} at tick {t}");
+            if (CreaturesModule.Holds(spider) != 0) Assert.True(-spider.VY <= up, $"climbing {-spider.VY} at tick {t}");
+            walked = Math.Max(walked, Math.Abs(spider.X - x));
+        }
+        Assert.Equal(Body.Walk, walked);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

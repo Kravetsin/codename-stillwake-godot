@@ -9,7 +9,7 @@ namespace Stillwake.Sim.Creatures;
 /// not; on another it runs to the hatch well, opens the hatch and climbs up through it, or drops down through it. A shut doorway on its
 /// way, a hatch too, it pries its <c>Pry</c> ticks and opens, the way in never; the doorway changed meanwhile, it starts over. With no
 /// awake hero aboard within its <c>Lose</c> it patrols: the same way to a cell of a room drawn at random, another drawn once there, at a
-/// brink, or <c>Roam</c> ticks on; a hero come within its <c>Chase</c>, it hunts again. Its body never leaves the hull box: no step past
+/// brink, or <c>Roam</c> ticks on; a hero come within its <c>Chase</c>, it hunts again. It patrols at its <c>Walk</c>, hunts at its <c>Run</c> (<see cref="Pace"/>). Its body never leaves the hull box: no step past
 /// its side, out the open way in, nor over a hole down into space, no leap flown out of it. It fights as its guard does
 /// (<see cref="GuardDrive"/>), never from a wall.
 /// </summary>
@@ -152,10 +152,18 @@ internal sealed class ProwlDrive : DriveRule
     internal override Posture PostureOf(Creature c) =>
         c.Recall(WalkerBody.Wall) != 0 ? Posture.Climbing : c.VX != 0 ? Posture.Wander : Posture.Idle;
 
+    /// <summary>
+    /// Its pace a tick, across and up a wall: its <c>Run</c> and <c>Climb</c> while it hunts; patrolling, its <c>Walk</c>, and its
+    /// <c>Climb</c> cut to the same share of its run, rounded down.
+    /// </summary>
+    private static (int Across, int Up) Pace(Creature c, Spec.Walker w) =>
+        c.Recall(HuntKey) == 1 || w.Run <= 0 ? (w.Run, w.Climb) : (w.Walk, w.Climb * w.Walk / w.Run);
+
     /// <summary>Its speed and hold this tick, its body moving it after (<see cref="WalkerBody"/>).</summary>
     private static void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Prowl prowl)
     {
         var w = (Spec.Walker)spec.Body;
+        var pace = Pace(c, w);
         int half = w.Width * Unit / 2;
         int left = Down(c.X - half, Unit), right = Down(c.X + half - 1, Unit), top = Down(c.Y - w.Height * Unit, Unit), feet = Down(c.Y - 1, Unit);
         // A doorway shut on it (0006): it pries it where it stands.
@@ -169,12 +177,12 @@ internal sealed class ProwlDrive : DriveRule
         int hold = c.Recall(WalkerBody.Wall);
         if (hold == WalkerBody.Well)
         {
-            Well(m, c, w, prowl, quarry, left, right, top);
+            Well(m, c, w, pace, prowl, quarry, left, right, top);
             return;
         }
         if (hold != 0)
         {
-            OnWall(m, c, w, hold, quarry);
+            OnWall(m, c, w, pace, hold, quarry);
             return;
         }
         // In the air a leap or a fall flies on, but never across out of the hull box; on an open hatch it spans, it stands.
@@ -198,13 +206,13 @@ internal sealed class ProwlDrive : DriveRule
         {
             c.VX = 0;
             if (hatch == null) Forget(c);
-            else if (mine > its) Climb(m, c, w, floor!.Value);
+            else if (mine > its) Climb(c, pace.Up, floor!.Value);
             // Over the hatch down: pried, then fallen through.
             else if (m.ShutDoorway(left, feet + 1, right, feet + 1) is int down) Pry(m, c, prowl.Pry, down);
             else Forget(c);
             return;
         }
-        int way = Math.Sign(dx), speed = Math.Min(w.Run, Math.Abs(dx)), column = WalkerBody.AheadOf(c, w, way);
+        int way = Math.Sign(dx), speed = Math.Min(pace.Across, Math.Abs(dx)), column = WalkerBody.AheadOf(c, w, way);
         if (m.ShutDoorway(column, top, column, feet) is int door)
         {
             c.VX = 0;
@@ -224,7 +232,7 @@ internal sealed class ProwlDrive : DriveRule
         else if (Climbable(m, c, w, way))
         {
             c.Keep(WalkerBody.Wall, way);
-            (c.VX, c.VY) = (0, -w.Climb);
+            (c.VX, c.VY) = (0, -pace.Up);
         }
         else Balked(c);
     }
@@ -247,17 +255,17 @@ internal sealed class ProwlDrive : DriveRule
     /// A tick on the wall on side <paramref name="side"/>: over its top once past it; let go where it no longer holds one, or under what
     /// is over it; with no quarry, still.
     /// </summary>
-    private static void OnWall(CreaturesModule m, Creature c, Spec.Walker w, int side, (int X, int Y)? quarry)
+    private static void OnWall(CreaturesModule m, Creature c, Spec.Walker w, (int Across, int Up) pace, int side, (int X, int Y)? quarry)
     {
         bool flush = (c.X + side * w.Width * Unit / 2) % Unit == 0;
         if (!flush || !m.Overlaps(w, c.X + side * Unit, c.Y))
         {
             c.Keep(WalkerBody.Wall, 0);
             // Past its top: over onto it.
-            (c.VX, c.VY) = (flush ? side * w.Run : 0, 0);
+            (c.VX, c.VY) = (flush ? side * pace.Across : 0, 0);
             return;
         }
-        if (m.Overlaps(w, c.X, c.Y - 1) || !m.InHull(w, c.X, c.Y - w.Climb))
+        if (m.Overlaps(w, c.X, c.Y - 1) || !m.InHull(w, c.X, c.Y - pace.Up))
         {
             c.Keep(WalkerBody.Wall, 0);
             (c.VX, c.VY) = (0, 0);
@@ -265,23 +273,23 @@ internal sealed class ProwlDrive : DriveRule
         }
         // Never past its top: it stops level with it, to go over next tick.
         int edge = Down(c.Y - 1, Unit) * Unit;
-        c.VY = quarry == null ? 0 : c.Y - edge <= w.Climb && !m.Overlaps(w, c.X + side * Unit, edge) ? edge - c.Y : -w.Climb;
+        c.VY = quarry == null ? 0 : c.Y - edge <= pace.Up && !m.Overlaps(w, c.X + side * Unit, edge) ? edge - c.Y : -pace.Up;
     }
 
-    /// <summary>Takes hold of the well under the hatch in floor row <paramref name="floor"/> and climbs it.</summary>
-    private static void Climb(CreaturesModule m, Creature c, Spec.Walker w, int floor)
+    /// <summary>Takes hold of the well under the hatch in floor row <paramref name="floor"/> and climbs it, <paramref name="up"/> a tick.</summary>
+    private static void Climb(Creature c, int up, int floor)
     {
         Forget(c);
         c.Keep(WalkerBody.Wall, WalkerBody.Well);
         c.Keep(WellKey, floor + 1);
-        (c.VX, c.VY) = (0, -w.Climb);
+        (c.VX, c.VY) = (0, -up);
     }
 
     /// <summary>
     /// A tick in the hatch well: up through its hatch, on up the well while its quarry is higher still, else off to its side on the floor;
     /// its head under the hatch shut, prying it, as a shut doorway beside it at the top; let go out of line with it.
     /// </summary>
-    private static void Well(CreaturesModule m, Creature c, Spec.Walker w, Spec.Prowl prowl, (int X, int Y)? quarry, int left, int right, int top)
+    private static void Well(CreaturesModule m, Creature c, Spec.Walker w, (int Across, int Up) pace, Spec.Prowl prowl, (int X, int Y)? quarry, int left, int right, int top)
     {
         int row = c.Recall(WellKey) - 1;
         if (row < 0 || !m.HatchAt(c.X, row))
@@ -293,7 +301,7 @@ internal sealed class ProwlDrive : DriveRule
         {
             if (quarry is { } q && m.Level(q.Y) < m.Level(Down(c.Y - 1, Unit)) && m.HatchOver(c.X, c.Y) is int next)
             {
-                Climb(m, c, w, next);
+                Climb(c, pace.Up, next);
                 return;
             }
             // Off to its side: toward its quarry, a doorway there pried from the well first (stepped to, the hole is under it); a wall
@@ -307,7 +315,7 @@ internal sealed class ProwlDrive : DriveRule
             }
             Forget(c);
             if (m.Overlaps(w, c.X + way * Unit, c.Y)) way = -way;
-            LetGo(c, way * w.Run);
+            LetGo(c, way * pace.Across);
             return;
         }
         if (m.ShutDoorway(left, top - 1, right, top - 1) is int hatch)
@@ -317,7 +325,7 @@ internal sealed class ProwlDrive : DriveRule
             return;
         }
         Forget(c);
-        c.VY = quarry == null ? 0 : -Math.Min(w.Climb, c.Y - row * Unit);
+        c.VY = quarry == null ? 0 : -Math.Min(pace.Up, c.Y - row * Unit);
     }
 
     private static void LetGo(Creature c, int vx)

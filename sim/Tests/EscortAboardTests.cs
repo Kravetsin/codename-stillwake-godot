@@ -437,6 +437,30 @@ public class EscortAboardTests
         Assert.True(a.RunTill(() => a.Escort.X / U < doors[0].X - 3, 200), $"at {a.Column}");
     }
 
+    /// <summary>Off to its door with its hero out of sight, it walks at its <c>Walk</c>; going for him seen on its deck, at its <c>Run</c>.</summary>
+    [Fact]
+    public void ItWalksToItsDoorAtItsWalkAndGoesForAHeroAtItsRun()
+    {
+        var body = (Spec.Walker)Spec.Escort.Body;
+        Assert.True(body.Walk < body.Run);
+        var a = new Aboard().Woken();
+        a.Hero(a.Column + 20, a.Room.Top - 2).Run();
+        var walked = new HashSet<int>();
+        for (int t = 0; t < 40; t++)
+        {
+            int x = a.Escort.X;
+            a.Run();
+            walked.Add(Math.Abs(a.Escort.X - x));
+        }
+        Assert.Equal([body.Walk], walked);
+        // Seen on its floor at the hall's far end, out of its claw's reach: it goes for him.
+        int end = a.Column - a.Room.Left > a.Room.Left + a.Room.Width - 1 - a.Column ? a.Room.Left + 1 : a.Room.Left + a.Room.Width - 2;
+        Assert.True(Math.Abs(end - a.Column) > Patrol.Strike + 2, $"at {a.Column}, he at {end}");
+        int was = a.Escort.X;
+        a.Hero(end, a.Body).Run();
+        Assert.Equal(body.Run, Math.Abs(a.Escort.X - was));
+    }
+
     [Fact]
     public void AHeroBehindAShutDoorOnItsDeckHasItPryTheDoorAndShootThroughIt()
     {

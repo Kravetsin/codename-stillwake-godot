@@ -8,7 +8,7 @@ namespace Stillwake.Sim.Creatures;
 /// its dock's deck, never jumping. Its quarry on its deck within its strike, it lunges (its first move), dropping a shot it was charging.
 /// Else it walks: toward its quarry on its deck; off it but in its sight (<see cref="Sees"/>, within its notice), under him along its deck,
 /// standing at a wall or a shut door; off it and out of sight, to the nearest door of its deck (the lower column at a tie) and on that way,
-/// turning back at a wall; and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made
+/// turning back at a wall, at its <c>Walk</c> (going for its quarry, at its <c>Run</c>); and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made
 /// on the move: <see cref="Afoot"/>) whenever that is ready. A shut door on its way it pries as a spider does
 /// (<see cref="ProwlDrive.Pry"/>), never a hatch, which lies under its feet (an open one it walks over) or over its head, nor the way in.
 /// With no hero aboard it stands.
@@ -121,14 +121,15 @@ internal sealed class PatrolDrive : DriveRule
             return;
         }
         ProwlDrive.Forget(c);
-        if (WalkerBody.Blocked(m, c, w, way, w.Run, spans: true) || !m.InHull(w, c.X + way * w.Run, c.Y))
+        int speed = chase ? w.Run : w.Walk;
+        if (WalkerBody.Blocked(m, c, w, way, speed, spans: true) || !m.InHull(w, c.X + way * speed, c.Y))
         {
             c.VX = 0;
             if (!chase) c.Keep(WayKey, -way);
             return;
         }
         if (!chase) c.Keep(WayKey, way);
-        c.VX = way * w.Run;
+        c.VX = way * speed;
     }
 
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => true;
