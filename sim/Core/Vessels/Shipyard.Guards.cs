@@ -24,7 +24,7 @@ public static partial class Shipyard
     /// so the vessel stays as it was: for each kind in turn, its rooms (a deck tall, or more) counted, the arrival room among them, a
     /// wreck's bow half of a cut room not; the candidates, every room in index order but the arrival room, where the dock's box fits clear
     /// of the way (a ladder, a hatch in its floor) and, on a wreck, of what it lost (<see cref="Lost"/>);
-    /// <c>min(ceil(rooms / Per), candidates)</c> of them drawn by a partial Fisher–Yates; then in index order one draw each of a column
+    /// <c>min(ceil(rooms / Per), candidates)</c> of them (a wreck's <c>WreckPer</c>) drawn by a partial Fisher–Yates; then in index order one draw each of a column
     /// where the box fits, clear of every fitting and shelf still standing where it can be, else over them. Spiders, then robots, each by
     /// room index. What a capsule covers is left out as the vessel is written (<see cref="Docked"/>); a stand stands over what it covers.
     /// </summary>
@@ -47,7 +47,7 @@ public static partial class Shipyard
                 if (c.Of < 0) rooms++;
                 if (!c.Holds(ax, ay) && Fits(c, rule, ladders, furniture).Count > 0) candidates.Add(i);
             }
-            int count = Math.Min((rooms + rule.Per - 1) / rule.Per, candidates.Count);
+            int per = b.Wreck == null ? rule.Per : rule.WreckPer, count = Math.Min((rooms + per - 1) / per, candidates.Count);
             for (int k = 0; k < count; k++)
             {
                 int j = k + (int)rng.Below((uint)(candidates.Count - k));

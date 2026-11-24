@@ -12,7 +12,7 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Guards aboard a wreck (derelict-guards): docked by the intact rule in any room the chain left the dock's box standing in, never the
+/// Guards aboard a wreck (derelict-guards): fewer than aboard an intact vessel (<c>WreckPer</c>), docked by the intact rule in any room the chain left the dock's box standing in, never the
 /// arrival room; born awake on the floor at their open docks, hunting a hero aboard wherever he is.
 /// </summary>
 public class WreckGuardsTests
@@ -56,7 +56,7 @@ public class WreckGuardsTests
     private static bool In(VesselPart p, Shipyard.Dock d) => Shipyard.Covers(p).Any(c => c.X >= d.X && c.X < d.X + d.Width && c.Y >= d.Y && c.Y < d.Y + d.Height);
 
     [Property(MaxTest = 150)]
-    public Property AWreckDocksItsGuardsByTheIntactRuleOnlyWhereTheirBoxesStandNeverTheArrivalRoom() => Prop.ForAll(Wrecks(), t =>
+    public Property AWreckDocksItsGuardsByItsOwnCountOnlyWhereTheirBoxesStandNeverTheArrivalRoom() => Prop.ForAll(Wrecks(), t =>
     {
         var b = t.Chain == null ? Wreck(t.Class, t.Seed) : Shipyard.Build(t.Class, t.Seed, t.Chain);
         if (b.Wreck == null) return;
@@ -75,7 +75,7 @@ public class WreckGuardsTests
             int candidates = sized.Count(i => !v.Compartments[i].Holds(ax, ay)
                 && Enumerable.Range(v.Compartments[i].Left, v.Compartments[i].Width).Any(x => Stands(read, v.Compartments[i], rule, x)));
             var mine = docks.Where(d => d.Rule == rule).ToList();
-            Assert.True(Math.Min((rooms + rule.Per - 1) / rule.Per, candidates) == mine.Count, $"{rule.Species}: {mine.Count} of {rooms} rooms, {candidates} candidates on {at}");
+            Assert.True(Math.Min((rooms + rule.WreckPer - 1) / rule.WreckPer, candidates) == mine.Count, $"{rule.Species}: {mine.Count} of {rooms} rooms, {candidates} candidates on {at}");
             foreach (var d in mine)
             {
                 var c = v.Compartments[d.Room];
