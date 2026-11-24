@@ -5,8 +5,8 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// A vessel's guards (derelict-guards): one asleep at each of its docks (<see cref="Shipyard.Guards"/>), spawned as its world opens,
-/// before any other creature there, so their ids follow the docks. Read from the vessel's description, never the grid: Places writes
+/// A vessel's guards (derelict-guards): one at each of its docks (<see cref="Shipyard.Guards"/>), spawned as its world opens, before any
+/// other creature there, so their ids follow the docks: asleep aboard an intact vessel, awake already aboard a wreck, its docks open. Read from the vessel's description, never the grid: Places writes
 /// the vessel after this module has run. What they wake and hunt by is the vessel's too: its rooms, hull box, floors, hatches, way in.
 /// </summary>
 public sealed partial class CreaturesModule
@@ -15,6 +15,9 @@ public sealed partial class CreaturesModule
     internal const string DockKey = "dock";
 
     private IReadOnlyList<Shipyard.Dock> _docks = [];
+
+    /// <summary>Whether this surface's vessel is a wreck: its guards are born awake. Derived.</summary>
+    private bool _wrecked;
 
     /// <summary>Each dock's room's open cells in the world, in <see cref="Docks"/>' order. Derived.</summary>
     private Box[] _cabins = [];
@@ -48,15 +51,15 @@ public sealed partial class CreaturesModule
 
     public override void Rebuild()
     {
-        // Only an intact vessel has guards (Shipyard.Guards), built as Places writes it; a drawn wreck needs no build to know it.
-        var cls = Rules is VesselKind kind ? Vessels.Class(kind.Class)! : null;
-        bool drawnWreck = cls != null && Surfaces.Wreck == null && Shipyard.IsWreck(cls, Surfaces.Seed);
-        if (cls == null || drawnWreck || (Surfaces.Vessel ?? Shipyard.Build(cls, Surfaces.Seed, Surfaces.Wreck)) is not { Wreck: null } built)
+        // The vessel built as Places writes it, intact or a wreck (Shipyard.Guards).
+        if (Rules is not VesselKind kind)
         {
-            (_docks, _cabins, _hull, _floors, _hatches, _wayIn, _doors) = ([], [], Box.None, [], [], Box.None, []);
+            (_docks, _cabins, _hull, _floors, _hatches, _wayIn, _doors, _wrecked) = ([], [], Box.None, [], [], Box.None, [], false);
             return;
         }
+        var built = Surfaces.Vessel ?? Shipyard.Build(Vessels.Class(kind.Class)!, Surfaces.Seed, Surfaces.Wreck);
         var v = built.Vessel;
+        _wrecked = built.Wreck != null;
         int m = Vessels.Margin;
         _docks = Shipyard.Guards(built);
         _cabins = [.. _docks.Select(d => v.Compartments[d.Room]).Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
@@ -96,7 +99,10 @@ public sealed partial class CreaturesModule
         return best;
     }
 
-    /// <summary>A guard asleep on the floor in the middle of each dock's box, in their order: the frame's top-left at (<c>Margin</c>, <c>Margin</c>).</summary>
+    /// <summary>
+    /// A guard on the floor in the middle of each dock's box, in their order, the frame's top-left at (<c>Margin</c>, <c>Margin</c>): asleep,
+    /// or on a wreck awake from birth (<see cref="DockDrive.Woke"/>), its dock never closed on it, its brain's next drive in charge.
+    /// </summary>
     protected override void Opened()
     {
         int m = Vessels.Margin;
@@ -105,7 +111,11 @@ public sealed partial class CreaturesModule
             var dock = _docks[i];
             var spec = Spec.Get(dock.Species);
             var (x, y) = Standing(spec, m + dock.X + (dock.Width - spec.Body.Width) / 2, m + dock.Y + dock.Height - 1);
-            Add(spec, x, y).Keep(DockKey, i);
+            Add(spec, x, y, c =>
+            {
+                c.Keep(DockKey, i);
+                if (_wrecked) c.Keep(DockDrive.Woke, 1);
+            });
         }
     }
 

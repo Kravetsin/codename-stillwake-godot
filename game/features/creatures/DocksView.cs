@@ -23,7 +23,8 @@ namespace Stillwake.Game.Features.Creatures;
 /// escort go as it wakes (<see cref="StandWake"/>): its clamp swings up, its drum pays out the cable that lowers the yoke with the robot,
 /// the yoke's hooks open and it rises off its shoulders, its beacon flashing amber; after, it stands open and empty. The escort is drawn
 /// by <see cref="EscortBodies"/>, between the stand's back and its front. Each moment of a waking is heard on World where its part is: the
-/// capsule's alarm and iris; the stand's clamp, winch and yoke, and its robot powering up as its lamp lights.
+/// capsule's alarm and iris; the stand's clamp, winch and yoke, and its robot powering up as its lamp lights. A wreck's guards are born
+/// awake, so its docks are drawn open from the first and never heard.
 /// </summary>
 public partial class DocksView : Node2D, ILightSource
 {

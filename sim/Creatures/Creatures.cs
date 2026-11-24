@@ -327,9 +327,11 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// A creature of <paramref name="spec"/> standing at (<paramref name="x"/>, <paramref name="y"/>), in the charge of the first drive
     /// that wants it, seen now: its id the next.
     /// </summary>
-    private Creature Add(Spec.Species spec, int x, int y)
+    /// <param name="mem">What it remembers from birth, kept before its first drive is chosen.</param>
+    private Creature Add(Spec.Species spec, int x, int y, Action<Creature>? mem = null)
     {
         var c = new Creature { Id = State.NextId, Species = spec.Id, X = x, Y = y, SeenAt = State.Clock };
+        mem?.Invoke(c);
         c.Drive = Fallback(spec, c);
         RuleBook.Drive(spec.Brain[c.Drive]).Born(c, spec.Brain[c.Drive]);
         State.Creatures.Add(c);
