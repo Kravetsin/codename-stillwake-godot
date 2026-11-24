@@ -68,22 +68,29 @@ public static partial class Shipyard
     /// <summary>
     /// <paramref name="ladders"/>, every piece of a ladder left standing (a shaft cut short too), and every cell of a room of wreck
     /// <paramref name="b"/> its chain took (derelict-guards): one an event carved (<see cref="WreckEvent.Carved"/>), or with no back wall
-    /// left, open to space (a break's gap).
+    /// left, open to space (a break's gap); and every cell of the floor row under a room carved or with no structure left (a sunk deck).
     /// </summary>
     private static HashSet<(int, int)> Lost(Built b, HashSet<(int, int)> ladders)
     {
         var v = b.Vessel;
         var backed = new HashSet<(int, int)>();
+        var built = new HashSet<(int, int)>();
         var lost = new HashSet<(int, int)>(ladders);
         foreach (var p in b.Parts)
+        {
             if (p.Layer == "back") backed.Add((p.X, p.Y));
             else if (p.Kind == "ladder") lost.UnionWith(Covers(p));
+            if (p.Layer == "structure") built.Add((p.X, p.Y));
+        }
         var carved = new HashSet<int>();
         foreach (var e in b.Wreck!.Events) carved.UnionWith(e.Carved);
         foreach (var c in v.Compartments)
-            for (int y = c.Top; y < c.Floor; y++)
-                for (int x = c.Left; x < c.Left + c.Width; x++)
+            for (int x = c.Left; x < c.Left + c.Width; x++)
+            {
+                for (int y = c.Top; y < c.Floor; y++)
                     if (!backed.Contains((x, y)) || carved.Contains(y * v.Width + x)) lost.Add((x, y));
+                if (!built.Contains((x, c.Floor)) || carved.Contains(c.Floor * v.Width + x)) lost.Add((x, c.Floor));
+            }
         return lost;
     }
 
@@ -112,7 +119,7 @@ public static partial class Shipyard
 
     /// <summary>
     /// The left columns, in order, where <paramref name="rule"/>'s box stands on <paramref name="c"/>'s floor inside it clear of every
-    /// cell of the way and of all <paramref name="furniture"/>; with none so clear, those clear of the way.
+    /// cell of the way (its floor's row under it too) and of all <paramref name="furniture"/>; with none so clear, those clear of the way.
     /// </summary>
     private static List<int> Fits(Vessel.Compartment c, Aboard.Rule rule, HashSet<(int, int)> ladders, HashSet<(int, int)> furniture)
     {
@@ -128,7 +135,8 @@ public static partial class Shipyard
         for (int x = c.Left; x + rule.Width <= c.Left + c.Width; x++)
         {
             bool clear = true;
-            for (int y = top; y < c.Floor && clear; y++)
+            // Its box clear, and the floor row under it: a wreck's lost floor is in the way.
+            for (int y = top; y <= c.Floor && clear; y++)
                 for (int dx = 0; dx < rule.Width && clear; dx++)
                     clear = !ladders.Contains((x + dx, y)) && furniture?.Contains((x + dx, y)) != true;
             if (clear) fits.Add(x);

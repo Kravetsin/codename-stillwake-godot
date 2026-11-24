@@ -31,27 +31,38 @@ public class WreckGuardsTests
     /// <summary>A wreck of <paramref name="cls"/> from <paramref name="seed"/>: its seed's own chain, every seed a wreck.</summary>
     private static Built Wreck(VesselClass cls, uint seed) => Shipyard.Build(cls, seed, null, 100);
 
-    /// <summary>The cells of the way (every ladder piece, the two over each hatch) and those a wreck took from its rooms: carved, or no back wall.</summary>
-    private static (HashSet<(int, int)> Way, HashSet<(int, int)> Backed, HashSet<(int, int)> Carved) Read(Built b)
+    /// <summary>
+    /// The cells of the way (every ladder piece, the two over each hatch), those with a back wall, those with a structure (a floor's) and
+    /// those a wreck carved.
+    /// </summary>
+    private static (HashSet<(int, int)> Way, HashSet<(int, int)> Backed, HashSet<(int, int)> Built, HashSet<(int, int)> Carved) Read(Built b)
     {
         var way = new HashSet<(int, int)>();
         var backed = new HashSet<(int, int)>();
+        var built = new HashSet<(int, int)>();
         foreach (var p in b.Parts)
+        {
             if (p.Layer == "back") backed.Add((p.X, p.Y));
             else if (p.Kind == "ladder") way.UnionWith(Shipyard.Covers(p));
             else if (p.Kind == Builds.Hatch) way.UnionWith([(p.X, p.Y - 1), (p.X + 1, p.Y - 1)]);
+            if (p.Layer == "structure") built.Add((p.X, p.Y));
+        }
         int w = b.Vessel.Width;
         var carved = b.Wreck!.Events.SelectMany(e => e.Carved).Select(i => (i % w, i / w)).ToHashSet();
-        return (way, backed, carved);
+        return (way, backed, built, carved);
     }
 
     private static IEnumerable<(int X, int Y)> Box(int x, int y, int w, int h) =>
         Enumerable.Range(y, h).SelectMany(cy => Enumerable.Range(x, w).Select(cx => (cx, cy)));
 
-    /// <summary>Whether <paramref name="rule"/>'s box stands whole on room <paramref name="c"/>'s floor at column <paramref name="x"/>: backed, not carved, off the way.</summary>
-    private static bool Stands((HashSet<(int, int)> Way, HashSet<(int, int)> Backed, HashSet<(int, int)> Carved) r, Vessel.Compartment c, Aboard.Rule rule, int x) =>
+    /// <summary>
+    /// Whether <paramref name="rule"/>'s box stands whole on room <paramref name="c"/>'s floor at column <paramref name="x"/>: backed, not
+    /// carved, off the way, the floor under it whole.
+    /// </summary>
+    private static bool Stands((HashSet<(int, int)> Way, HashSet<(int, int)> Backed, HashSet<(int, int)> Built, HashSet<(int, int)> Carved) r, Vessel.Compartment c, Aboard.Rule rule, int x) =>
         c.Floor - rule.Height >= c.Top && x >= c.Left && x + rule.Width <= c.Left + c.Width
-        && Box(x, c.Floor - rule.Height, rule.Width, rule.Height).All(p => r.Backed.Contains(p) && !r.Carved.Contains(p) && !r.Way.Contains(p));
+        && Box(x, c.Floor - rule.Height, rule.Width, rule.Height).All(p => r.Backed.Contains(p) && !r.Carved.Contains(p) && !r.Way.Contains(p))
+        && Box(x, c.Floor, rule.Width, 1).All(p => r.Built.Contains(p) && !r.Carved.Contains(p));
 
     private static bool In(VesselPart p, Shipyard.Dock d) => Shipyard.Covers(p).Any(c => c.X >= d.X && c.X < d.X + d.Width && c.Y >= d.Y && c.Y < d.Y + d.Height);
 
@@ -90,6 +101,16 @@ public class WreckGuardsTests
         var replacing = docks.Where(d => d.Rule.Crowded == Aboard.Crowded.Replace).ToList();
         Assert.Equal(b.Parts.Where(p => p.Layer == "back" || p.Kind == "wall" || !replacing.Exists(d => In(p, d))), laid);
     });
+
+    /// <summary>A tanker wreck whose spider's dock stood over a hole in its room's floor: every dock now stands on a whole floor.</summary>
+    [Theory]
+    [InlineData("tanker", 87u)]
+    public void ADockNeverStandsOverAHoleInItsFloor(string cls, uint seed)
+    {
+        var b = Wreck(Content.Vessels.Class(cls)!, seed);
+        var read = Read(b);
+        Assert.All(Shipyard.Guards(b), d => Assert.True(Stands(read, b.Vessel.Compartments[d.Room], d.Rule, d.X), $"{d} over a hole"));
+    }
 
     /// <summary>Docks stand in rooms a fire burnt, the cold froze and the air left: only the box's cells count, not what befell its room.</summary>
     [Fact]

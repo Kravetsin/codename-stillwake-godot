@@ -52,7 +52,7 @@ described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.W
   voyage and `Surface.Wreck`) replaces the draw, a step not allowed at its turn skipped; an empty one is intact. The arrival
   room and two cells round it are never touched; engines stay unless carved; rooms not reached keep everything. Nothing
   breakable floats: what lost its support, or an event threw, is lost. `Opened` lays `Build`'s parts. Its guards (wreck-guards):
-  fewer (`Aboard.WreckPer`), no dock box on a cell carved or bare of back wall, born awake (Creatures).
+  fewer (`Aboard.WreckPer`), no dock box on a cell carved or bare of back wall nor over a lost floor, born awake (Creatures).
 - **Its kind's rules** (`VesselKind`): the ship's space (no gravity in the open, vacuum, starlight), no debris, no meteors;
   built as a planet allows, no machines; tools break what stands, nothing is marked (`ToolsBreak`), as on a planet.
 - **It closes** at the end of the tick no peer stands on it (`Kind.Transient`, Core): gone home, died and woke aboard, or left
