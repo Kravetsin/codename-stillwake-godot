@@ -282,6 +282,108 @@ public class SpiderPatrolTests
         Assert.True(Math.Abs(spider.X / U - (hole + 1)) <= 3, $"at {spider.X / U}, the hole at {hole}");
     }
 
+    /// <summary>A spider's tally over a patrol: the floor rows it stood on, its ticks in a hatch's well, its longest still cling up a side wall.</summary>
+    private sealed class Tally
+    {
+        public readonly HashSet<int> Floors = [];
+        public int Well, Clung, Still;
+    }
+
+    /// <summary>
+    /// A tick of <paramref name="c"/>'s patrol tallied in <paramref name="t"/>: standing, its floor; in a well; clinging to the side wall it
+    /// patrols up, flush on it, its head under its room's ceiling, in the hull box.
+    /// </summary>
+    private static void Count(Registry v, Vessel vessel, Creature c, Tally t)
+    {
+        int hold = CreaturesModule.Holds(c);
+        if (hold == 0 && c.VY == 0 && c.Y % U == 0 && v.Grid.Solid(c.Y / U * v.Grid.Width + c.X / U)) t.Floors.Add(c.Y / U);
+        if (hold == WalkerBody.Well) t.Well++;
+        if (hold is not (1 or -1) || c.Recall(ProwlDrive.RoamWall) != hold || c.Recall(ProwlDrive.ClingTill) == 0)
+        {
+            t.Still = 0;
+            return;
+        }
+        Assert.True(InHull(v.Creatures.Hull, c), $"clinging out of the hull box at {c.X},{c.Y}");
+        int half = Body.Width * U / 2, beside = hold > 0 ? (c.X + half) / U : (c.X - half) / U - 1, top = (c.Y - Body.Height * U) / U;
+        Assert.Equal(0, (c.X + hold * half) % U);
+        Assert.True(v.Grid.Solid((c.Y - 1) / U * v.Grid.Width + beside), $"clinging at {c.X},{c.Y} to no wall to its {hold}");
+        var rooms = vessel.Compartments.Where(r => r.Holds(c.X / U - M, (c.Y - 1) / U - M)).ToList();
+        Assert.True(rooms.Count == 1, $"clinging at {c.X},{c.Y} in {rooms.Count} rooms: {string.Join(" ", rooms.Select(r => $"[{r.Left}+{r.Width} {r.Top}-{r.Floor} of {r.Of}]"))}");
+        var room = rooms[0];
+        Assert.True(top >= M + room.Top, $"clinging at {c.X},{c.Y} above its room's ceiling {M + room.Top}");
+        t.Still = c.VY == 0 ? t.Still + 1 : 0;
+        t.Clung = Math.Max(t.Clung, t.Still);
+    }
+
+    private static readonly int ClingLeast = Prowl.Cling.Min;
+
+    /// <summary>
+    /// A long patrol aboard a wreck, its hero passed out: every spider goes from deck to deck, up its wells and down its hatches, and one
+    /// climbs a room's side wall, clinging there still at least its least cling, never over its room's ceiling nor out of the hull box.
+    /// </summary>
+    [Theory]
+    [InlineData("freighter")]
+    [InlineData("liner")]
+    public void OnALongPatrolItGoesDeckToDeckAndClingsUpASideWall(string cls)
+    {
+        var (w, v, built) = WreckGuardsTests.Boarded(cls, Spec.Spider.Id);
+        var spiders = v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id).ToList();
+        var tallies = spiders.ToDictionary(s => s.Id, _ => new Tally());
+        for (int t = 0; t < 6000; t++)
+        {
+            v.Crew.HeroOf(0)!.Out = 1000;
+            w.Run();
+            foreach (var s in spiders)
+            {
+                Assert.False(Hunts(s));
+                Count(v, built.Vessel, s, tallies[s.Id]);
+            }
+        }
+        Assert.All(spiders, s => Assert.True(tallies[s.Id].Floors.Count >= 2, $"spider {s.Id} stood on floors {string.Join(',', tallies[s.Id].Floors)}"));
+        Assert.Contains(spiders, s => tallies[s.Id].Well > 0);
+        Assert.Contains(spiders, s => tallies[s.Id].Clung >= ClingLeast);
+    }
+
+    /// <summary>
+    /// Two worlds aboard a wrecked liner, its hero passed out in both, alike every tick of a long patrol up walls and wells and down hatches.
+    /// </summary>
+    [Fact]
+    public void TwoWorldsStayAlikeThroughAPatrolUpWallsAndDecks()
+    {
+        var (a, b) = (new Registry(), new Registry());
+        var first = World.Create(1, Registry.Wreck, a.All);
+        var second = World.Create(1, Registry.Wreck, b.All);
+        void Both(params Command[] commands)
+        {
+            first.Step(commands);
+            second.Step(commands);
+            Assert.Equal(first.Hash(), second.Hash());
+        }
+        Both(new Enter(a.Crew.Spawn));
+        for (int i = 0; i < 20; i++)
+        {
+            Both(new Find("liner", Wrecked: true));
+            var contact = a.Places.Contacts[^1];
+            var built = Shipyard.Build(Content.Vessels.Class("liner")!, contact.Seed, contact.Wreck);
+            if (built.Wreck == null || !Shipyard.Guards(built).Any(d => d.Species == Spec.Spider.Id)) continue;
+            Both(new Jump(contact.Id));
+            int surface = first.SurfaceOf(0);
+            var (one, two) = (Registry.On(first, surface), Registry.On(second, surface));
+            var tallies = new Dictionary<int, Tally>();
+            for (int t = 0; t < 3000; t++)
+            {
+                one.Crew.HeroOf(0)!.Out = two.Crew.HeroOf(0)!.Out = 1000;
+                Both();
+                foreach (var s in one.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id))
+                    Count(one, built.Vessel, s, tallies.TryGetValue(s.Id, out var tally) ? tally : tallies[s.Id] = new Tally());
+            }
+            Assert.Contains(tallies.Values, t => t.Well > 0);
+            Assert.Contains(tallies.Values, t => t.Clung >= ClingLeast);
+            return;
+        }
+        Assert.Fail("no liner wreck with a spider");
+    }
+
     /// <summary>
     /// Two worlds fed the same commands aboard a freighter, alike every tick while a spider wakes, loses its hero and patrols; mid-patrol a
     /// peer joins: the one world's save loaded, played on beside the other.

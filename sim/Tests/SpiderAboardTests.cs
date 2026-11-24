@@ -555,8 +555,11 @@ public class SpiderAboardTests
         if (c.Posture == Posture.Climbing)
         {
             int side = c.Recall(WalkerBody.Wall);
+            // A well reaches down to the floor of the room under its hatch: a hall two decks tall's, past the deck floor between.
+            int Bottom(Vessel.Hatch h) => vessel.Compartments.Where(r => r.Top == h.Y + 1 && h.X >= r.Left && h.X < r.Left + r.Width).Select(r => r.Floor)
+                .DefaultIfEmpty(vessel.Decks.Select(d => d.Floor).Where(f => f > h.Y).Min()).First();
             if (side == WalkerBody.Well)
-                Assert.True(vessel.Hatches.Any(h => (M + h.X + 1) * U == c.X && c.Y > (M + h.Y - 1) * U && c.Y <= (M + vessel.Decks.Select(d => d.Floor).Where(f => f > h.Y).Min()) * U),
+                Assert.True(vessel.Hatches.Any(h => (M + h.X + 1) * U == c.X && c.Y > (M + h.Y - 1) * U && c.Y <= (M + Bottom(h)) * U),
                     $"spider {c.Id} climbing at {c.X},{c.Y} in no hatch's well");
             else
             {

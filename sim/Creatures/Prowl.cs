@@ -8,7 +8,8 @@ namespace Stillwake.Sim.Creatures;
 /// by the vessel's shape, no path searched. On its quarry's deck it runs at it, leaping what its jump clears and climbing a wall it does
 /// not; on another it runs to the hatch well, opens the hatch and climbs up through it, or drops down through it. A shut doorway on its
 /// way, a hatch too, it pries its <c>Pry</c> ticks and opens, the way in never; the doorway changed meanwhile, it starts over. With no
-/// awake hero aboard within its <c>Lose</c> it patrols: the same way to a cell of a room drawn at random, another drawn once there, at a
+/// awake hero aboard within its <c>Lose</c> it patrols: the same way to a cell of a room drawn at random (<see cref="CreaturesModule.RoamTo"/>),
+/// on its deck or another, or up a room's side wall to cling there a while (<see cref="Cling"/>); another drawn once there, at a
 /// brink, or <c>Roam</c> ticks on; a hero come within its <c>Chase</c>, it hunts again. It patrols at its <c>Walk</c>, hunts at its <c>Run</c> (<see cref="Pace"/>). Its body never leaves the hull box: no step past
 /// its side, out the open way in, nor over a hole down into space, no leap flown out of it. It fights as its guard does
 /// (<see cref="GuardDrive"/>), never from a wall.
@@ -26,6 +27,18 @@ internal sealed class ProwlDrive : DriveRule
 
     /// <summary>Kept in its <c>Mem</c>: the creatures' clock it draws another cell to patrol to at.</summary>
     internal const string RoamTill = "roamTill";
+
+    /// <summary>Kept in its <c>Mem</c>: for a patrol up a wall, the wall's side of the cell it patrols to, -1 left, 1 right; 0 for a room's cell.</summary>
+    internal const string RoamWall = "roamWall";
+
+    /// <summary>Kept in its <c>Mem</c>: for a patrol up a wall, the row its feet cling at.</summary>
+    internal const string RoamSpot = "roamSpot";
+
+    /// <summary>Kept in its <c>Mem</c>: the creatures' clock it comes down the wall it patrols up at; -1 climbing to its spot; 0 holding none for it.</summary>
+    internal const string ClingTill = "clingTill";
+
+    /// <summary>Kept in its <c>Mem</c>: the way it patrols by decks to its cell, 1 down, -1 up; 0 for none yet.</summary>
+    internal const string RoamDeck = "roamDeck";
 
     /// <summary>Kept in its <c>Mem</c>: the shut doorway cell it pries, plus one; 0 for none.</summary>
     internal const string PryKey = "pry";
@@ -53,7 +66,7 @@ internal sealed class ProwlDrive : DriveRule
         Guard.Run(m, c, spec, prowl.Guard);
         if (c.Act == null)
         {
-            Choose(m, c, prowl);
+            Choose(m, c, (Spec.Walker)spec.Body, prowl);
             Steer(m, c, spec, prowl);
         }
         else Forget(c);
@@ -62,9 +75,10 @@ internal sealed class ProwlDrive : DriveRule
 
     /// <summary>
     /// Whether it hunts or patrols this tick: its quarry lost past its <c>Lose</c>, or none aboard, it patrols; one within its
-    /// <c>Chase</c>, it hunts. Patrolling with no cell to go to, there, or <c>Roam</c> ticks on, it draws another.
+    /// <c>Chase</c>, it hunts. Patrolling with no cell to go to, there, or <c>Roam</c> ticks on, it draws another
+    /// (<see cref="CreaturesModule.RoamTo"/>); never while it clings to a wall it patrolled up.
     /// </summary>
-    private static void Choose(CreaturesModule m, Creature c, Spec.Prowl prowl)
+    private static void Choose(CreaturesModule m, Creature c, Spec.Walker w, Spec.Prowl prowl)
     {
         long? far = m.Quarry(c) is { } q ? Far(c, q) : null;
         if (c.Recall(HuntKey) == 1)
@@ -79,24 +93,36 @@ internal sealed class ProwlDrive : DriveRule
             Roam(c, null, 0);
             return;
         }
-        if (Roaming(c) is { } to && m.Clock < c.Recall(RoamTill) && !There(m, c, to)) return;
-        Roam(c, m.RoomCell(), m.Clock + prowl.Roam);
+        if (Roaming(c) is { } to && (Clinging(c) || m.Clock < c.Recall(RoamTill) && !There(m, c, to))) return;
+        Roam(c, m.RoamTo(c, w, prowl), m.Clock + prowl.Roam);
     }
 
-    /// <summary>The cell <paramref name="c"/> patrols to, kept till the creatures' clock <paramref name="till"/>; none forgets it.</summary>
-    private static void Roam(Creature c, (int X, int Y)? to, int till)
+    /// <summary>
+    /// The cell <paramref name="c"/> patrols to, kept till the creatures' clock <paramref name="till"/>; none forgets it. Clinging to a wall
+    /// it patrolled up, it lets go.
+    /// </summary>
+    private static void Roam(Creature c, CreaturesModule.Roamed? to, int till)
     {
+        if (Clinging(c)) LetGo(c, 0);
         c.Keep(RoamX, to is { } t ? t.X + 1 : 0);
         c.Keep(RoamY, to?.Y ?? 0);
         c.Keep(RoamTill, to == null ? 0 : till);
+        c.Keep(RoamWall, to?.Wall ?? 0);
+        c.Keep(RoamSpot, to?.Spot ?? 0);
+        c.Keep(ClingTill, 0);
+        c.Keep(RoamDeck, 0);
     }
+
+    /// <summary>Whether <paramref name="c"/> holds the wall it patrols up.</summary>
+    private static bool Clinging(Creature c) =>
+        c.Recall(ClingTill) != 0 && c.Recall(RoamWall) is int side and not 0 && c.Recall(WalkerBody.Wall) == side;
 
     /// <summary>The cell <paramref name="c"/> patrols to; null for none.</summary>
     private static (int X, int Y)? Roaming(Creature c) => c.Recall(RoamX) is int x and > 0 ? (x - 1, c.Recall(RoamY)) : null;
 
-    /// <summary>Whether <paramref name="c"/> stands where it patrols to: on its deck, within a cell of its column.</summary>
+    /// <summary>Whether <paramref name="c"/> stands where it patrols to: on its deck, within a cell of its column. Up a wall it is there once down again.</summary>
     private static bool There(CreaturesModule m, Creature c, (int X, int Y) to) =>
-        m.Level(Down(c.Y - 1, Unit)) == m.Level(to.Y) && Math.Abs(m.Middle(to.X) - c.X) < Unit;
+        c.Recall(RoamWall) == 0 && m.Level(Down(c.Y - 1, Unit)) == m.Level(to.Y) && Math.Abs(m.Middle(to.X) - c.X) < Unit;
 
     /// <summary>Where <paramref name="c"/> goes: its quarry while it hunts, else the cell it patrols to; null for neither.</summary>
     private static (int X, int Y)? Goal(CreaturesModule m, Creature c) => c.Recall(HuntKey) == 1 ? m.Quarry(c) : Roaming(c);
@@ -175,6 +201,8 @@ internal sealed class ProwlDrive : DriveRule
         }
         var quarry = Goal(m, c);
         int hold = c.Recall(WalkerBody.Wall);
+        // Off every wall, it holds none for a cling: a climb over in its way is no cling, its wall taken hold of again first.
+        if (hold == 0) c.Keep(ClingTill, 0);
         if (hold == WalkerBody.Well)
         {
             Well(m, c, w, pace, prowl, quarry, left, right, top);
@@ -182,7 +210,7 @@ internal sealed class ProwlDrive : DriveRule
         }
         if (hold != 0)
         {
-            OnWall(m, c, w, pace, hold, quarry);
+            OnWall(m, c, w, pace, prowl, hold, quarry);
             return;
         }
         // In the air a leap or a fall flies on, but never across out of the hull box; on an open hatch it spans, it stands.
@@ -199,13 +227,32 @@ internal sealed class ProwlDrive : DriveRule
             return;
         }
         int mine = m.Level(feet), its = m.Level(q.Y);
-        int? floor = mine == its ? null : m.FloorBy(mine > its ? feet : feet + 1, up: mine > its);
-        int? hatch = floor is int f ? m.HatchIn(f, c.X) : null;
-        int goal = hatch ?? m.Middle(q.X), dx = goal - c.X;
-        if (hatch == null && Math.Abs(dx) < Unit || hatch != null && dx == 0)
+        // A patrol past its cell's deck, up then down or down then up: sections laying their decks at other rows, the way by decks
+        // never gets there. It draws another.
+        if (mine != its && c.Recall(HuntKey) != 1)
+        {
+            int need = Math.Sign(its - mine), was = c.Recall(RoamDeck);
+            if (was == -need)
+            {
+                Balked(c);
+                return;
+            }
+            c.Keep(RoamDeck, need);
+        }
+        // Up by a well rising from its floor, else by the hatch in the floor next up; down by a hatch in its floor.
+        int? floor = mine == its ? null : m.FloorBy(mine > its ? feet : feet + 1, up: mine > its), hatch = floor is int f ? m.HatchIn(f, c.X) : null;
+        if (mine > its && m.WayUp(feet + 1, c.X) is { } rise) (hatch, floor) = (rise.X, rise.Row);
+        // A patrol up a wall on its deck: to stand flush against it.
+        int wall = mine == its && c.Recall(HuntKey) != 1 ? c.Recall(RoamWall) : 0;
+        int goal = hatch ?? (wall < 0 ? q.X * Unit + half : wall > 0 ? (q.X + 1) * Unit - half : m.Middle(q.X)), dx = goal - c.X;
+        if (hatch == null && (wall != 0 ? dx == 0 : Math.Abs(dx) < Unit) || hatch != null && dx == 0)
         {
             c.VX = 0;
-            if (hatch == null) Forget(c);
+            if (hatch == null)
+            {
+                Forget(c);
+                if (wall != 0) Hold(m, c, w, pace.Up, wall);
+            }
             else if (mine > its) Climb(c, pace.Up, floor!.Value);
             // Over the hatch down: pried, then fallen through.
             else if (m.ShutDoorway(left, feet + 1, right, feet + 1) is int down) Pry(m, c, prowl.Pry, down);
@@ -251,11 +298,24 @@ internal sealed class ProwlDrive : DriveRule
         return false;
     }
 
+    /// <summary>Flush against the wall it patrols up, on side <paramref name="side"/>: it takes hold and climbs; the wall gone, it draws another goal.</summary>
+    private static void Hold(CreaturesModule m, Creature c, Spec.Walker w, int up, int side)
+    {
+        if (!m.Overlaps(w, c.X + side * Unit, c.Y))
+        {
+            Roam(c, null, 0);
+            return;
+        }
+        c.Keep(WalkerBody.Wall, side);
+        c.Keep(ClingTill, -1);
+        c.VY = -up;
+    }
+
     /// <summary>
     /// A tick on the wall on side <paramref name="side"/>: over its top once past it; let go where it no longer holds one, or under what
-    /// is over it; with no quarry, still.
+    /// is over it; with no quarry, still. A wall it patrols up it clings to (<see cref="Cling"/>).
     /// </summary>
-    private static void OnWall(CreaturesModule m, Creature c, Spec.Walker w, (int Across, int Up) pace, int side, (int X, int Y)? quarry)
+    private static void OnWall(CreaturesModule m, Creature c, Spec.Walker w, (int Across, int Up) pace, Spec.Prowl prowl, int side, (int X, int Y)? quarry)
     {
         bool flush = (c.X + side * w.Width * Unit / 2) % Unit == 0;
         if (!flush || !m.Overlaps(w, c.X + side * Unit, c.Y))
@@ -263,6 +323,11 @@ internal sealed class ProwlDrive : DriveRule
             c.Keep(WalkerBody.Wall, 0);
             // Past its top: over onto it.
             (c.VX, c.VY) = (flush ? side * pace.Across : 0, 0);
+            return;
+        }
+        if (Clinging(c))
+        {
+            Cling(m, c, w, pace.Up, prowl);
             return;
         }
         if (m.Overlaps(w, c.X, c.Y - 1) || !m.InHull(w, c.X, c.Y - pace.Up))
@@ -274,6 +339,39 @@ internal sealed class ProwlDrive : DriveRule
         // Never past its top: it stops level with it, to go over next tick.
         int edge = Down(c.Y - 1, Unit) * Unit;
         c.VY = quarry == null ? 0 : c.Y - edge <= pace.Up && !m.Overlaps(w, c.X + side * Unit, edge) ? edge - c.Y : -pace.Up;
+    }
+
+    /// <summary>
+    /// A tick up the wall it patrols up, <paramref name="up"/> a tick: up to its spot, or as high as its head clears; there it clings a
+    /// number of ticks drawn from its <c>Cling</c>, then comes down to the floor, lets go and draws another goal.
+    /// </summary>
+    private static void Cling(CreaturesModule m, Creature c, Spec.Walker w, int up, Spec.Prowl prowl)
+    {
+        int till = c.Recall(ClingTill), spot = (c.Recall(RoamSpot) + 1) * Unit;
+        if (till < 0)
+        {
+            if (c.Y > spot && !m.Overlaps(w, c.X, c.Y - 1))
+            {
+                c.VY = -Math.Min(up, c.Y - spot);
+                return;
+            }
+            c.VY = 0;
+            c.Keep(ClingTill, m.Clock + prowl.Cling.Min + (int)m.Rand.Below((uint)(prowl.Cling.Max - prowl.Cling.Min + 1)));
+            return;
+        }
+        if (m.Clock < till)
+        {
+            c.VY = 0;
+            return;
+        }
+        // Down to its room's floor, never on down an open hatch under it.
+        int floor = (c.Recall(RoamY) + 1) * Unit;
+        if (c.Y < floor && !m.Overlaps(w, c.X, c.Y + 1))
+        {
+            c.VY = Math.Min(up, floor - c.Y);
+            return;
+        }
+        Roam(c, null, 0);
     }
 
     /// <summary>Takes hold of the well under the hatch in floor row <paramref name="floor"/> and climbs it, <paramref name="up"/> a tick.</summary>

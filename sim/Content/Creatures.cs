@@ -132,10 +132,12 @@ public static class Creatures
     /// path searched; a shut doorway on its way (the way in never) it pries <paramref name="Pry"/> ticks, then opens; a wall in its way it
     /// climbs. It fights by its <paramref name="Guard"/>: alerted by a hero in line within its notice, it pounces or shoots as a guard does.
     /// No awake hero aboard within <paramref name="Lose"/> cells (by squared distance), it patrols the vessel the same way: to a room at
-    /// random, another once there or <paramref name="Roam"/> ticks on, till one comes within <paramref name="Chase"/> cells. Hunting or
-    /// patrolling, it never leaves the hull box.
+    /// random, another once there or <paramref name="Roam"/> ticks on, till one comes within <paramref name="Chase"/> cells. Of the goals
+    /// it draws, <paramref name="UpAWall"/> in a hundred are a spot up a room's solid side wall, climbed to and clung to
+    /// <paramref name="Cling"/> ticks (least and most) before it comes down; <paramref name="OtherDeck"/> in a hundred a room on another
+    /// deck; the rest a room on its own. Hunting or patrolling, it never leaves the hull box.
     /// </summary>
-    public sealed record Prowl(Guard Guard, int Pry, int Lose, int Chase, int Roam) : Drive;
+    public sealed record Prowl(Guard Guard, int Pry, int Lose, int Chase, int Roam, int UpAWall = 0, int OtherDeck = 0, (int Min, int Max) Cling = default) : Drive;
 
     /// <summary>
     /// Hunting the crew on its own deck (the escort, derelict-guards), never off its floor rows: at the nearest awake hero aboard on its deck
@@ -465,13 +467,16 @@ public static class Creatures
     /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
     /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
     /// cells a second, jumping some three and a half cells, climbing a wall at 6 cells a second; a shut doorway it pries two seconds
-    /// before it opens it. No hero within 40 cells, it patrols the vessel at 6 cells a second (climbing at 2), a room at random, another once there or 20 seconds on; one
-    /// within 30, it hunts again. Placeholder numbers, for a play pass.
+    /// before it opens it. No hero within 40 cells, it patrols the vessel at 6 cells a second (climbing at 2), to a goal drawn at random,
+    /// another once there or a minute on: one in four a spot up a room's side wall, clung to 2 to 4 seconds; one in three a room on
+    /// another deck, up or down its hatch wells; else a room on its own deck. One within 30, it hunts again. Placeholder numbers, for a
+    /// play pass.
     /// </summary>
     public static readonly Species Spider = new("spider", Look: Sentry.Look,
         Body: new Walker(Width: 2, Height: 3, Walk: 300, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
         Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard,
-        Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40, Lose: 40, Chase: 30, Roam: 400)], Moves: Sentry.Moves, Yields: Sentry.Yields);
+        Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40, Lose: 40, Chase: 30, Roam: 1200,
+            UpAWall: 25, OtherDeck: 33, Cling: (40, 80))], Moves: Sentry.Moves, Yields: Sentry.Yields);
 
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-guards), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker

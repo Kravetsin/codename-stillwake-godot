@@ -28,11 +28,16 @@ public sealed partial class CreaturesModule
     /// <summary>The box of the vessel's hull and rooms in the world, its armour in it: aboard. <see cref="Box.None"/> off a vessel world. Derived.</summary>
     private Box _hull = Box.None;
 
-    /// <summary>The rows of the vessel's floors in the world, a deck's and a hatch's, ascending and distinct. Derived.</summary>
+    /// <summary>The rows of the vessel's floors in the world, a deck's, a hatch's and a room's, ascending and distinct. Derived.</summary>
     private int[] _floors = [];
 
     /// <summary>Its hatches in the world, each its left column and floor row, by row then column. Derived.</summary>
     private (int X, int Y)[] _hatches = [];
+
+    /// <summary>
+    /// The floor row each hatch's well rises from, in <see cref="_hatches"/>' order (<see cref="WellFloor"/>). Derived.
+    /// </summary>
+    private int[] _wells = [];
 
     /// <summary>Its doors between rooms in the world, the way in left out, each its left column and top row, by row then column. Derived.</summary>
     private (int X, int Y)[] _doors = [];
@@ -57,7 +62,7 @@ public sealed partial class CreaturesModule
         // The vessel built as Places writes it, intact or a wreck (Shipyard.Guards).
         if (Rules is not VesselKind kind)
         {
-            (_docks, _cabins, _compartments, _hull, _floors, _hatches, _wayIn, _doors, _wrecked) = ([], [], [], Box.None, [], [], Box.None, [], false);
+            (_docks, _cabins, _compartments, _hull, _floors, _hatches, _wells, _wayIn, _doors, _wrecked) = ([], [], [], Box.None, [], [], [], Box.None, [], false);
             return;
         }
         var built = Surfaces.Vessel ?? Shipyard.Build(Vessels.Class(kind.Class)!, Surfaces.Seed, Surfaces.Wreck);
@@ -72,11 +77,25 @@ public sealed partial class CreaturesModule
         foreach (var h in v.Sections)
             if (h.Kind is Vessel.SectionKind.Body or Vessel.SectionKind.Bow or Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier)
                 _hull = _hull.Union(new Box(m + h.Left, m + h.Top, m + h.Left + h.Width - 1, m + h.Bottom));
-        _floors = [.. v.Decks.Select(d => m + d.Floor).Concat(v.Hatches.Select(h => m + h.Y)).Distinct().Order()];
+        _floors = [.. v.Decks.Select(d => m + d.Floor).Concat(v.Hatches.Select(h => m + h.Y)).Concat(v.Compartments.Select(r => m + r.Floor)).Distinct().Order()];
         _hatches = [.. v.Hatches.Select(h => (X: m + h.X, Y: m + h.Y)).OrderBy(h => h.Y).ThenBy(h => h.X)];
+        _wells = [.. _hatches.Select(h => WellFloor(v, h.X - m, h.Y - m) + m)];
         var door = Shipyard.WayIn(built);
         _wayIn = new Box(m + door.X, m + door.Y, m + door.X + Doorways.Thick - 1, m + door.Y + Vessels.Open - 1);
         _doors = [.. v.Doors.Where(d => d != door).Select(d => (X: m + d.X, Y: m + d.Y)).OrderBy(d => d.Y).ThenBy(d => d.X)];
+    }
+
+    /// <summary>
+    /// The floor row, in <paramref name="v"/>'s frame, the well under its hatch at (<paramref name="x"/>, <paramref name="y"/>) rises from:
+    /// that of the room its ladder's foot stands in (a wreck's sunk half lays its decks at other rows than <c>Decks</c>), else the row
+    /// under its foot; with no ladder, under the hatch.
+    /// </summary>
+    private static int WellFloor(Vessel v, int x, int y)
+    {
+        int foot = v.Shafts.FirstOrDefault(s => s.Column == x && s.Top == y + 1) is { } shaft ? shaft.Bottom : y + 1;
+        foreach (var r in v.Compartments)
+            if (x >= r.Left && x < r.Left + r.Width && foot >= r.Top && foot < r.Floor) return r.Floor;
+        return foot + 1;
     }
 
     /// <summary>The place in <see cref="Docks"/> of <paramref name="c"/>'s dock; null for one past them (a save of another build): no dock.</summary>
@@ -163,15 +182,58 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
-    /// A random cell of a random room of the vessel, in the world, from the world's numbers: its floor's open row, a column clear of its
-    /// side walls; null off a vessel world. Where a patrolling spider goes next.
+    /// Where a patrolling spider goes next: a cell of a room, its floor's open row; for a spot up a wall, its column beside the wall
+    /// (<paramref name="Wall"/> the wall's side, -1 left, 1 right; 0 for none) and <paramref name="Spot"/> the row its feet cling at.
     /// </summary>
-    internal (int X, int Y)? RoomCell()
+    internal readonly record struct Roamed(int X, int Y, int Wall = 0, int Spot = 0);
+
+    /// <summary>
+    /// <paramref name="c"/>'s next patrol goal, drawn from the world's numbers by <paramref name="p"/>: <c>UpAWall</c> in a hundred a spot
+    /// up a solid side wall of a room (<see cref="SideWalls"/>), its feet at a row drawn from a cell over its floor up to its head under the
+    /// ceiling; <c>OtherDeck</c> in a hundred a room on another deck than its feet's; else one on its own. With no such wall or room, any
+    /// room. A room's cell: its floor's open row, a column clear of its side walls. Null off a vessel world.
+    /// </summary>
+    internal Roamed? RoamTo(Creature c, Spec.Walker w, Spec.Prowl p)
     {
         if (_compartments.Length == 0) return null;
-        var r = _compartments[(int)Rand.Below((uint)_compartments.Length)];
+        int draw = (int)Rand.Below(100);
+        if (draw < p.UpAWall && SideWalls(w) is { Count: > 0 } walls)
+        {
+            var (room, side) = walls[(int)Rand.Below((uint)walls.Count)];
+            var b = _compartments[room];
+            int lowest = b.Bottom - 1, highest = b.Top + w.Height - 1;
+            return new(side < 0 ? b.Left : b.Right, b.Bottom, side, highest + (int)Rand.Below((uint)(lowest - highest + 1)));
+        }
+        bool other = draw >= p.UpAWall && draw < p.UpAWall + p.OtherDeck;
+        int level = Level(Down(c.Y - 1, Unit));
+        var rooms = new List<int>();
+        for (int i = 0; i < _compartments.Length; i++)
+            if ((Level(_compartments[i].Bottom) != level) == other) rooms.Add(i);
+        var r = _compartments[rooms.Count > 0 ? rooms[(int)Rand.Below((uint)rooms.Count)] : (int)Rand.Below((uint)_compartments.Length)];
         int inner = Math.Max(1, r.Right - r.Left - 1);
-        return (Math.Min(r.Right, r.Left + 1 + (int)Rand.Below((uint)inner)), r.Bottom);
+        return new(Math.Min(r.Right, r.Left + 1 + (int)Rand.Below((uint)inner)), r.Bottom);
+    }
+
+    /// <summary>
+    /// Every side wall of a room a body of <paramref name="w"/> may cling up, in the rooms' order, the left first: the column past the room's
+    /// side solid on every row of it (no doorway in it), the room tall enough for the body a cell over its floor. Read off the grid now.
+    /// </summary>
+    private List<(int Room, int Side)> SideWalls(Spec.Walker w)
+    {
+        var walls = new List<(int, int)>();
+        for (int i = 0; i < _compartments.Length; i++)
+        {
+            var b = _compartments[i];
+            if (b.Bottom - 1 < b.Top + w.Height - 1) continue;
+            foreach (int side in (int[])[-1, 1])
+            {
+                int column = side < 0 ? b.Left - 1 : b.Right + 1;
+                bool solid = true;
+                for (int row = b.Top; row <= b.Bottom && solid; row++) solid = Solid(column, row);
+                if (solid) walls.Add((i, side));
+            }
+        }
+        return walls;
     }
 
     /// <summary>
@@ -209,6 +271,22 @@ public sealed partial class CreaturesModule
         foreach (int f in _floors)
             if (up ? f < row : f >= row && found == null) found = f;
         return found;
+    }
+
+    /// <summary>
+    /// The way up from floor row <paramref name="floor"/>: of the hatches whose wells rise from it, the one whose middle is nearest
+    /// <paramref name="x"/> (thousandths), the first by row then column at a tie: its middle and its floor row; null for none. Not the next
+    /// floor up: a hall two decks tall has its well's ladder rise past one, and a vessel's sections may lay their decks at other rows.
+    /// </summary>
+    internal (int X, int Row)? WayUp(int floor, int x)
+    {
+        (int X, int Row)? best = null;
+        for (int i = 0; i < _hatches.Length; i++)
+        {
+            int middle = (_hatches[i].X + 1) * Unit;
+            if (_wells[i] == floor && (best is not { } b || Math.Abs(middle - x) < Math.Abs(b.X - x))) best = (middle, _hatches[i].Y);
+        }
+        return best;
     }
 
     /// <summary>
