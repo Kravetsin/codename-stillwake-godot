@@ -484,6 +484,28 @@ public class SpiderAboardTests
         Assert.True(a.RunTill(() => a.Level(spider.Y / U - 1) == a.Level(room.Floor - 1) && a.Grounded(spider), 900), $"at {spider.X},{spider.Y} {spider.Posture}");
     }
 
+    /// <summary>Climbing its well after its hero up a deck, a floor laid across the well over its head (a wreck's sunk deck): it lets go.</summary>
+    [Fact]
+    public void UnderAFloorAcrossItsWellItLetsGo()
+    {
+        var a = new Aboard();
+        var spider = a.Spiders.MaxBy(s => s.Y)!;
+        var room = a.Room(spider);
+        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1);
+        var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Where(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1).Single();
+        a.W.Do(new SetDoor(a.Cell(hatch.X, hatch.Y), true));
+        a.Hero(hatch.X + 6, Body(hatch.Y));
+        Assert.True(a.RunTill(() => CreaturesModule.Holds(spider) == WalkerBody.Well && spider.Y > (hatch.Y + Spec.Spider.Body.Height + 3) * U, 900),
+            $"never low in the well: at {spider.X},{spider.Y} {spider.Posture}");
+        int plate = (spider.Y - Spec.Spider.Body.Height * U) / U - 2;
+        foreach (int x in new[] { hatch.X, hatch.X + 1 })
+        {
+            a.V.Grid.Clear(a.Cell(x, plate), "structure");
+            a.V.Grid.Place(a.Cell(x, plate), Grid.Placement.Wall(Content.Vessels.Hull));
+        }
+        Assert.True(a.RunTill(() => CreaturesModule.Holds(spider) != WalkerBody.Well, 40), $"still in the well at {spider.X},{spider.Y} under row {plate}");
+    }
+
     [Fact]
     public void PryingADoorBesideAnOpenHatchItStandsOnTheHatchNotDownTheWell()
     {

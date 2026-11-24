@@ -397,7 +397,7 @@ internal sealed class ProwlDrive : DriveRule
         }
         if (c.Y <= row * Unit)
         {
-            if (quarry is { } q && m.Level(q.Y) < m.Level(Down(c.Y - 1, Unit)) && m.HatchOver(c.X, c.Y) is int next)
+            if (quarry is { } q && m.Level(q.Y) < m.Level(Down(c.Y - 1, Unit)) && m.WellOver(c.X, row) is int next)
             {
                 Climb(c, pace.Up, next);
                 return;
@@ -423,6 +423,12 @@ internal sealed class ProwlDrive : DriveRule
             return;
         }
         Forget(c);
+        // Under something solid that is no hatch to pry (a wreck's sunk floor across the well): it lets go.
+        if (m.Overlaps(w, c.X, c.Y - 1))
+        {
+            LetGo(c, 0);
+            return;
+        }
         c.VY = quarry == null ? 0 : -Math.Min(pace.Up, c.Y - row * Unit);
     }
 

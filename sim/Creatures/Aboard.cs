@@ -314,13 +314,15 @@ public sealed partial class CreaturesModule
         return false;
     }
 
-    /// <summary>The floor row of the hatch right over a body whose middle is <paramref name="x"/> (thousandths), nearest above its feet <paramref name="y"/>; null for none.</summary>
-    internal int? HatchOver(int x, int y)
+    /// <summary>
+    /// The floor row of the hatch right over a body whose middle is <paramref name="x"/> (thousandths) whose well rises from floor row
+    /// <paramref name="floor"/>: the way on up from a hatch just climbed through; null for none, a floor between them.
+    /// </summary>
+    internal int? WellOver(int x, int floor)
     {
-        int? row = null;
-        foreach (var h in _hatches)
-            if ((h.X + 1) * Unit == x && h.Y * Unit < y && (row == null || h.Y > row)) row = h.Y;
-        return row;
+        for (int i = 0; i < _hatches.Length; i++)
+            if ((_hatches[i].X + 1) * Unit == x && _wells[i] == floor) return _hatches[i].Y;
+        return null;
     }
 
     /// <summary>Whether a body of <paramref name="s"/> with its feet flush on row <paramref name="y"/>'s top (thousandths) has an open hatch of that row under it.</summary>

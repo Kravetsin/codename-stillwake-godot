@@ -345,6 +345,54 @@ public class SpiderPatrolTests
     }
 
     /// <summary>
+    /// A long patrol aboard a wrecked tanker, its hero passed out: no spider hangs still in a hatch's well longer than a pry, as one did
+    /// climbed through a hatch and on up the well of the next hatch over it, a floor between them.
+    /// </summary>
+    [Fact]
+    public void NoSpiderHangsInAWellUnderAFloor()
+    {
+        var (w, v, _) = Boarded("tanker", wrecked: true, 0);
+        var still = new Dictionary<int, (int Y, int Ticks)>();
+        for (int t = 0; t < 3000; t++)
+        {
+            v.Crew.HeroOf(0)!.Out = 1000;
+            w.Run();
+            foreach (var s in v.Creatures.Creatures.Where(c => c.Species == Spec.Spider.Id))
+            {
+                var was = still.GetValueOrDefault(s.Id);
+                still[s.Id] = CreaturesModule.Holds(s) == WalkerBody.Well && was.Y == s.Y ? (s.Y, was.Ticks + 1) : (s.Y, 0);
+                Assert.True(still[s.Id].Ticks <= Prowl.Pry + 20, $"spider {s.Id} still in a well at {s.X},{s.Y} at tick {t}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Aboard wrecks and intact vessels of every class: the well a spider takes up from a floor (<see cref="CreaturesModule.WayUp"/>) is
+    /// open from that floor to its hatch, never a floor across it.
+    /// </summary>
+    [Fact]
+    public void AWayUpIsAWellOpenFromItsFloorToItsHatch()
+    {
+        foreach (var cls in Content.Vessels.Classes.Select(c => c.Id))
+            foreach (bool wrecked in new[] { true, false })
+                for (uint index = 0; index < 6; index++)
+                {
+                    var (_, v, built) = Boarded(cls, wrecked, index);
+                    var vessel = built.Vessel;
+                    var floors = vessel.Compartments.Select(r => M + r.Floor).Concat(vessel.Decks.Select(d => M + d.Floor)).Distinct().ToList();
+                    foreach (int floor in floors)
+                        foreach (var h in vessel.Hatches)
+                        {
+                            if (v.Creatures.WayUp(floor, (M + h.X + 1) * U) is not { } up) continue;
+                            int x = up.X / U - 1;
+                            for (int row = up.Row + 1; row < floor; row++)
+                                Assert.False(v.Grid.Solid(row * v.Grid.Width + x) || v.Grid.Solid(row * v.Grid.Width + x + 1),
+                                    $"{cls} {(wrecked ? "wreck" : "intact")} {index}: the well from {floor} up to the hatch at {x},{up.Row} shut at row {row}");
+                        }
+                }
+    }
+
+    /// <summary>
     /// Two worlds aboard a wrecked liner, its hero passed out in both, alike every tick of a long patrol up walls and wells and down hatches.
     /// </summary>
     [Fact]
