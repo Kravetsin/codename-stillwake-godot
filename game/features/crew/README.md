@@ -158,7 +158,7 @@ Client-authoritative (0002).
 - **Rammed** (0103), **arced** (`Rams.Hits`): `HitBy`/`Bolted` sent, thrown, keys masked; none spared.
 - **Surfaces** (0076): `Ship.Of` rules, gravity its `Fall`; fog glides a seam (fog-edges).
 - **Camera** leads, eases, snaps; **markers** (0061): home, body, friends, deliveries, catchers, pings; **hurts** (hurts-are-shown).
-- **Water** (liquids): swum `SwimDepth` deep, left by Space, shore; wading splash
+- **Water** (liquids): swum `SwimDepth` deep, left by Space, shore; wades
 - **Swim, haul, jetpack** (0047, tether-haul, jet-cruise): afloat through floors, tied; Shift hauls along bends
   (`Wraps`); jetpack unties; Shift vents unless `Hero.Cruising`.
 - **Canister** (0047, 0081): RMB, R `Refill`; V `SuitMode` (regen-suit); O₂ sign grey cooling (canister-mark).
@@ -193,7 +193,7 @@ Client-authoritative (0002).
 - **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
   (light-drone, drone-threads, drone-lessons): E on the core pairs (drone-companion, drone-meeting); F next form, held a wheel
   (thread-icons); window corners, flurry (drone-windows); in its player's colour (drone-colour); springs after it,
-  perches, shines in open air (drone-spring); flown one way, tugs (drone-tow); warns (drone-motion), feels
+  perches, shines in open air, hidden from the head (drone-spring); flown one way, tugs (drone-tow); warns (drone-motion), feels
   (drone-thoughts); a lesson held in a vision (form-vision).
 - **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
   climbed, short jumps mantle.
