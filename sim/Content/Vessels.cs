@@ -595,6 +595,36 @@ public static class Vessels
         public const int BridgeFrom = 8;
     }
 
+    /// <summary>
+    /// Guards aboard an intact vessel (derelict-guards): a spider asleep in a capsule on a small room's back wall, a robot in a stand on
+    /// a big room's floor. One of a kind for every <see cref="Rule.Per"/> rooms of its size, rounded up, each in a room of its own,
+    /// never the arrival room, nor one where its dock's box fits nowhere clear of every fitting, ladder and shelf.
+    /// </summary>
+    public static class Aboard
+    {
+        /// <summary>
+        /// One kind of guard: its <paramref name="Species"/> (<c>Creatures</c>), one for every <paramref name="Per"/> rooms of its size,
+        /// <paramref name="Big"/> rooms more than a deck tall, else one deck tall; its dock's box, <paramref name="Width"/> columns by
+        /// <paramref name="Height"/> rows, standing on its room's floor, the guard asleep on the floor in the middle of it; where no stretch
+        /// of its room is clear of furniture, what it does there (<paramref name="Crowded"/>).
+        /// </summary>
+        public sealed record Rule(string Species, int Per, bool Big, int Width, int Height, Crowded Crowded);
+
+        /// <summary>A dock with no clear stretch in its room: it takes the furniture's place, what its box covers not laid; or it stands over it.</summary>
+        public enum Crowded { Replace, Over }
+
+        /// <summary>
+        /// A spider's capsule G1 «Зрачок — впадина» for every five small rooms, 4¾ cells across, its bottom just above the floor; a
+        /// robot's stand S1 «Люлька» for every three big rooms, some 6⅝ cells across and 8 tall. Where its room has no clear stretch, a
+        /// capsule takes the furniture's place and a stand stands over it, drawn before it (the user's word, both).
+        /// </summary>
+        public static readonly Rule Capsule = new("spider", Per: 5, Big: false, Width: 5, Height: 5, Crowded.Replace),
+            Stand = new("escort", Per: 3, Big: true, Width: 7, Height: 8, Crowded.Over);
+
+        /// <summary>In the order a vessel's docks are listed: the spiders' capsules first.</summary>
+        public static readonly IReadOnlyList<Rule> Rules = [Capsule, Stand];
+    }
+
     /// <summary>How the big classes' rooms are furnished by code (big-vessels, the mockup's furnish): sizes in cells, odds in whole percent.</summary>
     public static class Fits
     {

@@ -38,9 +38,8 @@ internal sealed class PounceMove : MoveRule
             m.EndAct(c, spec, 0, hop: false);
             return;
         }
-        // From its middle to the middle of the hero's reported cell; a walker's to the hero's own, so a level flight clears the floor.
-        int aimY = spec.Body is Spec.Walker ? (hy + 1) * CreaturesModule.Unit - Content.Hero.Height / 2 : m.Middle(hy);
-        int dx = m.Middle(hx) - c.X, dy = aimY - (c.Y - spec.Body.Height * CreaturesModule.Unit / 2);
+        // From its middle to the middle of the hero's reported cell, the one its body's middle is in (Hero.BodyCell).
+        int dx = m.Middle(hx) - c.X, dy = m.Middle(hy) - (c.Y - spec.Body.Height * CreaturesModule.Unit / 2);
         int far = Math.Max(Math.Abs(dx), Math.Abs(dy));
         if (far == 0)
         {

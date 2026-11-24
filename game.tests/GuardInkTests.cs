@@ -47,6 +47,50 @@ public class GuardInkTests
         EveryPictureIsDrawnAtFourTimes(CreatureArt.InkIstukan.Id, CreatureArt.InkIstukan.Parts, rig.Slots);
     }
 
+    private static readonly EscortRig.Pose EscortStands = new(0, 0, 0, null, 0, 0, 0, 0, 0.3, 1);
+
+    [Fact]
+    public void TheEscortsAndItsStandsPicturesAreAllDrawn()
+    {
+        var rig = new EscortRig();
+        rig.Place(EscortStands);
+        EveryPictureIsDrawnAtFourTimes(CreatureArt.InkEscort.Id, CreatureArt.InkEscort.Parts, rig.Slots);
+        Assert.Equal(CreatureArt.InkEscort.Parts.Count, rig.Slots.Select(s => s.Part).Distinct().Count());
+        EveryPictureIsDrawnAtFourTimes(CreatureArt.InkStand.Id, CreatureArt.InkStand.Parts, []);
+    }
+
+    [Fact]
+    public void TheEscortsGunTurnsToItsAimUpWithinItsLimitAndKicksBackAShotItsClawReachesOut()
+    {
+        var rig = new EscortRig();
+        var rest = rig.Place(EscortStands);
+        var level = rig.Place(EscortStands with { Aim = (200, -39), AimMix = 1 });
+        var up = rig.Place(EscortStands with { Aim = (10, -200), AimMix = 1 });
+        Assert.InRange(level.GunTurn, -0.05, 0.05);
+        Assert.Equal(-1.25, up.GunTurn, 3);
+        Assert.True(up.Muzzle.Y < rest.Muzzle.Y - 10, "aimed up, its muzzle rises");
+        var kicked = rig.Place(EscortStands with { Recoil = 1 });
+        Assert.True(kicked.Muzzle.X < rest.Muzzle.X - 2, "a shot kicks it back");
+        double Reach(EscortRig.Pose p)
+        {
+            rig.Place(p);
+            return rig.Slots.Single(s => s.Part == "pincer").X;
+        }
+        Assert.True(Reach(EscortStands with { Claw = 1 }) > Reach(EscortStands) + 8, "its claw reaches out");
+        Assert.True(Reach(EscortStands with { Fold = 1 }) < Reach(EscortStands), "stowed, its claw is drawn in");
+    }
+
+    [Fact]
+    public void TheEscortStandsOnItsFeetAndItsLampShinesAsLit()
+    {
+        var rig = new EscortRig();
+        rig.Place(EscortStands);
+        Assert.All(rig.Slots.Where(s => s.Part.StartsWith("foot")), f => Assert.InRange(f.Y, -3.2, -2.5));
+        Assert.Equal(1, rig.Slots.Single(s => s.Part == "lamp").Alpha);
+        rig.Place(EscortStands with { Lamp = 0 });
+        Assert.Equal(0, rig.Slots.Single(s => s.Part == "lamp").Alpha);
+    }
+
     [Fact]
     public void StandingTheTicksFeetAreOnTheGroundItsKneesOverItsBack()
     {

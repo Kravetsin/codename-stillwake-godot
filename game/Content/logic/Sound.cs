@@ -567,10 +567,11 @@ public static class Sound
     /// charging up, the user's pick, 2026-10-27-sentry-arc), the click as it lets go, the clunk as it clamps on, a harpoon line it
     /// cuts snapping, its burner (the jetpack's loop, while it flies), a blow on it (a wreck's chop, as metal), its death (a
     /// power-down over a heavy clatter). All on the Suit bus, the hero's, as a wreck's are: it lives out in space, where the World
-    /// bus is silent.
+    /// bus is silent. A walking one's <see cref="TickCues.Step"/> and <see cref="TickCues.Pry"/> are on World, aboard; none for the sentry.
     /// </summary>
-    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue? Thrust, Cue Hit, Cue Death);
+    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue? Thrust, Cue Hit, Cue Death, Cue? Step = null, Cue? Pry = null);
 
+    /// <summary>The sentry's cues; the spider keeps them (derelict-guards).</summary>
     private static readonly TickCues SentryCues = new(
         Alert: new(Shots("creatures/sentry-alert", 1), -1.5f, Heard: ToolReach),
         WindUp: new(Shots("creatures/sentry-windup", 1), -1.5f, Heard: ToolReach),
@@ -582,13 +583,76 @@ public static class Sound
         Hit: Chop,
         Death: new(Shots("creatures/sentry-death", 1), -1.5f, Heard: BreakReach));
 
+    /// <summary>
+    /// The spider's (derelict-guards, the user's picks on the guards' page): the sentry's, and a robot's footsteps, one of four cut
+    /// from one recording, at its feet as it runs or climbs (<see cref="SpiderStepEvery"/>); a metal creak as it pries a door or hatch.
+    /// </summary>
+    private static readonly TickCues SpiderCues = SentryCues with
+    {
+        Step = new(Shots("creatures/spider-step", 4), -9, Pitch: 0.1f, Heard: new(8, 36)),
+        Pry = new(Shots("creatures/spider-pry", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach),
+    };
+
+    /// <summary>
+    /// How far a spider runs or climbs between two of its steps heard, in pixels, and the least time between them in seconds: its
+    /// four legs fall far faster than an ear can follow.
+    /// </summary>
+    public const double SpiderStepEvery = 12, SpiderStepLeastS = 0.09;
+
     /// <summary>Each species drawn as a tick or a breaker (<c>CreatureLooks.Ticks</c>, <c>Breakers</c>): its cues, levelled alike on the audition page.</summary>
     public static readonly IReadOnlyDictionary<string, TickCues> Ticks = new Dictionary<string, TickCues>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = SentryCues,
         // The sentry's till the breaker's audition, its one shots only: eight loops at once would drown the rest.
         [Stillwake.Content.Creatures.Breaker.Id] = SentryCues with { Thrust = null },
+        [Stillwake.Content.Creatures.Spider.Id] = SpiderCues,
     };
+
+    /// <summary>
+    /// A vessel's guards' docks waking (derelict-guards), the user's picks on the guards' page, each where its part of the dock is: a
+    /// capsule's hazard alarm, a two-tone whoop as its lamp starts flashing (<see cref="CapsuleAlarm"/>), its iris a sci-fi door sliding
+    /// open (<see cref="CapsuleIris"/>); a stand's clamp swinging up, an air brake (<see cref="StandClamp"/>), its drum lowering the robot,
+    /// a hoist's chains (<see cref="StandWinch"/>), its yoke letting go, a release of air (<see cref="StandYoke"/>). On the World bus.
+    /// </summary>
+    public static readonly Cue CapsuleAlarm = new(Shots("creatures/capsule-alarm", 1), -1.5f, Pitch: 0, Heard: BreakReach);
+    public static readonly Cue CapsuleIris = new(Shots("creatures/capsule-iris", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach);
+    public static readonly Cue StandClamp = new(Shots("creatures/stand-clamp", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach);
+    public static readonly Cue StandWinch = new(Shots("creatures/stand-winch", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach);
+    public static readonly Cue StandYoke = new(Shots("creatures/stand-yoke", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach);
+
+    /// <summary>
+    /// An escort's sounds (derelict-guards, the user's picks on the guards' page): a machine powering up as its lamp lights in its stand
+    /// (<see cref="EscortCues.Wake"/>); each step a big robot's, at its feet; a servo as it turns round or swings its gun to aim; metal
+    /// bending as it pries a door; its gauss a rail gun charging over its wind-up, a shipboard rail gun's shot, a ricochet where it stops
+    /// (one of three); a metal pipe's whoosh as it dashes and swings its claw; a blow on it a metal boom; killed, a machine shutting
+    /// down. Its claw on a hero is the sentry's punch (<see cref="RamHits"/>). On the World bus, as the Istukan's.
+    /// </summary>
+    public sealed record EscortCues(Cue Wake, Cue Step, Cue Servo, Cue Pry, Cue Charge, Cue Shot, Cue Stop, Cue Lunge, Cue Hit, Cue Killed);
+
+    /// <summary>Each species drawn as the escort (<c>CreatureLooks.Escorts</c>): its cues, levelled as the sentry's.</summary>
+    public static readonly IReadOnlyDictionary<string, EscortCues> Escorts = new Dictionary<string, EscortCues>
+    {
+        [Stillwake.Content.Creatures.Escort.Id] = new(
+            Wake: new(Shots("creatures/robot-wake", 1), -1.5f, Pitch: 0.03f, Heard: ToolReach),
+            Step: new(Shots("creatures/robot-step", 1), -6, Pitch: 0.08f, Heard: new(10, 44)),
+            Servo: new(Shots("creatures/robot-servo", 1), -4, Pitch: 0.08f, Heard: ToolReach),
+            Pry: new(Shots("creatures/robot-pry", 1), -1.5f, Pitch: 0.04f, Heard: ToolReach),
+            Charge: new(Shots("creatures/gauss-charge", 1), -1.5f, Pitch: 0.02f, Heard: ToolReach),
+            Shot: new(Shots("creatures/gauss-shot", 1), -1.5f, Pitch: 0.04f, Heard: BreakReach),
+            Stop: new(Shots("creatures/gauss-hit", 3), -1.5f, Pitch: 0.08f, Heard: ToolReach),
+            Lunge: new(Shots("creatures/robot-lunge", 1), -1.5f, Pitch: 0.06f, Heard: ToolReach),
+            Hit: new(Shots("creatures/robot-hit", 1), -1.5f, Pitch: 0.06f, Heard: ToolReach),
+            Killed: new(Shots("creatures/robot-death", 1), -1.5f, Pitch: 0.03f, Heard: BreakReach)),
+    };
+
+    /// <summary>The least time between two of an escort's servos heard, in seconds: turning round it may flip back and forth.</summary>
+    public const double EscortServoLeastS = 0.6;
+
+    /// <summary>
+    /// How far an escort's stride turns between two of its steps heard, in radians of its walk's phase (a foot down each half turn), and
+    /// the least time between them in seconds.
+    /// </summary>
+    public const double EscortStepEvery = System.Math.PI, EscortStepLeastS = 0.12;
 
     /// <summary>
     /// An Istukan's sounds (the warden, its audition page's picks): waking, taking the hero in, its crouch's hydraulics, its leap,
@@ -597,30 +661,36 @@ public static class Sound
     /// </summary>
     public sealed record IstukanCues(Cue Wake, Cue Alert, Cue WindUp, Cue Pounce, Cue Land, Cue Hit, Cue Killed, Cue ShutDown);
 
+    /// <summary>The warden's cues.</summary>
+    private static readonly IstukanCues WardenCues = new(
+        Wake: new(Shots("creatures/warden-wake", 1), -1.5f, Heard: ToolReach),
+        Alert: new(Shots("creatures/warden-alert", 1), -1.5f, Heard: ToolReach),
+        WindUp: new(Shots("creatures/warden-windup", 1), -1.5f, Heard: ToolReach),
+        Pounce: new(Shots("creatures/warden-pounce", 1), -1.5f, Heard: ToolReach),
+        Land: LandAlloy,
+        Hit: Ground["alloy"].Hit,
+        Killed: new(Shots("creatures/warden-death", 1), -1.5f, Heard: BreakReach),
+        ShutDown: new(Shots("creatures/warden-shutdown", 1), -1.5f, Heard: BreakReach));
+
     /// <summary>Each species drawn as the Istukan (<c>CreatureLooks.Istukans</c>): its cues, levelled as the sentry's.</summary>
     public static readonly IReadOnlyDictionary<string, IstukanCues> Istukans = new Dictionary<string, IstukanCues>
     {
-        [Stillwake.Content.Creatures.Warden.Id] = new(
-            Wake: new(Shots("creatures/warden-wake", 1), -1.5f, Heard: ToolReach),
-            Alert: new(Shots("creatures/warden-alert", 1), -1.5f, Heard: ToolReach),
-            WindUp: new(Shots("creatures/warden-windup", 1), -1.5f, Heard: ToolReach),
-            Pounce: new(Shots("creatures/warden-pounce", 1), -1.5f, Heard: ToolReach),
-            Land: LandAlloy,
-            Hit: Ground["alloy"].Hit,
-            Killed: new(Shots("creatures/warden-death", 1), -1.5f, Heard: BreakReach),
-            ShutDown: new(Shots("creatures/warden-shutdown", 1), -1.5f, Heard: BreakReach)),
+        [Stillwake.Content.Creatures.Warden.Id] = WardenCues,
     };
 
     private static readonly Cue SentryPunch = new(Shots("creatures/sentry-punch", 1), -1.5f, Heard: ToolReach);
 
     /// <summary>
     /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch, and
-    /// the warden's, a boxer's. This player's own on Suit, a friend's on World.
+    /// the warden's, a boxer's; a vessel's guards, the spider's pounce and the escort's claw, land the sentry's (derelict-guards).
+    /// This player's own on Suit, a friend's on World.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = SentryPunch,
         [Stillwake.Content.Creatures.Breaker.Id] = SentryPunch,
+        [Stillwake.Content.Creatures.Spider.Id] = SentryPunch,
+        [Stillwake.Content.Creatures.Escort.Id] = SentryPunch,
         [Stillwake.Content.Creatures.Warden.Id] = new(Shots("creatures/warden-punch", 1), -1.5f, Heard: ToolReach),
     };
 
@@ -809,7 +879,9 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, .. ShipTracks, Step, Land, Jump, Alarm, CatcherBeep, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ChargeThrow, ChargeBurst, ArcStruck, ArcHit, CatcherAim, CatcherGather, CatcherBlink, CatcherLaunch, CatcherLaser, CatcherLock, MissileFlight, CapbackHiss, CapbackSplat, ShellClink, Hurt, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, CrusherRun, GalleyBoil, GalleyDone, Eat, Retch, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }).Distinct(), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values.Distinct(), .. Pod];
+        LavaBubble, LavaBurn, StormWind, StormRain, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death, t.Step, t.Pry }.OfType<Cue>()).Distinct(),
+        CapsuleAlarm, CapsuleIris, StandClamp, StandWinch, StandYoke,
+        .. Escorts.Values.SelectMany(e => new[] { e.Wake, e.Step, e.Servo, e.Pry, e.Charge, e.Shot, e.Stop, e.Lunge, e.Hit, e.Killed }), .. Istukans.Values.Distinct().SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values.Distinct(), .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

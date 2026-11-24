@@ -18,12 +18,16 @@ public sealed class TickMotion(Func<double> random)
     /// the way to the hero nearest it from its middle (none for no hero); cutting a harpoon line on its wreck,
     /// <paramref name="CutDone"/> of the way through it, the line going off toward <paramref name="Line"/> from its middle; aiming an
     /// arc (<paramref name="Aiming"/>, 2026-10-27-sentry-arc), its eye flickering the arc's cyan, held bright once its aim is taken
-    /// (<paramref name="Locked"/>); a blow landed on it since the last frame (<paramref name="Blown"/>).
+    /// (<paramref name="Locked"/>); a blow landed on it since the last frame (<paramref name="Blown"/>). A vessel's spider
+    /// (derelict-guards) is a <paramref name="Walker"/>: clamped is on its feet, its burner lit only pouncing, upright in the air;
+    /// <paramref name="Folded"/> in its capsule (1) or unfolding from it; holding the wall on its left (-1) or right (1), or the hatch
+    /// well (2), turned nose up against it (<paramref name="Wall"/>).
     /// </summary>
     public readonly record struct Seen(
         bool Clamped, bool Alerted, bool WindingUp, double WindUpS, bool Pouncing, int FlightLeft,
         double Vx, double Vy, double Crawl, (double X, double Y)? Hero, bool Cutting = false, double CutDone = 0,
-        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false, bool Blown = false);
+        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false, bool Blown = false, bool Walker = false, double Folded = 0,
+        int Wall = 0);
 
     /// <summary>Its moments, seen and heard once each as it comes.</summary>
     [Flags]
@@ -132,7 +136,12 @@ public sealed class TickMotion(Func<double> random)
 
         // Winding up afloat it noses at the hero, however it still drifts.
         (double X, double Y)? at = flying && s.WindingUp ? s.Hero : null;
-        if (at is { } aimed && Math.Abs(aimed.X) > 2) Face = Math.Sign(aimed.X);
+        // Holding a wall it faces it; in the well it keeps its way.
+        if (s.Wall != 0)
+        {
+            if (s.Wall is 1 or -1) Face = s.Wall;
+        }
+        else if (at is { } aimed && Math.Abs(aimed.X) > 2) Face = Math.Sign(aimed.X);
         else if (flying && at == null && Math.Abs(s.Vx) > 1) Face = Math.Sign(s.Vx);
         else if (!flying && sawing)
         {
@@ -150,9 +159,10 @@ public sealed class TickMotion(Func<double> random)
         else if (s.Pouncing && _sinceLaunch < LaunchS) crouch = 1 - _sinceLaunch / LaunchS;
         else if (s.Clamped && _sinceClamp < 1) crouch = 0.7 * Math.Exp(-_sinceClamp * 7) * Math.Cos(_sinceClamp * 16);
         else if (s.Alerted && _sinceAlert > 0.22 && _sinceAlert < 0.5) crouch = -0.5 * Math.Sin((_sinceAlert - 0.22) / 0.28 * Math.PI);
+        if (s.Folded > 0) crouch = Math.Max(crouch, s.Folded);
         _crouch += (crouch - _crouch) * Follow(dt, 0.02);
 
-        double fly = flying ? (s.Pouncing && _sinceLaunch < LaunchS ? _sinceLaunch / LaunchS : 1) : 0;
+        double fly = Math.Max(s.Folded, flying ? (s.Pouncing && _sinceLaunch < LaunchS ? _sinceLaunch / LaunchS : 1) : 0);
         _fly += (fly - _fly) * Follow(dt, flying ? 0.02 : 0.04);
         // The sim's crawl is slow, a few pixels a second: its legs step in full at it, a stride every few pixels.
         _walk += ((flying ? 0 : Math.Clamp(Math.Abs(s.Crawl) / 4, 0, 1)) - _walk) * Follow(dt, 0.1);
@@ -160,7 +170,10 @@ public sealed class TickMotion(Func<double> random)
         Mags = flying ? 0 : Math.Clamp(_sinceClamp / 0.05, 0, 1);
 
         double angle = 0;
-        if (at is { } noses) angle = Math.Atan2(Face * noses.Y, Math.Max(1, Face * noses.X));
+        // On a wall, nose up; a walker in the air but pouncing stays upright.
+        if (s.Wall != 0) angle = -Face * Math.PI / 2;
+        else if (flying && s.Walker && !s.Pouncing) angle = 0;
+        else if (at is { } noses) angle = Math.Atan2(Face * noses.Y, Math.Max(1, Face * noses.X));
         else if (flying && speed > 1) angle = Math.Atan2(Face * s.Vy, Face * s.Vx);
         else if (flying) angle = _angle;
         // Reared at the line, its head up; as the line snaps, thrown back a moment.
@@ -170,7 +183,7 @@ public sealed class TickMotion(Func<double> random)
 
         double thrust = 0;
         if (s.Pouncing) thrust = _sinceLaunch < LaunchS ? _sinceLaunch / LaunchS * 0.6 : 1;
-        else if (flying && speed > 1) thrust = 0.75;
+        else if (flying && speed > 1 && !s.Walker) thrust = 0.75;
         _thrust += (thrust - _thrust) * Follow(dt, 0.03);
         Plume = speed > 1 ? (-s.Vx / speed, -s.Vy / speed) : (-Face * Math.Cos(_angle), -Face * Math.Sin(_angle));
 
@@ -193,6 +206,8 @@ public sealed class TickMotion(Func<double> random)
             : flying ? 1.1
             : s.Alerted ? 1.15 + 0.25 * Math.Exp(-_sinceAlert * 6)
             : 0.9 + 0.1 * Math.Sin(_clock * 3);
+        // Folded asleep its lamp is low, lit as it unfolds.
+        amp *= 1 - 0.7 * s.Folded;
         double look = flying || sawing ? 1
             : (s.Alerted || s.WindingUp || _sinceHit < 1) && s.Hero is { } h ? Math.Sign(h.X) * Face
             : _walk > 0.2 ? 0.8

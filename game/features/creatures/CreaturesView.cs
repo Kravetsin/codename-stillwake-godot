@@ -95,10 +95,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         AddChild(_breakers);
         AddChild(_ticks);
         AddChild(_istukans);
+        AddChild(_escorts);
         AddChild(_lurkers);
         AddChild(_bursts);
         _ticks.Bursts = _bursts;
         _istukans.Bursts = _bursts;
+        _escorts.Bursts = _bursts;
         _lurkers.Bursts = _bursts;
     }
 
@@ -120,6 +122,10 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     /// <summary>The creatures drawn as the Istukan (<see cref="CreatureLooks.Istukans"/>): posed and drawn anew as the tick is.</summary>
     private readonly IstukanBodies _istukans = new();
+
+    /// <summary>The creatures drawn as the escort (<see cref="CreatureLooks.Escorts"/>), asleep in their stands too.</summary>
+    private readonly EscortBodies _escorts = new();
+    private readonly List<Creature> _escorted = [];
 
     private readonly List<Creature> _posted = [];
 
@@ -152,9 +158,10 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _nests.Reset();
             _breakers.Reset();
             _istukans.Reset();
+            _escorts.Reset();
             _lurkers.Reset();
             _of = creatures;
-            if (rules is Spec.PlanetType { Creatures.Count: > 0 } || rules.Nests.Count > 0) CreatureParts.Warm();
+            if (rules is Spec.PlanetType { Creatures.Count: > 0 } || rules.Nests.Count > 0 || creatures.Docks.Count > 0) CreatureParts.Warm();
         }
         _seed = seed;
         _bursts.On(grid, rooms, rules);
@@ -169,12 +176,21 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _ticked.Clear();
         _packed.Clear();
         _posted.Clear();
+        _escorted.Clear();
         _lurked.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
             _out.Add(c.Id);
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
+            // A spider asleep in its capsule is hidden in it (DocksView, derelict-guards); waking, the tick shows it unfolding there. An
+            // escort hangs in its stand in sight.
+            if (CreatureLooks.Escorts.Contains(Spec.Creatures.Get(c.Species).Look))
+            {
+                _escorted.Add(c);
+                continue;
+            }
+            if (c.Posture == Posture.Docked) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
             else if (CreatureLooks.Ticks.ContainsKey(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
             else if (CreatureLooks.Breakers.ContainsKey(Spec.Creatures.Get(c.Species).Look)) _packed.Add(c);
@@ -231,6 +247,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _breakers.Frame(creatures, _packed, _nests, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _istukans.Frame(creatures, built, grid, _posted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
+        _escorts.Frame(creatures, grid.Width, _escorted, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         _lurkers.Frame(creatures, _lurked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }
@@ -282,7 +299,9 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (_flying.Contains(strike)) continue;
             if (!_shown.TryGetValue(strike.Creature, out var one))
             {
-                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_breakers.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)) _lurkers.OwnStrike(strike.Creature);
+                if (!_ticks.OwnStrike(strike.Creature, strike.Tool) && !_breakers.OwnStrike(strike.Creature, strike.Tool) && !_istukans.OwnStrike(strike.Creature, strike.Tool)
+                    && !_escorts.OwnStrike(strike.Creature, strike.Tool))
+                    _lurkers.OwnStrike(strike.Creature);
                 continue;
             }
             one.OwnAt = _clockMs;

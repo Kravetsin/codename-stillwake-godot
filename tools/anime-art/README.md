@@ -41,7 +41,8 @@ finish is `wash.js`, one for every subject.
 | `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_`, `detail_`, `top_` of glass, mica, hide, alloy, bedrock, lava, plaster; `door_*_0`, links `room` leaves |
 | `caves` | stone, ice, copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss*_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, numbers in `CreatureInk.cs`: traced rigs |
-| `tick`, `warden`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
+| `tick`, `warden`, `escort`, `cavehostiles`, `lurkerattacks` | `creatures/ink<Kind>/*`, `<Rig>Ink.cs`: guards, lurkers, a capback's gas |
+| `guards` | `guard_capsule`, `_open`, `_iris_<n>`, `guard_stand`; `creatures/inkStand/*`, `StandInk.cs`; `GuardKit` |
 | `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one of three plants a tuft (`FloraLooks.Drawn`) |
 | `flora` | `planet/acacia_*`, `_glow`: pods where the logical glow picture has them, as the game lights there |
 | `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*`: dead thorn, boulders, hooded bells; light only in `_glow` |
@@ -78,7 +79,7 @@ A picked AI-made reference is traced for its **form**; the line, paint and water
   `{ keep, ... }` polygons with their own keys (`materials` added), each to `traced/<name>.<piece>.json`.
 - `node tools/anime-art/trace.js <name>` (ffmpeg) cuts it by its ink into beziers, `traced/<name>.json`, drawn by `traced.js`, never
   the reference.
-- `"raw": true`, held tools ([raw](../../docs/decisions/2026-11-14-raw-tool-pictures.md)): the trace cuts out the
+- `"raw": true`, held tools (raw-tool-pictures): the trace cuts out the
   reference's own paint, `traced/<name>.png`; `Traced.raw` inks round it, no water. Code draws what moves or lights. `over`: a part, an edited ref's pixels unlike `refs/<over>.png` in `clip`.
 - AI-made work ships: say so in Steam's AI disclosure.
 

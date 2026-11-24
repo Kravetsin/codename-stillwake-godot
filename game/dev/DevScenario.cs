@@ -56,6 +56,9 @@ public abstract class DevScenario
     /// <summary>The cell the hero starts on.</summary>
     public virtual Func<Registry, int>? Start => null;
 
+    /// <summary>The cell the hero stands on as it arrives on another surface; none, or null, where it lands.</summary>
+    public virtual Func<Registry, int?>? Arrive => null;
+
     /// <summary>
     /// Its nodes and hand scripts, made once Main has made everything else and the session runs; the order they are added in
     /// is their draw order.

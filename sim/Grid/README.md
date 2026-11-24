@@ -48,17 +48,18 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   doorway's group), rows from its column's top; any other structure its own cell.
 - `PlacementProblem(cell, placement)`: a machine with an `Exhaust` (the engine) also needs, in every row of its footprint, one
   wall or more left of it, then space up to its nozzle's tip or a cell past the wall: else `grid.noExhaust`
-  ([the-engine-through-the-hull](../../docs/decisions/2026-10-25-the-engine-through-the-hull.md)); one that `Catches` (a debris net)
+  (the-engine-through-the-hull); one that `Catches` (a debris net)
   needs a wall left of every row and every cell space with no back wall: else `grid.notOnHull`; `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
   client's own toggles in flight (0014).
 - **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
   `Clear(cell, layer)` (a whole machine), `SetDoorway(cell, open)` (a whole doorway as `SetDoor` sets it: Landing's
-  platforms). Only in commands or construction. Places' alone: `Lay`, `Place` with the zone not asked: a vessel
+  platforms; Creatures' guards, derelict-guards). Only in commands or construction, but a guard's pry, in Simulation: Rooms and
+  Atmosphere see that door a tick later. Places' alone: `Lay`, `Place` with the zone not asked: a vessel
   world's vessel written as it opens (vessel-worlds).
 - **Command:** `SetDoor(cell, open)` — sets the cell's whole doorway as its sender saw it should be
   (0071); already so, nothing changes. Refused `grid.noDoor`, and on a launch
   platform (Landing's); `grid.doorBusy` for `Doors.SwingTicks` after a toggle that changed it,
-  unless already as asked ([door-swing](../../docs/decisions/2026-11-04-door-swing.md)). `DoorProblem` asks.
+  unless already as asked (door-swing). `DoorProblem` asks.
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
   `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.notOnHull`, `grid.noPlatform` (a machine that `Lands` with the row
   under it not all launch platform), `grid.noGround` (on a planet, the row under it not all
