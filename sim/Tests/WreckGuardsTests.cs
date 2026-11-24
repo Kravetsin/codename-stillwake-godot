@@ -64,6 +64,9 @@ public class WreckGuardsTests
         && Box(x, c.Floor - rule.Height, rule.Width, rule.Height).All(p => r.Backed.Contains(p) && !r.Carved.Contains(p) && !r.Way.Contains(p))
         && Box(x, c.Floor, rule.Width, 1).All(p => r.Built.Contains(p) && !r.Carved.Contains(p));
 
+    /// <summary>The room <paramref name="room"/> was before a break cut it: its stern half's index for a bow half, else its own.</summary>
+    private static int Origin(Vessel v, int room) => v.Compartments[room].Of is int of and >= 0 ? of : room;
+
     private static bool In(VesselPart p, Shipyard.Dock d) => Shipyard.Covers(p).Any(c => c.X >= d.X && c.X < d.X + d.Width && c.Y >= d.Y && c.Y < d.Y + d.Height);
 
     [Property(MaxTest = 150)]
@@ -77,14 +80,14 @@ public class WreckGuardsTests
         var (ax, ay) = Shipyard.Door(b);
         string at = $"{t.Class.Id} {t.Seed} {(t.Chain == null ? "drawn" : string.Join<WreckStep>(",", t.Chain))}";
         Assert.Equal(docks, Shipyard.Guards(b));
-        Assert.Equal(docks.Count, docks.Select(d => d.Room).Distinct().Count());
+        Assert.Equal(docks.Count, docks.Select(d => Origin(v, d.Room)).Distinct().Count());
         Assert.InRange(docks.Count, 0, Spec.Max - 1);
         foreach (var rule in Aboard.Rules)
         {
             var sized = Enumerable.Range(0, v.Compartments.Count).Where(i => v.Compartments[i].Decks > 1 == rule.Big).ToList();
             int rooms = sized.Count(i => v.Compartments[i].Of < 0);
-            int candidates = sized.Count(i => !v.Compartments[i].Holds(ax, ay)
-                && Enumerable.Range(v.Compartments[i].Left, v.Compartments[i].Width).Any(x => Stands(read, v.Compartments[i], rule, x)));
+            int candidates = sized.Where(i => !v.Compartments[i].Holds(ax, ay)
+                && Enumerable.Range(v.Compartments[i].Left, v.Compartments[i].Width).Any(x => Stands(read, v.Compartments[i], rule, x))).Select(i => Origin(v, i)).Distinct().Count();
             var mine = docks.Where(d => d.Rule == rule).ToList();
             Assert.True(Math.Min((rooms + rule.WreckPer - 1) / rule.WreckPer, candidates) == mine.Count, $"{rule.Species}: {mine.Count} of {rooms} rooms, {candidates} candidates on {at}");
             foreach (var d in mine)
@@ -110,6 +113,17 @@ public class WreckGuardsTests
         var b = Wreck(Content.Vessels.Class(cls)!, seed);
         var read = Read(b);
         Assert.All(Shipyard.Guards(b), d => Assert.True(Stands(read, b.Vessel.Compartments[d.Room], d.Rule, d.X), $"{d} over a hole"));
+    }
+
+    /// <summary>Wrecks whose break cut a room in two, a dock drawn in each half: one guard to a room as it was, the other half passed over.</summary>
+    [Theory]
+    [InlineData("freighter", 139u)]
+    [InlineData("tanker", 56u)]
+    public void BothHalvesOfACutRoomNeverHoldADockEach(string cls, uint seed)
+    {
+        var b = Wreck(Content.Vessels.Class(cls)!, seed);
+        var origins = Shipyard.Guards(b).Select(d => Origin(b.Vessel, d.Room)).ToList();
+        Assert.Equal(origins.Distinct().Count(), origins.Count);
     }
 
     /// <summary>Docks stand in rooms a fire burnt, the cold froze and the air left: only the box's cells count, not what befell its room.</summary>

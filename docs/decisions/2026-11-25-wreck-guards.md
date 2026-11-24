@@ -20,7 +20,7 @@ stations next.
 **Placement on a wreck** (`Shipyard.Guards`, from the same stream 16 as an intact vessel's, so the wreck stays as it was):
 
 - Fewer: `ceil(small / 7)` spiders and `ceil(big / 4)` robots (`Vessels.Aboard.Rule.WreckPer`); intact vessels keep 5 and 3
-  (`Per`). A cut room's bow half is not counted again.
+  (`Per`). A cut room's bow half is not counted again, nor docked in with a guard in its stern half.
 - A dock anywhere its box still stands: refused if a cell of the box is in an event's carved list (`WreckEvent.Carved`) or has
   lost its back wall (open to space), or a cell of the floor row under it is carved or bare (a sunk deck). Ladders and hatches are kept clear as before, a shaft cut short too; only furniture the
   chain left standing makes a stretch crowded. Never the arrival room (as before).
