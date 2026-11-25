@@ -257,6 +257,25 @@ public class EscortAboardTests
         Assert.True(hits >= 2, $"shot him {hits} times");
     }
 
+    /// <summary>
+    /// Its hero off its deck but in its sight, up its tall hall on the side away from its nearest door: it runs at its <c>Run</c> under
+    /// him, not off to that door.
+    /// </summary>
+    [Fact]
+    public void AHeroSeenOffItsDeckAwayFromItsNearestDoorHasItRunUnderHim()
+    {
+        var body = (Spec.Walker)Spec.Escort.Body;
+        var a = new Aboard().Woken();
+        int door = a.V.Creatures.DoorOn(a.Room.Floor, a.Escort.X)!.Value;
+        int x = door <= a.Escort.X ? a.Room.Left + a.Room.Width - 3 : a.Room.Left + 2, y = a.Room.Top + 3;
+        Assert.NotEqual(a.V.Creatures.Level(y), a.V.Creatures.Level(a.Feet));
+        Assert.True(PatrolDrive.Sees(a.V.Creatures, a.Escort, Spec.Escort, (x, y)));
+        int was = a.Escort.X;
+        a.Hero(x, y).Run();
+        Assert.Equal(Math.Sign(x * U - was) * body.Run, a.Escort.X - was);
+        Assert.True(a.RunTill(() => Math.Abs(a.Escort.X / U - x) <= 1, 300), $"at {a.Column}, he at {x}");
+    }
+
     [Fact]
     public void AHeroGoneUpTheLadderOutOfItsSightSendsItToItsDoor()
     {
