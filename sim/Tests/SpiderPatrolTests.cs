@@ -264,6 +264,105 @@ public class SpiderPatrolTests
         }
     }
 
+    /// <summary>Its patrol goal set to cell (<paramref name="x"/>, <paramref name="y"/>), a room's, drawn on the creatures' clock now.</summary>
+    private static int Goal(SpiderAboardTests.Aboard a, Creature spider, int x, int y)
+    {
+        int till = a.V.Creatures.Clock + Prowl.Roam;
+        foreach (var (key, value) in new[] { (ProwlDrive.RoamX, x + 1), (ProwlDrive.RoamY, y), (ProwlDrive.RoamTill, till), (ProwlDrive.RoamWall, 0),
+                     (ProwlDrive.RoamSpot, 0), (ProwlDrive.ClingTill, 0), (ProwlDrive.RoamDeck, 0) })
+            spider.Keep(key, value);
+        return till;
+    }
+
+    /// <summary>The intact freighter's lowest spider woken, patrolling with no hero aboard; the hatch over its room and the room over that.</summary>
+    private static (SpiderAboardTests.Aboard A, Creature Spider, (int X, int Y) Hatch, Vessel.Compartment Up) Patrolling()
+    {
+        var (a, spider) = Hunting();
+        var room = a.Room(spider);
+        var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Single(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1);
+        var up = a.Vessel.Compartments.Single(r => r.Holds(hatch.X - M, hatch.Y - 1 - M));
+        a.Out().Run();
+        Assert.True(a.RunTill(() => spider.Act == null && a.Grounded(spider) && CreaturesModule.Holds(spider) == 0, 300));
+        Assert.False(Hunts(spider));
+        return (a, spider, hatch, up with { Left = M + up.Left, Top = M + up.Top });
+    }
+
+    /// <summary>
+    /// With wall goals off its draws (<c>UpAWall</c> 0), about <c>OtherDeck</c> in a hundred of its goals lie on another deck; one in the
+    /// room up its well, it climbs the well and stands on that deck.
+    /// </summary>
+    [Fact]
+    public void WithWallGoalsOffAPatrolGoesToAnotherDeckUpItsWell()
+    {
+        var (a, spider, hatch, up) = Patrolling();
+        var creatures = a.V.Creatures;
+        int mine = creatures.Level((spider.Y - 1) / U), other = 0, draws = 400;
+        for (int i = 0; i < draws; i++)
+        {
+            var to = creatures.RoamTo(spider, Body, Prowl with { UpAWall = 0 })!.Value;
+            Assert.Equal(0, to.Wall);
+            if (creatures.Level(to.Y) != mine) other++;
+        }
+        Assert.True(other > 0, "no goal on another deck");
+        Assert.InRange(other, draws * Prowl.OtherDeck / 200, draws * Prowl.OtherDeck * 2 / 100);
+        int floor = up.Floor - 1, its = creatures.Level(floor);
+        Goal(a, spider, up.Left + up.Width / 2, floor);
+        bool well = false;
+        Assert.True(a.RunTill(() =>
+        {
+            well |= CreaturesModule.Holds(spider) == WalkerBody.Well;
+            return creatures.Level((spider.Y - 1) / U) == its && a.Grounded(spider) && CreaturesModule.Holds(spider) == 0;
+        }, Prowl.Roam), $"never up a deck: at {spider.X},{spider.Y} {spider.Posture}");
+        Assert.True(well, "up a deck by no well");
+    }
+
+    /// <summary>
+    /// A goal up its well with a floor laid across the well (a wreck's sunk deck) it cannot reach: up the well, let go, again; a goal
+    /// drawn anew <c>Roam</c> ticks on, by the next.
+    /// </summary>
+    [Fact]
+    public void AGoalItCannotReachIsRedrawnRoamTicksOn()
+    {
+        var (a, spider, hatch, up) = Patrolling();
+        int plate = hatch.Y + 2;
+        foreach (int x in new[] { hatch.X, hatch.X + 1 })
+        {
+            a.V.Grid.Clear(a.Cell(x, plate), "structure");
+            a.V.Grid.Place(a.Cell(x, plate), Grid.Placement.Wall(Content.Vessels.Hull));
+        }
+        int till = Goal(a, spider, up.Left + up.Width / 2, up.Floor - 1);
+        Assert.True(a.RunTill(() => spider.Recall(ProwlDrive.RoamTill) != till, Prowl.Roam + 1), $"its goal kept past {till} at {spider.X},{spider.Y}");
+    }
+
+    /// <summary>
+    /// A patrol goal across a hole down through its floor and the hull under it: it stops at the brink and draws another, never stepping
+    /// over (<c>Leaves</c>; a pounce's own check, <c>Floored</c> in <c>Walker.Fly</c>, holds only an act).
+    /// </summary>
+    [Fact]
+    public void APatrolGoalAcrossAHoleIsDroppedAtTheBrink()
+    {
+        var (a, spider, _, _) = Patrolling();
+        var room = a.Room(spider);
+        var hull = GuardsAboardTests.HullOf(a.Built);
+        int x = spider.X / U, far = x - room.Left > room.Left + room.Width - 1 - x ? room.Left + 1 : room.Left + room.Width - 2;
+        int hole = (x + far) / 2 - 1;
+        Assert.True(Math.Abs(far - x) >= 7, $"the room's ends only {Math.Abs(far - x)} cells off");
+        for (int y = room.Floor; y <= hull.Bottom; y++)
+            for (int c = hole; c < hole + 3; c++) a.V.Grid.Clear(a.Cell(c, y), "structure");
+        int till = Goal(a, spider, far, room.Floor - 1);
+        Assert.True(a.RunTill(() =>
+        {
+            Assert.True(InHull(hull, spider), $"out of the hull at {spider.X},{spider.Y} {spider.Posture}");
+            return spider.Recall(ProwlDrive.RoamTill) != till;
+        }, 300), $"its goal kept at {spider.X},{spider.Y}");
+        Assert.True(Math.Abs(spider.X / U - (hole + 1)) <= 3 && spider.Y == room.Floor * U, $"dropped at {spider.X},{spider.Y}, the hole at {hole}, the floor at row {room.Floor}");
+        for (int t = 0; t < 200; t++)
+        {
+            a.Run();
+            Assert.True(InHull(hull, spider), $"out of the hull at {spider.X},{spider.Y} {spider.Posture}");
+        }
+    }
+
     [Fact]
     public void WithNoHeroAboardItPatrols()
     {
@@ -370,6 +469,7 @@ public class SpiderPatrolTests
         Assert.All(spiders, s => Assert.True(tallies[s.Id].Floors.Count >= 2, $"spider {s.Id} stood on floors {string.Join(',', tallies[s.Id].Floors)}"));
         Assert.Contains(spiders, s => tallies[s.Id].Well > 0);
         Assert.Contains(spiders, s => tallies[s.Id].Clung >= ClingLeast);
+        Assert.All(spiders, s => Assert.True(tallies[s.Id].Clung <= Prowl.Cling.Max, $"spider {s.Id} clung still {tallies[s.Id].Clung} ticks"));
     }
 
     /// <summary>
@@ -478,6 +578,7 @@ public class SpiderPatrolTests
             }
             Assert.Contains(tallies.Values, t => t.Well > 0);
             Assert.Contains(tallies.Values, t => t.Clung >= ClingLeast);
+            Assert.All(tallies.Values, t => Assert.True(t.Clung <= Prowl.Cling.Max, $"clung still {t.Clung} ticks"));
             return;
         }
         Assert.Fail("no liner wreck with a spider");
