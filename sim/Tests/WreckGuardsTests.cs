@@ -126,6 +126,57 @@ public class WreckGuardsTests
         Assert.Equal(origins.Distinct().Count(), origins.Count);
     }
 
+    /// <summary>Every cell of vessel <paramref name="v"/> a fitting or an interior's shelf covers: its furniture as built, before the chain.</summary>
+    private static HashSet<(int, int)> Furniture(Vessel v)
+    {
+        var cells = new HashSet<(int, int)>();
+        foreach (var f in v.Fittings)
+            cells.UnionWith(Box(f.X, f.Y, Machines.Get(f.Kind).Width, Machines.Get(f.Kind).Height));
+        foreach (var c in v.Compartments.Where(c => c.Interior.Length > 0))
+        {
+            var rows = Content.Vessels.Interiors.First(i => i.Id == c.Interior).Rows;
+            for (int y = 0; y < rows.Count; y++)
+                for (int x = 0; x < rows[y].Length; x++)
+                    if (Structures.OfChar(rows[y][x]) is int code && Structures.Of(code).Build is not null) cells.Add((c.Left + x, c.Top + y));
+        }
+        return cells;
+    }
+
+    /// <summary>
+    /// On a wreck a dock keeps clear of the furniture the chain left standing wherever its room has room for that, but not of what the
+    /// chain took: a docked room stripped of its furniture (as a chain may take it) has its dock drawn over where that stood, now and then.
+    /// </summary>
+    [Fact]
+    public void AWrecksDockAvoidsTheFurnitureLeftStandingNotWhatItLost()
+    {
+        int stripped = 0, over = 0;
+        foreach (var cls in new[] { "freighter", "liner" }.Select(id => Content.Vessels.Class(id)!))
+            for (uint seed = 1; seed <= 40; seed++)
+            {
+                var b = Wreck(cls, seed);
+                if (b.Wreck == null) continue;
+                var v = b.Vessel;
+                var read = Read(b);
+                var furniture = Furniture(v);
+                var covered = b.Parts.Where(p => p.Layer != "back").SelectMany(Shipyard.Covers).ToHashSet();
+                var standing = furniture.Where(covered.Contains).ToHashSet();
+                bool Clear(Shipyard.Dock d, int x, HashSet<(int, int)> of) => Box(x, d.Y, d.Width, d.Height).All(p => !of.Contains(p));
+                foreach (var d in Shipyard.Guards(b))
+                {
+                    var c = v.Compartments[d.Room];
+                    var fits = Enumerable.Range(c.Left, c.Width).Where(x => Stands(read, c, d.Rule, x)).ToList();
+                    if (fits.Any(x => Clear(d, x, standing))) Assert.True(Clear(d, d.X, standing), $"{d} over furniture still standing on {cls.Id} {seed}");
+                    // Its room's furniture taken: all but the way and the walls round it.
+                    if (!fits.Any(x => !Clear(d, x, furniture)) || !fits.Any(x => Clear(d, x, furniture))) continue;
+                    var parts = b.Parts.Where(p => p.Layer == "back" || p.Kind is "ladder" or Builds.Hatch || !Shipyard.Covers(p).Any(q => c.Holds(q.X, q.Y))).ToList();
+                    var docked = Shipyard.Guards(b with { Parts = parts }).Single(e => e.Room == d.Room);
+                    stripped++;
+                    over += Clear(docked, docked.X, furniture) ? 0 : 1;
+                }
+            }
+        Assert.True(over > 0, $"of {stripped} docks in rooms stripped of their furniture, none over where it stood");
+    }
+
     /// <summary>Docks stand in rooms a fire burnt, the cold froze and the air left: only the box's cells count, not what befell its room.</summary>
     [Fact]
     public void ABurntAFrozenAndAVentedRoomMayHoldADock()
@@ -196,8 +247,9 @@ public class WreckGuardsTests
     [InlineData("liner", "escort", false)]
     public void AWrecksGuardWithNoHeroAboardStandsOrPatrolsAndGoesOutOfItsRoomForOne(string cls, string species, bool patrols)
     {
-        var (w, v, _) = Boarded(cls, species);
+        var (w, v, built) = Boarded(cls, species);
         var guard = v.Creatures.Creatures.First(c => c.Species == species);
+        int dock = v.Creatures.Docks[CreaturesModule.DockOf(guard)!.Value].Room;
         var hero = v.Crew.HeroOf(0)!;
         Assert.False(v.Creatures.HeroInCabin(guard));
         hero.Out = 1000;
@@ -210,6 +262,10 @@ public class WreckGuardsTests
         w.Run(60);
         Assert.False(v.Creatures.HeroInCabin(guard));
         Assert.NotEqual((x, y), (guard.X, guard.Y));
+        // Out of its room for him in time: its feet in another room's open cells, or a doorway's.
+        int Room() => built.Vessel.Compartments.ToList().FindIndex(r => r.Holds(guard.X / U - M, (guard.Y - 1) / U - M));
+        for (int t = 0; t < 600 && Room() == dock; t++) w.Run();
+        Assert.True(Room() != dock, $"{species} still in its room {dock} at {guard.X},{guard.Y}");
         Assert.Contains(guard, v.Creatures.Creatures);
     }
 
