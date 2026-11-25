@@ -378,6 +378,8 @@ public class SpiderPatrolTests
             if (RoomOf(a.Vessel, spider) is int room and >= 0) rooms.Add(room);
         }
         Assert.True(rooms.Count >= 3, $"it patrolled {rooms.Count} rooms");
+        // What it keeps at 0 it keeps not at all: no save holds a number that reads as nothing.
+        Assert.DoesNotContain(spider.Mem ?? [], n => n.Value == 0);
     }
 
     /// <summary>

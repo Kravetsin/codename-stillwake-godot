@@ -120,11 +120,16 @@ public sealed class Creature
         return at >= 0 ? Mem![at].Value : 0;
     }
 
-    /// <summary>Keeps <paramref name="value"/> under <paramref name="key"/>, in its ordinal place.</summary>
+    /// <summary>Keeps <paramref name="value"/> under <paramref name="key"/>, in its ordinal place; 0 keeps nothing, as <see cref="Recall"/> reads it, so no save holds it.</summary>
     internal void Keep(string key, int value)
     {
-        Mem ??= [];
         int at = Find(key);
+        if (value == 0)
+        {
+            if (at >= 0) Mem!.RemoveAt(at);
+            return;
+        }
+        Mem ??= [];
         if (at >= 0) Mem[at].Value = value;
         else Mem.Insert(~at, new Note { Key = key, Value = value });
     }
