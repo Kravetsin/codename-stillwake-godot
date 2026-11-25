@@ -43,7 +43,7 @@ public sealed class World
     private readonly List<(string Kind, uint? Seed, int Opener, IReadOnlyList<string>? Ores, IReadOnlyList<Content.WreckStep>? Wreck)> _opening = [];
     // Whether the tick's commands are applying: the one moment a module may open a surface and move a hero at once (Visit).
     private bool _applying;
-    // The vessel a surface opening now was built with (vessel-wrecks), read by what fills it (ISurfaces.Vessel): one build a
+    // The vessel a surface opening now was built with (vessel-wrecks), read by what derives from it and fills it (ISurfaces.Vessel): one build a
     // jump, not one for the map and one to write it. Set only while it opens; never saved.
     private (int Surface, Built Vessel)? _built;
     private readonly RngState _rng;
@@ -265,10 +265,11 @@ public sealed class World
         var from = _surfaces[opener].Modules;
         foreach (var m in modules)
             if (from.FirstOrDefault(f => f.Id == m.Id) is { } twin) m.Inherit(twin);
+        // The vessel as built, read by Rebuild too: one build, not another for each module that derives from it.
+        _built = built is null ? null : (surface.Surface.Id, built);
         foreach (var m in modules) m.Rebuild();
         _surfaces.Add(surface);
         // Once every module stands: what fills it writes through the others' operations, as a command would.
-        _built = built is null ? null : (surface.Surface.Id, built);
         foreach (var m in modules) m.Opened();
         _built = null;
         return surface.Surface.Id;
