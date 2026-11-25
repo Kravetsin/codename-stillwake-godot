@@ -238,6 +238,32 @@ public class SpiderPatrolTests
         Assert.True(At(Prowl.Chase));
     }
 
+    /// <summary>
+    /// Hunting, it never turns back on its way by decks to its hero's deck (sections laying their decks at other rows: up a well past it,
+    /// down a hatch past it, for ever): having come down toward his deck, it stands rather than climb back up toward the same one.
+    /// </summary>
+    [Fact]
+    public void HuntingItNeverTurnsBackOnItsWayByDecksToTheSameDeck()
+    {
+        var (a, spider) = Hunting();
+        var room = a.Room(spider);
+        var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Single(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1);
+        Assert.True(a.RunTill(() => spider.Act == null && a.Grounded(spider), 200));
+        int y = SpiderAboardTests.Body(hatch.Y), its = a.V.Creatures.Level(y), mine = a.V.Creatures.Level((spider.Y - 1) / U);
+        Assert.True(its < mine, $"his deck {its}, its {mine}");
+        // As if it had come down toward his deck past it: up toward the same deck is back the way it came.
+        spider.Keep(ProwlDrive.RoamDeck, its + 1);
+        int x = spider.X;
+        a.Hero(x / U, y);
+        for (int t = 0; t < 300; t++)
+        {
+            a.Run();
+            Assert.True(Math.Abs(spider.X - x) < 2 * U && a.V.Creatures.Level((spider.Y - 1) / U) == mine,
+                $"on its way back up at {spider.X},{spider.Y} {spider.Posture} at tick {t}, from {x}");
+            Assert.True(Hunts(spider));
+        }
+    }
+
     [Fact]
     public void WithNoHeroAboardItPatrols()
     {
@@ -296,7 +322,9 @@ public class SpiderPatrolTests
     private static void Count(Registry v, Vessel vessel, Creature c, Tally t)
     {
         int hold = CreaturesModule.Holds(c);
-        if (hold == 0 && c.VY == 0 && c.Y % U == 0 && v.Grid.Solid(c.Y / U * v.Grid.Width + c.X / U)) t.Floors.Add(c.Y / U);
+        // Standing: on what is solid under either column of its body.
+        bool under = v.Grid.Solid(c.Y / U * v.Grid.Width + (c.X - U) / U) || v.Grid.Solid(c.Y / U * v.Grid.Width + c.X / U);
+        if (hold == 0 && c.VY == 0 && c.Y % U == 0 && under) t.Floors.Add(c.Y / U);
         if (hold == WalkerBody.Well) t.Well++;
         if (hold is not (1 or -1) || c.Recall(ProwlDrive.RoamWall) != hold || c.Recall(ProwlDrive.ClingTill) == 0)
         {

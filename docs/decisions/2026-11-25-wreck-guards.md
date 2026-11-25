@@ -38,7 +38,7 @@ drive in charge. No wake animation or sound: `DocksView` draws the wreck's docks
   side wall (no doorway in it), climbed to and clung to `Cling` 40–80 ticks (2–4 s), then down to the floor; `OtherDeck` 33 a room
   on another deck, by the well rising from the floor it stands on (`WayUp`), or a hatch in its floor down; the rest a room on its
   own deck. Another goal once there, at a brink or wall it cannot pass, after `Roam` (1200 ticks), when no hatch leads from its
-  floor toward its goal's deck, or when a way by decks would have to turn back.
+  floor toward its goal's deck, or when a way by decks would have to turn back (a hunt stands there till its hero's deck changes).
 - Up a well it climbs on through the next hatch only where that hatch's well rises from the floor it came up to (`WellOver`); under
   anything solid but a shut hatch (a wreck's sunk deck) it lets go.
 - Pace: patrolling at its `Walk` (300) and its climb cut to the same share of its run, rounded down (`Climb · Walk / Run` = 100);

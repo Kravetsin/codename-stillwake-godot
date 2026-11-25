@@ -37,7 +37,10 @@ internal sealed class ProwlDrive : DriveRule
     /// <summary>Kept in its <c>Mem</c>: the creatures' clock it comes down the wall it patrols up at; -1 climbing to its spot; 0 holding none for it.</summary>
     internal const string ClingTill = "clingTill";
 
-    /// <summary>Kept in its <c>Mem</c>: the way it patrols by decks to its cell, 1 down, -1 up; 0 for none yet.</summary>
+    /// <summary>
+    /// Kept in its <c>Mem</c>: the way it goes by decks to its goal, 1 down, -1 up, times its goal's deck (<see cref="CreaturesModule.Level"/>)
+    /// plus one; 0 for none yet.
+    /// </summary>
     internal const string RoamDeck = "roamDeck";
 
     /// <summary>Kept in its <c>Mem</c>: the shut doorway cell it pries, plus one; 0 for none.</summary>
@@ -227,17 +230,17 @@ internal sealed class ProwlDrive : DriveRule
             return;
         }
         int mine = m.Level(feet), its = m.Level(q.Y);
-        // A patrol past its cell's deck, up then down or down then up: sections laying their decks at other rows, the way by decks
-        // never gets there. It draws another.
-        if (mine != its && c.Recall(HuntKey) != 1)
+        // Past its goal's deck, up then down or down then up: sections laying their decks at other rows, the way by decks never gets
+        // there. A patrol draws another goal; a hunt stands till its quarry's deck changes.
+        if (mine != its)
         {
             int need = Math.Sign(its - mine), was = c.Recall(RoamDeck);
-            if (was == -need)
+            if (was == -need * (its + 1))
             {
                 Balked(c);
                 return;
             }
-            c.Keep(RoamDeck, need);
+            c.Keep(RoamDeck, need * (its + 1));
         }
         // Up by a well rising from its floor, else by the hatch in the floor next up; down by a hatch in its floor.
         int? floor = mine == its ? null : m.FloorBy(mine > its ? feet : feet + 1, up: mine > its), hatch = floor is int f ? m.HatchIn(f, c.X) : null;
