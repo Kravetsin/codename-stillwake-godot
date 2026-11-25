@@ -439,6 +439,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [debris-coop](2026-11-23-debris-coop.md) | Debris physics in co-op: a feed addressed to the ship, guests ease corrections | accepted |  |
 | [debris-host-physics](2026-11-23-debris-host-physics.md) | Debris moves by the host player's physics, and the harpoon tows it on a rope | accepted |  |
 | [debris-tumble](2026-11-23-debris-tumble.md) | Debris tumbles in the sim, and is hit by its turned shape | accepted |  |
-| [derelict-guards](2026-11-23-derelict-guards.md) | Derelict guards | accepted |  |
+| [derelict-guards](2026-11-23-derelict-guards.md) | Derelict guards | accepted | wreck-guards (in part) |
 | [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
 | [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |
+| [wreck-guards](2026-11-25-wreck-guards.md) | Wreck guards | accepted |  |

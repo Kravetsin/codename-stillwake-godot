@@ -131,13 +131,19 @@ public static class Creatures
     /// Hunting the crew through its vessel (derelict-guards): at the nearest awake hero aboard, by its decks, doorways and hatch well, no
     /// path searched; a shut doorway on its way (the way in never) it pries <paramref name="Pry"/> ticks, then opens; a wall in its way it
     /// climbs. It fights by its <paramref name="Guard"/>: alerted by a hero in line within its notice, it pounces or shoots as a guard does.
+    /// No awake hero aboard within <paramref name="Lose"/> cells (by squared distance), it patrols the vessel the same way: to a room at
+    /// random, another once there or <paramref name="Roam"/> ticks on, till one comes within <paramref name="Chase"/> cells. Of the goals
+    /// it draws, <paramref name="UpAWall"/> in a hundred are a spot up a room's solid side wall, climbed to and clung to
+    /// <paramref name="Cling"/> ticks (least and most) before it comes down; <paramref name="OtherDeck"/> in a hundred a room on another
+    /// deck; the rest a room on its own. Hunting or patrolling, it never leaves the hull box.
     /// </summary>
-    public sealed record Prowl(Guard Guard, int Pry) : Drive;
+    public sealed record Prowl(Guard Guard, int Pry, int Lose, int Chase, int Roam, int UpAWall = 0, int OtherDeck = 0, (int Min, int Max) Cling = default) : Drive;
 
     /// <summary>
     /// Hunting the crew on its own deck (the escort, derelict-guards), never off its floor rows: at the nearest awake hero aboard on its deck
     /// within <paramref name="Strike"/> columns it lunges with its first move, dropping a shot it was charging. Else it walks: at a hero on its
-    /// deck, toward him; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
+    /// deck, toward him; at one off it but in its sight within <paramref name="Notice"/>, under him along its deck, never prying a door
+    /// for it; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
     /// a hero within <paramref name="Notice"/> cells (box distance) and in line with its gun, on any deck, it shoots with its second move as
     /// often as that is ready, walking on. A shut door on its way (a hatch never, the way in never) it pries <paramref name="Pry"/> ticks, then
     /// opens. With no hero aboard it stands.
@@ -461,17 +467,21 @@ public static class Creatures
     /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
     /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
     /// cells a second, jumping some three and a half cells, climbing a wall at 6 cells a second; a shut doorway it pries two seconds
-    /// before it opens it. Placeholder numbers, for a play pass.
+    /// before it opens it. No hero within 40 cells, it patrols the vessel at 6 cells a second (climbing at 2), to a goal drawn at random,
+    /// another once there or a minute on: one in four a spot up a room's side wall, clung to 2 to 4 seconds; one in three a room on
+    /// another deck, up or down its hatch wells; else a room on its own deck. One within 30, it hunts again. Placeholder numbers, for a
+    /// play pass.
     /// </summary>
     public static readonly Species Spider = new("spider", Look: Sentry.Look,
-        Body: new Walker(Width: 2, Height: 3, Walk: 900, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
+        Body: new Walker(Width: 2, Height: 3, Walk: 300, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
         Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard,
-        Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40)], Moves: Sentry.Moves, Yields: Sentry.Yields);
+        Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40, Lose: 40, Chase: 30, Roam: 1200,
+            UpAWall: 25, OtherDeck: 33, Cling: (40, 80))], Moves: Sentry.Moves, Yields: Sentry.Yields);
 
     /// <summary>
     /// The guard robot, the escort («Конвоир», derelict-guards), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
     /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
-    /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second always to close in: a hero within 6 columns on
+    /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second to close in, 3.5 to a door or along its deck with no hero in sight: a hero within 6 columns on
     /// its deck it claws, a crouch of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit. On its way, at one in line
     /// within 40 cells, above it too, it shoots walking on: 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its
     /// rail gun's height, 4.85 cells up, across its reach in a tick, its gun held up half a second after; a shot begun at most every 3 s, and
@@ -479,7 +489,7 @@ public static class Creatures
     /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
     /// sentry. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 350, Run: 350, Jump: 0, JumpAcross: 0),
+    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 175, Run: 350, Jump: 0, JumpAcross: 0),
         Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,
         Brain: [new Dock(Wake: 40), new Patrol(Strike: 6, Notice: 40, Pry: 40)],
         Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 10, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000,

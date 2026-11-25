@@ -13,7 +13,8 @@ namespace Stillwake.Sim.Tests;
 /// <summary>
 /// The escort aboard a liner (derelict-guards, G-3): woken in its stand by a hero walking into its hall or by a blow, let down to the floor,
 /// then hunting the crew on its deck: walking always to close in, a lunge at a hero near on its deck, a gauss on the way at one in line within
-/// its notice, up too, at most every so often and never while it lunges; out of line, off through a door; prying doors, never a hatch nor
+/// its notice, up too, at most every so often and never while it lunges; one off its deck in sight, under him; out of sight, off through a
+/// door; prying doors, never a hatch nor
 /// the way in; never off its deck's rows.
 /// </summary>
 public class EscortAboardTests
@@ -201,7 +202,7 @@ public class EscortAboardTests
         Assert.True(Gauss.Every > Gauss.WindUp + Gauss.Recover);
         var doors = a.Doors.Where(d => d.X == a.Room.Left - 2 || d.X == a.Room.Left + a.Room.Width).ToList();
         foreach (var d in doors) a.W.Do(new SetDoor(a.Cell(d.X, d.Y), false));
-        // Up the well's ladder, off its deck and in line: shot at from below as it goes to its door and pries it, never clawed.
+        // Up the well's ladder, off its deck and in line: shot at from below as it comes under him, never clawed.
         a.Hero(a.Room.Left, a.Room.Top + 3);
         var shots = new List<int>();
         for (int t = 0; t < 3 * Gauss.Every; t++)
@@ -233,6 +234,60 @@ public class EscortAboardTests
             Assert.NotEqual(typeof(Spec.Lunge), a.Act);
             return a.Act == typeof(Spec.Shoot);
         }, Gauss.Every), $"at {a.Column}");
+    }
+
+    [Fact]
+    public void AHeroUpTheLadderInItsSightKeepsItOnItsDeckUnderHimShootingNeverOffToADoor()
+    {
+        var a = new Aboard().Woken();
+        var doors = a.Doors.Where(d => d.X == a.Room.Left - 2 || d.X == a.Room.Left + a.Room.Width).ToList();
+        foreach (var d in doors) a.W.Do(new SetDoor(a.Cell(d.X, d.Y), false));
+        // On the well's ladder in its tall hall, off its deck but in its sight: it walks under him and stands there, shooting up.
+        a.Hero(a.Room.Left, a.Room.Top + 3);
+        int hits = 0;
+        for (int t = 0; t < 400; t++)
+        {
+            a.Run();
+            OnItsRows(a);
+            Assert.NotEqual(typeof(Spec.Lunge), a.Act);
+            Assert.All(doors, d => Assert.True(a.Shut(d.X, d.Y), $"opened the door at {d.X} at tick {t}"));
+            hits += a.V.Creatures.Ended.Count(e => e.Projectile == Gauss.Projectile && e.Met);
+        }
+        Assert.InRange(a.Column, a.Room.Left, a.Room.Left + 4);
+        Assert.True(hits >= 2, $"shot him {hits} times");
+    }
+
+    /// <summary>
+    /// Its hero off its deck but in its sight, up its tall hall on the side away from its nearest door: it runs at its <c>Run</c> under
+    /// him, not off to that door.
+    /// </summary>
+    [Fact]
+    public void AHeroSeenOffItsDeckAwayFromItsNearestDoorHasItRunUnderHim()
+    {
+        var body = (Spec.Walker)Spec.Escort.Body;
+        var a = new Aboard().Woken();
+        int door = a.V.Creatures.DoorOn(a.Room.Floor, a.Escort.X)!.Value;
+        int x = door <= a.Escort.X ? a.Room.Left + a.Room.Width - 3 : a.Room.Left + 2, y = a.Room.Top + 3;
+        Assert.NotEqual(a.V.Creatures.Level(y), a.V.Creatures.Level(a.Feet));
+        Assert.True(PatrolDrive.Sees(a.V.Creatures, a.Escort, Spec.Escort, (x, y)));
+        int was = a.Escort.X;
+        a.Hero(x, y).Run();
+        Assert.Equal(Math.Sign(x * U - was) * body.Run, a.Escort.X - was);
+        Assert.True(a.RunTill(() => Math.Abs(a.Escort.X / U - x) <= 1, 300), $"at {a.Column}, he at {x}");
+    }
+
+    [Fact]
+    public void AHeroGoneUpTheLadderOutOfItsSightSendsItToItsDoor()
+    {
+        var a = new Aboard().Woken();
+        var door = a.Doors.Single(d => d.X == a.Room.Left - 2);
+        a.W.Do(new SetDoor(a.Cell(door.X, door.Y), false));
+        // Seen on the ladder, it comes under him; up the well past its hall's ceiling, out of its sight, it is off to its nearest door.
+        a.Hero(a.Room.Left, a.Room.Top + 3).Run(200);
+        Assert.True(a.Shut(door.X, door.Y));
+        a.Hero(a.Room.Left, a.Room.Top - 2);
+        Assert.False(PatrolDrive.Sees(a.V.Creatures, a.Escort, Spec.Escort, (a.Room.Left, a.Room.Top - 2)));
+        Assert.True(a.RunTill(() => !a.Shut(door.X, door.Y), 300), $"at {a.Column}");
     }
 
     [Fact]
@@ -399,6 +454,30 @@ public class EscortAboardTests
         Assert.True(a.RunTill(() => !a.Shut(doors[0].X, doors[0].Y), 400), $"at {a.Column}");
         Assert.True(a.Shut(doors[1].X, doors[1].Y));
         Assert.True(a.RunTill(() => a.Escort.X / U < doors[0].X - 3, 200), $"at {a.Column}");
+    }
+
+    /// <summary>Off to its door with its hero out of sight, it walks at its <c>Walk</c>; going for him seen on its deck, at its <c>Run</c>.</summary>
+    [Fact]
+    public void ItWalksToItsDoorAtItsWalkAndGoesForAHeroAtItsRun()
+    {
+        var body = (Spec.Walker)Spec.Escort.Body;
+        Assert.True(body.Walk < body.Run);
+        var a = new Aboard().Woken();
+        a.Hero(a.Column + 20, a.Room.Top - 2).Run();
+        var walked = new HashSet<int>();
+        for (int t = 0; t < 40; t++)
+        {
+            int x = a.Escort.X;
+            a.Run();
+            walked.Add(Math.Abs(a.Escort.X - x));
+        }
+        Assert.Equal([body.Walk], walked);
+        // Seen on its floor at the hall's far end, out of its claw's reach: it goes for him.
+        int end = a.Column - a.Room.Left > a.Room.Left + a.Room.Width - 1 - a.Column ? a.Room.Left + 1 : a.Room.Left + a.Room.Width - 2;
+        Assert.True(Math.Abs(end - a.Column) > Patrol.Strike + 2, $"at {a.Column}, he at {end}");
+        int was = a.Escort.X;
+        a.Hero(end, a.Body).Run();
+        Assert.Equal(body.Run, Math.Abs(a.Escort.X - was));
     }
 
     [Fact]

@@ -409,7 +409,8 @@ public class VesselWreckTests(ITestOutputHelper output)
         Assert.Equal(2, b.Wreck!.Events.Count);
         var v = w.On(id);
         int width = v.Grid.Width, m = Content.Vessels.Margin;
-        foreach (var part in b.Parts.Where(p => p.Layer == "machine"))
+        // Every machine it left laid but what a guard's capsule took the place of (derelict-guards).
+        foreach (var part in Shipyard.Docked(b.Parts, Shipyard.Guards(b)).Where(p => p.Layer == "machine"))
             Assert.Equal(part.Kind, v.Grid.MachineAt((m + part.Y) * width + m + part.X)?.Kind);
         var (dx, dy) = Shipyard.Door(b);
         Assert.Equal((m + dy) * width + m + dx, v.Crew.HeroOf(0)!.Cell);

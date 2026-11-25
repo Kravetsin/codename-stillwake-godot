@@ -6,8 +6,9 @@ namespace Stillwake.Sim.Creatures;
 /// <summary>
 /// Hunting the crew on its deck (derelict-guards), the escort's once awake: at its quarry (<see cref="CreaturesModule.Quarry"/>), bound to
 /// its dock's deck, never jumping. Its quarry on its deck within its strike, it lunges (its first move), dropping a shot it was charging.
-/// Else it walks: toward its quarry on its deck; off it, to the nearest door of its deck (the lower column at a tie) and on that way,
-/// turning back at a wall; and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made
+/// Else it walks: toward its quarry on its deck; off it but in its sight (<see cref="Sees"/>, within its notice), under him along its deck,
+/// standing at a wall or a shut door; off it and out of sight, to the nearest door of its deck (the lower column at a tie) and on that way,
+/// turning back at a wall, at its <c>Walk</c> (going for its quarry, at its <c>Run</c>); and on its way, its quarry within its notice and in line with its gun, on any deck, it shoots (its second, made
 /// on the move: <see cref="Afoot"/>) whenever that is ready. A shut door on its way it pries as a spider does
 /// (<see cref="ProwlDrive.Pry"/>), never a hatch, which lies under its feet (an open one it walks over) or over its head, nor the way in.
 /// With no hero aboard it stands.
@@ -49,13 +50,15 @@ internal sealed class PatrolDrive : DriveRule
         // Its claw first: a lunge begun takes the place of a shot it was charging, so it never fires while it claws.
         if (level && Math.Abs(q.X - Down(c.X, Unit)) <= patrol.Strike && Lunge(m, c, spec)) return true;
         int far = Math.Max(Math.Abs(q.X - Down(c.X, Unit)), Math.Abs(q.Y - feet));
-        if (c.Act == null && spec.Moves.Count > 1 && RuleBook.Move(spec.Moves[1]).Ready(m, c, spec.Moves[1]) && far <= patrol.Notice && Sees(m, c, spec, q))
+        bool ready = c.Act == null && spec.Moves.Count > 1 && RuleBook.Move(spec.Moves[1]).Ready(m, c, spec.Moves[1]);
+        bool seen = (ready || !level) && far <= patrol.Notice && Sees(m, c, spec, q);
+        if (ready && seen)
         {
             // Locked on the hero it saw: the shot's aim is taken at him (ShootMove's grudge), never at another nearer behind a floor.
             c.Target = Ref.Hero(peer);
             RuleBook.Move(spec.Moves[1]).Begin(m, c, spec, 1);
         }
-        Walk(m, c, w, patrol, q, level, floor, top, feet);
+        Walk(m, c, w, patrol, q, level, seen, floor, top, feet);
         return true;
     }
 
@@ -84,11 +87,15 @@ internal sealed class PatrolDrive : DriveRule
         return m.Sees(c.X, y, at);
     }
 
-    /// <summary>A tick of its walk: toward its quarry on its deck, else its way along it; a shut door ahead pried; a wall, or the hull's end, turning it.</summary>
-    private static void Walk(CreaturesModule m, Creature c, Spec.Walker w, Spec.Patrol patrol, (int X, int Y) q, bool level, int floor, int top, int feet)
+    /// <summary>
+    /// A tick of its walk: toward its quarry on its deck or seen off it, else its way along it; a shut door ahead pried, but stood at for a
+    /// quarry seen off its deck; a wall, or the hull's end, turning it on its way.
+    /// </summary>
+    private static void Walk(CreaturesModule m, Creature c, Spec.Walker w, Spec.Patrol patrol, (int X, int Y) q, bool level, bool seen, int floor, int top, int feet)
     {
         int way;
-        if (level)
+        bool chase = level || seen;
+        if (chase)
         {
             c.Keep(WayKey, 0);
             int dx = m.Middle(q.X) - c.X;
@@ -109,18 +116,20 @@ internal sealed class PatrolDrive : DriveRule
         if (m.ShutDoorway(column, top, column, feet) is int shut)
         {
             c.VX = 0;
-            ProwlDrive.Pry(m, c, patrol.Pry, shut);
+            if (level || !seen) ProwlDrive.Pry(m, c, patrol.Pry, shut);
+            else ProwlDrive.Forget(c);
             return;
         }
         ProwlDrive.Forget(c);
-        if (WalkerBody.Blocked(m, c, w, way, w.Run, spans: true) || !m.InHull(w, c.X + way * w.Run, c.Y))
+        int speed = chase ? w.Run : w.Walk;
+        if (WalkerBody.Blocked(m, c, w, way, speed, spans: true) || !m.InHull(w, c.X + way * speed, c.Y))
         {
             c.VX = 0;
-            if (!level) c.Keep(WayKey, -way);
+            if (!chase) c.Keep(WayKey, -way);
             return;
         }
-        if (!level) c.Keep(WayKey, way);
-        c.VX = way * w.Run;
+        if (!chase) c.Keep(WayKey, way);
+        c.VX = way * speed;
     }
 
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => true;

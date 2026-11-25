@@ -23,7 +23,7 @@ public class SpiderAboardTests
     private static readonly int Wake = Spec.Spider.Brain.OfType<Spec.Dock>().Single().Wake;
 
     /// <summary>A vessel boarded (<see cref="GuardsAboardTests.Boarded"/>), a freighter unless said, its spiders asleep.</summary>
-    private sealed class Aboard
+    internal sealed class Aboard
     {
         public readonly Scenario W;
         public readonly Registry V;
@@ -53,6 +53,19 @@ public class SpiderAboardTests
             Run(Wake + 2);
             Assert.True(Awake(spider), $"{spider.Posture}");
             return this;
+        }
+
+        /// <summary>
+        /// Its hero by <paramref name="spider"/>, on row <paramref name="y"/>, then walked to column <paramref name="x"/> six cells a second
+        /// at a time: never out of its chase, it hunts him all the way.
+        /// </summary>
+        public Aboard Lure(Creature spider, int x, int y)
+        {
+            for (int at = spider.X / U; ; at += Math.Sign(x - at) * Math.Min(6, Math.Abs(x - at)))
+            {
+                Hero(at, y).Run(20);
+                if (at == x) return this;
+            }
         }
 
         /// <summary>Every inner door on the way in's deck opened, and the way in.</summary>
@@ -113,10 +126,10 @@ public class SpiderAboardTests
             Vessel.Doors.FirstOrDefault(d => M + d.X == r.Left - 2 && M + d.Y == r.Top && d != Shipyard.WayIn(Built)) is { } d ? (M + d.X, M + d.Y) : null;
     }
 
-    private static bool Awake(Creature c) => c.Posture is not (Posture.Docked or Posture.Waking);
+    internal static bool Awake(Creature c) => c.Posture is not (Posture.Docked or Posture.Waking);
 
     /// <summary>The row a hero standing on floor row <paramref name="floor"/> reports: its body's middle's (<c>Hero.BodyCell</c>), 2.6 cells over its feet.</summary>
-    private static int Body(int floor) => floor - 3;
+    internal static int Body(int floor) => floor - 3;
 
     /// <summary>A spider whose room has an inner door on its left, and that door.</summary>
     private static (Creature Spider, Vessel.Compartment Room, (int X, int Y) Door) WithLeftDoor(Aboard a)
@@ -411,7 +424,7 @@ public class SpiderAboardTests
         var (a, spider) = ByTheWayIn();
         int body = a.WayIn.Y + Content.Vessels.Open - 3;
         // Its hero in the open way in: it comes to him, into the doorway.
-        a.Hero(a.WayIn.X + 1, body);
+        a.Lure(spider, a.WayIn.X + 1, body);
         Assert.True(a.RunTill(() => InWayIn(a, spider) && spider.Act == null && a.Grounded(spider), 900), $"at {spider.X},{spider.Y} {spider.Posture}");
         // He steps in past it and shuts the way in on it: it is shut in, its hero aboard, and never pries it.
         var (fx, fy) = Shipyard.Door(a.Built);
@@ -436,7 +449,7 @@ public class SpiderAboardTests
         var (a, spider) = ByTheWayIn();
         var (fx, fy) = Shipyard.Door(a.Built);
         // Crouched at its hero inside, he steps back into the open way in: its pounce flies at him there, out at the way in.
-        a.Hero(M + fx + 12, M + fy);
+        a.Lure(spider, M + fx + 12, M + fy);
         Assert.True(a.RunTill(() => spider.Act is { Move: 0, Phase: ActPhase.WindUp }, 600), $"it never crouched: at {spider.X},{spider.Y}");
         Assert.True(spider.X / U > M + fx + 4, $"crouched at {spider.X / U}");
         a.Hero(a.WayIn.X, a.WayIn.Y + Content.Vessels.Open - 3);
@@ -469,6 +482,28 @@ public class SpiderAboardTests
         // Back down: it drops down through the hatch.
         a.Hero(room.Left + 2, Body(room.Floor));
         Assert.True(a.RunTill(() => a.Level(spider.Y / U - 1) == a.Level(room.Floor - 1) && a.Grounded(spider), 900), $"at {spider.X},{spider.Y} {spider.Posture}");
+    }
+
+    /// <summary>Climbing its well after its hero up a deck, a floor laid across the well over its head (a wreck's sunk deck): it lets go.</summary>
+    [Fact]
+    public void UnderAFloorAcrossItsWellItLetsGo()
+    {
+        var a = new Aboard();
+        var spider = a.Spiders.MaxBy(s => s.Y)!;
+        var room = a.Room(spider);
+        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1);
+        var hatch = a.Vessel.Hatches.Select(h => (X: M + h.X, Y: M + h.Y)).Where(h => h.Y < room.Floor && h.Y > room.Top - Content.Vessels.Pitch - 1).Single();
+        a.W.Do(new SetDoor(a.Cell(hatch.X, hatch.Y), true));
+        a.Hero(hatch.X + 6, Body(hatch.Y));
+        Assert.True(a.RunTill(() => CreaturesModule.Holds(spider) == WalkerBody.Well && spider.Y > (hatch.Y + Spec.Spider.Body.Height + 3) * U, 900),
+            $"never low in the well: at {spider.X},{spider.Y} {spider.Posture}");
+        int plate = (spider.Y - Spec.Spider.Body.Height * U) / U - 2;
+        foreach (int x in new[] { hatch.X, hatch.X + 1 })
+        {
+            a.V.Grid.Clear(a.Cell(x, plate), "structure");
+            a.V.Grid.Place(a.Cell(x, plate), Grid.Placement.Wall(Content.Vessels.Hull));
+        }
+        Assert.True(a.RunTill(() => CreaturesModule.Holds(spider) != WalkerBody.Well, 40), $"still in the well at {spider.X},{spider.Y} under row {plate}");
     }
 
     [Fact]
@@ -529,22 +564,6 @@ public class SpiderAboardTests
         Assert.True(Math.Abs(spider.X / U - far) < Math.Abs(room.Left + room.Width / 2 - far), $"at {spider.X / U}, its hero at {far}");
     }
 
-    [Fact]
-    public void WithNoHeroAboardItStandsWhereItIs()
-    {
-        var a = new Aboard();
-        var spider = a.Spiders.MaxBy(s => s.Y)!;
-        var room = a.Room(spider);
-        a.Hero(room.Left + 1, Body(room.Floor)).Run(Wake + 1).Hero(room.Left + room.Width + 12, Body(room.Floor)).Run(20);
-        // Out past the way in, into space: aboard no more.
-        var door = Shipyard.WayIn(a.Built);
-        a.Hero(M + door.X - 4, M + door.Y + Content.Vessels.Open - 1).Run(40);
-        var (x, y) = (spider.X, spider.Y);
-        a.Run(200);
-        Assert.True(Awake(spider));
-        Assert.Equal((x, y), (spider.X, spider.Y));
-    }
-
     /// <summary>
     /// What a spider may stand on, every tick of a play aboard: its body in the hull box; climbing, it holds a wall flush beside it or is in
     /// line with a hatch over its well; never two ticks running at one height in the air, held by nothing (a ceiling, a back wall).
@@ -558,8 +577,11 @@ public class SpiderAboardTests
         if (c.Posture == Posture.Climbing)
         {
             int side = c.Recall(WalkerBody.Wall);
+            // A well reaches down to the floor of the room under its hatch: a hall two decks tall's, past the deck floor between.
+            int Bottom(Vessel.Hatch h) => vessel.Compartments.Where(r => r.Top == h.Y + 1 && h.X >= r.Left && h.X < r.Left + r.Width).Select(r => r.Floor)
+                .DefaultIfEmpty(vessel.Decks.Select(d => d.Floor).Where(f => f > h.Y).Min()).First();
             if (side == WalkerBody.Well)
-                Assert.True(vessel.Hatches.Any(h => (M + h.X + 1) * U == c.X && c.Y > (M + h.Y - 1) * U && c.Y <= (M + vessel.Decks.Select(d => d.Floor).Where(f => f > h.Y).Min()) * U),
+                Assert.True(vessel.Hatches.Any(h => (M + h.X + 1) * U == c.X && c.Y > (M + h.Y - 1) * U && c.Y <= (M + Bottom(h)) * U),
                     $"spider {c.Id} climbing at {c.X},{c.Y} in no hatch's well");
             else
             {
@@ -588,6 +610,13 @@ public class SpiderAboardTests
         Play(play.Class, play.Index, play.Seed);
         return true.ToProperty();
     });
+
+    /// <summary>
+    /// A play whose spider, its hero lost, patrolled up the side of its room a shut door stood in, then clung on there to nothing once the
+    /// door swung open: a door is no wall to patrol up.
+    /// </summary>
+    [Fact]
+    public void APatrolNeverClimbsADoorThatMayOpenUnderIt() => Play("freighter", 2, 16);
 
     /// <summary>
     /// The property's plays reach side-wall climbs, a shelf in the spider's way, a vessel's only inner wall: half of these six do (5 of 12 at

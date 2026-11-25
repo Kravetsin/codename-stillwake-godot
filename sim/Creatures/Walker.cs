@@ -235,7 +235,7 @@ internal sealed class WalkerBody : BodyRule
     /// <summary>
     /// <paramref name="c"/> flown a tick along its speed in parts of under a cell, no gravity: at the first solid cell on its way it stops
     /// flush against it, on each axis that met it, and its act is over. A vessel's guard stops as it would leave the hull box, out an
-    /// open way in.
+    /// open way in, or fly over a hole down into space.
     /// </summary>
     private static void Fly(CreaturesModule m, Creature c, Spec.Species spec, Spec.Walker w)
     {
@@ -243,7 +243,7 @@ internal sealed class WalkerBody : BodyRule
         for (int i = 0; i < parts; i++)
         {
             int dx = Part(c.VX, i, parts), dy = Part(c.VY, i, parts);
-            if (m.Docks.Count > 0 && !m.InHull(w, c.X + dx, c.Y + dy))
+            if (m.Docks.Count > 0 && (!m.InHull(w, c.X + dx, c.Y + dy) || !m.Floored(w, c.X + dx, c.Y + dy)))
             {
                 m.EndAct(c, spec, 0, hop: false);
                 return;

@@ -20,19 +20,21 @@ public static partial class Shipyard
     }
 
     /// <summary>
-    /// The guards' docks aboard vessel <paramref name="b"/> as built (<see cref="Vessels.Aboard"/>): none on a wreck, an intact one's drawn
-    /// from a stream of their own (16) so the vessel stays as it was: for each kind in turn, its rooms (a deck tall, or more) counted, the arrival room among them; the
-    /// candidates, those rooms in index order but the arrival room, where the dock's box fits clear of the way (a ladder, a hatch in its
-    /// floor); <c>min(ceil(rooms / Per), candidates)</c> of them drawn by a partial Fisher–Yates; then in index order one draw each of a
-    /// column where the box fits, clear of every fitting and shelf where it can be, else over them. Spiders, then robots, each by room
-    /// index. What a capsule covers is left out as the vessel is written (<see cref="Docked"/>); a stand stands over what it covers.
+    /// The guards' docks aboard vessel <paramref name="b"/> as built (<see cref="Vessels.Aboard"/>), drawn from a stream of their own (16)
+    /// so the vessel stays as it was: for each kind in turn, its rooms (a deck tall, or more) counted, the arrival room among them, a
+    /// wreck's bow half of a cut room not; the candidates, every room in index order but the arrival room, where the dock's box fits clear
+    /// of the way (a ladder, a hatch in its floor) and, on a wreck, of what it lost (<see cref="Lost"/>);
+    /// <c>min(ceil(rooms / Per), candidates)</c> of them (a wreck's <c>WreckPer</c>; a cut room's halves one candidate) drawn by a partial
+    /// Fisher–Yates, a half whose other half is picked passed over; then in index order one draw each of a column
+    /// where the box fits, clear of every fitting and shelf still standing where it can be, else over them. Spiders, then robots, each by
+    /// room index. What a capsule covers is left out as the vessel is written (<see cref="Docked"/>); a stand stands over what it covers.
     /// </summary>
     public static IReadOnlyList<Dock> Guards(Built b)
     {
-        if (b.Wreck != null) return [];
         var v = b.Vessel;
         var rng = Draws(Vessels.Class(v.Class)!, v.Seed, 16);
         var (ladders, furniture) = Taken(v);
+        if (b.Wreck != null) (ladders, furniture) = (Lost(b, ladders), Standing(b, furniture));
         var (ax, ay) = Door(b);
         var docks = new List<Dock>();
         foreach (var rule in Aboard.Rules)
@@ -43,16 +45,22 @@ public static partial class Shipyard
             {
                 var c = v.Compartments[i];
                 if (c.Decks > 1 != rule.Big) continue;
-                rooms++;
+                if (c.Of < 0) rooms++;
                 if (!c.Holds(ax, ay) && Fits(c, rule, ladders, furniture).Count > 0) candidates.Add(i);
             }
-            int count = Math.Min((rooms + rule.Per - 1) / rule.Per, candidates.Count);
-            for (int k = 0; k < count; k++)
+            // A room a break cut in two is one room: its halves share an origin, and only the first of them drawn is picked.
+            int Origin(int i) => v.Compartments[i].Of is int of and >= 0 ? of : i;
+            int per = b.Wreck == null ? rule.Per : rule.WreckPer;
+            int count = Math.Min((rooms + per - 1) / per, candidates.Select(Origin).Distinct().Count());
+            var picked = new List<int>();
+            var origins = new HashSet<int>();
+            for (int k = 0; picked.Count < count; k++)
             {
                 int j = k + (int)rng.Below((uint)(candidates.Count - k));
                 (candidates[k], candidates[j]) = (candidates[j], candidates[k]);
+                if (origins.Add(Origin(candidates[k]))) picked.Add(candidates[k]);
             }
-            var picked = candidates.Take(count).Order().ToList();
+            picked.Sort();
             foreach (int i in picked)
             {
                 var c = v.Compartments[i];
@@ -62,6 +70,45 @@ public static partial class Shipyard
             }
         }
         return docks;
+    }
+
+    /// <summary>
+    /// <paramref name="ladders"/>, every piece of a ladder left standing (a shaft cut short too), and every cell of a room of wreck
+    /// <paramref name="b"/> its chain took (derelict-guards): one an event carved (<see cref="WreckEvent.Carved"/>), or with no back wall
+    /// left, open to space (a break's gap); and every cell of the floor row under a room carved or with no structure left (a sunk deck).
+    /// </summary>
+    private static HashSet<(int, int)> Lost(Built b, HashSet<(int, int)> ladders)
+    {
+        var v = b.Vessel;
+        var backed = new HashSet<(int, int)>();
+        var built = new HashSet<(int, int)>();
+        var lost = new HashSet<(int, int)>(ladders);
+        foreach (var p in b.Parts)
+        {
+            if (p.Layer == "back") backed.Add((p.X, p.Y));
+            else if (p.Kind == "ladder") lost.UnionWith(Covers(p));
+            if (p.Layer == "structure") built.Add((p.X, p.Y));
+        }
+        var carved = new HashSet<int>();
+        foreach (var e in b.Wreck!.Events) carved.UnionWith(e.Carved);
+        foreach (var c in v.Compartments)
+            for (int x = c.Left; x < c.Left + c.Width; x++)
+            {
+                for (int y = c.Top; y < c.Floor; y++)
+                    if (!backed.Contains((x, y)) || carved.Contains(y * v.Width + x)) lost.Add((x, y));
+                if (!built.Contains((x, c.Floor)) || carved.Contains(c.Floor * v.Width + x)) lost.Add((x, c.Floor));
+            }
+        return lost;
+    }
+
+    /// <summary>The cells of <paramref name="furniture"/> something of wreck <paramref name="b"/> still covers: what its chain left standing.</summary>
+    private static HashSet<(int, int)> Standing(Built b, HashSet<(int, int)> furniture)
+    {
+        var covered = new HashSet<(int, int)>();
+        foreach (var p in b.Parts)
+            if (p.Layer != "back") covered.UnionWith(Covers(p));
+        covered.IntersectWith(furniture);
+        return covered;
     }
 
     /// <summary>
@@ -79,7 +126,7 @@ public static partial class Shipyard
 
     /// <summary>
     /// The left columns, in order, where <paramref name="rule"/>'s box stands on <paramref name="c"/>'s floor inside it clear of every
-    /// cell of the way and of all <paramref name="furniture"/>; with none so clear, those clear of the way.
+    /// cell of the way (its floor's row under it too) and of all <paramref name="furniture"/>; with none so clear, those clear of the way.
     /// </summary>
     private static List<int> Fits(Vessel.Compartment c, Aboard.Rule rule, HashSet<(int, int)> ladders, HashSet<(int, int)> furniture)
     {
@@ -95,7 +142,8 @@ public static partial class Shipyard
         for (int x = c.Left; x + rule.Width <= c.Left + c.Width; x++)
         {
             bool clear = true;
-            for (int y = top; y < c.Floor && clear; y++)
+            // Its box clear, and the floor row under it: a wreck's lost floor is in the way.
+            for (int y = top; y <= c.Floor && clear; y++)
                 for (int dx = 0; dx < rule.Width && clear; dx++)
                     clear = !ladders.Contains((x + dx, y)) && furniture?.Contains((x + dx, y)) != true;
             if (clear) fits.Add(x);

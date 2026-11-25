@@ -1,6 +1,6 @@
 # Derelict guards
 
-- Status: accepted
+- Status: accepted; superseded in part by [wreck-guards](2026-11-25-wreck-guards.md)
 - Date: 2026-11-23
 
 ## Context

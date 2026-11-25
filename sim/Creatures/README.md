@@ -34,12 +34,12 @@
 | `Vent.cs` | The capback's vent. |
 | `Walker.cs` | Steps, leaps, climbs. |
 
-Every creature composed (creatures-are-composed): a species (`Content.Creatures`) names a body, life, faction, ranked drives,
-moves and yields, each a stateless `DriveRule`, `BodyRule` or `MoveRule` (`RuleBook`); a drive always wants it, one claims
-hits. A brain's order is pinned (`CreatureContractTests`). The dead are gone from the blow.
+A species (`Content.Creatures`, creatures-are-composed) names a body, life, faction, ranked drives, moves and yields, each a
+stateless `DriveRule`, `BodyRule` or `MoveRule` (`RuleBook`); a drive always wants it, one claims hits. A brain's order is
+pinned (`CreatureContractTests`). The dead go at the blow.
 
-- **Depends on:** `Grid` (ops: `SetDoorway`, a guard's pry); `Crew` (heroes' cells, `Hunted`; `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`, `TakeBursting`); `Building` (`TargetAt`, `ShotTakes`, `Surplus`, `Hit`, `Burst`, relics and posts); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
+- **Depends on:** `Grid` (`SetDoorway`); `Crew` (heroes, `Hunted`, `Blow`, `Shock`, `CallOff`, `Loot`); `Items` (weapons, ammo, drops, charge); `Debris`
+  (`Unreel`, `Hit`, `TakeBursting`); `Building` (targets, hits, bursts, relics, posts); `Rooms` (`Afloat`, `RoomAt`); `Knowledge` (`Earn`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt, Path }`, bottom middle in thousandths; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
   `Mem` rule numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Patches`, `Nests`, `Fired`. **Unsaved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`, `Docks`.
@@ -47,11 +47,10 @@ hits. A brain's order is pinned (`CreatureContractTests`). The dead are gone fro
 
 ## Rules
 
-- **A tick,** in id order: kept or gone; freed; drives' `Reflex`; an act's clock, or a higher drive that `Wants` it takes
-  over, or the one in charge `Run`s (false yields), at none left `Next`. Its body moves. On the beat, spawns.
+- **A tick,** in id order: kept or gone; freed; drives' `Reflex`; an act's clock, or a higher drive `Wants` it, or the one in charge `Run`s (false yields), at none left `Next`. Its body moves. On the beat, spawns.
 - **The walker** (0102, 0106): under gravity; solid: walls, floors, shut doors, the edge, fog.
   It steps `StepUp`; at a higher wall or a `Drop` it tries a leap (`Lands`), else its drive may act (`Blocked`), else turns.
-- **The clinger:** clamped to its wreck's top, riding and turning with it (`StanceOf`, `BoxOf`); off it, it flies through walls.
+- **The clinger:** clamped to its wreck's top, riding and turning with it; off it, it flies through walls.
 - **Grazers:** `Graze` idles, wanders, toward its kind past `Herd`. `Flee` runs; cornered, may lunge. `Retaliate`, struck in
   `Reach`, draws `Chance`, flees, lunges. `Escape` after.
 - **The lunge** (0103): wind-up, a charge along the ground at the nearest awake hero till past it, a wall, a drop, `Ticks`.
@@ -71,16 +70,18 @@ hits. A brain's order is pinned (`CreatureContractTests`). The dead are gone fro
 - **The warden** (`Posted`, `Ward`): on the beat at a post, its arena's relic standing, a hero in its keep box.
   Woken by a hero in the arena, a blow or a sibling, it pounces if no sibling acts (`Flies`), then `Stuck`. **Kept loop, no
   drop, never `Dead`:** post or relic gone, or `Calm`. Killed, it fells its post.
-- **Vessel guards** (derelict-guards, `*AboardTests`): spawned first, asleep at `Shipyard.Guards`' docks. `Lifetime.Aboard`:
-  never swept. `Dock`: a hero's cell in its room or a blow wakes it for good. The spider `Prowl`s by decks, hatch well and walls;
-  the escort `Patrol`s its deck, claws near, fires the `gauss` afoot. A shut doorway: `Pry` ticks, then `SetDoorway`; never the way in.
+- **Vessel guards** (wreck-guards): spawned first at its docks, asleep (a wreck's awake); `Lifetime.Aboard`,
+  never swept. `Dock`: a hero in its room or a blow wakes it for good. The spider `Prowl`s by decks, wells, walls: past `Lose`
+  it patrols random rooms, decks, wall spots at `Walk`, within `Chase` hunts at `Run`; never off the hull nor over a hole. The
+  escort `Patrol`s its deck, claws, fires the `gauss` afoot; a hero off it in sight it stands under, else heads for a door. A
+  shut doorway it pries (`Pry`, `SetDoorway`), never the way in.
 - **The hit path** (`Strike`, a shot): unless a drive `Shields`, damage; dead at hit points, `Yields` sprayed, `Purse` earned;
-  else knocked (`Life.Knock`, `Hop`), its act cut if it may be, drives told till one claims it.
-- **Shots:** `Fire` takes ammo and `Energy`; each tick, in id order, one steps to a solid cell, the lowest-id creature, a
+  else knocked (`Life.Knock`, `Hop`), its act cut if cuttable, drives told till one claims it.
+- **Shots:** `Fire` takes ammo and `Energy`; a tick, in id order, each steps to a solid cell, the lowest-id creature, a
   machine (the lifepod stops it), a wreck (not `Passed`), on through bodies it `Pierces`, cells it `Carries`; falls
   (`ShotFlight`). `Homes`: turns `Turn` a tick, bursts in `Reach`; `Bursts`: at the first it meets. **A burst** (fuel-drums,
   debris-bursts): wrecks in `Wave` take `WreckDamage`, awake heroes and live creatures it sees `Body`, each once.
-- **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as a hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
+- **`HitBy(Creature)`**, **`Bolted(Arc)`**, as a hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero. **`Release`** (dev): `Place`. **`Threatens(peer)`**: one in `ThreatReach` acts or hunts.
 - **Kept or gone** (0102): out of every keep box, gone `Linger` after; out of a hard box, at once. **Spawning:** on the beat a
   herd of the hero's band's kind, `Spacing` apart, all or none (`PerKeep`, `Max`, `Apart`). **Guards** (`Kind.Guards`): each
@@ -95,8 +96,7 @@ hits. A brain's order is pinned (`CreatureContractTests`). The dead are gone fro
 ## Guarantees
 
 - Every creature on the grid, walker or flyer out of solid, a catcher afloat all in `Space`; damage below hit points; ids only grow; at most `Max`;
-  ticks never past a length; a charge, or an arc a hero, hurts once at most; suits in range; a shut
-  shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, in reach, never through solid (`ShotsInvariantTests`).
+  ticks never past a length; a charge, or an arc a hero, hurts once at most; suits in range; a shut shell never hurt; a patch on the grid within `Lasts` (`CreaturesInvariantTests`). Every shot on the grid, in reach, never through solid (`ShotsInvariantTests`).
 - Nothing to spawn: nothing drawn; only `Watermark` moves.
 
 ## Deliberately not handled
@@ -104,5 +104,5 @@ hits. A brain's order is pinned (`CreatureContractTests`). The dead are gone fro
 - **No collisions**; a clinger senses through rock; despawn loses damage; no stun.
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing.
 - **A catcher:** none on a planet under twice `RingFrom` wide. **A derelict escorted aboard** brings its sentry; its pounce
-  passes walls; a blow breaking its wreck: unanswered. **Guards:** no stealth, never re-docked; none on wrecks or stations.
+  passes walls; a blow breaking its wreck: unanswered. **Guards:** no stealth, never re-docked; none on stations.
 - **Shots** (0034): muzzle, pace, charge the client's; a guest's copy stops at blocks the nailer breaks.

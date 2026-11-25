@@ -199,13 +199,16 @@ public class ModulesTests
     /// <summary>
     /// The suites aboard a vessel world with its guards at their docks (derelict-guards): two worlds fed the same commands kept alike while
     /// the fuzz runs on the vessel's modules too and the hero steps into one dock's room after another, waking its guard, then stands in
-    /// the first escort's hall (a liner's) to be shot at; then the one saved, loaded and played on beside the live one.
+    /// the first escort's hall (a liner's) to be shot at; then the one saved, loaded and played on beside the live one. Aboard a wreck too,
+    /// its guards awake from birth.
     /// </summary>
     [Theory]
-    [InlineData("freighter", 6u)]
-    [InlineData("freighter", 13u)]
-    [InlineData("liner", 6u)]
-    public void KeepsTwoWorldsAlikeAndSavesLoadsAndPlaysOnAboardAVesselWithItsGuardsAwake(string cls, uint seed)
+    [InlineData("freighter", 6u, false)]
+    [InlineData("freighter", 13u, false)]
+    [InlineData("liner", 6u, false)]
+    [InlineData("freighter", 6u, true)]
+    [InlineData("liner", 6u, true)]
+    public void KeepsTwoWorldsAlikeAndSavesLoadsAndPlaysOnAboardAVesselWithItsGuardsAwake(string cls, uint seed, bool wrecked)
     {
         var rng = new Rng(new RngState { S = seed });
         var (a, b) = (new Registry(), new Registry());
@@ -217,7 +220,7 @@ public class ModulesTests
             second.Step([c]);
         }
         Both(new Crew.Enter(a.Crew.Spawn));
-        Both(new Places.Find(cls, Wrecked: false));
+        Both(new Places.Find(cls, Wrecked: wrecked));
         var contact = a.Places.Contacts[^1];
         Both(new Places.Jump(contact.Id));
         var aboard = Registry.On(first, first.SurfaceOf(0));

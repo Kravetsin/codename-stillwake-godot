@@ -5,8 +5,8 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// A vessel's guards (derelict-guards): one asleep at each of its docks (<see cref="Shipyard.Guards"/>), spawned as its world opens,
-/// before any other creature there, so their ids follow the docks. Read from the vessel's description, never the grid: Places writes
+/// A vessel's guards (derelict-guards): one at each of its docks (<see cref="Shipyard.Guards"/>), spawned as its world opens, before any
+/// other creature there, so their ids follow the docks: asleep aboard an intact vessel, awake already aboard a wreck, its docks open. Read from the vessel's description, never the grid: Places writes
 /// the vessel after this module has run. What they wake and hunt by is the vessel's too: its rooms, hull box, floors, hatches, way in.
 /// </summary>
 public sealed partial class CreaturesModule
@@ -16,17 +16,28 @@ public sealed partial class CreaturesModule
 
     private IReadOnlyList<Shipyard.Dock> _docks = [];
 
+    /// <summary>Whether this surface's vessel is a wreck: its guards are born awake. Derived.</summary>
+    private bool _wrecked;
+
     /// <summary>Each dock's room's open cells in the world, in <see cref="Docks"/>' order. Derived.</summary>
     private Box[] _cabins = [];
+
+    /// <summary>Every room's open cells in the world, in the vessel's order: where a spider patrols to. Derived.</summary>
+    private Box[] _compartments = [];
 
     /// <summary>The box of the vessel's hull and rooms in the world, its armour in it: aboard. <see cref="Box.None"/> off a vessel world. Derived.</summary>
     private Box _hull = Box.None;
 
-    /// <summary>The rows of the vessel's floors in the world, a deck's and a hatch's, ascending and distinct. Derived.</summary>
+    /// <summary>The rows of the vessel's floors in the world, a deck's, a hatch's and a room's, ascending and distinct. Derived.</summary>
     private int[] _floors = [];
 
     /// <summary>Its hatches in the world, each its left column and floor row, by row then column. Derived.</summary>
     private (int X, int Y)[] _hatches = [];
+
+    /// <summary>
+    /// The floor row each hatch's well rises from, in <see cref="_hatches"/>' order (<see cref="WellFloor"/>). Derived.
+    /// </summary>
+    private int[] _wells = [];
 
     /// <summary>Its doors between rooms in the world, the way in left out, each its left column and top row, by row then column. Derived.</summary>
     private (int X, int Y)[] _doors = [];
@@ -48,28 +59,43 @@ public sealed partial class CreaturesModule
 
     public override void Rebuild()
     {
-        // Only an intact vessel has guards (Shipyard.Guards), built as Places writes it; a drawn wreck needs no build to know it.
-        var cls = Rules is VesselKind kind ? Vessels.Class(kind.Class)! : null;
-        bool drawnWreck = cls != null && Surfaces.Wreck == null && Shipyard.IsWreck(cls, Surfaces.Seed);
-        if (cls == null || drawnWreck || (Surfaces.Vessel ?? Shipyard.Build(cls, Surfaces.Seed, Surfaces.Wreck)) is not { Wreck: null } built)
+        // The vessel built as Places writes it, intact or a wreck (Shipyard.Guards).
+        if (Rules is not VesselKind kind)
         {
-            (_docks, _cabins, _hull, _floors, _hatches, _wayIn, _doors) = ([], [], Box.None, [], [], Box.None, []);
+            (_docks, _cabins, _compartments, _hull, _floors, _hatches, _wells, _wayIn, _doors, _wrecked) = ([], [], [], Box.None, [], [], [], Box.None, [], false);
             return;
         }
+        var built = Surfaces.Vessel ?? Shipyard.Build(Vessels.Class(kind.Class)!, Surfaces.Seed, Surfaces.Wreck);
         var v = built.Vessel;
+        _wrecked = built.Wreck != null;
         int m = Vessels.Margin;
         _docks = Shipyard.Guards(built);
-        _cabins = [.. _docks.Select(d => v.Compartments[d.Room]).Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
+        _compartments = [.. v.Compartments.Select(r => new Box(m + r.Left, m + r.Top, m + r.Left + r.Width - 1, m + r.Floor - 1))];
+        _cabins = [.. _docks.Select(d => _compartments[d.Room])];
         // The hull and its rooms, its bow's open rows past the last room too; never a module, rib or housing bulged onto it.
         _hull = Box.None;
         foreach (var h in v.Sections)
             if (h.Kind is Vessel.SectionKind.Body or Vessel.SectionKind.Bow or Vessel.SectionKind.Bridge or Vessel.SectionKind.Tier)
                 _hull = _hull.Union(new Box(m + h.Left, m + h.Top, m + h.Left + h.Width - 1, m + h.Bottom));
-        _floors = [.. v.Decks.Select(d => m + d.Floor).Concat(v.Hatches.Select(h => m + h.Y)).Distinct().Order()];
+        _floors = [.. v.Decks.Select(d => m + d.Floor).Concat(v.Hatches.Select(h => m + h.Y)).Concat(v.Compartments.Select(r => m + r.Floor)).Distinct().Order()];
         _hatches = [.. v.Hatches.Select(h => (X: m + h.X, Y: m + h.Y)).OrderBy(h => h.Y).ThenBy(h => h.X)];
+        _wells = [.. _hatches.Select(h => WellFloor(v, h.X - m, h.Y - m) + m)];
         var door = Shipyard.WayIn(built);
         _wayIn = new Box(m + door.X, m + door.Y, m + door.X + Doorways.Thick - 1, m + door.Y + Vessels.Open - 1);
         _doors = [.. v.Doors.Where(d => d != door).Select(d => (X: m + d.X, Y: m + d.Y)).OrderBy(d => d.Y).ThenBy(d => d.X)];
+    }
+
+    /// <summary>
+    /// The floor row, in <paramref name="v"/>'s frame, the well under its hatch at (<paramref name="x"/>, <paramref name="y"/>) rises from:
+    /// that of the room its ladder's foot stands in (a wreck's sunk half lays its decks at other rows than <c>Decks</c>), else the row
+    /// under its foot; with no ladder, under the hatch.
+    /// </summary>
+    private static int WellFloor(Vessel v, int x, int y)
+    {
+        int foot = v.Shafts.FirstOrDefault(s => s.Column == x && s.Top == y + 1) is { } shaft ? shaft.Bottom : y + 1;
+        foreach (var r in v.Compartments)
+            if (x >= r.Left && x < r.Left + r.Width && foot >= r.Top && foot < r.Floor) return r.Floor;
+        return foot + 1;
     }
 
     /// <summary>The place in <see cref="Docks"/> of <paramref name="c"/>'s dock; null for one past them (a save of another build): no dock.</summary>
@@ -96,7 +122,10 @@ public sealed partial class CreaturesModule
         return best;
     }
 
-    /// <summary>A guard asleep on the floor in the middle of each dock's box, in their order: the frame's top-left at (<c>Margin</c>, <c>Margin</c>).</summary>
+    /// <summary>
+    /// A guard on the floor in the middle of each dock's box, in their order, the frame's top-left at (<c>Margin</c>, <c>Margin</c>): asleep,
+    /// or on a wreck awake from birth (<see cref="DockDrive.Woke"/>), its dock never closed on it, its brain's next drive in charge.
+    /// </summary>
     protected override void Opened()
     {
         int m = Vessels.Margin;
@@ -105,7 +134,11 @@ public sealed partial class CreaturesModule
             var dock = _docks[i];
             var spec = Spec.Get(dock.Species);
             var (x, y) = Standing(spec, m + dock.X + (dock.Width - spec.Body.Width) / 2, m + dock.Y + dock.Height - 1);
-            Add(spec, x, y).Keep(DockKey, i);
+            Add(spec, x, y, c =>
+            {
+                c.Keep(DockKey, i);
+                if (_wrecked) c.Keep(DockDrive.Woke, 1);
+            });
         }
     }
 
@@ -128,18 +161,94 @@ public sealed partial class CreaturesModule
     /// <summary>The <see cref="Quarry"/> of <paramref name="c"/> with its hero's peer: what an escort's shot locks on.</summary>
     internal (int Peer, (int X, int Y) At)? QuarryOf(Creature c)
     {
-        int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
         (int Peer, (int X, int Y) At)? best = null;
         long far = long.MaxValue;
         for (int i = 0; i < _heroes.Count; i++)
         {
             var at = _heroes[i];
             if (!_awake[i] || !_hull.Contains(at.X, at.Y)) continue;
-            long d = (long)(at.X - x) * (at.X - x) + (long)(at.Y - y) * (at.Y - y);
+            long d = Far(c, at);
             if (d >= far) continue;
             (far, best) = (d, (_peers[i], at));
         }
         return best;
+    }
+
+    /// <summary>The squared distance in cells from <paramref name="c"/>'s cell to cell <paramref name="at"/>: how a guard ranks its quarry.</summary>
+    internal static long Far(Creature c, (int X, int Y) at)
+    {
+        long dx = at.X - Down(c.X, Unit), dy = at.Y - Down(c.Y - 1, Unit);
+        return dx * dx + dy * dy;
+    }
+
+    /// <summary>
+    /// Where a patrolling spider goes next: a cell of a room, its floor's open row; for a spot up a wall, its column beside the wall
+    /// (<paramref name="Wall"/> the wall's side, -1 left, 1 right; 0 for none) and <paramref name="Spot"/> the row its feet cling at.
+    /// </summary>
+    internal readonly record struct Roamed(int X, int Y, int Wall = 0, int Spot = 0);
+
+    /// <summary>
+    /// <paramref name="c"/>'s next patrol goal, drawn from the world's numbers by <paramref name="p"/>: <c>UpAWall</c> in a hundred a spot
+    /// up a solid side wall of a room (<see cref="SideWalls"/>), its feet at a row drawn from a cell over its floor up to its head under the
+    /// ceiling; <c>OtherDeck</c> in a hundred a room on another deck than its feet's; else one on its own. With no such wall or room, any
+    /// room. A room's cell: its floor's open row, a column clear of its side walls. Null off a vessel world.
+    /// </summary>
+    internal Roamed? RoamTo(Creature c, Spec.Walker w, Spec.Prowl p)
+    {
+        if (_compartments.Length == 0) return null;
+        int draw = (int)Rand.Below(100);
+        if (draw < p.UpAWall && SideWalls(w) is { Count: > 0 } walls)
+        {
+            var (room, side) = walls[(int)Rand.Below((uint)walls.Count)];
+            var b = _compartments[room];
+            int lowest = b.Bottom - 1, highest = b.Top + w.Height - 1;
+            return new(side < 0 ? b.Left : b.Right, b.Bottom, side, highest + (int)Rand.Below((uint)(lowest - highest + 1)));
+        }
+        bool other = draw >= p.UpAWall && draw < p.UpAWall + p.OtherDeck;
+        int level = Level(Down(c.Y - 1, Unit));
+        var rooms = new List<int>();
+        for (int i = 0; i < _compartments.Length; i++)
+            if ((Level(_compartments[i].Bottom) != level) == other) rooms.Add(i);
+        var r = _compartments[rooms.Count > 0 ? rooms[(int)Rand.Below((uint)rooms.Count)] : (int)Rand.Below((uint)_compartments.Length)];
+        int inner = Math.Max(1, r.Right - r.Left - 1);
+        return new(Math.Min(r.Right, r.Left + 1 + (int)Rand.Below((uint)inner)), r.Bottom);
+    }
+
+    /// <summary>
+    /// Every side wall of a room a body of <paramref name="w"/> may cling up, in the rooms' order, the left first: the column past the room's
+    /// side solid on every row of it (no doorway in it), the room tall enough for the body a cell over its floor. Read off the grid now.
+    /// </summary>
+    private List<(int Room, int Side)> SideWalls(Spec.Walker w)
+    {
+        var walls = new List<(int, int)>();
+        for (int i = 0; i < _compartments.Length; i++)
+        {
+            var b = _compartments[i];
+            if (b.Bottom - 1 < b.Top + w.Height - 1) continue;
+            foreach (int side in (int[])[-1, 1])
+            {
+                int column = side < 0 ? b.Left - 1 : b.Right + 1;
+                bool solid = true;
+                // A shut door is solid but no wall: opened, it would leave the spider clinging to nothing.
+                for (int row = b.Top; row <= b.Bottom && solid; row++)
+                    solid = Solid(column, row) && !Doorways.IsDoorway(_grid.StructureAt(row * _grid.Width + column));
+                if (solid) walls.Add((i, side));
+            }
+        }
+        return walls;
+    }
+
+    /// <summary>
+    /// Whether something solid lies under a body of <paramref name="s"/> at (<paramref name="x"/>, <paramref name="y"/>) before the hull
+    /// box's bottom: what it stands or falls onto aboard; none is a hole down into space.
+    /// </summary>
+    internal bool Floored(Spec.Shape s, int x, int y)
+    {
+        int half = s.Width * Unit / 2;
+        for (int row = Down(y - 1, Unit) + 1; row <= _hull.Bottom; row++)
+            for (int column = Down(x - half, Unit); column <= Down(x + half - 1, Unit); column++)
+                if (Solid(column, row)) return true;
+        return false;
     }
 
     /// <summary>Whether a body of <paramref name="s"/> at (<paramref name="x"/>, <paramref name="y"/>) lies wholly in the hull box.</summary>
@@ -167,6 +276,22 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
+    /// The way up from floor row <paramref name="floor"/>: of the hatches whose wells rise from it, the one whose middle is nearest
+    /// <paramref name="x"/> (thousandths), the first by row then column at a tie: its middle and its floor row; null for none. Not the next
+    /// floor up: a hall two decks tall has its well's ladder rise past one, and a vessel's sections may lay their decks at other rows.
+    /// </summary>
+    internal (int X, int Row)? WayUp(int floor, int x)
+    {
+        (int X, int Row)? best = null;
+        for (int i = 0; i < _hatches.Length; i++)
+        {
+            int middle = (_hatches[i].X + 1) * Unit;
+            if (_wells[i] == floor && (best is not { } b || Math.Abs(middle - x) < Math.Abs(b.X - x))) best = (middle, _hatches[i].Y);
+        }
+        return best;
+    }
+
+    /// <summary>
     /// The hatch in floor row <paramref name="floor"/> whose middle is nearest <paramref name="x"/> (thousandths), the lower column at a tie:
     /// its middle in thousandths; null for none in that floor.
     /// </summary>
@@ -189,13 +314,15 @@ public sealed partial class CreaturesModule
         return false;
     }
 
-    /// <summary>The floor row of the hatch right over a body whose middle is <paramref name="x"/> (thousandths), nearest above its feet <paramref name="y"/>; null for none.</summary>
-    internal int? HatchOver(int x, int y)
+    /// <summary>
+    /// The floor row of the hatch right over a body whose middle is <paramref name="x"/> (thousandths) whose well rises from floor row
+    /// <paramref name="floor"/>: the way on up from a hatch just climbed through; null for none, a floor between them.
+    /// </summary>
+    internal int? WellOver(int x, int floor)
     {
-        int? row = null;
-        foreach (var h in _hatches)
-            if ((h.X + 1) * Unit == x && h.Y * Unit < y && (row == null || h.Y > row)) row = h.Y;
-        return row;
+        for (int i = 0; i < _hatches.Length; i++)
+            if ((_hatches[i].X + 1) * Unit == x && _wells[i] == floor) return _hatches[i].Y;
+        return null;
     }
 
     /// <summary>Whether a body of <paramref name="s"/> with its feet flush on row <paramref name="y"/>'s top (thousandths) has an open hatch of that row under it.</summary>
