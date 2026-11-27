@@ -28,6 +28,12 @@ public static partial class CreatureArt
     /// <summary>The Istukan's design in ink (<c>Features.Creatures.IstukanRig</c>): its parts, which node its body is, its nodes.</summary>
     public sealed record IstukanDesign(string Id, IReadOnlyDictionary<string, Part> Parts, int Body, IstukanNode[] Nodes);
 
+    /// <summary>
+    /// A design posed by its own rig in code (the escort A1 «Конвоир», its stand S1's moving parts; derelict-guards): only its parts, each its
+    /// picture and pivot; where each goes is the rig's (<c>Features.Creatures.EscortRig</c>, <c>DocksView</c>).
+    /// </summary>
+    public sealed record PartsDesign(string Id, IReadOnlyDictionary<string, Part> Parts);
+
     /// <summary>What moves a cave lurker's node (cave-hostiles): its body, a leg, its head, its caps; a snail's tail, front, eye stalk, shell, plug.</summary>
     public enum LurkerDrive { Body, Leg, Head, Caps, Tail, Front, Stalk, Shell, Plug }
 

@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// lighting the wreck in its colour, red arcs jumping between its legs as it winds up, an amber burner trailing sparks and
 /// smoke while it flies, its feet's magnets glowing while it grips; struck a white flash and fine sparks; a harpoon line it
 /// cuts snipped in sparks at its claw; killed, cracks flashing over it till it bursts into sparks and its own pixels (2026-10-29-kill-feel). Heard on the
-/// Suit bus, as the wreck it guards is (<see cref="S.Ticks"/>). Drawn between ticks where the sim put it.
+/// Suit bus, as the wreck it guards is (<see cref="S.Ticks"/>), a spider's steps and pry on World. Drawn between ticks where the sim put it.
 /// </summary>
 public partial class TickBodies : Node2D
 {
@@ -47,6 +47,8 @@ public partial class TickBodies : Node2D
         public LoopEnvelope Burning;
         public TickArt.Anchors Anchors = null!;
         public S.TickCues? Cues;
+        public Footfalls Feet = null!;
+        public int? Prying;
         public Vector2 From, To, Drawn;
         /// <summary>How it was last drawn turned with its wreck, in radians: kept as it dies.</summary>
         public double Stance;
@@ -112,6 +114,16 @@ public partial class TickBodies : Node2D
             if (!_shown.TryGetValue(c.Id, out var one)) _shown[c.Id] = one = Take(c, creatures, tick);
             Follow(one, c, creatures, debris, tick);
             var feet = one.From.Lerp(one.To, (float)Math.Clamp(progress, 0, 1)) / Unit * Cell;
+            // A vessel's spider waking (derelict-guards): hidden till its capsule's iris is open, then unfolding on its shelf and dropping.
+            double folded = 0;
+            one.Visible = true;
+            if (c.Posture == Posture.Waking && CreaturesModule.DockOf(c) is int dock && dock < creatures.Docks.Count)
+            {
+                double p = DockWake.Progress(c.Left, DocksView.WakeOf(c), progress);
+                folded = DockWake.Folded(p);
+                one.Visible = DockWake.Shown(p);
+                feet = DocksView.Shelf(creatures.Docks[dock]).Lerp(feet, (float)DockWake.Drop(p));
+            }
             bool blown = c.Damage > one.Damage;
             if (blown)
             {
@@ -119,11 +131,12 @@ public partial class TickBodies : Node2D
                 if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
                 one.Damage = c.Damage;
             }
-            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress) with { Blown = blown }, dt);
+            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress, folded) with { Blown = blown }, dt);
             one.Drawn = feet;
             // Clamped on, it stands on its wreck as the wreck is drawn turned (debris-physics).
             one.Show(feet, CreaturesModule.Clamped(c) && debris.PieceById(one.Piece) is { } on ? PieceDrawn.Pose(on, progress).Radians : 0);
             Moments(one, moments);
+            Walked(one, c, dt);
             Cut(one, c);
             Sawing(one, debris, dt, lights);
             Whip(one, dt);
@@ -171,6 +184,7 @@ public partial class TickBodies : Node2D
         (one.From, one.To, one.Tick, one.Damage, one.Species) = (at, at, tick, c.Damage, c.Species);
         (one.Cut, one.OwnAt, one.Piece) = (CreaturesModule.LastCut(c), double.NegativeInfinity, -1);
         one.Cues = S.Ticks.GetValueOrDefault(c.Species);
+        (one.Feet, one.Prying) = (new Footfalls(S.SpiderStepEvery, S.SpiderStepLeastS), CreaturesModule.PryingAt(c));
         one.Look = CreatureLooks.Ticks[Spec.Creatures.Get(c.Species).Look];
         one.Burning = default;
         (one.WhipLeft, one.LineWay) = (0, Vector2.Left);
@@ -211,11 +225,14 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>What the sim says of <paramref name="c"/> as its motion reads it, <paramref name="progress"/> of the way to the next tick.</summary>
-    private TickMotion.Seen SeenOf(Shown one, Creature c, CreaturesModule creatures, IDebrisQueries debris, double progress)
+    private TickMotion.Seen SeenOf(Shown one, Creature c, CreaturesModule creatures, IDebrisQueries debris, double progress, double folded)
     {
         var spec = Spec.Creatures.Get(c.Species);
-        bool clamped = CreaturesModule.Clamped(c);
         var act = c.Act;
+        // A vessel's spider walks (derelict-guards): on its feet or holding a wall, it is as a tick clamped on; it crawls at its run or climb.
+        bool walker = spec.Body is Spec.Creatures.Walker, flies = act is { Phase: ActPhase.Active } && spec.Moves[act.Move] is Spec.Creatures.Pounce;
+        int wall = walker ? CreaturesModule.Holds(c) : 0;
+        bool clamped = walker ? !flies && (wall != 0 || c.VY == 0) : CreaturesModule.Clamped(c);
         // An arc is no pounce: it crouches to aim, its eye flickering the arc's colour, held once its aim is taken, and recovers
         // clamped on.
         bool shoots = act != null && spec.Moves[act.Move] is Spec.Creatures.Shoot;
@@ -226,7 +243,7 @@ public partial class TickBodies : Node2D
         if (winding && spec.Moves[act!.Move] is Spec.Creatures.Pounce pounce)
             windUpS = (pounce.WindUp - act.Left + Math.Clamp(progress, 0, 1)) / World.TicksPerSecond;
         double perTick = Cell / (double)Unit * World.TicksPerSecond;
-        double crawl = clamped ? (one.AlongTo - one.AlongFrom) * perTick : 0;
+        double crawl = walker ? (wall != 0 ? Math.Abs(c.VY) : c.VX) * perTick : clamped ? (one.AlongTo - one.AlongFrom) * perTick : 0;
         var middle = one.Drawn + new Vector2(0, -8);
         (double, double)? hero = Nearest(middle) is { } h ? (h.X - middle.X, h.Y - middle.Y) : null;
         var (cutLeft, cutOf) = creatures.CutLeft(c);
@@ -234,7 +251,7 @@ public partial class TickBodies : Node2D
         (double, double)? line = cutting && LineEnd(debris, one.Piece) is { } end ? (end.X - middle.X, end.Y - middle.Y) : null;
         double done = cutting ? Math.Clamp((cutOf - cutLeft + Math.Clamp(progress, 0, 1)) / cutOf, 0, 1) : 0;
         return new TickMotion.Seen(clamped, CreaturesModule.Alerted(c), winding, windUpS, pouncing, pouncing ? act!.Left : 0,
-            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked);
+            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked, Walker: walker, Folded: folded, Wall: wall);
     }
 
     /// <summary>
@@ -262,6 +279,20 @@ public partial class TickBodies : Node2D
         double heading = Math.Atan2(to.Y, to.X);
         CreatureFx.Sparks(Stages.Of(Layers.Effects), at, heading, 1);
         if (one.Cues is { } cues) (own ? _suit : _world).Play(own ? S.Felt(cues.Hit) : cues.Hit, at, 1, GroundSounds.HitDbOf(tool));
+    }
+
+    /// <summary>
+    /// A walking one heard on World, aboard (derelict-guards): its steps at its feet as its crawl passes them, on the floor or a wall;
+    /// its pry as it begins at a doorway.
+    /// </summary>
+    private void Walked(Shown one, Creature c, double dt)
+    {
+        if (one.Cues is not { } cues) return;
+        bool walks = cues.Step != null && c.Posture is not (Posture.Docked or Posture.Waking);
+        if (one.Feet.Step(one.Motion.Pose.Gait / TickMotion.GaitPerPixel, walks, dt)) _world.Play(cues.Step!, one.Drawn);
+        int? prying = CreaturesModule.PryingAt(c);
+        if (prying != null && prying != one.Prying && cues.Pry != null) _world.Play(cues.Pry, one.World(one.Anchors.Centre));
+        one.Prying = prying;
     }
 
     /// <summary>Its moments seen and heard: a start and a flash at its eye, the wind-up's servo, letting go and clamping on, a braking flight, a hero struck.</summary>

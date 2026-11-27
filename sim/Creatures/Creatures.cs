@@ -41,6 +41,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public const int Unit = 1000;
 
     private readonly IGridQueries _grid;
+    private readonly IGridOps _gridOps;
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
     private readonly IItemsQueries _held;
@@ -54,7 +55,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     public override string Id => "creatures";
 
-    public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
+    public CreaturesModule(IGridQueries grid, IGridOps gridOps, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
         IBuildingQueries built, IBuildingOps building, IRoomsQueries rooms,
         IKnowledgeOps knowledge)
     {
@@ -65,6 +66,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         _built = built;
         _building = building;
         _grid = grid;
+        _gridOps = gridOps;
         _crew = crew;
         _crewOps = crewOps;
         _held = held;
@@ -128,6 +130,9 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>The own cell of the relic <paramref name="c"/> is tied to; null for one tied to none.</summary>
     public static int? RelicOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Posted ? c.Recall(RelicKey) : null;
+
+    /// <summary>What <paramref name="c"/>, a climbing walker, holds: the wall on its left (-1) or right (1), the hatch well's ladder (2); 0 for none.</summary>
+    public static int Holds(Creature c) => c.Recall(WalkerBody.Wall);
 
     /// <summary>Whether <paramref name="c"/> is clamped on to its wreck: a clinger not flying.</summary>
     public static bool Clamped(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Mounted) == 1;
@@ -195,7 +200,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public string? ReleaseProblem(string species, int cell)
     {
         var spec = Spec.Get(species);
-        if (spec.Lifetime == Spec.Lifetime.Posted) return "creatures.notHere";
+        if (spec.Lifetime is Spec.Lifetime.Posted or Spec.Lifetime.Aboard) return "creatures.notHere";
         if (cell < 0 || cell >= _grid.Width * _grid.Height) return "creatures.blocked";
         if (State.Creatures.Count(c => !c.Dead) >= Spec.Max) return "creatures.full";
         return RuleBook.Body(spec.Body).ReleaseProblem(this, spec, cell);
@@ -322,9 +327,11 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// A creature of <paramref name="spec"/> standing at (<paramref name="x"/>, <paramref name="y"/>), in the charge of the first drive
     /// that wants it, seen now: its id the next.
     /// </summary>
-    private Creature Add(Spec.Species spec, int x, int y)
+    /// <param name="mem">What it remembers from birth, kept before its first drive is chosen.</param>
+    private Creature Add(Spec.Species spec, int x, int y, Action<Creature>? mem = null)
     {
         var c = new Creature { Id = State.NextId, Species = spec.Id, X = x, Y = y, SeenAt = State.Clock };
+        mem?.Invoke(c);
         c.Drive = Fallback(spec, c);
         RuleBook.Drive(spec.Brain[c.Drive]).Born(c, spec.Brain[c.Drive]);
         State.Creatures.Add(c);

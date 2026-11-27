@@ -42,7 +42,8 @@ public class CreatureInkTests
     [Fact]
     public void EveryWalkerIsDrawnInInk()
     {
-        var walkers = Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look));
+        var walkers = Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look) && !CreatureLooks.Escorts.Contains(s.Look) && !CreatureLooks.Lurkers.Contains(s.Look)
+            && !CreatureLooks.Ticks.ContainsKey(s.Look));
         Assert.All(walkers, s => Assert.True(CreatureArt.InkDesigns.ContainsKey(s.Look), $"{s.Id}: no design in ink for {s.Look}"));
     }
 

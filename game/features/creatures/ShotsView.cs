@@ -131,6 +131,8 @@ public partial class ShotsView : Node2D
         foreach (var hit in creatures.Hits)
         {
             if (!ShotDraws.DrawsSims(hit.By, own, hosts)) continue;
+            // The escort's gauss is drawn and heard by its body (EscortBodies).
+            if (hit.Projectile == Spec.Shots.Gauss.Id) continue;
             ShotEnds.Show(_m, hit.By == mine ? _ownEnds : _ends, hit);
             if (hit.By != mine && hit.Shot != bornAndEnded && !_seen.ContainsKey(hit.Shot) && !Flying(creatures, hit.Shot))
             {

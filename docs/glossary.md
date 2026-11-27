@@ -183,6 +183,15 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - страж шпиля / spire guard → `Creatures.Warden` = `"warden"`: a `Walker` at a `Post`, `Ward`, `Pounce`; dev `--ground=spire-guards`
 - истукан / Istukan → the warden's look: `CreatureLooks.Istukans`, f/creatures `IstukanBodies`, `IstukanArt`, `IstukanMotion`; sounds `Sound.Istukans`
 - клещ / tick → the sentry's look (its pick page's «Клещ»): `CreatureLooks.Ticks`, f/creatures `TickBodies`, `TickArt`, `TickMotion`; sounds `Sound.Ticks`
+- охрана, охранник / guards, a guard → a creature of `Lifetime.Aboard` at a dock aboard a vessel, asleep (`Dock`), placed by `Shipyard.Guards` (derelict-guards) → Creatures, Places
+- охрана на обломках / wreck guards → fewer, `Vessels.Aboard.Rule.WreckPer`; born awake at open docks (`DockDrive.Woke`) (wreck-guards) → Places, Creatures
+- паук / spider → `Creatures.Spider` = `"spider"`: the sentry on a climbing `Walker`, `Dock`, `Prowl`; drawn as the tick → Creatures
+- патруль паука / spider patrol → `Prowl`'s `Lose`, `Chase`, `Roam` (`UpAWall`, `OtherDeck`, `Cling`), `CreaturesModule.RoamTo` (wreck-guards) → Creatures
+- охранная капсула, капсула / capsule (a spider's dock, not the drop pod) → `Vessels.Aboard.Capsule` (G1 «Зрачок — впадина»), `Shipyard.Dock`, `Shipyard.Guards`, `Shipyard.Docked` (takes furniture's place); f/creatures `DocksView`, `DockWake`; art `guard_capsule*` → Creatures, Places
+- робот-охранник, конвоир / guard robot, escort **≠** → `Creatures.Escort` = `"escort"` (A1 «Конвоир»): `Dock`, `Patrol`, `Lunge` (its claw), `Shoot`; f/creatures `EscortBodies`, `EscortRig`; sounds `Sound.Escorts` → Creatures
+- стенд, люлька / stand (a robot's dock) → `Vessels.Aboard.Stand` (S1 «Люлька»), stands over furniture; f/creatures `DocksView`, `StandWake`; art `guard_stand`, `creatures/inkStand/*` → Creatures, Places
+- гаусс, выстрел гаусса / gauss shot → projectile `Shots.Gauss` = `"gauss"`, fired by the escort's `Shoot` with a `Speed` → Creatures
+- вскрыть дверь / pry (a door) → a guard's `Pry` ticks, then `IGridOps.SetDoorway`; never the way in (`Shipyard.WayIn`) → Creatures, Grid
 - вид / species → `Content.Creatures.Species`, composed of a body (`Shape`: `Walker`), `Life`, a faction, a brain and moves → Creatures
 - побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures
 - действие / act **≠** → `Act` (`Move`, `Phase`, `Left`), a move's rule a `MoveRule` (`Lunge`, the ram) → Creatures

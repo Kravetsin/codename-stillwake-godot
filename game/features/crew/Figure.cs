@@ -940,11 +940,16 @@ public partial class Figure : Node2D
     /// <summary>Whether a point of its surface stops light; none where it stands on no grid.</summary>
     public Func<double, double, bool>? StopsLight { get; set; }
 
-    /// <summary>Where its drone's light shines from, pixels of the world: its lens, or in a wall or past one the open point nearest it.</summary>
+    /// <summary>
+    /// Where its drone's light shines from, pixels of the world: its lens, or in a wall or past one the open point nearest it; its
+    /// head while the drone is hidden.
+    /// </summary>
     public Vector2 HeadLampAt
     {
         get
         {
+            // Hidden, the drone is not flown and its lens is wherever it was left: searched toward, it cost a meeting seconds a frame.
+            if (!_drone.Visible) return HeadAt;
             var lens = _drone.GlobalPosition;
             if (StopsLight is not { } stops) return lens;
             var neck = HeadAt;

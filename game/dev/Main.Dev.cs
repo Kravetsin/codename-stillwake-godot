@@ -92,6 +92,7 @@ public partial class Main
         if (_dev.Value("--edge") is { } edge)
             hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge));
         else if (_scenarios.Select(s => s.Start).FirstOrDefault(s => s != null) is { } start) hero.Start = start;
+        hero.Arrive = _scenarios.Select(s => s.Arrive).FirstOrDefault(a => a != null);
         // --meeting[=s]: the drone's meeting on this hero, standing two cells right of the core on its floor (drone-meeting).
         if (_dev.Given("--meeting") is { } meeting)
         {

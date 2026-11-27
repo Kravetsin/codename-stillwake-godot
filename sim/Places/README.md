@@ -4,10 +4,9 @@
 
 | File | Purpose |
 | --- | --- |
-| `Places.cs` | The radar's contacts, found by a timer or by hand; the course the shuttle flies and its set off; the jump that opens a contact's vessel world; the vessel written there. |
+| `Places.cs` | Contacts (radar, by hand), the course and set off, the jump to a vessel world, the vessel written there. |
 
-The places the radar finds and the way to them ([generated-vessels](../../docs/decisions/2026-10-30-generated-vessels.md),
-[vessel-worlds](../../docs/decisions/2026-11-09-vessel-worlds.md)): the contacts, aboard, and the jump that opens a surface of
+The places the radar finds and the way to them (generated-vessels, vessel-worlds): the contacts, aboard, and the jump that opens a surface of
 its own for a contact's vessel and moves its sender there. The vessel is built by `Shipyard.Build` (sim/Core `Vessels/`:
 described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.Wrecks`; the surface's kind is the class's `VesselKind`.
 
@@ -42,16 +41,18 @@ described, stamped, then wrecked, `Hulk`), from `Content.Vessels` and `Content.W
   jump opens a new world; a friend joins by `Transfer` and arrives at the same door.
 - **The vessel world** (Core's `World.Open`): space, the frame (`Vessel.Width` × `Height`) and `Vessels.Margin` round it, the
   frame's top-left at (`Margin`, `Margin`), the spawn at `Shipyard.Door`. Once every module stands, Places' `Opened` writes
-  the vessel there: its parts laid (`Grid.Lay`) in reading order of their top-left cells, so machine ids follow it, the
+  the vessel there: its parts less what a guard's capsule covers (`Shipyard.Docked(built.Parts,
+  Shipyard.Guards(built))`, derelict-guards), laid (`Grid.Lay`) in reading order of their top-left cells, so machine ids follow it, the
   spawn's own back wall kept, an open door's piece turned open (`SetDoorway`); its crates filled (`PutIn`) and their loot
-  counted obtained (`Caught`, the-board), a tank's liquid alike ([big-vessels](../../docs/decisions/2026-11-17-big-vessels.md)).
-  Furniture, salvage piles (`Content.Vessels.Salvage`) and outside parts ([derelict-looks](../../docs/decisions/2026-11-17-derelict-looks.md)).
+  counted obtained (`Caught`, the-board), a tank's liquid alike (big-vessels).
+  Furniture, salvage piles (`Content.Vessels.Salvage`) and outside parts (derelict-looks).
 - **Wrecks** ([vessel-wrecks](../../docs/decisions/2026-11-18-vessel-wrecks.md)): `WreckPercent` of contacts, drawn from the
   seed, are wrecked by a chain of 1–3 events by class, each next drawn evenly from those allowed: explosion, fire, icing,
   asteroid, break. A forced chain (`Find`'s `Wreck`, carried by the contact, the
   voyage and `Surface.Wreck`) replaces the draw, a step not allowed at its turn skipped; an empty one is intact. The arrival
   room and two cells round it are never touched; engines stay unless carved; rooms not reached keep everything. Nothing
-  breakable floats: what lost its support, or an event threw, is lost. `Opened` lays `Build`'s parts.
+  breakable floats: what lost its support, or an event threw, is lost. `Opened` lays `Build`'s parts. Its guards (wreck-guards):
+  fewer (`Aboard.WreckPer`), no dock box on a cell carved or bare of back wall nor over a lost floor, born awake (Creatures).
 - **Its kind's rules** (`VesselKind`): the ship's space (no gravity in the open, vacuum, starlight), no debris, no meteors;
   built as a planet allows, no machines; tools break what stands, nothing is marked (`ToolsBreak`), as on a planet.
 - **It closes** at the end of the tick no peer stands on it (`Kind.Transient`, Core): gone home, died and woke aboard, or left

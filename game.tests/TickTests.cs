@@ -190,4 +190,69 @@ public class TickTests
 
     private static readonly IEqualityComparer<TickArt.Rgb> Near = EqualityComparer<TickArt.Rgb>.Create(
         (a, b) => Math.Abs(a.R - b.R) < 2 && Math.Abs(a.G - b.G) < 2 && Math.Abs(a.B - b.B) < 2, _ => 0);
+
+    /// <summary>A vessel's spider (derelict-guards): folded asleep, its legs tucked and its burner dark; holding a wall it faces it nose up.</summary>
+    [Fact]
+    public void ASpiderFoldedTucksItsLegsAndOnAWallTurnsNoseUpFacingIt()
+    {
+        var motion = new TickMotion(() => 0.5);
+        var spider = Watching with { Walker = true };
+        Run(motion, spider with { Folded = 1 }, 0.5);
+        Assert.True(motion.Pose.Fly > 0.95 && motion.Thrust < 0.01, $"fly {motion.Pose.Fly}, thrust {motion.Thrust}");
+        Run(motion, spider with { Wall = -1, Crawl = 120 }, 0.5);
+        Assert.Equal(-1, motion.Face);
+        Assert.InRange(motion.Angle, Math.PI / 2 - 0.05, Math.PI / 2 + 0.05);
+        Assert.True(motion.Pose.Walk > 0.9);
+        // Falling it stays upright, its burner dark: a walker, no flyer.
+        Run(motion, spider with { Clamped = false, Vy = 120 }, 0.5);
+        Assert.True(Math.Abs(motion.Angle) < 0.05 && motion.Thrust < 0.01, $"angle {motion.Angle}, thrust {motion.Thrust}");
+    }
+
+    /// <summary>A capsule's waking in order: its iris opens, then the spider is seen folded, unfolds, and only then drops.</summary>
+    [Fact]
+    public void ASpiderWakesItsIrisOpeningThenItUnfoldsThenDrops()
+    {
+        Assert.Equal((0.0, 1.0), (DockWake.Progress(30, 30, 0), DockWake.Progress(0, 30, 0.5)));
+        Assert.Equal((0.0, false, 1.0, 0.0), (DockWake.Iris(0), DockWake.Shown(0), DockWake.Folded(0), DockWake.Drop(0)));
+        Assert.True(DockWake.Iris(DockWake.ShownAt) > 0.5 && DockWake.Folded(DockWake.ShownAt) == 1);
+        Assert.True(DockWake.Folded(DockWake.DropFrom) == 0 && DockWake.Drop(DockWake.DropFrom) == 0);
+        Assert.Equal((1.0, true, 0.0, 1.0), (DockWake.Iris(1), DockWake.Shown(1), DockWake.Folded(1), DockWake.Drop(1)));
+        // Its iris shut, then every step's picture in turn, then open.
+        var steps = Enumerable.Range(0, 101).Select(k => DockWake.IrisStep(k / 100.0)).Distinct().ToList();
+        Assert.Equal(Enumerable.Range(0, DockWake.IrisSteps + 2), steps);
+        Assert.Equal((0, DockWake.IrisSteps + 1), (DockWake.IrisStep(DockWake.IrisFrom), DockWake.IrisStep(DockWake.IrisTo)));
+        // A stand: shut and hung asleep; its clamp up before its robot is lowered; lowered before its hooks open; open, risen and its robot up at the end.
+        Assert.Equal((0.0, StandWake.Hang, 0.0, 1.0, 0.0), (StandWake.Clamp(0), StandWake.Hung(0), StandWake.Hooks(0), StandWake.Folded(0), StandWake.Lamp(0, 0)));
+        Assert.True(StandWake.Clamp(StandWake.LowerFrom) == StandWake.ClampSwing && StandWake.Hung(StandWake.HooksFrom) == 0);
+        Assert.Equal((StandWake.ClampSwing, 0.0, 1.0, StandWake.YokeRise, 0.0, 1.0), (StandWake.Clamp(1), StandWake.Hung(1), StandWake.Hooks(1), StandWake.Risen(1), StandWake.Folded(1), StandWake.Lamp(1, 2)));
+    }
+
+    [Fact]
+    public void ADocksMomentIsHeardOnceAsItsWakingPassesItAndNeverWhenFirstSeenPastIt()
+    {
+        // Asleep, a moment at its start is heard on the first frame it wakes; the iris once, on the frame that passes it.
+        Assert.True(DockWake.Passed(DockWake.Asleep, 0.02, 0));
+        Assert.False(DockWake.Passed(0.02, 0.05, 0));
+        Assert.Equal(1, new[] { (DockWake.Asleep, 0.02), (0.02, 0.07), (0.07, 0.12), (0.12, 0.3) }.Count(f => DockWake.Passed(f.Item1, f.Item2, DockWake.IrisFrom)));
+        // First seen mid-wake (unknown before), nothing is heard for what passed out of sight.
+        Assert.False(DockWake.Passed(double.NaN, 0.5, 0));
+        Assert.False(DockWake.Passed(double.NaN, 0.5, StandWake.LampFrom));
+    }
+
+    [Fact]
+    public void AGuardsFootIsHeardEachStepOfItsWayButNeverTwoTooCloseNorStandingNorAsItSetsOff()
+    {
+        var feet = new Footfalls(10, 0.1);
+        Assert.False(feet.Step(25, walks: true, 0.02));
+        Assert.False(feet.Step(29, walks: true, 0.05));
+        Assert.True(feet.Step(31, walks: true, 0.05));
+        // A step's way passed again too soon after the last: unheard, but counted.
+        Assert.False(feet.Step(41, walks: true, 0.05));
+        Assert.False(feet.Step(45, walks: true, 0.05));
+        Assert.True(feet.Step(51, walks: true, 0.1));
+        // Stopped, then off again: the first frame walking sets its count, unheard.
+        Assert.False(feet.Step(61, walks: false, 0.2));
+        Assert.False(feet.Step(75, walks: true, 0.2));
+        Assert.True(feet.Step(81, walks: true, 0.2));
+    }
 }

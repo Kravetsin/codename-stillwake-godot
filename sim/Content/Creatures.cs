@@ -28,9 +28,9 @@ public static class Creatures
     /// <summary>
     /// A walker under the surface's gravity: how fast it walks and runs a tick, and its jump — the speed up it leaps at most, and
     /// across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for one that never
-    /// jumps.
+    /// jumps; how fast it climbs up a wall it holds, gravity let go of, 0 for one that never climbs (a vessel's spider, derelict-guards).
     /// </summary>
-    public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross) : Shape(Width, Height);
+    public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross, int Climb = 0) : Shape(Width, Height);
 
     /// <summary>
     /// A clinger: clamped to a piece of debris at a point along its top, on one of its perches (<c>Wreckage.Perches</c>), riding its
@@ -64,8 +64,10 @@ public static class Creatures
     /// its post or its arena's relic is gone or its drive calms. Never let out: no post, no guard.
     /// <see cref="Hunter"/>, a catcher (tracker-catchers): kept while it hunts, whatever the keep boxes say, gone once it has left every
     /// hero's view.
+    /// <see cref="Aboard"/>, a vessel's guard (derelict-guards): spawned at its dock as the vessel world opens, never swept by the keep
+    /// boxes (a vessel is wider than one); gone only killed, or with its world. Never let out.
     /// </summary>
-    public enum Lifetime { Wild, Posted, Hunter }
+    public enum Lifetime { Wild, Posted, Hunter, Aboard }
 
     /// <summary>Something a creature may want to do, ranked by its place in a brain.</summary>
     public abstract record Drive;
@@ -117,6 +119,36 @@ public static class Creatures
     /// arena and no blow, it goes, whole again on a later beat.
     /// </summary>
     public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
+
+    /// <summary>
+    /// Asleep in its dock aboard a vessel (derelict-guards): still, folded in its capsule or hung in its stand, till an awake hero's
+    /// reported cell is in its dock's room or a blow lands; then <paramref name="Wake"/> ticks waking, and awake for good, the next drive
+    /// of its brain in charge. 0 never wakes.
+    /// </summary>
+    public sealed record Dock(int Wake = 0) : Drive;
+
+    /// <summary>
+    /// Hunting the crew through its vessel (derelict-guards): at the nearest awake hero aboard, by its decks, doorways and hatch well, no
+    /// path searched; a shut doorway on its way (the way in never) it pries <paramref name="Pry"/> ticks, then opens; a wall in its way it
+    /// climbs. It fights by its <paramref name="Guard"/>: alerted by a hero in line within its notice, it pounces or shoots as a guard does.
+    /// No awake hero aboard within <paramref name="Lose"/> cells (by squared distance), it patrols the vessel the same way: to a room at
+    /// random, another once there or <paramref name="Roam"/> ticks on, till one comes within <paramref name="Chase"/> cells. Of the goals
+    /// it draws, <paramref name="UpAWall"/> in a hundred are a spot up a room's solid side wall, climbed to and clung to
+    /// <paramref name="Cling"/> ticks (least and most) before it comes down; <paramref name="OtherDeck"/> in a hundred a room on another
+    /// deck; the rest a room on its own. Hunting or patrolling, it never leaves the hull box.
+    /// </summary>
+    public sealed record Prowl(Guard Guard, int Pry, int Lose, int Chase, int Roam, int UpAWall = 0, int OtherDeck = 0, (int Min, int Max) Cling = default) : Drive;
+
+    /// <summary>
+    /// Hunting the crew on its own deck (the escort, derelict-guards), never off its floor rows: at the nearest awake hero aboard on its deck
+    /// within <paramref name="Strike"/> columns it lunges with its first move, dropping a shot it was charging. Else it walks: at a hero on its
+    /// deck, toward him; at one off it but in its sight within <paramref name="Notice"/>, under him along its deck, never prying a door
+    /// for it; else to the nearest doorway of its deck (the lower column at a tie) and on that way, turning at a wall. On its way, at
+    /// a hero within <paramref name="Notice"/> cells (box distance) and in line with its gun, on any deck, it shoots with its second move as
+    /// often as that is ready, walking on. A shut door on its way (a hatch never, the way in never) it pries <paramref name="Pry"/> ticks, then
+    /// opens. With no hero aboard it stands.
+    /// </summary>
+    public sealed record Patrol(int Strike, int Notice, int Pry) : Drive;
 
     /// <summary>
     /// Hunting one hero (tracker-catchers): <paramref name="Ticks"/> on its way to it from the tick it comes, running its path on the
@@ -242,8 +274,13 @@ public static class Creatures
     /// <paramref name="Leaves"/>, a patch's kind, lies on the floor: such an arc is a lob, hurting no one, flying its <paramref name="Lingers"/>
     /// ticks and laying its patch as it lands (lurker-attacks). With a <paramref name="Through"/> it is a beam (catcher-combat): it runs
     /// on past that point, that many cells off in all, to the first wall, and hurts a hero touching any of it all its <paramref name="Lingers"/>.
+    /// With a <paramref name="Speed"/> (the escort's gauss, derelict-guards) it is no arc but a shot flown at that speed a tick on the longer
+    /// axis, at the middle of the hero aimed at, <paramref name="Reach"/> cells' worth at most: stopped by the first solid cell or awake hero;
+    /// it leaves <paramref name="Muzzle"/> thousandths of a cell over its feet (its gun's height), 0 for its middle. With an <paramref name="Every"/>
+    /// it is not begun again till that many ticks after the last began.
     /// </summary>
-    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0) : Move(Damage: 0);
+    public sealed record Shoot(int WindUp, int Lock, int Recover, string Projectile, int Reach, int Lingers, int From = 0, string? Leaves = null, int Through = 0,
+        int Speed = 0, int Muzzle = 0, int Every = 0) : Move(Damage: 0);
 
     /// <summary>
     /// A vent (the capback's gas, lurker-attacks): no wind-up; a <paramref name="Patch"/> laid round its middle at once, then
@@ -425,7 +462,41 @@ public static class Creatures
         Moves: [new Pounce(WindUp: 12, Speed: 1500, Ticks: 6, Damage: 1, Cuttable: true, AtTarget: true)],
         Yields: [new("scrapChunk", 1, 1, OneIn: 2)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Breaker];
+    /// <summary>
+    /// The spider (derelict-guards): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall
+    /// (<c>Vessels.Aboard</c>); its look, life, guard, moves and yields the sentry's. A hero walking into its room wakes it in a second
+    /// and a half; then it hunts the crew through the vessel, a walker two cells across (a hatch's width) and three tall, running at 18
+    /// cells a second, jumping some three and a half cells, climbing a wall at 6 cells a second; a shut doorway it pries two seconds
+    /// before it opens it. No hero within 40 cells, it patrols the vessel at 6 cells a second (climbing at 2), to a goal drawn at random,
+    /// another once there or a minute on: one in four a spot up a room's side wall, clung to 2 to 4 seconds; one in three a room on
+    /// another deck, up or down its hatch wells; else a room on its own deck. One within 30, it hunts again. Placeholder numbers, for a
+    /// play pass.
+    /// </summary>
+    public static readonly Species Spider = new("spider", Look: Sentry.Look,
+        Body: new Walker(Width: 2, Height: 3, Walk: 300, Run: 900, Jump: 680, JumpAcross: 600, Climb: 300),
+        Life: Sentry.Life, Faction: Machines, Lifetime: Lifetime.Aboard,
+        Brain: [new Dock(Wake: 30), new Prowl(Sentry.Brain.OfType<Guard>().Single(), Pry: 40, Lose: 40, Chase: 30, Roam: 1200,
+            UpAWall: 25, OtherDeck: 33, Cling: (40, 80))], Moves: Sentry.Moves, Yields: Sentry.Yields);
+
+    /// <summary>
+    /// The guard robot, the escort («Конвоир», derelict-guards), hung asleep in its stand in a big hall (<c>Vessels.Aboard</c>): a walker
+    /// four cells by five, its antenna drawn only, never jumping. A hero walking into its hall, or a blow, wakes it in two seconds: lowered,
+    /// let go, its lamp lit. Then it hunts the crew on its deck, walking at 7 cells a second to close in, 3.5 to a door or along its deck with no hero in sight: a hero within 6 columns on
+    /// its deck it claws, a crouch of half a second and a dash of 32 cells a second, 0.4 s, six units of a suit. On its way, at one in line
+    /// within 40 cells, above it too, it shoots walking on: 0.6 s charging, its aim held the last 0.2 s, a gauss (<c>Shots.Gauss</c>) from its
+    /// rail gun's height, 4.85 cells up, across its reach in a tick, its gun held up half a second after; a shot begun at most every 3 s, and
+    /// none while it claws.
+    /// It pries a shut door two seconds. Sixty hit points, twice the sentry's; never knocked. It gives more circuits and scrap than the
+    /// sentry. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Escort = new("escort", Look: "escort", Body: new Walker(Width: 4, Height: 5, Walk: 175, Run: 350, Jump: 0, JumpAcross: 0),
+        Life: new(Hp: 60, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Aboard,
+        Brain: [new Dock(Wake: 40), new Patrol(Strike: 6, Notice: 40, Pry: 40)],
+        Moves: [new Lunge(WindUp: 10, Speed: 1600, Ticks: 8, Past: 2, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 10, Projectile: "gauss", Reach: 40, Lingers: 0, Speed: 40_000,
+            Muzzle: 4_850, Every: 60)],
+        Yields: [new("scrapChunk", 6, 9), new("circuit", 4, 6)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden, Capback, GeodeSnail, Catcher, Breaker, Spider, Escort];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):

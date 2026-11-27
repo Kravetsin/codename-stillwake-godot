@@ -196,6 +196,69 @@ public class ModulesTests
         Assert.True(held > 0 && collected > 0, $"nets held {held} at most and {collected} collects applied");
     }
 
+    /// <summary>
+    /// The suites aboard a vessel world with its guards at their docks (derelict-guards): two worlds fed the same commands kept alike while
+    /// the fuzz runs on the vessel's modules too and the hero steps into one dock's room after another, waking its guard, then stands in
+    /// the first escort's hall (a liner's) to be shot at; then the one saved, loaded and played on beside the live one. Aboard a wreck too,
+    /// its guards awake from birth.
+    /// </summary>
+    [Theory]
+    [InlineData("freighter", 6u, false)]
+    [InlineData("freighter", 13u, false)]
+    [InlineData("liner", 6u, false)]
+    [InlineData("freighter", 6u, true)]
+    [InlineData("liner", 6u, true)]
+    public void KeepsTwoWorldsAlikeAndSavesLoadsAndPlaysOnAboardAVesselWithItsGuardsAwake(string cls, uint seed, bool wrecked)
+    {
+        var rng = new Rng(new RngState { S = seed });
+        var (a, b) = (new Registry(), new Registry());
+        var first = World.Create(seed, Registry.Wreck, a.All);
+        var second = World.Create(seed, Registry.Wreck, b.All);
+        void Both(Command c)
+        {
+            first.Step([c]);
+            second.Step([c]);
+        }
+        Both(new Crew.Enter(a.Crew.Spawn));
+        Both(new Places.Find(cls, Wrecked: wrecked));
+        var contact = a.Places.Contacts[^1];
+        Both(new Places.Jump(contact.Id));
+        var aboard = Registry.On(first, first.SurfaceOf(0));
+        Assert.NotEmpty(aboard.Creatures.Docks);
+        Assert.Equal(aboard.Creatures.Docks.Count, aboard.Creatures.Creatures.Count);
+        Assert.Equal(first.Hash(), second.Hash());
+        // A cell on each dock's room's floor, a hero's body's middle there: its guard's cabin; the first escort's hall's left end last.
+        var vessel = Shipyard.Build(Content.Vessels.Class(cls)!, contact.Seed, contact.Wreck).Vessel;
+        int m = Content.Vessels.Margin, width = aboard.Grid.Width;
+        var rooms = aboard.Creatures.Docks.Select(d => vessel.Compartments[d.Room]).ToList();
+        var cabins = rooms.Select(r => (m + r.Floor - 3) * width + m + r.Left + r.Width / 2).ToList();
+        int? hall = aboard.Creatures.Docks.Select((d, i) => (d, i)).Where(t => t.d.Species == Content.Creatures.Escort.Id)
+            .Select(t => (int?)((m + rooms[t.i].Floor - 3) * width + m + rooms[t.i].Left + 1)).FirstOrDefault();
+        string gauss = Content.Creatures.Escort.Moves.OfType<Content.Creatures.Shoot>().Single().Projectile;
+        bool fired = false;
+        for (int i = 0; i < 200; i++)
+        {
+            var commands = RandomCommands(first, rng);
+            if (i % 8 == 0) commands.Add(new Crew.Enter(i < 120 || hall == null ? cabins[i / 8 % cabins.Count] : hall.Value));
+            first.Step(commands);
+            second.Step(commands);
+            Assert.Equal(first.Hash(), second.Hash());
+            fired |= aboard.Creatures.Ended.Any(e => e.Projectile == gauss) || aboard.Creatures.Shots.Any(s => s.Projectile == gauss);
+        }
+        int woke = aboard.Creatures.Creatures.Count(c => c.Recall(Creatures.DockDrive.Woke) == 1 || c.Posture == Creatures.Posture.Waking);
+        Assert.True(woke + aboard.Creatures.Docks.Count - aboard.Creatures.Creatures.Count > 0, "no guard woke");
+        Assert.True(fired || hall == null, "no gauss fired");
+        var loaded = World.Load(first.Save(), new Registry().All);
+        Assert.Equal(first.Hash(), loaded.Hash());
+        for (int i = 0; i < 100; i++)
+        {
+            var commands = RandomCommands(first, rng);
+            first.Step(commands);
+            loaded.Step(commands);
+        }
+        Assert.Equal(first.Hash(), loaded.Hash());
+    }
+
     [Fact]
     public void DrawsTheCommandsOfEveryModuleThatHasAny()
     {

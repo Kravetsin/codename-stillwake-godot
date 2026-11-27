@@ -131,6 +131,9 @@ public static class CreatureLooks
     /// </summary>
     public static readonly IReadOnlySet<string> Istukans = new HashSet<string> { Stillwake.Content.Creatures.Warden.Look };
 
+    /// <summary>The looks drawn as the escort A1 «Конвоир» (derelict-guards, <c>EscortRig</c>): parts posed in code each frame; heard by <c>Sound.Escorts</c>.</summary>
+    public static readonly IReadOnlySet<string> Escorts = new HashSet<string> { Stillwake.Content.Creatures.Escort.Look };
+
     /// <summary>
     /// The looks drawn as cave lurkers, the cave page's picks «Кочка» and «Жернов» (<see cref="CreatureArt.Lurkers"/>, <c>LurkerMotion</c>);
     /// their lights at this strength times the page's, out to their radius and two cells more.

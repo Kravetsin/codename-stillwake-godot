@@ -50,7 +50,7 @@ internal sealed class LungeMove : MoveRule
         // it charged by its run past it runs on.
         var lunge = (Spec.Lunge)mv;
         int way = c.VX >= 0 ? 1 : -1;
-        if (WalkerBody.Blocked(m, c, (Spec.Walker)spec.Body, way, lunge.Speed)) m.EndAct(c, spec, -way, hop: false);
+        if (WalkerBody.Blocked(m, c, (Spec.Walker)spec.Body, way, lunge.Speed, RuleBook.Drive(spec.Brain[c.Drive]).Spans(m, c))) m.EndAct(c, spec, -way, hop: false);
         else if (m.Nearest(c, awake: true).Hero is { } hero && (c.X - m.Middle(hero.X)) * way >= lunge.Past * CreaturesModule.Unit) m.EndAct(c, spec, way, hop: false);
         else c.VX = way * lunge.Speed;
     }

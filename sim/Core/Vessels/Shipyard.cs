@@ -17,9 +17,12 @@ public static partial class Shipyard
     /// </summary>
     public static (int X, int Y) Door(Built b)
     {
-        var door = b.Vessel.Doors[b.Entry];
+        var door = WayIn(b);
         return (door.X + 2, door.Y + Vessels.Open - 1);
     }
+
+    /// <summary>The way in through <paramref name="b"/>'s armour (<see cref="Built.Entry"/>): always shut, which no guard opens (derelict-guards).</summary>
+    public static Vessel.Door WayIn(Built b) => b.Vessel.Doors[b.Entry];
 
     /// <summary>
     /// The map of a vessel world (vessel-worlds): space, <paramref name="b"/>'s frame and <see cref="Vessels.Margin"/> round it,
@@ -39,7 +42,10 @@ public static partial class Shipyard
         return new Layout(width, height, rows);
     }
 
-    /// <summary>A local draw of stream <paramref name="stream"/>: describing is 0 (1, the old damage, retired), the shape 2, a wreck's from 3 (<see cref="Build"/>).</summary>
+    /// <summary>
+    /// A local draw of stream <paramref name="stream"/>: describing is 0 (1, the old damage, retired), the shape 2, a wreck's from 3
+    /// (<see cref="Build"/>), the guards 16 (<see cref="Guards"/>).
+    /// </summary>
     private static Rng Draws(VesselClass cls, uint seed, uint stream) =>
         new(new RngState { S = unchecked(seed ^ ((uint)Vessels.IndexOf(cls.Id) + 1) * 0x9E3779B9u ^ (stream + 1) * 0x85EBCA6Bu) });
 

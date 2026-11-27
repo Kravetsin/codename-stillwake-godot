@@ -180,6 +180,24 @@ public static class Light
     public static readonly LampLight SparkFlash = new((1f, 0.75f, 0.43f), 0.75f, 5, 0.75f, 0xffbe6eff);
 
     /// <summary>
+    /// A sleeping guard's capsule's standby pip (derelict-guards): a dim amber dot in its hazard lamp, lit <see cref="GuardPipOnMs"/>
+    /// of every <see cref="GuardPipEveryMs"/>, each capsule <see cref="GuardPipStaggerMs"/> after the one before; <see cref="GuardPipSize"/>
+    /// pixels across, its light a cell or two round.
+    /// </summary>
+    public static readonly LampLight GuardPip = new((1f, 0.68f, 0.24f), 0.2f, 2, 0.6f, 0xffae3dff);
+    public const float GuardPipSize = 1f;
+    public const double GuardPipEveryMs = 2000, GuardPipOnMs = 400, GuardPipStaggerMs = 370;
+
+    /// <summary>
+    /// A capsule's hazard lamp as its spider wakes (derelict-guards): flashing red and amber (<c>DockWake.FlashHz</c>), lighting its room
+    /// a few cells round; then red and dimmer while its spider lives, <see cref="GuardAlarmSize"/> pixels across. Dark once it is killed.
+    /// </summary>
+    public static readonly LampLight GuardAlarm = new((1f, 0.2f, 0.12f), 0.9f, 5, 0.6f, 0xff3a2cff),
+        GuardAlarmAmber = new((1f, 0.62f, 0.18f), 0.9f, 5, 0.6f, 0xffae3dff),
+        GuardAlarmOn = new((1f, 0.2f, 0.12f), 0.35f, 3, 0.6f, 0xff3a2cff);
+    public const float GuardAlarmSize = 2.2f;
+
+    /// <summary>
     /// Embers glowing on in a wreck's fresh burnt room (vessel-wrecks, the mockup's ember light): orange, low and breathing, the room's
     /// width round them at most.
     /// </summary>
