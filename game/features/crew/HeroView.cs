@@ -726,6 +726,7 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         _figure.Paired = m.Players.HasDrone(client.Id);
+        _figure.Charged = (m.Players.ChargeOf(client.Id), Stillwake.Content.Abilities.Full);
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
         _figure.DroneWindow = _ui.DroneWindow;
         _figure.Senses = DroneSensesOf(m, client.Id, _surface) with

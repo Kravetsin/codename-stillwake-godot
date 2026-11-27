@@ -1,0 +1,55 @@
+using Stillwake.Game.Features.Crew;
+using Xunit;
+
+namespace Stillwake.Game.Tests;
+
+/// <summary>The drone's core filling (drone-abilities): it shows as full as its charge, eased, and each gain sends embers in that land on it.</summary>
+public class CoreEmbersTests
+{
+    private static int Flying(CoreEmbers e, double t) => e.At(t, new CoreEmber[CoreEmbers.Most]);
+
+    [Fact]
+    public void TheFirstReadingAndADropSendNoEmbersAGainSendsByItsWorth()
+    {
+        var e = new CoreEmbers();
+        e.Step(200, 300, 0, 0.016);
+        Assert.Equal(0, Flying(e, 0.1));
+        e.Step(100, 300, 1, 0.016);
+        Assert.Equal(0, Flying(e, 1.1));
+        e.Step(160, 300, 2, 0.016);
+        Assert.Equal(60 / CoreEmbers.WorthEach, Flying(e, 2.3));
+        e.Step(161, 300, 3, 0.016);
+        Assert.Equal(1, Flying(e, 3.1));
+        e.Step(300, 300, 4, 0.016);
+        Assert.Equal(CoreEmbers.MostEach, Flying(e, 4.45));
+    }
+
+    [Fact]
+    public void EmbersFlyInFromRoundItAndLandWithAFlare()
+    {
+        var e = new CoreEmbers();
+        e.Step(0, 300, 0, 0.016);
+        e.Step(20, 300, 1, 0.016);
+        var at = new CoreEmber[CoreEmbers.Most];
+        Assert.Equal(1, e.At(1.01, at));
+        float start = MathF.Sqrt(at[0].X * at[0].X + at[0].Y * at[0].Y);
+        Assert.InRange(start, CoreEmbers.From * 0.95f, CoreEmbers.From);
+        e.At(1 + CoreEmbers.Flight * 0.9, at);
+        Assert.True(MathF.Sqrt(at[0].X * at[0].X + at[0].Y * at[0].Y) < start / 2);
+        Assert.Equal(0, e.At(1 + CoreEmbers.Flight + 0.01, at));
+        e.Step(20, 300, 1 + CoreEmbers.Flight + 0.01, 0.02);
+        Assert.True(e.Flare > 0.9f);
+        e.Step(20, 300, 2, 0.5);
+        Assert.Equal(0, e.Flare);
+    }
+
+    [Fact]
+    public void ItShowsAsFullAsItsChargeEased()
+    {
+        var e = new CoreEmbers();
+        e.Step(150, 300, 0, 0.016);
+        Assert.InRange(e.Shown, 0.001f, 0.1f);
+        for (int i = 1; i < 200; i++) e.Step(150, 300, i * 0.016, 0.016);
+        Assert.InRange(e.Shown, 0.49f, 0.5f);
+    }
+}

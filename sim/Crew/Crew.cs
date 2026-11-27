@@ -188,7 +188,8 @@ public interface ICrewOps
 
     /// <summary>
     /// Hero <paramref name="peer"/> broke or killed what gave <paramref name="yield"/> (catcher-loot): its wanted meter fills by its worth,
-    /// up to its need, the alarm drawn as it fills; nothing in creative mode, nor for a hero out or none.
+    /// up to its need, the alarm drawn as it fills, and so does its drone's core (drone-abilities); nothing in creative mode, nor for a
+    /// hero out or none.
     /// </summary>
     void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield);
 
@@ -704,7 +705,10 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return;
         long worth = 0;
         foreach (var (item, count) in yield) worth += (long)Content.Market.WorthOf(item) * count;
-        if (worth > 0) Fill(hero, worth);
+        if (worth <= 0) return;
+        Fill(hero, worth);
+        // Beside the catcher meter, not in it: that stops once full, the drone's core does not (drone-abilities).
+        _playersOps.Charge(peer, worth);
     }
 
     /// <summary>

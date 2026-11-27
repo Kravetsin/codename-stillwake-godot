@@ -775,6 +775,9 @@ public partial class Figure : Node2D
     }
     private string _capePicture = Stillwake.Content.Cape.Item;
 
+    /// <summary>Its drone's core's charge and a full one's, as the sim keeps them (drone-abilities): what its core glows by.</summary>
+    public (int Charge, int Full)? Charged { set => _drone.Charged = value; }
+
     /// <summary>Whether the hero is paired with the drone (drone-companion): it floats by the head, shining or scanning only in a mode it has.</summary>
     public bool Paired
     {

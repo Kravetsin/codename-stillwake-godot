@@ -1,6 +1,9 @@
 namespace Stillwake.Content;
 
-/// <summary>What a hero's companion does with what is in hand, on the right button (companion-fights): a row by the item, only with a user.</summary>
+/// <summary>
+/// What a hero's companion does on the right button: with what is in hand, a row by the item (companion-fights); the charge its core
+/// fills with (drone-abilities).
+/// </summary>
 public static class Abilities
 {
     /// <summary>
@@ -22,6 +25,12 @@ public static class Abilities
     public static readonly Throw Spear = new(Weapons.Spear.Item, Range: 26000, Out: 6000, Home: 6000, Pull: 1000, Spin: 0);
 
     public static readonly IReadOnlyList<Throw> Throws = [Axe, Sledgehammer, Spear];
+
+    /// <summary>
+    /// A full core (drone-abilities): the loot's worth (<c>Market.WorthOf</c>) a paired hero gathers to fill its drone's charge, what its
+    /// gun forms spend; a multiple of ten. Fifteen breakers' worth. A placeholder number, for a play pass.
+    /// </summary>
+    public const int Full = 300;
 
     /// <summary>The throw of <paramref name="item"/>, or null for an item never thrown.</summary>
     public static Throw? ThrowOf(string? item)

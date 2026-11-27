@@ -78,6 +78,7 @@ Client-authoritative (0002).
 | `logic/DroneModes.cs` | |
 | `logic/DroneSign.cs` | |
 | `logic/DroneSwarm.cs` | |
+| `logic/CoreEmbers.cs` | |
 | `logic/DroneFlurry.cs` | |
 | `logic/WheelFade.cs` | |
 | `logic/SheetHoloLook.cs` | |
@@ -174,7 +175,7 @@ Client-authoritative (0002).
 
 - Sent (`SentHero`) each 50 ms moving, 1 s still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 s quiet; only those here (0076). Tools strike
-  per hit heard (0038), rods play out (0065), drills, drivers run as told (0055).
+  per hit heard (0038); rods, drills, drivers as told (0065, 0055).
 
 ## The hands
 
@@ -183,7 +184,7 @@ Client-authoritative (0002).
 - **Left** (0107, 0108): screwdriver works plans, repairs; plan, wiring, lays cables.
 - **Right, a throw** (companion-fights): `WeaponThrow` hits, the drone hauls; caught in the hand held out.
 - **One aim** (`Aiming.AimAt`): plan (back walls first), machine (0099), tank, door, valve, wreck, else nearest small
-  piece; outlined green/red, `UsePrompt` why; plan in hand, E idle; armed, small ones.
+  piece; outlined, `UsePrompt` why; plan in hand, E idle; armed, small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to walls, through wrecks; **sparks** the haze's
   (spark-rule). **Struck** (0038, swing-motions): by sector, as the blade crosses the aim.
 - **Harpoon, grapple** (0044, grapple-climbs): wind held, pull to walls; hung, refire; Space/RMB let go.

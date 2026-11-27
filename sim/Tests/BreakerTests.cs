@@ -134,6 +134,20 @@ public class BreakerTests
     }
 
     [Fact]
+    public void EveryOneKilledDropsAScrap()
+    {
+        var w = World();
+        for (int i = 0; i < 8; i++)
+        {
+            var c = Put(w, 43, 40);
+            w.Do(new Strike(c.Id, Axe)).Do(new Strike(c.Id, Axe)).Run();
+            Assert.True(c.Dead || !w.M.Creatures.Creatures.Contains(c));
+        }
+        Assert.Empty(w.Refusals);
+        Assert.Equal(8, w.M.Items.Floor.Where(s => s.Item == "scrapChunk").Sum(s => s.Count));
+    }
+
+    [Fact]
     public void ADartsReachCoversWhereItBegins() => Assert.True(Pounce.Ticks * Pounce.Speed >= Swarm.Strike * Unit);
 
     [Fact]
