@@ -443,3 +443,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [fuel-drums](2026-11-23-fuel-drums.md) | Fuel drums, and every burst hurts every body | accepted |  |
 | [nailer-auto](2026-11-23-nailer-auto.md) | The nailer fires a burst, and nails come ten at a time | accepted |  |
 | [wreck-guards](2026-11-25-wreck-guards.md) | Wreck guards | accepted |  |
+| [drone-abilities](2026-11-27-drone-abilities.md) | The drone's core is its stamina, and its wheel has two branches | accepted |  |

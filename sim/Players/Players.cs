@@ -24,6 +24,9 @@ public sealed record PeerLook(int Peer, Look Worn, Look Next);
 /// </summary>
 public sealed record PeerSkins(int Peer, IReadOnlyList<string> Ids);
 
+/// <summary>Peer <c>Peer</c>'s drone's core (drone-abilities): its <c>Charge</c>, 0..<c>Content.Abilities.Full</c>.</summary>
+public sealed record Core(int Peer, int Charge);
+
 /// <summary>The players' slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class PlayersState
 {
@@ -35,6 +38,16 @@ public sealed class PlayersState
     [JsonInclude] internal List<int> Drones { get; set; } = [];
     /// <summary>The skins of each peer that chose any, with a hero or not, in peer order.</summary>
     [JsonIgnore] internal List<PeerSkins> Skins { get; set; } = [];
+    /// <summary>The core of each paired peer that gathered any charge, in peer order.</summary>
+    [JsonIgnore] internal List<Core> Cores { get; set; } = [];
+
+    /// <summary><see cref="Cores"/> as a save writes it: left out while none, as a save from before them; loaded, held to a full core.</summary>
+    [JsonInclude, JsonPropertyName("cores"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Core>? CoresSaved
+    {
+        get => Cores.Count == 0 ? null : Cores;
+        set => Cores = value?.Select(c => c with { Charge = Math.Clamp(c.Charge, 0, Content.Abilities.Full) }).ToList() ?? [];
+    }
 
     /// <summary><see cref="Skins"/> as a save writes it: left out while nobody chose one, as a save from before skins.</summary>
     [JsonInclude, JsonPropertyName("skins"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -58,6 +71,8 @@ public interface IPlayersQueries
     IReadOnlyList<string> SkinsOf(int peer);
     /// <summary>Whether <paramref name="peer"/> has paired with its light drone (drone-companion): its bag rows open, its drone drawn.</summary>
     bool HasDrone(int peer);
+    /// <summary>How much charge <paramref name="peer"/>'s drone's core holds (drone-abilities), 0..<c>Abilities.Full</c>; 0 unpaired.</summary>
+    int ChargeOf(int peer);
 }
 
 /// <summary>How crew dresses its heroes.</summary>
@@ -80,6 +95,8 @@ public interface IPlayersOps
     void Skin(int peer, IReadOnlyList<string> ids);
     /// <summary><paramref name="peer"/> pairs with its light drone for good; the caller checks it has none yet.</summary>
     void Pair(int peer);
+    /// <summary><paramref name="peer"/>'s drone's core gains <paramref name="by"/>, or spends it below 0, held to 0..full; nothing unpaired.</summary>
+    void Charge(int peer, long by);
 }
 
 /// <summary>
@@ -148,5 +165,17 @@ public sealed class PlayersModule : Module<PlayersState>, IPlayersQueries, IPlay
         // Paired twice is crew's bug: PairDrone refuses a hero that has its drone.
         if (at >= 0) throw new InvalidOperationException($"peer {peer} is paired already");
         State.Drones.Insert(~at, peer);
+    }
+
+    public int ChargeOf(int peer) => State.Cores.Find(c => c.Peer == peer)?.Charge ?? 0;
+
+    public void Charge(int peer, long by)
+    {
+        if (!HasDrone(peer) || by == 0) return;
+        int at = State.Cores.FindIndex(c => c.Peer >= peer);
+        bool has = at >= 0 && State.Cores[at].Peer == peer;
+        int charge = (int)Math.Clamp((has ? State.Cores[at].Charge : 0) + by, 0, Content.Abilities.Full);
+        if (has) State.Cores[at] = State.Cores[at] with { Charge = charge };
+        else if (charge > 0) State.Cores.Insert(at < 0 ? State.Cores.Count : at, new Core(peer, charge));
     }
 }

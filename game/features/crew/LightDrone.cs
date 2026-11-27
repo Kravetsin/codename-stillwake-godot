@@ -71,6 +71,13 @@ public partial class LightDrone : Node2D
     private (Vec At, double Cast, double Effort)? _haul;
     private Vector2 _strain;
 
+    /// <summary>Its core filling (drone-abilities): how full it shows and the embers flying in.</summary>
+    private readonly CoreEmbers _embers = new();
+    private readonly CoreEmber[] _emberAt = new CoreEmber[CoreEmbers.Most];
+
+    /// <summary>Its core's charge and a full one's (drone-abilities), set before <see cref="Sign"/> each frame; none for no core shown filling.</summary>
+    public (int Charge, int Full)? Charged { get; set; }
+
     /// <summary>Where its body is turned, and where its eye is: the eye alone glances back on a tow.</summary>
     private float _angle, _eye;
     private double _timeMs;
@@ -128,6 +135,7 @@ public partial class LightDrone : Node2D
             var (x, y) = DroneSwarm.Seat(j, turn);
             _seats[j] = (GlobalPosition.X + x * I.Px, GlobalPosition.Y + y * I.Px);
         }
+        if (Charged is (int charge, int full)) _embers.Step(charge, full, t, _elapsedMs / 1000);
         Threads(t);
         _flurry.Step(_elapsedMs / 1000, Projecting);
         for (int i = 0; i < _flurrySparks.Length; i++) _flurrySparks[i] = _flurry.At(i, t);
@@ -378,8 +386,32 @@ public partial class LightDrone : Node2D
         // The flurry's are fresh from the coal.
         if (_flurry.Shown > 0)
             foreach (var spark in _flurrySparks) Tail(_light, spark, spark.Heat, salts, burn: 0);
-        Coal(_light, Vector2.Zero, _eye, salts, (float)t, dim: dim, glow: (float)_bearing.Glow, squint: (float)(_tow?.Squint ?? 0));
+        // Its charge (drone-abilities): the embers flying in, then the coal as full as it shows, flaring as one lands.
+        int flying = _embers.At(t, _emberAt);
+        for (int i = 0; i < flying; i++)
+        {
+            var e = _emberAt[i];
+            Tail(_light, new Spark(e.X, e.Y, e.Dx, e.Dy, Front: true, e.Heat, Flying: false, 0, 0), e.Heat, salts, burn: 0);
+        }
+        Coal(_light, Vector2.Zero, _eye, salts, (float)t, dim: dim, glow: (float)_bearing.Glow + I.FlareGlow * _embers.Flare, squint: (float)(_tow?.Squint ?? 0),
+            charge: _embers.Shown);
+        CoreBeads(salts);
         _light.Flush(_glow.GetCanvasItem());
+    }
+
+    /// <summary>The core's beads over it, one a throw, lit as far as its charge reaches, while it is short of full (drone-abilities, a try).</summary>
+    private void CoreBeads(Salts salts)
+    {
+        if (_embers.Beads < 0.01f || Charged is not (int charge, int full)) return;
+        int cost = Stillwake.Content.Abilities.ThrowCost, count = full / cost;
+        const float Side = CoreEmbers.BeadSide;
+        for (int i = 0; i < count; i++)
+        {
+            var (x, y) = CoreEmbers.BeadAt(i, count);
+            float lit = CoreEmbers.BeadLit(i, charge, cost);
+            float alpha = (CoreEmbers.BeadEmpty + (1 - CoreEmbers.BeadEmpty) * lit) * _embers.Beads * salts.Gain;
+            _light.Rect(x - Side / 2, y - Side / 2, Side, Side, EmberArt.Of(salts.Spark(1 - lit), Math.Min(1, alpha)));
+        }
     }
 
     /// <summary>A spark's glow <paramref name="heat"/> hot: its square and two behind it along its heading, paler and fainter, <paramref name="burn"/> burnt.</summary>
@@ -447,13 +479,15 @@ public partial class LightDrone : Node2D
     /// s, <paramref name="alpha"/> of it, <paramref name="scale"/> world px a pick px: its halo, three cracks glowing through its crust, an ember eye where it looks (the pick's <c>coal</c>);
     /// a mood's <paramref name="dim"/> and <paramref name="glow"/> (drone-thoughts); <paramref name="kindled"/> of it lit as the salts' coal, the rest bare; the eye shut by <paramref name="squint"/>.
     /// </summary>
-    internal static void Coal(Triangles into, Vector2 at, float angle, Salts salts, float t, float alpha = 1, float scale = 1, float dim = 0, float glow = 0, float kindled = 1, float squint = 0)
+    internal static void Coal(Triangles into, Vector2 at, float angle, Salts salts, float t, float alpha = 1, float scale = 1, float dim = 0, float glow = 0, float kindled = 1, float squint = 0,
+        float charge = 0)
     {
         float gain = Mathf.Lerp(1, salts.Gain, kindled), lift = Mathf.Lerp(1, salts.Lift(I.CoalLift), kindled) * gain;
         var hot = EmberArt.Of(salts.Coal());
         float flicker = (I.Flicker + I.FlickerSwing * MathF.Sin(t * I.FlickerPace)) * alpha * (1 - I.CoalDim * dim);
-        Halo(into, at, I.CoalHalo * scale, hot, Math.Min(I.CoalHaloMost, (I.CoalHaloAlpha * (1 - I.HaloDim * dim) + I.GlowHalo * glow) * lift) * alpha);
-        var crack = new Color(hot, Math.Min(1, I.CrackAlpha * flicker * lift));
+        Halo(into, at, I.CoalHalo * scale * (1 + I.ChargeWide * charge), hot,
+            Math.Min(I.CoalHaloMost, (I.CoalHaloAlpha * (1 - I.HaloDim * dim) + I.GlowHalo * glow + I.ChargeGlow * charge) * lift) * alpha);
+        var crack = new Color(hot, Math.Min(1, I.CrackAlpha * flicker * lift * (1 + I.ChargeCrack * charge)));
         for (int k = 0; k + 1 < I.Cracks.Length; k += 2)
             into.Quad(at + Vector2.FromAngle(angle + I.Cracks[k]) * I.CrackFrom * scale, at + Vector2.FromAngle(angle + I.Cracks[k + 1] * 0.5f) * I.CrackTo * scale, I.CrackLine * scale, crack);
         var eye = at + Vector2.FromAngle(angle) * I.EyeAhead * scale;

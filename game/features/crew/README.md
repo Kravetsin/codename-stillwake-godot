@@ -76,8 +76,10 @@ Client-authoritative (0002).
 | `logic/DroneThoughts.cs` | moods |
 | `logic/FormsOpen.cs` | opens |
 | `logic/DroneModes.cs` | |
+| `logic/DroneWheel.cs` | |
 | `logic/DroneSign.cs` | |
 | `logic/DroneSwarm.cs` | |
+| `logic/CoreEmbers.cs` | |
 | `logic/DroneFlurry.cs` | |
 | `logic/WheelFade.cs` | |
 | `logic/SheetHoloLook.cs` | |
@@ -101,7 +103,7 @@ Client-authoritative (0002).
 | `HeroView.Others.cs` | |
 | `logic/CameraFollow.cs` | |
 | `JetPlume.cs` | |
-| `logic/PlumeWay.cs` | drawn from nozzle |
+| `logic/PlumeWay.cs` | jet |
 | `RodLight.cs` | |
 | `AimOutline.cs` | |
 | `ModeGlyph.cs` | |
@@ -167,23 +169,23 @@ Client-authoritative (0002).
 - **Crew** made at `Spawn`; out, lies, no orders (0061). `Enter` on a new room, side, each `Crew.ReportEvery` ticks
   off its cell, each tick threatened; none out (0050); host gone: `Leave`.
 - **Dressed as worn**, colour on shin, `SuitOn` lit (hero-lights); **limbs** bent whole (whole-limbs); **hand** glove
-  or bare (hand-at-wrist); **helmets** still, the head turns (gear-roles); **skins** (hero-skins, fancy-skins).
+  or bare (hand-at-wrist); **helmets** still, heads turn (gear-roles); **skins** (hero-skins, fancy-skins).
 - **Tracker** blinks (`SignalOf`); **catchers** drawn as heroes, tumble killed (tracker-catchers).
 
 ## Others
 
 - Sent (`SentHero`) each 50 ms moving, 1 s still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden 3 s quiet; only those here (0076). Tools strike
-  per hit heard (0038), rods play out (0065), drills, drivers run as told (0055).
+- Drawn 150 ms behind (0013), walking 100 ms on, hidden 3 s quiet; those here (0076). Tools strike
+  per hit heard (0038); rods, drills, drivers as told (0065, 0055).
 
 ## The hands
 
 - **Held item shows** (`HeldLook`); plans, motors twist (`Twist`, `Driven`).
 - **Aimed in use** (aim-on-use): up, `LingerMs` after, at the pointer; shots, hits wait.
 - **Left** (0107, 0108): screwdriver works plans, repairs; plan, wiring, lays cables.
-- **Right, a throw** (companion-fights): `WeaponThrow` hits, the drone hauls; caught in the hand held out.
+- **Right, a throw** (companion-fights): `WeaponThrow` hits, hauled, caught; `Cast`, tired a click (drone-abilities).
 - **One aim** (`Aiming.AimAt`): plan (back walls first), machine (0099), tank, door, valve, wreck, else nearest small
-  piece; outlined green/red, `UsePrompt` why; plan in hand, E idle; armed, small ones.
+  piece; outlined, `UsePrompt` why; plan in hand, E idle; armed, small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to walls, through wrecks; **sparks** the haze's
   (spark-rule). **Struck** (0038, swing-motions): by sector, as the blade crosses the aim.
 - **Harpoon, grapple** (0044, grapple-climbs): wind held, pull to walls; hung, refire; Space/RMB let go.
@@ -192,11 +194,10 @@ Client-authoritative (0002).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
 - **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
   (light-drone, drone-threads, drone-lessons): E on the core pairs (drone-companion, drone-meeting); F next form, held a wheel
-  (thread-icons); window corners, flurry (drone-windows); in its player's colour (drone-colour); springs after it,
+  (thread-icons), RMB its branch, beads (drone-abilities); windows (drone-windows); its player's colour (drone-colour); springs after it,
   perches, shines in open air, hidden from the head (drone-spring); flown one way, tugs (drone-tow); warns (drone-motion), feels
-  (drone-thoughts); a lesson held in a vision (form-vision).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap; hatches
-  climbed, short jumps mantle.
+  (drone-thoughts); lessons in visions (form-vision).
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges, hatches** (0092, 0112): grab, climb, slide, leap, mantle.
 
 ## Deliberately not handled
 

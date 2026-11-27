@@ -89,6 +89,18 @@ public sealed record SuitMode(bool On) : Command;
 /// </summary>
 public sealed record Track(int Short) : Command;
 
+/// <summary>
+/// The sender's drone shines in form <c>Form</c>, the lamp's or the scanner's, or in none (drone-abilities): sent while its client's mode
+/// differs from the sim's, as <see cref="Exert"/> is. It draws on the core each tick. Refused for no such form (<c>crew.noForm</c>).
+/// </summary>
+public sealed record Shine(string? Form) : Command;
+
+/// <summary>
+/// The sender's drone does <c>Ability</c>, the throw (drone-abilities): its cost off the core, sent as it begins. Refused without a hero
+/// (<c>crew.noHero</c>), a drone (<c>crew.noDrone</c>), for no such ability (<c>crew.noAbility</c>) and with too little charge (<c>crew.tired</c>).
+/// </summary>
+public sealed record Cast(string Ability) : Command;
+
 /// <summary>What any module or the client may read of the heroes.</summary>
 public interface ICrewQueries
 {
@@ -188,7 +200,8 @@ public interface ICrewOps
 
     /// <summary>
     /// Hero <paramref name="peer"/> broke or killed what gave <paramref name="yield"/> (catcher-loot): its wanted meter fills by its worth,
-    /// up to its need, the alarm drawn as it fills; nothing in creative mode, nor for a hero out or none.
+    /// up to its need, the alarm drawn as it fills, and so does its drone's core (drone-abilities); nothing in creative mode, nor for a
+    /// hero out or none.
     /// </summary>
     void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield);
 
@@ -305,6 +318,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         Handles<Succumb>(c => SuccumbProblem(c.From), c => PassOut(HeroOf(c.From)!));
         Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         Handles<Track>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => Track(HeroOf(c.From)!, c.Short));
+        Handles<Shine>(c => HeroOf(c.From) == null ? "crew.noHero" : c.Form != null && Content.Abilities.DrainOf(c.Form) == 0 ? "crew.noForm" : null,
+            c => HeroOf(c.From)!.Shining = c.Form);
+        Handles<Cast>(c => CastProblem(c.From, c.Ability), c => _playersOps.Charge(c.From, -Content.Abilities.CostOf(c.Ability)!.Value));
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
         System(Phase.Simulation, () =>
         {
@@ -354,6 +370,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int capacity = CapacityOf(hero.Id);
                 hero.Air = Math.Min(hero.Air, capacity);
                 Thrusts(hero);
+                // The drone's core fills by itself and its light draws on it, creative or not, so the core can be tried there (drone-abilities).
+                _playersOps.Charge(hero.Id, Content.Abilities.Regen - Content.Abilities.DrainOf(hero.Shining));
                 // The alarm runs out whatever the hero does, creative or not.
                 if (breath && hero.Coming > 0) hero.Coming -= 1;
                 if (breath) Drain(hero);
@@ -701,10 +719,14 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return;
+        if (HeroOf(peer) is not { Out: 0 } hero) return;
         long worth = 0;
         foreach (var (item, count) in yield) worth += (long)Content.Market.WorthOf(item) * count;
-        if (worth > 0) Fill(hero, worth);
+        if (worth <= 0) return;
+        // No catcher hunts a hero in creative mode; its drone's core fills there as anywhere, so it can be tried (drone-abilities).
+        if (!_items.Creative(peer)) Fill(hero, worth);
+        // Beside the catcher meter, not in it: that stops once full, the drone's core does not (drone-abilities).
+        _playersOps.Charge(peer, worth * Content.Abilities.PerWorth);
     }
 
     /// <summary>
@@ -748,6 +770,15 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private void Draw(Hero hero)
     {
         if (hero.Need == 0) hero.Need = Content.Wanted.NeedLeast + (int)Random.Below(Content.Wanted.NeedMost - Content.Wanted.NeedLeast + 1);
+    }
+
+    /// <summary>Why peer <paramref name="peer"/>'s drone would not do <paramref name="ability"/> now.</summary>
+    public string? CastProblem(int peer, string ability)
+    {
+        if (HeroOf(peer) is not { Out: 0 }) return "crew.noHero";
+        if (!_players.HasDrone(peer)) return "crew.noDrone";
+        if (Content.Abilities.CostOf(ability) is not int cost) return "crew.noAbility";
+        return _players.ChargeOf(peer) >= cost ? null : "crew.tired";
     }
 
     public void CallOff(int peer)

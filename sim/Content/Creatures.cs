@@ -454,13 +454,14 @@ public static class Creatures
     /// The breaker («Разборщик», companion-fights): the dead fleet's service machine on its last order, to take apart what drifts,
     /// two cells by two, in packs. It flies at 14 cells a second round a hero out in space and darts at it, a crouch of 0.6 s, then
     /// 30 cells a second for 0.3 s, one unit of a suit; one of a pack begins each 1.5 s. A blow cuts the dart and flings it some four
-    /// cells along the blow. Four hit points, two of the axe's. Placeholder numbers, for a play pass.
+    /// cells along the blow. Four hit points, two of the axe's; a scrap each, so each fills the drone's core (drone-abilities).
+    /// Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Breaker = new("breaker", Look: "breaker", Body: new Flyer(Width: 2, Height: 2),
         Life: new(Hp: 4, Knock: 1200, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
         Brain: [new Swarm(Ring: 4, Speed: 700, Accel: 150, Strike: 9, Every: 30)],
         Moves: [new Pounce(WindUp: 12, Speed: 1500, Ticks: 6, Damage: 1, Cuttable: true, AtTarget: true)],
-        Yields: [new("scrapChunk", 1, 1, OneIn: 2)]);
+        Yields: [new("scrapChunk", 1, 1)]);
 
     /// <summary>
     /// The spider (derelict-guards): the sentry aboard an intact vessel, asleep in its capsule on a small room's back wall

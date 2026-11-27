@@ -107,6 +107,7 @@ public partial class HeroView
             // pairing here, it stands through its meeting, its drone shown as the meeting ends (drone-meeting).
             if (_watch.Turned(m, id, m.Players.HasDrone(id), crew.CoreLost())) MeetFriend(id);
             shown.Figure.Paired = m.Players.HasDrone(id);
+            shown.Figure.Charged = (m.Players.ChargeOf(id), Stillwake.Content.Abilities.Full);
             // Its forms are its peer's own (drone-lessons): its beam shows once that peer learned the lamp.
             (shown.Figure.HeadLamp, shown.Figure.Scanner) = DroneModes.Shown(shown.Figure.Paired, seen.Drone, form => m.Research.Knows(id, form));
             shown.Figure.DroneWindow = (seen.Projects, 0);

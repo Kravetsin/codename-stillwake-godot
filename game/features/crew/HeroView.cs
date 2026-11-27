@@ -242,12 +242,12 @@ public partial class HeroView : Node2D
     private readonly WheelView _wheelView = new();
     private readonly GesturePlay _gesture = new();
     /// <summary>
-    /// The drone key and its wheel of the worn light drone's modes (light-drone), drawn, and the mode it is in: the client's, never saved,
-    /// a new game or a reload on the lamp. A mode opens with its node, known to the crew or to a hero in creative mode.
+    /// The drone key and its wheel of the paired drone's actives and modes (light-drone, drone-abilities), drawn, and what is chosen: the
+    /// client's, never saved. A mode opens with its node, known to the crew or to a hero in creative mode.
     /// </summary>
-    private readonly Wheel<DroneMode> _droneWheel = new(DroneModes.Sides);
+    private readonly Wheel<DroneSide> _droneWheel = new([]);
     private readonly WheelView _droneWheelView = new();
-    private DroneMode _droneMode = DroneMode.Lamp;
+    private readonly DroneWheel _drone = new();
     private readonly Func<string, bool> _knows;
     private readonly Func<DroneMode, bool> _droneOpen;
 
@@ -346,7 +346,8 @@ public partial class HeroView : Node2D
         AddChild(_wheelView);
         AddChild(_droneWheelView);
         _knows = Knows;
-        _droneWheel.Opens = _droneOpen = DroneOpen;
+        _droneOpen = DroneOpen;
+        _droneWheel.Opens = side => side.Mode is not { } mode || DroneOpen(mode);
         AddChild(_pingView);
         AddChild(_prompt);
         AddChild(_act);
@@ -494,6 +495,22 @@ public partial class HeroView : Node2D
     }
 
     private readonly List<(Vector2 At, Vector2 Toward)> _headLamps = [];
+
+    /// <summary>
+    /// The drone's light told to the sim, which draws it from the core (drone-abilities, a try): sent on a change, and again a second on
+    /// while the sim has not heard it (a hero entering anew shines nothing).
+    /// </summary>
+    private void Shine(Client client, Registry m)
+    {
+        string? form = _figure.Scanner ? Content.LightDrone.ScannerMode : _figure.HeadLamp ? Content.LightDrone.LampMode : null;
+        if (m.Crew.HeroOf(client.Id) is not { } hero || hero.Shining == form) return;
+        if (form == _shineSent && client.World.Tick < _shineAt + Sim.World.TicksPerSecond) return;
+        client.Send(new Sim.Crew.Shine(form));
+        (_shineSent, _shineAt) = (form, client.World.Tick);
+    }
+
+    private string? _shineSent;
+    private long _shineAt = long.MinValue / 2;
 
     private Func<double, double, bool>? _stopsLight;
 
@@ -726,7 +743,9 @@ public partial class HeroView : Node2D
         _figure.Signal = m.Crew.SignalOf(client.Id);
         _figure.Jetpack = jetpack;
         _figure.Paired = m.Players.HasDrone(client.Id);
-        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _droneMode, _knows);
+        _figure.Charged = (m.Players.ChargeOf(client.Id), Stillwake.Content.Abilities.Full);
+        (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _drone.Mode, _knows);
+        Shine(client, m);
         _figure.DroneWindow = _ui.DroneWindow;
         _figure.Senses = DroneSensesOf(m, client.Id, _surface) with
         {
@@ -776,7 +795,7 @@ public partial class HeroView : Node2D
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_droneMode), projects), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen, _ping.Sent, DroneModes.Sent(_drone.Mode), projects), _steps * Hero.StepMs);
         ShowPings(m);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
