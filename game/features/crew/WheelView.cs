@@ -21,7 +21,7 @@ public partial class WheelView : CanvasLayer
     /// <summary>The wheel but the side picked, fading as it goes; and the side picked, flaring.</summary>
     private readonly Part _rest = new(), _picked = new();
     private readonly WheelFade _fade = new();
-    private readonly List<bool> _shut = [];
+    private readonly List<bool> _shut = [], _on = [];
     private readonly List<IconLines> _icons = [];
     private IconLines? _middle;
     private Vector2 _from;
@@ -39,19 +39,22 @@ public partial class WheelView : CanvasLayer
 
     /// <summary>
     /// Shows <paramref name="wheel"/>, at <paramref name="scale"/> times the normal slot size, each side's icon by <paramref name="icon"/>;
-    /// <paramref name="drone"/> for the drone's, else the gestures; <paramref name="middle"/> drawn in the middle, if any. Its let-go plays on
-    /// after it shuts.
+    /// <paramref name="drone"/> for the drone's, else the gestures; <paramref name="middle"/> drawn in the middle, if any; the side
+    /// <paramref name="chosen"/> now, if any, on, a spark walking its thread. Its let-go plays on after it shuts.
     /// </summary>
-    public void Show<T>(Wheel<T> wheel, float scale, Func<T, IconLines> icon, bool drone, IconLines? middle = null) where T : struct
+    public void Show<T>(Wheel<T> wheel, float scale, Func<T, IconLines> icon, bool drone, IconLines? middle = null,
+        Func<T, bool>? chosen = null) where T : struct
     {
         _open = wheel.Open;
         if (!_open) return;
         (_from, _scale, _drone, _middle) = (new Vector2((float)wheel.From.X, (float)wheel.From.Y), scale, drone, middle);
         _shut.Clear();
         _icons.Clear();
+        _on.Clear();
         foreach (var side in wheel.Sides)
         {
             _shut.Add(!wheel.Opens(side));
+            _on.Add(chosen?.Invoke(side) ?? false);
             _icons.Add(icon(side));
         }
         _toward = wheel.TowardAt is int at && !_shut[at] ? at : null;
@@ -81,7 +84,7 @@ public partial class WheelView : CanvasLayer
         for (int i = 0; i < _shut.Count; i++)
         {
             float flare = _fade.Picked == i ? _fade.Flare : 0;
-            bool lit = _open && i == _toward, shut = _shut[i], bright = lit || flare > 0;
+            bool lit = _open && i == _toward, shut = _shut[i], bright = lit || flare > 0, on = _on[i];
             var layer = flare > 0 ? _picked : _rest;
             if (layer == _rest && _fade.Shown <= 0) continue;
             // From the top, clockwise, shared out evenly as Wheel.SideOf reads them.
@@ -89,9 +92,9 @@ public partial class WheelView : CanvasLayer
             var at = _from + new Vector2(Mathf.Sin(angle), -Mathf.Cos(angle)) * (float)Wheel.Radius * s;
             layer.Discs.Add((at, r, bright));
             float seed = i * 1.7f + (_drone ? 0 : 5), hover = lit ? 1 : 0;
-            ThreadIcon.Draw(layer.Marks, IconInk.Circle, new IconLook(bright ? 0.9f : 0.38f, hover, Shut: shut, Flare: flare, Rim: true, Time: t, Seed: seed),
+            ThreadIcon.Draw(layer.Marks, IconInk.Circle, new IconLook(bright ? 0.9f : on ? 0.6f : 0.38f, hover, Shut: shut, Flare: flare, Rim: true, Time: t, Seed: seed),
                 at.X, at.Y, r, 0.9f * s);
-            ThreadIcon.Draw(layer.Marks, _icons[i], new IconLook(bright ? 1 : 0.6f, hover, Shut: shut, Flare: flare, Time: t, Seed: seed),
+            ThreadIcon.Draw(layer.Marks, _icons[i], new IconLook(bright ? 1 : on ? 0.85f : 0.6f, hover, On: on, Shut: shut, Flare: flare, Time: t, Seed: seed),
                 at.X, at.Y, (_drone ? ModeHalf : GestureHalf) * grow * s, 1.25f * grow * s);
             if (shut) ThreadIcon.Draw(layer.Marks, IconInk.Cross, new IconLook(0.5f, Rim: true, Time: t, Seed: seed), at.X, at.Y, r, 0.9f * s);
         }

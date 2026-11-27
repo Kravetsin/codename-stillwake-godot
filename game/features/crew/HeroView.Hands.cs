@@ -86,7 +86,7 @@ public partial class HeroView
         bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
         var tapped = DroneModes.Next(_drone.Mode, _droneOpen) is { } next ? DroneSide.Of(next) : (DroneSide?)null;
         if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, tapped) is { } picked) _drone.Pick(picked);
-        _droneWheelView.Show(_droneWheel, wheelScale, DroneWheel.IconOf, drone: true, DroneWheel.RightButton);
+        _droneWheelView.Show(_droneWheel, wheelScale, DroneWheel.IconOf, drone: true, DroneWheel.RightButton, _drone.Chosen);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
         if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
         _ping.Step(elapsedMs);

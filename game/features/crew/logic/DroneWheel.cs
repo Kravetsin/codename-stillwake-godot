@@ -57,6 +57,9 @@ public sealed class DroneWheel
         return _actives;
     }
 
+    /// <summary>Whether <paramref name="side"/> is what is chosen now: its branch's mode or active.</summary>
+    public bool Chosen(DroneSide side) => side.Mode is { } mode ? mode == Mode : side.Active == Active;
+
     /// <summary>A side's thread icon (thread-icons).</summary>
     public static Shared.IconLines IconOf(DroneSide side) => side.Mode is { } mode ? DroneModes.IconOf(mode) : ThrowIcon;
 

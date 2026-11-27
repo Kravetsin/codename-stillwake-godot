@@ -36,6 +36,8 @@ public class DroneWheelTests
         Assert.Equal((DroneMode.Scan, DroneActive.Throw), (d.Mode, d.Active));
         d.Pick(DroneSide.Of(DroneActive.Throw));
         Assert.Equal((DroneMode.Scan, DroneActive.Throw), (d.Mode, d.Active));
+        Assert.True(d.Chosen(DroneSide.Of(DroneMode.Scan)) && d.Chosen(DroneSide.Of(DroneActive.Throw)));
+        Assert.False(d.Chosen(DroneSide.Of(DroneMode.Lamp)));
     }
 
     [Fact]
