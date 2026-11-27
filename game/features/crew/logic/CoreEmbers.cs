@@ -20,6 +20,27 @@ public sealed class CoreEmbers
     /// <summary>How long the shown fill takes to most of the way to the charge, s; how long a landing's flare lasts, s.</summary>
     public const float FillEase = 0.35f, FlareFor = 0.25f;
 
+    /// <summary>
+    /// Its beads, one a throw (drone-abilities, a try): how far out over the coal they arc, pick px, the arc's span, rad, a bead's side, pick px,
+    /// and how faint an empty one shows; how long they stay once the core is full, s, and how long they take to come and go, s.
+    /// </summary>
+    public const float BeadRadius = 14, BeadArc = 1.9f, BeadSide = 2, BeadEmpty = 0.18f, BeadsLinger = 0.8f, BeadsEase = 0.2f;
+
+    /// <summary>How shown its beads are, 0..1: there while the core is short of full, gone a moment after it fills.</summary>
+    public float Beads { get; private set; }
+
+    private double _fullFor = BeadsLinger;
+
+    /// <summary>Where bead <paramref name="i"/> of <paramref name="count"/> lies, pick px from the coal: left to right over its top.</summary>
+    public static (float X, float Y) BeadAt(int i, int count)
+    {
+        float a = -MathF.PI / 2 + BeadArc * (count > 1 ? i / (count - 1f) - 0.5f : 0);
+        return (BeadRadius * MathF.Cos(a), BeadRadius * MathF.Sin(a));
+    }
+
+    /// <summary>How lit bead <paramref name="i"/> is, 0..1, with <paramref name="charge"/> in the core and a throw costing <paramref name="cost"/>: the filling one partly.</summary>
+    public static float BeadLit(int i, int charge, int cost) => Math.Clamp(charge / (float)cost - i, 0, 1);
+
     private readonly (double Born, float Angle, float Lead)[] _flying = new (double, float, float)[Most];
     private int _next, _count;
     private int? _charge;
@@ -54,6 +75,8 @@ public sealed class CoreEmbers
         _charge = charge;
         float target = full > 0 ? Math.Clamp(charge / (float)full, 0, 1) : 0;
         Shown += (target - Shown) * (float)(1 - Math.Exp(-elapsed / FillEase));
+        _fullFor = charge < full ? 0 : _fullFor + elapsed;
+        Beads += ((_fullFor < BeadsLinger ? 1 : 0) - Beads) * (float)(1 - Math.Exp(-elapsed / BeadsEase));
         for (int i = 0; i < _count; i++)
             if (_flying[i].Born + Flight <= t && _flying[i].Born + Flight > t - elapsed) _flareAt = _flying[i].Born + Flight;
         Flare = (float)Math.Clamp(1 - (t - _flareAt) / FlareFor, 0, 1);

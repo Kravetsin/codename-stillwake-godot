@@ -60,4 +60,29 @@ public class CoreEmbersTests
         for (int i = 1; i < 200; i++) e.Step(150, 300, i * 0.016, 0.016);
         Assert.InRange(e.Shown, 0.49f, 0.5f);
     }
+
+    [Fact]
+    public void ItsBeadsShowWhileItIsShortOfFullAndGoAMomentAfterItFills()
+    {
+        var e = new CoreEmbers();
+        e.Step(1200, 1200, 0, 0.016);
+        Assert.Equal(0, e.Beads);
+        for (int i = 1; i < 60; i++) e.Step(1000, 1200, i * 0.016, 0.016);
+        Assert.True(e.Beads > 0.95f);
+        e.Step(1200, 1200, 1, 0.016);
+        for (int i = 1; i < 30; i++) e.Step(1200, 1200, 1 + i * 0.016, 0.016);
+        Assert.True(e.Beads > 0.9f);
+        for (int i = 30; i < 150; i++) e.Step(1200, 1200, 1 + i * 0.016, 0.016);
+        Assert.True(e.Beads < 0.05f);
+    }
+
+    [Fact]
+    public void ABeadIsLitPerThrowTheFillingOnePartlyAndTheyArcOverTheCoalLeftToRight()
+    {
+        Assert.Equal([1f, 1f, 0.5f, 0f], new[] { 0, 1, 2, 3 }.Select(i => CoreEmbers.BeadLit(i, 500, 200)));
+        var (first, last) = (CoreEmbers.BeadAt(0, 6), CoreEmbers.BeadAt(5, 6));
+        Assert.True(first.X < 0 && last.X > 0 && first.Y < 0 && last.Y < 0);
+        Assert.Equal(first.Y, last.Y, 3);
+        Assert.Equal(CoreEmbers.BeadRadius, MathF.Sqrt(first.X * first.X + first.Y * first.Y), 3);
+    }
 }

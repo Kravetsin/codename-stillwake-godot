@@ -32,8 +32,8 @@ public static class Abilities
     /// </summary>
     public const int Full = 1200, Regen = 6, PerWorth = 2;
 
-    /// <summary>The throw's cost, the drone's haul: 15% of a core, so a throw every 2 s is paid by the core's own filling.</summary>
-    public const int ThrowCost = 180;
+    /// <summary>The throw's cost, the drone's haul: a sixth of a core, a bead of six on it, so a throw every 2 s is paid by the core's own filling.</summary>
+    public const int ThrowCost = 200;
 
     /// <summary>The ability <c>Cast</c> names for the throw.</summary>
     public static readonly string Throwing = "throw";

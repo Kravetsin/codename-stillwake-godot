@@ -121,6 +121,9 @@ public class DroneCoreTests
     }
 
     [Fact]
+    public void AFullCoreHoldsAWholeNumberOfThrowsItsBeads() => Assert.Equal(0, Abilities.Full % Abilities.ThrowCost);
+
+    [Fact]
     public void AThrowEveryTwoSecondsIsPaidByItsOwnFilling()
     {
         var w = Filled(Aboard());

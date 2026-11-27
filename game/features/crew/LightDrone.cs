@@ -395,7 +395,23 @@ public partial class LightDrone : Node2D
         }
         Coal(_light, Vector2.Zero, _eye, salts, (float)t, dim: dim, glow: (float)_bearing.Glow + I.FlareGlow * _embers.Flare, squint: (float)(_tow?.Squint ?? 0),
             charge: _embers.Shown);
+        CoreBeads(salts);
         _light.Flush(_glow.GetCanvasItem());
+    }
+
+    /// <summary>The core's beads over it, one a throw, lit as far as its charge reaches, while it is short of full (drone-abilities, a try).</summary>
+    private void CoreBeads(Salts salts)
+    {
+        if (_embers.Beads < 0.01f || Charged is not (int charge, int full)) return;
+        int cost = Stillwake.Content.Abilities.ThrowCost, count = full / cost;
+        const float Side = CoreEmbers.BeadSide;
+        for (int i = 0; i < count; i++)
+        {
+            var (x, y) = CoreEmbers.BeadAt(i, count);
+            float lit = CoreEmbers.BeadLit(i, charge, cost);
+            float alpha = (CoreEmbers.BeadEmpty + (1 - CoreEmbers.BeadEmpty) * lit) * _embers.Beads * salts.Gain;
+            _light.Rect(x - Side / 2, y - Side / 2, Side, Side, EmberArt.Of(salts.Spark(1 - lit), Math.Min(1, alpha)));
+        }
     }
 
     /// <summary>A spark's glow <paramref name="heat"/> hot: its square and two behind it along its heading, paler and fainter, <paramref name="burn"/> burnt.</summary>
