@@ -386,16 +386,15 @@ public partial class LightDrone : Node2D
         // The flurry's are fresh from the coal.
         if (_flurry.Shown > 0)
             foreach (var spark in _flurrySparks) Tail(_light, spark, spark.Heat, salts, burn: 0);
-        // Its charge (drone-abilities): the embers flying in, then the coal as full as it shows, breathing once full, flaring as one lands.
+        // Its charge (drone-abilities): the embers flying in, then the coal as full as it shows, flaring as one lands.
         int flying = _embers.At(t, _emberAt);
         for (int i = 0; i < flying; i++)
         {
             var e = _emberAt[i];
             Tail(_light, new Spark(e.X, e.Y, e.Dx, e.Dy, Front: true, e.Heat, Flying: false, 0, 0), e.Heat, salts, burn: 0);
         }
-        float full = _embers.Shown >= 0.999f ? 1 + I.ChargePulse * MathF.Sin((float)t * I.ChargePulsePace * Mathf.Tau) : 1;
         Coal(_light, Vector2.Zero, _eye, salts, (float)t, dim: dim, glow: (float)_bearing.Glow + I.FlareGlow * _embers.Flare, squint: (float)(_tow?.Squint ?? 0),
-            charge: _embers.Shown * full);
+            charge: _embers.Shown);
         _light.Flush(_glow.GetCanvasItem());
     }
 

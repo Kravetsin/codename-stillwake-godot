@@ -237,9 +237,9 @@ public static class DroneInk
 
     /// <summary>
     /// A charged core (drone-abilities), full at 1: its halo ChargeWide times wider and ChargeGlow brighter, its cracks ChargeCrack times
-    /// brighter; full, it breathes ChargePulse of that at ChargePulsePace a second; an ember landing flares it FlareGlow. A stand-in look.
+    /// brighter; an ember landing flares it FlareGlow. A stand-in look.
     /// </summary>
-    public const float ChargeWide = 0.7f, ChargeGlow = 0.35f, ChargeCrack = 1.2f, ChargePulse = 0.25f, ChargePulsePace = 2.2f, FlareGlow = 0.5f;
+    public const float ChargeWide = 0.7f, ChargeGlow = 0.35f, ChargeCrack = 1.2f, FlareGlow = 0.5f;
 
     /// <summary>The meteor coming: a rock and three streaks behind it.</summary>
     public static readonly float[][] GlyphMeteor = [
