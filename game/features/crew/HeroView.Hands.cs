@@ -77,11 +77,16 @@ public partial class HeroView
         var mouse = GetViewport().GetMousePosition();
         var asked = _wheel.Step(wheelKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, Gesture.Point);
         _wheelView.Show(_wheel, wheelScale, Gestures.IconOf, drone: false);
-        // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone).
-        if (!DroneOpen(_droneMode) && DroneModes.Next(_droneMode, _droneOpen) is { } otherMode) _droneMode = otherMode;
+        // The drone key, once paired with the drone: a tap goes on to its next open mode, held its wheel opens (light-drone) on the branch
+        // used last, the right button switching it between actives and modes (drone-abilities).
+        bool rightClicked = _mouse.Buttons.TakeRightClick();
+        if (rightClicked && _droneWheel.Open) _drone.Switch();
+        _droneWheel.Sides = _drone.SidesOf(_ => false);
+        if (!DroneOpen(_drone.Mode) && DroneModes.Next(_drone.Mode, _droneOpen) is { } otherMode) _drone.Mode = otherMode;
         bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
-        if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, DroneModes.Next(_droneMode, _droneOpen)) is { } mode) _droneMode = mode;
-        _droneWheelView.Show(_droneWheel, wheelScale, DroneModes.IconOf, drone: true);
+        var tapped = DroneModes.Next(_drone.Mode, _droneOpen) is { } next ? DroneSide.Of(next) : (DroneSide?)null;
+        if (_droneWheel.Step(droneKey, elapsedMs, (mouse.X, mouse.Y), Wheel.Middle * wheelScale, tapped) is { } picked) _drone.Pick(picked);
+        _droneWheelView.Show(_droneWheel, wheelScale, DroneWheel.IconOf, drone: true, DroneWheel.RightButton);
         // A tap pings the spot for the crew, whatever the hands are doing; the point is played only if they are free.
         if (asked == Gesture.Point && pointer is { } pinged && !passedOut) _ping.Place(Aiming.PointOf(pinged));
         _ping.Step(elapsedMs);
@@ -108,7 +113,6 @@ public partial class HeroView
         // Held on a plan it can work, the hero turns its screwdriver at it; on a square, while any of its plans can be worked.
         bool working = builds && (targets != null ? targets.Any(t => t.Problem == null) : aim is { InReach: true, Work.Problem: null });
         // A right click with a canister in hand breathes it (0047); with the power driver, switches its square and one cell.
-        bool rightClicked = _mouse.Buttons.TakeRightClick();
         if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister) Breathe(client, m);
         // A food in hand is eaten by a right click (food-and-the-body).
         if (rightClicked && acts && _ui.Wielded.Get() is { } wielded && Content.Foods.Of(wielded) != null) Eat(client, m, wielded);
@@ -123,7 +127,7 @@ public partial class HeroView
         _throw.Wait(elapsedMs);
         _throw.Keep(throwing);
         double slow = AxeSwing.SlowOf(BodyHeat.SpeedOf(Body));
-        if (rightClicked && swings && pointer != null && !_ui.DroneWindow.Open && m.Players.HasDrone(client.Id))
+        if (rightClicked && swings && pointer != null && !_ui.DroneWindow.Open && m.Players.HasDrone(client.Id) && _drone.Active == DroneActive.Throw)
             _throw.Begin(throwing, stroke!.PaceMs * slow);
         if (_throw.Leg == ThrowLeg.Raised && (!swings || pointer == null)) _throw.Cancel();
         ThrowFlies(client, m, elapsedMs);

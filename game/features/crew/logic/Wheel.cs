@@ -36,8 +36,8 @@ public sealed class Wheel<T>(IReadOnlyList<T> sides) where T : struct
     private bool _held;
     private double _heldMs, _middle = Wheel.Middle;
 
-    /// <summary>The sides, from the top clockwise.</summary>
-    public IReadOnlyList<T> Sides => sides;
+    /// <summary>The sides, from the top clockwise; changed while open, the pointer reads the new ones.</summary>
+    public IReadOnlyList<T> Sides { get; set; } = sides;
 
     /// <summary>Whether a side may be picked now: one that may not is drawn shut and never picked. Every side, unless set.</summary>
     public Func<T, bool> Opens { get; set; } = _ => true;
@@ -50,10 +50,10 @@ public sealed class Wheel<T>(IReadOnlyList<T> sides) where T : struct
     public bool Open => _held && _heldMs >= Wheel.TapMs;
 
     /// <summary>The index of the side the pointer has moved toward, open or shut; none in the middle.</summary>
-    public int? TowardAt => Wheel.SideOf(Pointer.X - From.X, Pointer.Y - From.Y, _middle, sides.Count);
+    public int? TowardAt => Wheel.SideOf(Pointer.X - From.X, Pointer.Y - From.Y, _middle, Sides.Count);
 
     /// <summary>The side the pointer has moved toward, picked if the key is let go now; none in the middle or on a shut side.</summary>
-    public T? Toward => TowardAt is int at && Opens(sides[at]) ? sides[at] : null;
+    public T? Toward => TowardAt is int at && Opens(Sides[at]) ? Sides[at] : null;
 
     /// <summary>
     /// Follows the key, <paramref name="held"/> or not, and the pointer at <paramref name="pointer"/> on the screen, the middle
