@@ -81,7 +81,7 @@ public partial class HeroView
         // used last, the right button switching it between actives and modes (drone-abilities).
         bool rightClicked = _mouse.Buttons.TakeRightClick();
         if (rightClicked && _droneWheel.Open) _drone.Switch();
-        _droneWheel.Sides = _drone.SidesOf(_ => false);
+        _droneWheel.Sides = _drone.SidesOf(_knowsActive ??= KnowsActive);
         if (!DroneOpen(_drone.Mode) && DroneModes.Next(_drone.Mode, _droneOpen) is { } otherMode) _drone.Mode = otherMode;
         bool droneKey = pointer != null && m.Players.HasDrone(client.Id) && BindKeys.Held(Bind.Drone) && !typing && !_locked;
         var tapped = DroneModes.Next(_drone.Mode, _droneOpen) is { } next ? DroneSide.Of(next) : (DroneSide?)null;
@@ -202,7 +202,18 @@ public partial class HeroView
         _armUp = _arm.Step(used, elapsedMs) && (_aimsGun || _aimsDrill || thrusts);
         bool ready = _figure.Aimed;
         _clickWaits = fresh && !ready && _aimsGun;
-        Shoot(client, m, shooter, wieldsShooter, fresh && ready, held && ready, _hosts, elapsedMs);
+        // The drone's gun form (drone-abilities): chosen on its wheel, the right button held fires it from the drone's lens at the pointer,
+        // unless what is in hand has a right-button use of its own; the hands as free as for the throw.
+        var form = DroneWheel.GunOf(_drone.Active);
+        bool ownRight = gun || driver is { Area: > 1 } || _ui.Wielded.Get() is { } inHand && (inHand == Content.Crew.Canister || Content.Foods.Of(inHand) != null);
+        bool forms = form != null && acts && !_locked && !ownRight && !_ui.DroneWindow.Open && m.Players.HasDrone(client.Id);
+        if (forms && (rightClicked || _mouse.Buttons.HoldsRight) && pointer is { } toward && _figure.DroneLens is { } lens)
+        {
+            var eye = lens.GetCenter();
+            var way = (new Vector2((float)(toward.X * Rig.Cell), (float)(toward.Y * Rig.Cell)) - eye).Normalized();
+            Shoot(client, m, form, true, rightClicked, _mouse.Buttons.HoldsRight, _hosts, elapsedMs, (eye, way));
+        }
+        else Shoot(client, m, shooter, wieldsShooter, fresh && ready, held && ready, _hosts, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
             (middle.X, middle.Y), _letsGo, Drops: rightClicked && wieldsGun, Holds: held);
@@ -259,6 +270,11 @@ public partial class HeroView
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
         if (_ui.OpenComputer.Get() is int screen && (passedOut || !Aiming.CrateInReach(m.Grid, _current, screen))) _ui.OpenComputer.Set(null);
     }
+
+    /// <summary>Whether this player's drone knows <paramref name="active"/>: the throw always, a gun form once learned, or in creative.</summary>
+    private bool KnowsActive(DroneActive active) => DroneWheel.GunOf(active) is not { } form || _knows(form.Item);
+
+    private System.Func<DroneActive, bool>? _knowsActive;
 
     /// <summary>This hero's throw (companion-fights), and whether the stroke playing lets it go rather than strikes.</summary>
     private readonly WeaponThrow _throw = new();

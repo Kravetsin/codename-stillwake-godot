@@ -11,8 +11,10 @@ namespace Stillwake.Sim.Creatures;
 /// along <c>Heading</c> (<see cref="Content.Headings"/>): one of its ammo spent, none in creative, and a shot flying from the next
 /// step on (shots-are-the-sims). Refused with no such gun carried (<c>creatures.noGun</c>), the muzzle off the grid
 /// (<c>creatures.blocked</c>), no ammo (<c>items.notEnough</c>) and, for a gun that takes the belt's charge, too little of it
-/// (<c>items.flat</c>), which it spends (2026-10-27-the-railgun). Where the muzzle is, how often it fires and how long it is held are
-/// the client's word (0034).
+/// (<c>items.flat</c>), which it spends (2026-10-27-the-railgun). A drone's gun form (drone-abilities) fires from its lens on its core's
+/// charge, in creative too: refused unpaired or with the form unknown (<c>creatures.noForm</c>, known to anyone in creative), the hero
+/// passed out (<c>creatures.out</c>), and a core that cannot pay (<c>creatures.noCharge</c>). Where the muzzle is, how often it fires and
+/// how long it is held are the client's word (0034).
 /// </summary>
 public sealed record Fire(string Tool, int X, int Y, int Heading) : Command;
 
@@ -50,18 +52,30 @@ public sealed partial class CreaturesModule
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Fire"/> of <paramref name="tool"/> from (<paramref name="x"/>, <paramref name="y"/>) would be refused.</summary>
     public string? FireProblem(int peer, string tool, int x, int y)
     {
+        if (Content.Shots.GunOf(tool) is { CoreCost: > 0 } form) return FormProblem(peer, form, x, y);
         if (Content.Shots.GunOf(tool) is not { } gun || _held.ToolStack(peer, gun.Item) == null) return "creatures.noGun";
         if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return "creatures.blocked";
         if (AmmoOf(peer, gun) == null) return "items.notEnough";
         return gun.Energy > 0 && !_held.CanDrain(peer, gun.Energy) ? "items.flat" : null;
     }
 
+    /// <summary>Why peer <paramref name="peer"/>'s drone would not fire its gun form <paramref name="form"/> from (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    private string? FormProblem(int peer, Content.Gun form, int x, int y)
+    {
+        bool creative = _held.Creative(peer);
+        if (!_players.HasDrone(peer) || !creative && !_known.Knows(peer, form.Item)) return "creatures.noForm";
+        if (_crew.HeroOf(peer) is not { Out: 0 }) return "creatures.out";
+        if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return "creatures.blocked";
+        return _players.CanDischarge(peer, form.CoreCost) ? null : "creatures.noCharge";
+    }
+
     /// <summary>
     /// What peer <paramref name="peer"/>'s <paramref name="gun"/> fires next: the first of its ammo the hero carries (any, the first,
-    /// in creative); null for none. What the shooter's client flies its own shot as.
+    /// in creative), a drone's form its own; null for none. What the shooter's client flies its own shot as.
     /// </summary>
     public Content.Projectile? AmmoOf(int peer, Content.Gun gun)
     {
+        if (gun.CoreCost > 0) return Content.Shots.Get(gun.Ammo[0]);
         foreach (string ammo in gun.Ammo)
             if (_held.ShortOf(peer, [(ammo, 1)]) == null) return Content.Shots.Get(ammo);
         return null;
@@ -71,7 +85,8 @@ public sealed partial class CreaturesModule
     {
         var gun = Content.Shots.GunOf(c.Tool)!;
         var ammo = AmmoOf(c.From, gun)!;
-        _items.Take(c.From, [(ammo.Id, 1)]);
+        if (gun.CoreCost == 0) _items.Take(c.From, [(ammo.Id, 1)]);
+        else _playersOps.Discharge(c.From, gun.CoreCost);
         if (gun.Energy > 0 && !_items.Drain(c.From, gun.Energy)) throw new InvalidOperationException("creatures.fire: the belt could not pay what it could");
         var f = ShotFlight.Launch(gun, c.X, c.Y, c.Heading);
         State.Fired += 1;

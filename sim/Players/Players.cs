@@ -24,8 +24,11 @@ public sealed record PeerLook(int Peer, Look Worn, Look Next);
 /// </summary>
 public sealed record PeerSkins(int Peer, IReadOnlyList<string> Ids);
 
-/// <summary>Peer <c>Peer</c>'s drone's core (drone-abilities): its <c>Charge</c>, 0..<c>Content.Abilities.Full</c>.</summary>
-public sealed record Core(int Peer, int Charge);
+/// <summary>
+/// Peer <c>Peer</c>'s drone's core (drone-abilities): its <c>Charge</c>, 0..<c>Content.Abilities.Full</c>; <c>Draining</c> once a shot has
+/// opened it full, till it is empty, filling none meanwhile.
+/// </summary>
+public sealed record Core(int Peer, int Charge, bool Draining = false);
 
 /// <summary>The players' slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class PlayersState
@@ -46,7 +49,14 @@ public sealed class PlayersState
     internal List<Core>? CoresSaved
     {
         get => Cores.Count == 0 ? null : Cores;
-        set => Cores = value?.Select(c => c with { Charge = Math.Clamp(c.Charge, 0, Content.Abilities.Full) }).ToList() ?? [];
+        set => Cores = value?.Select(Held).ToList() ?? [];
+    }
+
+    /// <summary>A core's charge held to 0..full, and draining only part spent: what a save from another full or a broken one loads as.</summary>
+    private static Core Held(Core c)
+    {
+        int charge = Math.Clamp(c.Charge, 0, Content.Abilities.Full);
+        return c with { Charge = charge, Draining = c.Draining && charge is > 0 and < Content.Abilities.Full };
     }
 
     /// <summary><see cref="Skins"/> as a save writes it: left out while nobody chose one, as a save from before skins.</summary>
@@ -73,6 +83,10 @@ public interface IPlayersQueries
     bool HasDrone(int peer);
     /// <summary>How much charge <paramref name="peer"/>'s drone's core holds (drone-abilities), 0..<c>Abilities.Full</c>; 0 unpaired.</summary>
     int ChargeOf(int peer);
+    /// <summary>Whether <paramref name="peer"/>'s core is draining: opened by a shot, filling none till it is empty.</summary>
+    bool DrainingOf(int peer);
+    /// <summary>Whether <paramref name="peer"/>'s core can pay a shot of <paramref name="cost"/>: full, or draining, with that much left.</summary>
+    bool CanDischarge(int peer, int cost);
 }
 
 /// <summary>How crew dresses its heroes.</summary>
@@ -97,6 +111,11 @@ public interface IPlayersOps
     void Pair(int peer);
     /// <summary>Loot of <paramref name="worth"/> fills <paramref name="peer"/>'s drone's core, up to full; nothing unpaired.</summary>
     void Charge(int peer, long worth);
+    /// <summary>
+    /// A shot of <paramref name="cost"/> from <paramref name="peer"/>'s core: it drains till empty, then fills again. The caller checks
+    /// <see cref="IPlayersQueries.CanDischarge"/>.
+    /// </summary>
+    void Discharge(int peer, int cost);
 }
 
 /// <summary>
@@ -169,9 +188,22 @@ public sealed class PlayersModule : Module<PlayersState>, IPlayersQueries, IPlay
 
     public int ChargeOf(int peer) => State.Cores.Find(c => c.Peer == peer)?.Charge ?? 0;
 
+    public bool DrainingOf(int peer) => State.Cores.Find(c => c.Peer == peer)?.Draining ?? false;
+
+    public bool CanDischarge(int peer, int cost) =>
+        State.Cores.Find(c => c.Peer == peer) is { } core && (core.Charge == Content.Abilities.Full || core.Draining) && core.Charge >= cost;
+
+    public void Discharge(int peer, int cost)
+    {
+        int at = State.Cores.FindIndex(c => c.Peer == peer);
+        if (at < 0 || !CanDischarge(peer, cost)) throw new InvalidOperationException("players.discharge: the core cannot pay; check CanDischarge first");
+        int left = State.Cores[at].Charge - cost;
+        State.Cores[at] = State.Cores[at] with { Charge = left, Draining = left is > 0 and < Content.Abilities.Full };
+    }
+
     public void Charge(int peer, long worth)
     {
-        if (!HasDrone(peer) || worth <= 0) return;
+        if (!HasDrone(peer) || worth <= 0 || DrainingOf(peer)) return;
         int at = State.Cores.FindIndex(c => c.Peer >= peer);
         if (at >= 0 && State.Cores[at].Peer == peer)
             State.Cores[at] = State.Cores[at] with { Charge = (int)Math.Min(Content.Abilities.Full, State.Cores[at].Charge + worth) };

@@ -27,11 +27,12 @@ public sealed record Homing(int Speed, int Turn);
 /// projectile pulled by <paramref name="Fall"/> thousandths of its weight; <paramref name="Energy"/> power-ticks of the belt's charge a
 /// shot, none for 0; held <paramref name="Charge"/> ticks before it fires, the client's word as the pace is, 0 firing on the click
 /// (2026-10-27-the-railgun); out in space each shot kicks the hero back along its barrel by <paramref name="Recoil"/> thousandths of a
-/// cell a step, fading by <see cref="Hero.KickKeep"/>, the client's alone as its movement is.
+/// cell a step, fading by <see cref="Hero.KickKeep"/>, the client's alone as its movement is. A drone's gun form (drone-abilities) spends
+/// <paramref name="CoreCost"/> of its core's charge a shot in place of ammo, 0 for a gun held in the hand.
 /// </summary>
 public sealed record Gun(
     string Item, IReadOnlyList<string> Ammo, int Damage, int BlockDamage, int Knock, int Speed, int Reach, int Pace, int PierceKeep,
-    Pierce Pierces = Pierce.Broken, int Fall = 1000, int Energy = 0, int Charge = 0, int Recoil = 0, int Carries = 0);
+    Pierce Pierces = Pierce.Broken, int Fall = 1000, int Energy = 0, int Charge = 0, int Recoil = 0, int Carries = 0, int CoreCost = 0);
 
 /// <summary>What a gun's shot flies on through: only what its hit kills (the nailer's), or every body it hits; a cell only while it carries some (unified-damage).</summary>
 public enum Pierce { Broken, All }
@@ -108,9 +109,24 @@ public static class Shots
     /// </summary>
     public static readonly Projectile Gauss = new("gauss", Damage: 6, BlockDamage: 0, Weight: 0, HitsBodies: false);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell, Missile, Gauss];
+    /// <summary>The drone's ember nail (drone-abilities): 3 on its gun's damage, nothing on its block damage; weightless, it flies straight.</summary>
+    public static readonly Projectile Ember = new("ember", Damage: 3, BlockDamage: 0, Weight: 0, HitsBodies: true);
 
+    /// <summary>
+    /// The drone's nail form (drone-abilities), fired from its lens: its ember's 3 and 2 more, 5 a hit, a breaker at one; a shot every
+    /// 0.25 s held; 10 off a block; a full knock; 72 cells a second, gone at 288; half kept through what it breaks; a tenth of a full core
+    /// a shot. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Gun DroneNailer = new(Abilities.Nailer, ["ember"], Damage: 2, BlockDamage: 10, Knock: 10, Speed: 3600, Reach: 288, Pace: 5,
+        PierceKeep: 500, CoreCost: Abilities.Full / 10);
+
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt, Laser, Glob, BlastCharge, Shell, Missile, Gauss, Ember];
+
+    /// <summary>The guns held in the hand, crafted and loaded with ammo.</summary>
     public static readonly IReadOnlyList<Gun> Guns = [Nailer, Railgun, Thrown];
+
+    /// <summary>The drone's gun forms (drone-abilities), fired from its lens on its core's charge.</summary>
+    public static readonly IReadOnlyList<Gun> DroneGuns = [DroneNailer];
 
     /// <summary>The projectile <paramref name="id"/>; throws for none.</summary>
     public static Projectile Get(string id)
@@ -125,6 +141,8 @@ public static class Shots
     {
         for (int i = 0; i < Guns.Count; i++)
             if (Guns[i].Item == item) return Guns[i];
+        for (int i = 0; i < DroneGuns.Count; i++)
+            if (DroneGuns[i].Item == item) return DroneGuns[i];
         return null;
     }
 

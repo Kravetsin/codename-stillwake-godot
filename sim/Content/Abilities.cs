@@ -32,6 +32,9 @@ public static class Abilities
     /// </summary>
     public const int Full = 300;
 
+    /// <summary>The drone's nail form (drone-abilities): the form a player's drone learns, its gun's id (<c>Shots.DroneNailer</c>).</summary>
+    public static readonly string Nailer = "droneNailer";
+
     /// <summary>The throw of <paramref name="item"/>, or null for an item never thrown.</summary>
     public static Throw? ThrowOf(string? item)
     {

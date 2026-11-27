@@ -104,7 +104,10 @@ public static class ShotLooks
     /// The look of projectile <paramref name="id"/> fired from <paramref name="gun"/>: the railgun's its own, a charge its own whoever
     /// threw it (a catcher's has no gun, catcher-combat), a catcher's shell and missile their own, else the nail's.
     /// </summary>
+    /// <summary>The drone's ember nail (drone-abilities): a short ember streak, glowing, its hot point in front. A stand-in until the form's pick.</summary>
+    public static readonly ShotLook Ember = new(10, 1.4, Tail: "ff5a1a00", Body: "ff7a2ae6", Point: "ffe2a8", Glow: "ff6a20");
+
     public static ShotLook Of(string id, string? gun) =>
-        gun == Content.Shots.Railgun.Item ? Railed : id == Content.Shots.BlastCharge.Id ? Charge : id == Content.Shots.Shell.Id ? Shell
+        gun == Content.Shots.Railgun.Item ? Railed : id == Content.Shots.Ember.Id ? Ember : id == Content.Shots.BlastCharge.Id ? Charge : id == Content.Shots.Shell.Id ? Shell
         : id == Content.Shots.Missile.Id ? Missile : Nail;
 }

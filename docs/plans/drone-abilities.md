@@ -69,8 +69,8 @@ drone's, so it lasts as long. `Hero` is removed on `Leave`, so Crew cannot keep 
   any exists, like `Drones`, so no format bump.
 - `Charge` runs 0..`Abilities.Full`. On load it is clamped to `Full`, in case `Full` changed.
 - Players gains an op `Charge(peer, worth)` and a query `CoreOf(peer)` returning `(Charge, Draining)`.
-- **Filling:** Crew's `Loot` calls `Charge(peer, worth)` beside `Fill`, not inside it. It is skipped in creative and while
-  the hero is passed out (`Out > 0`). Players adds the worth only for a paired peer that is not draining, clamped to `Full`.
+- **Filling:** Crew's `Loot` calls `Charge(peer, worth)` beside `Fill`, not inside it. Both are skipped while the hero is
+  passed out (`Out > 0`); in creative only the catcher meter is, so creative can try the core. Players adds the worth only for a paired peer that is not draining, clamped to `Full`.
 - **Spending:** an op `Discharge(peer, cost)`. A shot of cost `c` is allowed when `Charge == Full` or `Draining`, and
   `Charge >= c`. After subtracting: `0 < Charge < Full` sets `Draining`, and `Charge == 0` clears it. So a nail (cost
   `Full / 10`) opens the core and nine more empty it, and a rail (cost `Full`) fires only from full.
@@ -88,7 +88,7 @@ drone's, so it lasts as long. `Hero` is removed on `Leave`, so Crew cannot keep 
 - `creatures.noForm`: no drone, or the form not known (`Knowledge.Knows`). Creative skips the knowledge check.
 - `creatures.out`: the hero passed out.
 - `creatures.blocked`: as today.
-- `creatures.noCharge`: the charge does not allow the shot. In creative the shot is free and the charge untouched.
+- `creatures.noCharge`: the charge does not allow the shot. In creative the charge is spent as anywhere.
 
 Creatures gains `IKnowledgeQueries`, `IPlayersQueries` and `IPlayersOps`; Knowledge and Players are built before it. The
 refusals show only as the flicker; their i18n keys still get En and Ru text for the log and the refusal list.
@@ -117,7 +117,7 @@ refusals show only as the flicker; their i18n keys still get En and Ru text for 
 - The muzzle is the drone's lens, the client's word (0034).
 - `DroneSwarm` sets the core's brightness from `CoreOf` and adds the embers. While a gun form fires, it takes a stand-in
   shape until the pick.
-- `--drone-nailer` grants the form in the world it seeds, as `--scanner` grants its mode.
+- No dev flag: creative knows the form, and its core fills and drains there as anywhere, so the user tries it in the plain game.
 
 ## Determinism and co-op
 
@@ -142,8 +142,8 @@ refusals show only as the flicker; their i18n keys still get En and Ru text for 
 
 **Scenarios:**
 
-- Each `Loot` caller fills the charge, up to `Full` and no further, a full catcher meter too. Nothing fills unpaired, in
-  creative, while passed out, or while draining.
+- Each `Loot` caller fills the charge, up to `Full` and no further, a full catcher meter too. Nothing fills unpaired,
+  while passed out, or while draining; creative fills.
 - The charge lasts through death and through leaving and coming back.
 - Two heroes' charges are apart: one's loot and shots touch only its own.
 - `Fire` of the nail form:
@@ -152,7 +152,7 @@ refusals show only as the flicker; their i18n keys still get En and Ru text for 
   - refused `noCharge` below `Full` when not draining;
   - one shot sets `Draining` and spends `Full / 10`; ten empty the core and clear `Draining`; then loot fills it again;
   - a shot and a break on the same tick: the core opens, the break's loot adds nothing;
-  - free in creative, charge untouched;
+  - in creative known without its lesson, its charge spent as anywhere;
   - its kill's loot goes to the shooter's `Loot`.
 - The lesson: 39 nailer shots leave the form unknown and the 40th teaches it. A refused nailer `Fire` and another gun's
   shots count nothing.
@@ -188,7 +188,7 @@ the clamp once. Creatures' `Fuzz` pairs a hero, grants it the form and fills its
 
 1. The charge, with breakers always dropping scrap: kill things and watch the core brighten, embers flying in.
 2. The two-branch F wheel with its RMB hint. The actives side shows only the throw until a form is learned.
-3. The nail form, granted by `-- --drone-nailer` or in creative: holding RMB fires stand-in ember nails, ten to an empty
+3. The nail form, known in creative: holding RMB fires stand-in ember nails, ten to an empty
    core, then the core charges again.
 4. The lesson: nailer shots counted, the question mark, the vision (`-- --form-vision`), the board note.
 5. The nail form's look and sound picked on a pick page, then shipped whole.

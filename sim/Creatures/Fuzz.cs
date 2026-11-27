@@ -49,6 +49,8 @@ public sealed partial class CreaturesModule
     /// </summary>
     private Command FuzzFire(Rng rng, int from)
     {
+        // A drone's form now and then: refused unpaired, fired paired in creative or on a full core.
+        if (rng.Below(5) == 0) return FuzzForm(rng, from);
         var gun = Content.Shots.Guns[(int)rng.Below((uint)Content.Shots.Guns.Count)];
         if (_held.ToolStack(from, gun.Item) == null && rng.Below(2) == 0)
         {
@@ -67,6 +69,15 @@ public sealed partial class CreaturesModule
             (x, y) = (cell % _grid.Width * Unit - 4 * Unit + (int)rng.Below(8 * Unit), cell / _grid.Width * Unit - 4 * Unit + (int)rng.Below(8 * Unit));
         else (x, y) = ((int)rng.Below((uint)(_grid.Width + 2) * Unit) - Unit, (int)rng.Below((uint)(_grid.Height + 2) * Unit) - Unit);
         return new Fire(tool, x, y, heading) { From = from };
+    }
+
+    private Fire FuzzForm(Rng rng, int from)
+    {
+        var form = Content.Shots.DroneGuns[(int)rng.Below((uint)Content.Shots.DroneGuns.Count)];
+        var (x, y) = _crew.HeroOf(from)?.Cell is int cell && cell >= 0 && cell < _grid.Width * _grid.Height
+            ? (cell % _grid.Width * Unit + Unit / 2, cell / _grid.Width * Unit - 2 * Unit)
+            : ((int)rng.Below((uint)_grid.Width * Unit), (int)rng.Below((uint)_grid.Height * Unit));
+        return new Fire(form.Item, x, y, (int)rng.Below(Content.Headings.Turn)) { From = from };
     }
 
     /// <summary>A cell under a point of the turned box of a wreck out, drawn: the wreck, then the point; null with none out.</summary>

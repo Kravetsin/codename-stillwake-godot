@@ -19,6 +19,13 @@ public partial class ContentTests
     }
 
     [Fact]
+    public void EveryDroneGunCostsAShareOfAFullCoreSoADrainingCoreEndsAtNone()
+    {
+        Assert.All(Shots.DroneGuns, gun => Assert.True(gun.CoreCost > 0 && Abilities.Full % gun.CoreCost == 0 && Shots.DamageOf(gun.Item, gun.Ammo[0]) > 0, gun.Item));
+        Assert.All(Shots.Guns, gun => Assert.Equal(0, gun.CoreCost));
+    }
+
+    [Fact]
     public void EveryGunFliesAndReachesIsCraftedAndFiresProjectilesThatAreItemsCraftedThereAThrownOneItsOwn()
     {
         Assert.Equal(Shots.Projectiles.Count, Shots.Projectiles.Select(p => p.Id).Distinct().Count());
