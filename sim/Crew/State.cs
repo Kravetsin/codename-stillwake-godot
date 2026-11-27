@@ -40,6 +40,9 @@ public sealed class Hero
     /// worn, working only while one is (<see cref="ICrewQueries.SuitOn"/>; 2026-11-03-the-regen-suit).
     /// </summary>
     [JsonInclude] public bool SuitOn { get; internal set; }
+
+    /// <summary>The form its drone shines in, the lamp's or the scanner's, drawing on its core a tick (drone-abilities); none: neither.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Shining { get; internal set; }
     /// <summary>How many hurts it has taken, each a blow, a shock, poison or a burn (2026-11-08-hurts-are-shown): the client shows each new one.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Hurts { get; internal set; }
     /// <summary>How many times it has purged its meals (food-tuning): the client shows each new one.</summary>

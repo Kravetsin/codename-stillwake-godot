@@ -128,7 +128,11 @@ public partial class HeroView
         _throw.Keep(throwing);
         double slow = AxeSwing.SlowOf(BodyHeat.SpeedOf(Body));
         if (rightClicked && swings && pointer != null && !_ui.DroneWindow.Open && m.Players.HasDrone(client.Id) && _drone.Active == DroneActive.Throw)
-            _throw.Begin(throwing, stroke!.PaceMs * slow);
+        {
+            // The throw draws on the drone's core (drone-abilities, a try): too tired, a dry click and no throw.
+            if (_throw.Leg == ThrowLeg.None && m.Crew.CastProblem(client.Id, Content.Abilities.Throwing) != null) _dryClick.Play();
+            else if (_throw.Begin(throwing, stroke!.PaceMs * slow)) client.Send(new Sim.Crew.Cast(Content.Abilities.Throwing));
+        }
         if (_throw.Leg == ThrowLeg.Raised && (!swings || pointer == null)) _throw.Cancel();
         ThrowFlies(client, m, elapsedMs);
         if (!swings) _swing.Stop();

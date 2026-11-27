@@ -27,10 +27,22 @@ public static class Abilities
     public static readonly IReadOnlyList<Throw> Throws = [Axe, Sledgehammer, Spear];
 
     /// <summary>
-    /// A full core (drone-abilities): the loot's worth (<c>Market.WorthOf</c>) a paired hero gathers to fill its drone's charge, what its
-    /// gun forms spend; a multiple of ten. Fifteen breakers' worth. A placeholder number, for a play pass.
+    /// A full core (drone-abilities, a try of the core as stamina): what every drone action spends; it fills by itself at
+    /// <see cref="Regen"/> a tick, a full core in 10 s, and by <see cref="PerWorth"/> for each worth of loot. Placeholder numbers, for a play pass.
     /// </summary>
-    public const int Full = 300;
+    public const int Full = 1200, Regen = 6, PerWorth = 2;
+
+    /// <summary>The throw's cost, the drone's haul: 15% of a core, so a throw every 2 s is paid by the core's own filling.</summary>
+    public const int ThrowCost = 180;
+
+    /// <summary>The ability <c>Cast</c> names for the throw.</summary>
+    public static readonly string Throwing = "throw";
+
+    /// <summary>What <paramref name="ability"/> costs the core once; null for no such ability.</summary>
+    public static int? CostOf(string ability) => ability == Throwing ? ThrowCost : null;
+
+    /// <summary>What the drone shining in <paramref name="form"/> takes from its core a tick: the lamp 2, the scanner 3, so either is paid while nothing else is.</summary>
+    public static int DrainOf(string? form) => form == LightDrone.LampMode ? 2 : form == LightDrone.ScannerMode ? 3 : 0;
 
     /// <summary>The throw of <paramref name="item"/>, or null for an item never thrown.</summary>
     public static Throw? ThrowOf(string? item)

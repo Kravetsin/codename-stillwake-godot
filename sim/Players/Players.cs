@@ -95,8 +95,8 @@ public interface IPlayersOps
     void Skin(int peer, IReadOnlyList<string> ids);
     /// <summary><paramref name="peer"/> pairs with its light drone for good; the caller checks it has none yet.</summary>
     void Pair(int peer);
-    /// <summary>Loot of <paramref name="worth"/> fills <paramref name="peer"/>'s drone's core, up to full; nothing unpaired.</summary>
-    void Charge(int peer, long worth);
+    /// <summary><paramref name="peer"/>'s drone's core gains <paramref name="by"/>, or spends it below 0, held to 0..full; nothing unpaired.</summary>
+    void Charge(int peer, long by);
 }
 
 /// <summary>
@@ -169,12 +169,13 @@ public sealed class PlayersModule : Module<PlayersState>, IPlayersQueries, IPlay
 
     public int ChargeOf(int peer) => State.Cores.Find(c => c.Peer == peer)?.Charge ?? 0;
 
-    public void Charge(int peer, long worth)
+    public void Charge(int peer, long by)
     {
-        if (!HasDrone(peer) || worth <= 0) return;
+        if (!HasDrone(peer) || by == 0) return;
         int at = State.Cores.FindIndex(c => c.Peer >= peer);
-        if (at >= 0 && State.Cores[at].Peer == peer)
-            State.Cores[at] = State.Cores[at] with { Charge = (int)Math.Min(Content.Abilities.Full, State.Cores[at].Charge + worth) };
-        else State.Cores.Insert(at < 0 ? State.Cores.Count : at, new Core(peer, (int)Math.Min(Content.Abilities.Full, worth)));
+        bool has = at >= 0 && State.Cores[at].Peer == peer;
+        int charge = (int)Math.Clamp((has ? State.Cores[at].Charge : 0) + by, 0, Content.Abilities.Full);
+        if (has) State.Cores[at] = State.Cores[at] with { Charge = charge };
+        else if (charge > 0) State.Cores.Insert(at < 0 ? State.Cores.Count : at, new Core(peer, charge));
     }
 }

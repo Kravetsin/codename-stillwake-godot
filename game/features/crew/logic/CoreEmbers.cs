@@ -32,14 +32,16 @@ public sealed class CoreEmbers
     public float Flare { get; private set; }
 
     /// <summary>
-    /// The core's <paramref name="charge"/> of <paramref name="full"/> at <paramref name="t"/>, after <paramref name="elapsed"/> s: a gain sends
-    /// embers in, the first reading none; a drop eases down with none.
+    /// The core's <paramref name="charge"/> of <paramref name="full"/> at <paramref name="t"/>, after <paramref name="elapsed"/> s: a gain beyond
+    /// its own filling sends embers in, the first reading none; a drop or its own filling eases with none.
     /// </summary>
     public void Step(int charge, int full, double t, double elapsed)
     {
-        if (_charge is int was && charge > was)
+        // Its own filling in the frame, a tick more for a frame that saw one tick early: loot is what comes beyond it.
+        int own = (int)Math.Ceiling(Content.Abilities.Regen * (Sim.World.TicksPerSecond * elapsed + 1));
+        if (_charge is int was && charge - was > own)
         {
-            int count = Math.Clamp((charge - was) / WorthEach, 1, MostEach);
+            int count = Math.Clamp((charge - was - own) / WorthEach, 1, MostEach);
             for (int i = 0; i < count; i++)
             {
                 uint seed = (uint)(_next * 2654435761u);

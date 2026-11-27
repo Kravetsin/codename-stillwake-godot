@@ -31,6 +31,9 @@ public sealed partial class CrewModule
         if (rng.Below(40) == 0) return new Track((int)rng.Below(400)) { From = from };
         if (rng.Below(60) == 0) return new Succumb { From = from };
         if (rng.Below(10) == 0) return new SuitMode(rng.Below(2) == 0) { From = from };
+        // The drone's light and its throw draw on its core (drone-abilities), refused ones too.
+        if (rng.Below(12) == 0) return new Shine(rng.Below(4) switch { 0 => null, 1 => Content.LightDrone.ScannerMode, 2 => "nothing", _ => Content.LightDrone.LampMode }) { From = from };
+        if (rng.Below(12) == 0) return new Cast(rng.Below(5) == 0 ? "nothing" : Content.Abilities.Throwing) { From = from };
         if (rng.Below(5) == 0) return new PickColour((int)rng.Below(Content.Crew.Colours + 1)) { From = from };
         if (rng.Below(10) == 0)
         {

@@ -496,6 +496,22 @@ public partial class HeroView : Node2D
 
     private readonly List<(Vector2 At, Vector2 Toward)> _headLamps = [];
 
+    /// <summary>
+    /// The drone's light told to the sim, which draws it from the core (drone-abilities, a try): sent on a change, and again a second on
+    /// while the sim has not heard it (a hero entering anew shines nothing).
+    /// </summary>
+    private void Shine(Client client, Registry m)
+    {
+        string? form = _figure.Scanner ? Content.LightDrone.ScannerMode : _figure.HeadLamp ? Content.LightDrone.LampMode : null;
+        if (m.Crew.HeroOf(client.Id) is not { } hero || hero.Shining == form) return;
+        if (form == _shineSent && client.World.Tick < _shineAt + Sim.World.TicksPerSecond) return;
+        client.Send(new Sim.Crew.Shine(form));
+        (_shineSent, _shineAt) = (form, client.World.Tick);
+    }
+
+    private string? _shineSent;
+    private long _shineAt = long.MinValue / 2;
+
     private Func<double, double, bool>? _stopsLight;
 
     /// <summary>Whether a point of this surface, as this peer shows it, stops light: what keeps a drone and its light in the open air.</summary>
@@ -729,6 +745,7 @@ public partial class HeroView : Node2D
         _figure.Paired = m.Players.HasDrone(client.Id);
         _figure.Charged = (m.Players.ChargeOf(client.Id), Stillwake.Content.Abilities.Full);
         (_figure.HeadLamp, _figure.Scanner) = DroneModes.Shown(_figure.Paired, _drone.Mode, _knows);
+        Shine(client, m);
         _figure.DroneWindow = _ui.DroneWindow;
         _figure.Senses = DroneSensesOf(m, client.Id, _surface) with
         {

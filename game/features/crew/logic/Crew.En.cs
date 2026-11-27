@@ -5,6 +5,10 @@ public static partial class En
     private static readonly Strings Crew = new()
     {
         ["crew.noHero"] = "You are not aboard",
+        ["crew.noDrone"] = "You have no drone",
+        ["crew.noAbility"] = "Your drone cannot do that",
+        ["crew.noForm"] = "Your drone has no such light",
+        ["crew.tired"] = "Your drone's core is too low",
         ["look.title"] = "Your look",
         ["look.skin"] = "Skin",
         ["look.hair"] = "Hair",

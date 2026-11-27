@@ -5,6 +5,10 @@ public static partial class Ru
     private static readonly Strings Crew = new()
     {
         ["crew.noHero"] = "Тебя нет на борту",
+        ["crew.noDrone"] = "У тебя нет спутника",
+        ["crew.noAbility"] = "Спутник так не умеет",
+        ["crew.noForm"] = "У спутника нет такого света",
+        ["crew.tired"] = "Ядру спутника не хватает заряда",
         ["look.title"] = "Твоя внешность",
         ["look.skin"] = "Кожа",
         ["look.hair"] = "Причёска",
