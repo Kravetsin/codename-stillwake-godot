@@ -1,5 +1,11 @@
 # Design: the drone's abilities, its core charge and its first gun form
 
+> **Postponed, 2026-11-27.** Steps 1–3 were built and played on `feat/drone-abilities`, never shipped. The nail form played as
+> "a nailer fired from another place": no power, the nailer's sound and speed. The user doubts the drone should become a gun
+> at all. Of the directions offered, they liked the drone winding its threads into the weapon in hand, Incarnon-like, but it
+> leaves open how a player learns which weapons it works on, and that it is not every weapon. The combat form waits for a new
+> design. The charge, the wheel and the form's sim path are kept on the branch for it.
+
 ## Problem
 
 The drone has two modes and one active, the throw, which only works with a weapon in hand. It has no ranged attack, and
