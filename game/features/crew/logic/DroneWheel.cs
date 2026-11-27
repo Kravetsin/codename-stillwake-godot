@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>What the drone does on the right button (drone-abilities): the throw, or a gun form it has learned.</summary>
-public enum DroneActive { Throw, Nails }
+public enum DroneActive { Throw }
 
 /// <summary>The drone wheel's two sides (drone-abilities): what the right button does, and what the drone does meanwhile.</summary>
 public enum DroneBranch { Actives, Modes }
@@ -60,20 +60,13 @@ public sealed class DroneWheel
     /// <summary>Whether <paramref name="side"/> is what is chosen now: its branch's mode or active.</summary>
     public bool Chosen(DroneSide side) => side.Mode is { } mode ? mode == Mode : side.Active == Active;
 
-    /// <summary>The drone's gun form <paramref name="active"/> is, its form's id too; none for the throw.</summary>
-    public static Content.Gun? GunOf(DroneActive active) => active == DroneActive.Nails ? Content.Shots.DroneNailer : null;
-
     /// <summary>A side's thread icon (thread-icons).</summary>
-    public static Shared.IconLines IconOf(DroneSide side) =>
-        side.Mode is { } mode ? DroneModes.IconOf(mode) : side.Active == DroneActive.Nails ? NailsIcon : ThrowIcon;
+    public static Shared.IconLines IconOf(DroneSide side) => side.Mode is { } mode ? DroneModes.IconOf(mode) : ThrowIcon;
 
     // The wheel's own icons: stand-ins drawn here, in the thread icons' box -1..1, y down, until a pick exports them with the rest.
 
     /// <summary>The throw: an arc flung out from the hand, its head an arrow.</summary>
     public static readonly Shared.IconLines ThrowIcon = Of(Arc(-0.75f, 0.7f, -0.55f, -0.95f, 0.8f, -0.45f, 14), Arrow(-0.55f, -0.95f, 0.8f, -0.45f), Ring(-0.75f, 0.7f, 0.16f, 12));
-
-    /// <summary>The nail form: three nails, heads back, flying the same way.</summary>
-    public static readonly Shared.IconLines NailsIcon = Of(Nail(-0.8f, -0.35f), Nail(-0.62f, 0.1f), Nail(-0.8f, 0.55f));
 
     /// <summary>The right button, held open on the wheel to switch its branches: a mouse, its right button struck through.</summary>
     public static readonly Shared.IconLines RightButton = Of(Ring(0, 0, 0.58f, 0.92f, 24), [-0.58f, -0.12f, 0.58f, -0.12f], [0, -0.92f, 0, -0.12f],
@@ -90,8 +83,6 @@ public sealed class DroneWheel
         }
         return new Shared.IconLines(parts, [.. one], [.. bridges]);
     }
-
-    private static float[] Nail(float x, float y) => [x, y - 0.16f, x, y + 0.16f, x, y, x + 1.45f, y, x + 1.6f, y];
 
     private static float[] Arc(float ax, float ay, float cx, float cy, float bx, float by, int steps)
     {

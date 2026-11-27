@@ -39,33 +39,29 @@ public partial class HeroView
     /// with its cooldown out, heard rising, pinged full, its coils lit as it fills (<see cref="Figure.Charge"/>); a belt that cannot
     /// pay its charge clicks dry, as no ammo does. Out in space a shot kicks the hero back along the barrel by its gun's
     /// <c>Recoil</c>, on the ground shoves it (<see cref="Hero.Kicked"/>), and the body answers it (<see cref="Figure.Recoiled"/>, body-answers).
-    /// A drone's gun form fires <paramref name="from"/> its lens toward the pointer instead (drone-abilities); a core that cannot pay clicks dry.
     /// </summary>
-    private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, bool held, bool hosts, double elapsedMs,
-        (Vector2 At, Vector2 Way)? from = null)
+    private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, bool held, bool hosts, double elapsedMs)
     {
         _guns.Flies = ShotDraws.FliesOwn(hosts);
         (int X, int Y)? muzzle = null;
         int heading = 0;
         Content.Projectile? ammo = null;
         bool flat = false;
-        var barrel = from?.Way ?? _figure.Barrel;
-        if (wields && gun != null && (from?.At ?? _figure.Muzzle) is { } at)
+        if (wields && gun != null && _figure.Muzzle is { } at)
         {
             var (x, y) = Thousandths(at);
-            var leaves = new Point((int)x, (int)y);
-            heading = Aiming.HeadingOf(leaves, new Point(leaves.X + (int)(barrel.X * Hero.Unit), leaves.Y + (int)(barrel.Y * Hero.Unit)));
-            string? problem = m.Creatures.FireProblem(client.Id, gun.Item, leaves.X, leaves.Y);
+            var from = new Point((int)x, (int)y);
+            heading = Aiming.HeadingOf(from, new Point(from.X + (int)(_figure.Barrel.X * Hero.Unit), from.Y + (int)(_figure.Barrel.Y * Hero.Unit)));
+            string? problem = m.Creatures.FireProblem(client.Id, gun.Item, from.X, from.Y);
             flat = problem == "items.flat";
-            bool dry = problem is "items.flat" or "creatures.noCharge";
-            if (problem is null or "items.notEnough" || dry)
-                (muzzle, ammo) = ((leaves.X, leaves.Y), dry ? null : m.Creatures.AmmoOf(client.Id, gun));
+            if (problem is null or "items.notEnough" or "items.flat")
+                (muzzle, ammo) = ((from.X, from.Y), problem == "items.flat" ? null : m.Creatures.AmmoOf(client.Id, gun));
         }
         var step = _guns.Step(elapsedMs, clicked && wields, wields ? gun : null, muzzle, heading, ammo, held && wields);
         if (step.Fire is { } fire)
         {
             client.Send(fire);
-            if (gun != null && _ship != null && from == null)
+            if (gun != null && _ship != null)
             {
                 _current = _current.Kicked(Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil), Mathf.RoundToInt(-_figure.Barrel.Y * gun.Recoil), _ship,
                     Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil * BodyAnswers.Shove));
@@ -73,7 +69,7 @@ public partial class HeroView
             }
             bool thrown = fire.Tool == Content.Shots.Thrown.Item;
             (thrown ? _chargeThrow : fire.Tool == Content.Shots.Railgun.Item ? _railShot : _nailShot).Play();
-            if (!thrown && from == null) Puff(_figure);
+            if (!thrown) Puff(_figure);
             if (fire.Tool == Content.Shots.Railgun.Item) ShotGust(m);
         }
         if (step.Dry)

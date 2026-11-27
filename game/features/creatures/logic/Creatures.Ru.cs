@@ -11,8 +11,5 @@ public static partial class Ru
         ["creatures.blocked"] = "Там ему нет места",
         ["creatures.noPiece"] = "Там нет обломка, чтобы вцепиться",
         ["creatures.noGun"] = "Нечем стрелять",
-        ["creatures.noForm"] = "Дрон не знает такой формы",
-        ["creatures.out"] = "Без сознания",
-        ["creatures.noCharge"] = "Ядро дрона не заполнено",
     };
 }

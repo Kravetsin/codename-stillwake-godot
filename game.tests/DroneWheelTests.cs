@@ -24,13 +24,6 @@ public class DroneWheelTests
         d.Switch();
         Assert.Equal(DroneBranch.Actives, d.Branch);
         Assert.Equal([DroneSide.Of(DroneActive.Throw)], d.SidesOf(None));
-        Assert.Equal([DroneSide.Of(DroneActive.Throw), DroneSide.Of(DroneActive.Nails)], d.SidesOf(_ => true));
-        d.Pick(DroneSide.Of(DroneActive.Nails));
-        d.SidesOf(_ => true);
-        Assert.Equal(DroneActive.Nails, d.Active);
-        // A form no longer known falls back to the throw.
-        d.SidesOf(None);
-        Assert.Equal(DroneActive.Throw, d.Active);
         d.Switch();
         Assert.Equal(DroneBranch.Modes, d.Branch);
     }
@@ -64,7 +57,7 @@ public class DroneWheelTests
     [Fact]
     public void TheWheelsIconsAreWithinTheirBox()
     {
-        foreach (var icon in new[] { DroneWheel.ThrowIcon, DroneWheel.NailsIcon, DroneWheel.RightButton })
+        foreach (var icon in new[] { DroneWheel.ThrowIcon, DroneWheel.RightButton })
             foreach (var step in icon.One.Steps)
                 Assert.True(System.Math.Abs(step.Ax) <= 1 && System.Math.Abs(step.Ay) <= 1 && System.Math.Abs(step.Bx) <= 1 && System.Math.Abs(step.By) <= 1);
     }

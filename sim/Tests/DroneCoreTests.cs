@@ -11,7 +11,7 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// The drone's core (drone-abilities): a paired hero's loot fills its charge by the loot's worth, up to a full core, beside the catcher
-/// meter, in creative mode too; nothing unpaired or passed out. It is the player's, kept through death and leaving.
+/// meter; nothing unpaired, in creative mode or passed out. It is the player's, kept through death and leaving.
 /// </summary>
 public class DroneCoreTests
 {
@@ -62,18 +62,18 @@ public class DroneCoreTests
     }
 
     [Fact]
-    public void NothingFillsUnpairedOrPassedOutAndCreativeModeFillsTheCoreButNoCatcherMeter()
+    public void NothingFillsUnpairedInCreativeModeOrPassedOut()
     {
         var w = Aboard();
         w.M.Crew.Loot(1, [("scrapChunk", 1)]);
         Assert.Equal(0, w.M.Players.ChargeOf(1));
+        w.Do(new SetCreative(true) { From = 0 }).Run();
+        w.M.Crew.Loot(0, [("scrapChunk", 1)]);
+        Assert.Equal(0, w.M.Players.ChargeOf(0));
+        w.Do(new SetCreative(false) { From = 0 }).Run();
         w.M.Crew.HeroOf(0)!.Out = 1000;
         w.M.Crew.Loot(0, [("scrapChunk", 1)]);
         Assert.Equal(0, w.M.Players.ChargeOf(0));
-        w.M.Crew.HeroOf(0)!.Out = 0;
-        w.Do(new SetCreative(true) { From = 0 }).Run();
-        w.M.Crew.Loot(0, [("scrapChunk", 1)]);
-        Assert.Equal((Worth("scrapChunk"), 0), (w.M.Players.ChargeOf(0), w.M.Crew.HeroOf(0)!.Wanted));
     }
 
     [Fact]

@@ -11,8 +11,5 @@ public static partial class En
         ["creatures.blocked"] = "No room for it there",
         ["creatures.noPiece"] = "No wreck there to cling to",
         ["creatures.noGun"] = "No gun to fire",
-        ["creatures.noForm"] = "The drone has no such form",
-        ["creatures.out"] = "Passed out",
-        ["creatures.noCharge"] = "The drone's core is not full",
     };
 }

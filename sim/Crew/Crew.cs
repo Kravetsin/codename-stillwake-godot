@@ -702,13 +702,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Loot(int peer, IReadOnlyList<(string Item, int Count)> yield)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero) return;
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer)) return;
         long worth = 0;
         foreach (var (item, count) in yield) worth += (long)Content.Market.WorthOf(item) * count;
         if (worth <= 0) return;
-        // No catcher hunts a hero in creative mode; its drone's core fills and drains there as anywhere, so it can be tried (drone-abilities).
-        if (!_items.Creative(peer)) Fill(hero, worth);
-        // Beside the catcher meter, not in it: that stops once full, the drone's core does not.
+        Fill(hero, worth);
+        // Beside the catcher meter, not in it: that stops once full, the drone's core does not (drone-abilities).
         _playersOps.Charge(peer, worth);
     }
 
