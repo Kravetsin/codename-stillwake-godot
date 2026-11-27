@@ -175,7 +175,7 @@ Client-authoritative (0002).
 ## Others
 
 - Sent (`SentHero`) each 50 ms moving, 1 s still, at once on a rod's change (0002, 0065); hands by `Busy` (0037).
-- Drawn 150 ms behind (0013), walking 100 ms on, hidden 3 s quiet; only those here (0076). Tools strike
+- Drawn 150 ms behind (0013), walking 100 ms on, hidden 3 s quiet; those here (0076). Tools strike
   per hit heard (0038); rods, drills, drivers as told (0065, 0055).
 
 ## The hands
@@ -183,7 +183,7 @@ Client-authoritative (0002).
 - **Held item shows** (`HeldLook`); plans, motors twist (`Twist`, `Driven`).
 - **Aimed in use** (aim-on-use): up, `LingerMs` after, at the pointer; shots, hits wait.
 - **Left** (0107, 0108): screwdriver works plans, repairs; plan, wiring, lays cables.
-- **Right, a throw** (companion-fights): `WeaponThrow` hits, the drone hauls; caught in hand.
+- **Right, a throw** (companion-fights): `WeaponThrow` hits, hauled, caught; `Cast`, tired a click (drone-abilities).
 - **One aim** (`Aiming.AimAt`): plan (back walls first), machine (0099), tank, door, valve, wreck, else nearest small
   piece; outlined, `UsePrompt` why; plan in hand, E idle; armed, small ones.
 - **Hits are rays** (tool-reach, hits-pass-wrecks): a fan (`ToolRays`) to walls, through wrecks; **sparks** the haze's
@@ -194,11 +194,10 @@ Client-authoritative (0002).
 - **Power driver** (driver-at-work, driver-order): charged, a 2×2 `WorkedSquare`; RMB toggles (mode-glyph).
 - **Gestures** (gestures-for-words): H points, pings (crew-pings), held a wheel, the drone signs. **Drone**
   (light-drone, drone-threads, drone-lessons): E on the core pairs (drone-companion, drone-meeting); F next form, held a wheel
-  (thread-icons), RMB its branch (drone-abilities); window corners, flurry (drone-windows); in its player's colour (drone-colour); springs after it,
+  (thread-icons), RMB its branch, beads (drone-abilities); windows (drone-windows); its player's colour (drone-colour); springs after it,
   perches, shines in open air, hidden from the head (drone-spring); flown one way, tugs (drone-tow); warns (drone-motion), feels
-  (drone-thoughts); a lesson in a vision (form-vision).
-- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges** (0092, 0112): grab, climb, slide, leap,
-  mantle; hatches too.
+  (drone-thoughts); lessons in visions (form-vision).
+- **Seated** (`Seating`): no tool; E leaves. **Ladders, ledges, hatches** (0092, 0112): grab, climb, slide, leap, mantle.
 
 ## Deliberately not handled
 
